@@ -1,0 +1,145 @@
+
+{
+  "residents": [
+    {
+      "id": "res-001",
+      "householdId": "hh-001",
+      "photoUrl": "https://i.pravatar.cc/150?img=1",
+      "lastName": "Dela Cruz",
+      "firstName": "Juan",
+      "middleName": "Ponce",
+      "suffix": "",
+      "dateOfBirth": "1985-04-23",
+      "gender": "Male",
+      "address": "123 Batia Proper, Batia, Bocaue, Bulacan",
+      "sitio": "Batia Proper",
+      "contactNumber": "09171234567",
+      "email": "juan.delacruz@example.com",
+      "occupation": "Software Engineer",
+      "education": "College Graduate",
+      "isVoter": true,
+      "isSenior": false,
+      "isPWD": false,
+      "is4Ps": false,
+      "dateRegistered": "2010-01-15"
+    },
+    {
+      "id": "res-002",
+      "householdId": "hh-001",
+      "photoUrl": "https://i.pravatar.cc/150?img=2",
+      "lastName": "Dela Cruz",
+      "firstName": "Maria",
+      "middleName": "Clara",
+      "suffix": "",
+      "dateOfBirth": "1987-08-15",
+      "gender": "Female",
+      "address": "123 Batia Proper, Batia, Bocaue, Bulacan",
+      "sitio": "Batia Proper",
+      "contactNumber": "09171234568",
+      "email": "maria.delacruz@example.com",
+      "occupation": "Housewife",
+      "education": "High School Graduate",
+      "isVoter": true,
+      "isSenior": false,
+      "isPWD": false,
+      "is4Ps": false,
+      "dateRegistered": "2010-01-15"
+    },
+    {
+      "id": "res-003",
+      "householdId": "hh-002",
+      "photoUrl": "https://i.pravatar.cc/150?img=3",
+      "lastName": "Santos",
+      "firstName": "Jose",
+      "middleName": "Rizal",
+      "suffix": "Jr.",
+      "dateOfBirth": "1992-11-30",
+      "gender": "Male",
+      "address": "456 Northville 5, Batia, Bocaue, Bulacan",
+      "sitio": "NORTHVILLE 5",
+      "contactNumber": "09287654321",
+      "email": "jose.santos@example.com",
+      "occupation": "Construction Worker",
+      "education": "High School Level",
+      "isVoter": false,
+      "isSenior": false,
+      "isPWD": false,
+      "is4Ps": true,
+      "dateRegistered": "2018-03-20"
+    },
+    {
+      "id": "res-004",
+      "householdId": "hh-003",
+      "photoUrl": "https://i.pravatar.cc/150?img=4",
+      "lastName": "Reyes",
+      "firstName": "Elena",
+      "middleName": "Garcia",
+      "suffix": "",
+      "dateOfBirth": "1955-02-10",
+      "gender": "Female",
+      "address": "789 St. Martha, Batia, Bocaue, Bulacan",
+      "sitio": "ST. MARTHA",
+      "contactNumber": "09159876543",
+      "email": "elena.reyes@example.com",
+      "occupation": "Sari-sari Store Owner",
+      "education": "Elementary Graduate",
+      "isVoter": true,
+      "isSenior": true,
+      "isPWD": false,
+      "is4Ps": false,
+      "dateRegistered": "2005-07-11"
+    }
+  ],
+  "households": [
+    {
+      "id": "hh-001",
+      "headOfFamilyId": "res-001",
+      "address": "123 Batia Proper, Batia, Bocaue, Bulacan",
+      "sitio": "Batia Proper",
+      "members": ["res-001", "res-002"]
+    },
+    {
+      "id": "hh-002",
+      "headOfFamilyId": "res-003",
+      "address": "456 Northville 5, Batia, Bocaue, Bulacan",
+      "sitio": "NORTHVILLE 5",
+      "members": ["res-003"]
+    },
+    {
+      "id": "hh-003",
+      "headOfFamilyId": "res-004",
+      "address": "789 St. Martha, Batia, Bocaue, Bulacan",
+      "sitio": "ST. MARTHA",
+      "members": ["res-004"]
+    }
+  ],
+  "blotter": [
+    {
+      "id": "blot-001",
+      "caseNumber": "B-2024-001",
+      "complainantId": "res-001",
+      "respondentId": "res-003",
+      "statement": "Verbal altercation regarding property line.",
+      "status": "Settled",
+      "dateFiled": "2024-01-10"
+    },
+    {
+      "id": "blot-002",
+      "caseNumber": "B-2024-002",
+      "complainantId": "res-004",
+      "respondentId": null,
+      "statement": "Theft of store goods. Suspect is unknown.",
+      "status": "Active/Under Investigation",
+      "dateFiled": "2024-05-22"
+    },
+    {
+        "id": "blot-003",
+        "caseNumber": "B-2024-003",
+        "complainantId": "res-003",
+        "respondentId": "res-001",
+        "statement": "Public disturbance, loud music late at night.",
+        "status": "Active/Summoned",
+        "dateFiled": "2024-06-15"
+    }
+  ]
+}
