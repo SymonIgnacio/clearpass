@@ -24,53 +24,90 @@ import {
   generateBirthCertificate
 } from '../utils/pdfGenerator';
 
-const CertificateForm = ({ open, handleClose, certificateType, formData, setFormData }) => {
+const CertificateForm = ({ open, handleClose, certificate, formData, setFormData }) => {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     const barangayName = "[Your Barangay Name]"; // Replace with your actual barangay name
     const captainName = "[Your Captain's Name]"; // Replace with your captain's name
 
-    switch (certificateType) {
-      case 'Barangay Indigency':
-        generateIndigencyCertificate(formData, barangayName, captainName);
-        break;
-      case 'Barangay Residency':
-        generateResidencyCertificate(formData, barangayName, captainName);
-        break;
-      case 'Barangay Certification':
-        generateBarangayCertification(formData, barangayName, captainName);
-        break;
-      case 'Barangay Clearance':
-        generateBarangayClearance(formData, barangayName, captainName);
-        break;
-      case 'Business Clearance':
-        generateBusinessClearance(formData, barangayName, captainName);
-        break;
-      case 'Oath of Undertaking':
-        generateOathOfUndertaking(formData, barangayName, captainName);
-        break;
-      case 'Good Moral':
-        generateGoodMoral(formData, barangayName, captainName);
-        break;
-      case 'Low Income Certificate':
-        generateLowIncomeCertificate(formData, barangayName, captainName);
-        break;
-      case 'Birth Certificate':
-        generateBirthCertificate(formData, barangayName, captainName);
-        break;
-      default:
-        console.error("Unknown certificate type");
+    // 1. Construct the payload for the backend
+    const payload = {
+      resident_id: 1, // Hardcoded for now, should come from resident selection
+      certificate_type_id: certificate.id,
+      purpose: formData.purpose || `Request for ${certificate.name}`,
+      data: formData,
+      issued_by: 1, // Hardcoded for now, should come from logged-in user
+      status: 'approved', // Default status
+      fee_paid: certificate.fee
+    };
+
+    try {
+      // 2. Send data to the backend
+      const response = await fetch('http://localhost:3001/api/certificates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create certificate record');
+      }
+
+      const newCertificateRecord = await response.json();
+      console.log('Certificate record created:', newCertificateRecord);
+
+      // 3. Generate the PDF locally
+      switch (certificate.name) {
+        case 'Barangay Indigency':
+          generateIndigencyCertificate(formData, barangayName, captainName);
+          break;
+        case 'Barangay Residency':
+          generateResidencyCertificate(formData, barangayName, captainName);
+          break;
+        case 'Barangay Certification':
+          generateBarangayCertification(formData, barangayName, captainName);
+          break;
+        case 'Barangay Clearance':
+          generateBarangayClearance(formData, barangayName, captainName);
+          break;
+        case 'Business Clearance':
+          generateBusinessClearance(formData, barangayName, captainName);
+          break;
+        case 'Oath of Undertaking':
+          generateOathOfUndertaking(formData, barangayName, captainName);
+          break;
+        case 'Good Moral':
+          generateGoodMoral(formData, barangayName, captainName);
+          break;
+        case 'Low Income Certificate':
+          generateLowIncomeCertificate(formData, barangayName, captainName);
+          break;
+        case 'Birth Certificate':
+          generateBirthCertificate(formData, barangayName, captainName);
+          break;
+        default:
+          console.error("Unknown certificate type");
+      }
+      
+      handleClose();
+
+    } catch (error) {
+      console.error('Error during certificate generation:', error);
+      // Optionally, show an error message to the user
     }
-    handleClose();
   };
 
   const renderFormFields = () => {
-    switch (certificateType) {
+    if (!certificate || !certificate.name) return null;
+
+    switch (certificate.name) {
       case 'Barangay Indigency':
         return (
           <>
@@ -166,7 +203,7 @@ const CertificateForm = ({ open, handleClose, certificateType, formData, setForm
 
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle>Generate {certificateType}</DialogTitle>
+      <DialogTitle>Generate {certificate.name}</DialogTitle>
       <DialogContent>
         {renderFormFields()}
       </DialogContent>
