@@ -1,0 +1,184 @@
+{
+  "intents": [
+    {
+      "name": "certificate_requirements",
+      "keywords": ["requirements", "needed", "documents", "clearance", "certificate", "papers"],
+      "examples": [
+        "What do I need for barangay clearance?",
+        "What documents are required?",
+        "How to get clearance?",
+        "What papers do I bring?"
+      ],
+      "category": "certificates",
+      "priority": "high"
+    },
+    {
+      "name": "certificate_processing",
+      "keywords": ["processing", "time", "waiting", "how long", "when ready", "duration"],
+      "examples": [
+        "How long does it take?",
+        "When will it be ready?",
+        "Processing time for clearance",
+        "How many days?"
+      ],
+      "category": "certificates",
+      "priority": "medium"
+    },
+    {
+      "name": "certificate_validity",
+      "keywords": ["valid", "validity", "expiration", "expire", "renew", "renewal"],
+      "examples": [
+        "How long is it valid?",
+        "When does it expire?",
+        "Do I need to renew?",
+        "Validity period"
+      ],
+      "category": "certificates",
+      "priority": "medium"
+    },
+    {
+      "name": "blotter_reporting",
+      "keywords": ["blotter", "report", "incident", "complaint", "file", "case"],
+      "examples": [
+        "How to report an incident?",
+        "I want to file a blotter",
+        "Someone complained about me",
+        "How to make a police report?"
+      ],
+      "category": "blotter",
+      "priority": "high"
+    },
+    {
+      "name": "blotter_process",
+      "keywords": ["investigation", "happens after", "what next", "mediation", "resolution"],
+      "examples": [
+        "What happens after filing?",
+        "How does the process work?",
+        "Will there be investigation?",
+        "How is it resolved?"
+      ],
+      "category": "blotter",
+      "priority": "medium"
+    },
+    {
+      "name": "identification",
+      "keywords": ["id", "identification", "card", "barangay id", "photo"],
+      "examples": [
+        "How to get barangay ID?",
+        "Do I need ID card?",
+        "What photos do I need?",
+        "ID requirements"
+      ],
+      "category": "identification",
+      "priority": "high"
+    },
+    {
+      "name": "office_hours",
+      "keywords": ["hours", "open", "schedule", "time", "office", "when"],
+      "examples": [
+        "What time is barangay open?",
+        "Office hours?",
+        "When can I go there?",
+        "Are you open on Saturday?"
+      ],
+      "category": "general",
+      "priority": "high"
+    },
+    {
+      "name": "contact_information",
+      "keywords": ["contact", "phone", "email", "address", "location", "find"],
+      "examples": [
+        "How to contact barangay?",
+        "What's the phone number?",
+        "Where is barangay hall?",
+        "Email address?"
+      ],
+      "category": "general",
+      "priority": "high"
+    },
+    {
+      "name": "social_services",
+      "keywords": ["senior", "pwd", "disabled", "single parent", "assistance", "help", "benefits"],
+      "examples": [
+        "What help for seniors?",
+        "Benefits for PWD?",
+        "Assistance for single parents?",
+        "Social services available?"
+      ],
+      "category": "social_services",
+      "priority": "medium"
+    },
+    {
+      "name": "emergency_services",
+      "keywords": ["emergency", "police", "fire", "medical", "accident", "help"],
+      "examples": [
+        "Emergency contact?",
+        "Who to call in accident?",
+        "Fire emergency?",
+        "Medical emergency?"
+      ],
+      "category": "emergency",
+      "priority": "high"
+    },
+    {
+      "name": "community_events",
+      "keywords": ["events", "programs", "activities", "seminars", "festival", "sports"],
+      "examples": [
+        "What events are there?",
+        "Community programs?",
+        "Upcoming activities?",
+        "Health seminars?"
+      ],
+      "category": "community",
+      "priority": "low"
+    },
+    {
+      "name": "lost_documents",
+      "keywords": ["lost", "missing", "replacement", "duplicate", "affidavit"],
+      "examples": [
+        "I lost my clearance",
+        "How to replace lost document?",
+        "Missing barangay papers",
+        "Duplicate certificate"
+      ],
+      "category": "general",
+      "priority": "medium"
+    },
+    {
+      "name": "waste_management",
+      "keywords": ["waste", "garbage", "disposal", "collection", "trash", "recycling"],
+      "examples": [
+        "When is garbage collection?",
+        "How to dispose waste?",
+        "Collection schedule?",
+        "Recycling program?"
+      ],
+      "category": "utilities",
+      "priority": "medium"
+    },
+    {
+      "name": "greeting",
+      "keywords": ["hello", "hi", "good morning", "good afternoon", "help"],
+      "examples": [
+        "Hello",
+        "Hi there",
+        "Good morning",
+        "Can you help me?"
+      ],
+      "category": "general",
+      "priority": "low"
+    },
+    {
+      "name": "farewell",
+      "keywords": ["bye", "goodbye", "thank you", "thanks", "see you"],
+      "examples": [
+        "Thank you",
+        "Goodbye",
+        "Thanks for help",
+        "See you later"
+      ],
+      "category": "general",
+      "priority": "low"
+    }
+  ]
+}

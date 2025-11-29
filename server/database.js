@@ -1,11 +1,12 @@
 const mysql = require('mysql2/promise');
+require('dotenv').config();
 
 const dbConfig = {
-  host: 'localhost',
-  user: 'root',
-  password: '',
-  database: 'barangay_batia',
-  port: 3306
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'bmw_barangay_batia',
+  port: process.env.DB_PORT || 3306
 };
 
 async function getConnection() {
@@ -93,18 +94,26 @@ async function getCertificates() {
   }
 }
 
-// Check if resident has active blotter cases
+// Check if resident has active blotter cases (UPDATED for new status enum)
 async function checkBlotterStatus(residentId) {
   const connection = await getConnection();
   try {
     const [rows] = await connection.execute(`
-      SELECT COUNT(*) as active_cases 
+      SELECT 
+        COUNT(*) as active_cases,
+        GROUP_CONCAT(case_number SEPARATOR ', ') as case_numbers,
+        GROUP_CONCAT(incident_type SEPARATOR ', ') as incident_types
       FROM blotter_records 
       WHERE (complainant_id = ? OR respondent_id = ?) 
-      AND status = 'active' 
+      AND status IN ('Pending', 'Forwarded to Lupon')
       AND severity IN ('major', 'critical')
     `, [residentId, residentId]);
-    return rows[0].active_cases > 0;
+    return {
+      hasActiveCases: rows[0].active_cases > 0,
+      caseCount: rows[0].active_cases,
+      caseNumbers: rows[0].case_numbers,
+      incidentTypes: rows[0].incident_types
+    };
   } finally {
     await connection.end();
   }
@@ -116,7 +125,7 @@ async function getDashboardStats() {
   try {
     const [residents] = await connection.execute('SELECT COUNT(*) as total FROM residents WHERE is_active = TRUE');
     const [certificates] = await connection.execute('SELECT COUNT(*) as total FROM certificates WHERE status = "approved"');
-    const [activeBlotters] = await connection.execute('SELECT COUNT(*) as total FROM blotter_records WHERE status = "active"');
+    const [activeBlotters] = await connection.execute('SELECT COUNT(*) as total FROM blotter_records WHERE status IN ("Pending", "Forwarded to Lupon")');
     const [sitios] = await connection.execute('SELECT COUNT(*) as total FROM sitios');
     
     return {
@@ -148,6 +157,8 @@ async function createCertificate(certificateData) {
     const certificate_number = `CERT-${Date.now()}`;
     const issue_date = new Date();
 
+    const blotter_check_date = new Date();
+
     const [result] = await connection.execute(`
       INSERT INTO certificates (
         certificate_number,
@@ -158,8 +169,9 @@ async function createCertificate(certificateData) {
         issued_by,
         status,
         issue_date,
-        fee_paid
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        fee_paid,
+        blotter_check_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       certificate_number,
       resident_id,
@@ -169,11 +181,170 @@ async function createCertificate(certificateData) {
       issued_by,
       status,
       issue_date,
-      fee_paid
+      fee_paid,
+      blotter_check_date
     ]);
 
     const [rows] = await connection.execute('SELECT * FROM certificates WHERE id = ?', [result.insertId]);
     return rows[0];
+  } finally {
+    await connection.end();
+  }
+}
+
+// Create a new blotter record
+async function createBlotterRecord(blotterData) {
+  const connection = await getConnection();
+  try {
+    const {
+      complainant_id,
+      respondent_id,
+      respondent_name,
+      incident_type,
+      incident_date,
+      incident_time,
+      location,
+      sitio_id,
+      description,
+      status,
+      severity,
+      recorded_by
+    } = blotterData;
+
+    // Generate unique case number
+    const case_number = `BLT-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+
+    const [result] = await connection.execute(`
+      INSERT INTO blotter_records (
+        case_number, complainant_id, respondent_id, respondent_name,
+        incident_type, incident_date, incident_time, location, sitio_id,
+        description, status, severity, recorded_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      case_number, complainant_id, respondent_id, respondent_name,
+      incident_type, incident_date, incident_time, location, sitio_id,
+      description, status, severity, recorded_by
+    ]);
+
+    const [rows] = await connection.execute('SELECT * FROM blotter_records WHERE id = ?', [result.insertId]);
+    return rows[0];
+  } finally {
+    await connection.end();
+  }
+}
+
+// Update blotter record
+async function updateBlotterRecord(id, updates) {
+  const connection = await getConnection();
+  try {
+    const allowedFields = ['status', 'resolution', 'resolved_date', 'resolved_by', 'incident_type', 'description', 'severity'];
+    const updateFields = [];
+    const values = [];
+
+    Object.keys(updates).forEach(key => {
+      if (allowedFields.includes(key)) {
+        updateFields.push(`${key} = ?`);
+        values.push(updates[key]);
+      }
+    });
+
+    if (updateFields.length === 0) {
+      throw new Error('No valid fields to update');
+    }
+
+    values.push(id);
+    await connection.execute(
+      `UPDATE blotter_records SET ${updateFields.join(', ')} WHERE id = ?`,
+      values
+    );
+
+    const [rows] = await connection.execute('SELECT * FROM blotter_records WHERE id = ?', [id]);
+    return rows[0];
+  } finally {
+    await connection.end();
+  }
+}
+
+// Delete blotter record
+async function deleteBlotterRecord(id) {
+  const connection = await getConnection();
+  try {
+    await connection.execute('DELETE FROM blotter_records WHERE id = ?', [id]);
+    return { success: true, message: 'Blotter record deleted' };
+  } finally {
+    await connection.end();
+  }
+}
+
+// Get census statistics by sitio
+async function getCensusStatistics() {
+  const connection = await getConnection();
+  try {
+    const [stats] = await connection.execute(`
+      SELECT 
+        s.id as sitio_id,
+        s.name as sitio_name,
+        COUNT(r.id) as total_residents,
+        SUM(CASE WHEN r.gender = 'Male' THEN 1 ELSE 0 END) as total_men,
+        SUM(CASE WHEN r.gender = 'Female' THEN 1 ELSE 0 END) as total_women,
+        SUM(CASE WHEN r.is_senior = TRUE THEN 1 ELSE 0 END) as total_seniors,
+        SUM(CASE WHEN r.is_pwd = TRUE THEN 1 ELSE 0 END) as total_pwds,
+        SUM(CASE WHEN r.is_single_parent = TRUE THEN 1 ELSE 0 END) as total_single_parents,
+        SUM(CASE WHEN r.is_4ps = TRUE THEN 1 ELSE 0 END) as total_4ps,
+        SUM(CASE WHEN r.is_voter = TRUE THEN 1 ELSE 0 END) as total_voters
+      FROM sitios s
+      LEFT JOIN residents r ON s.id = r.sitio_id AND r.is_active = TRUE
+      GROUP BY s.id, s.name
+      ORDER BY s.name
+    `);
+    
+    // Get overall totals
+    const [totals] = await connection.execute(`
+      SELECT 
+        COUNT(*) as total_residents,
+        SUM(CASE WHEN gender = 'Male' THEN 1 ELSE 0 END) as total_men,
+        SUM(CASE WHEN gender = 'Female' THEN 1 ELSE 0 END) as total_women,
+        SUM(CASE WHEN is_senior = TRUE THEN 1 ELSE 0 END) as total_seniors,
+        SUM(CASE WHEN is_pwd = TRUE THEN 1 ELSE 0 END) as total_pwds,
+        SUM(CASE WHEN is_single_parent = TRUE THEN 1 ELSE 0 END) as total_single_parents,
+        SUM(CASE WHEN is_4ps = TRUE THEN 1 ELSE 0 END) as total_4ps,
+        SUM(CASE WHEN is_voter = TRUE THEN 1 ELSE 0 END) as total_voters
+      FROM residents 
+      WHERE is_active = TRUE
+    `);
+
+    return {
+      bySitio: stats,
+      overall: totals[0]
+    };
+  } finally {
+    await connection.end();
+  }
+}
+
+// Get census statistics for specific sitio
+async function getSitioCensus(sitioId) {
+  const connection = await getConnection();
+  try {
+    const [stats] = await connection.execute(`
+      SELECT 
+        s.id as sitio_id,
+        s.name as sitio_name,
+        COUNT(r.id) as total_residents,
+        SUM(CASE WHEN r.gender = 'Male' THEN 1 ELSE 0 END) as total_men,
+        SUM(CASE WHEN r.gender = 'Female' THEN 1 ELSE 0 END) as total_women,
+        SUM(CASE WHEN r.is_senior = TRUE THEN 1 ELSE 0 END) as total_seniors,
+        SUM(CASE WHEN r.is_pwd = TRUE THEN 1 ELSE 0 END) as total_pwds,
+        SUM(CASE WHEN r.is_single_parent = TRUE THEN 1 ELSE 0 END) as total_single_parents,
+        SUM(CASE WHEN r.is_4ps = TRUE THEN 1 ELSE 0 END) as total_4ps,
+        SUM(CASE WHEN r.is_voter = TRUE THEN 1 ELSE 0 END) as total_voters
+      FROM sitios s
+      LEFT JOIN residents r ON s.id = r.sitio_id AND r.is_active = TRUE
+      WHERE s.id = ?
+      GROUP BY s.id, s.name
+    `, [sitioId]);
+
+    return stats[0] || null;
   } finally {
     await connection.end();
   }
@@ -186,5 +357,10 @@ module.exports = {
   getCertificates,
   checkBlotterStatus,
   getDashboardStats,
-  createCertificate
+  createCertificate,
+  createBlotterRecord,
+  updateBlotterRecord,
+  deleteBlotterRecord,
+  getCensusStatistics,
+  getSitioCensus
 };

@@ -1,0 +1,156 @@
+{
+  "faqs": [
+    {
+      "id": "clearance_requirements",
+      "question": "What are the requirements for barangay clearance?",
+      "answer": "To get a Barangay Clearance, you need: 1) Valid ID (Government-issued), 2) Community Tax Certificate (Cedula), 3) Proof of residency (Utility bill or lease agreement), 4) Payment of ₱50 processing fee. Processing takes 1-2 business days.",
+      "keywords": ["clearance", "requirements", "documents", "cedula", "id", "fee"],
+      "category": "certificates",
+      "priority": "high"
+    },
+    {
+      "id": "clearance_validity",
+      "question": "How long is barangay clearance valid?",
+      "answer": "Barangay Clearance is valid for 365 days (1 year) from the date of issuance. You should renew it before expiration to avoid penalties or complications with other government transactions.",
+      "keywords": ["clearance", "validity", "expiration", "renewal", "valid"],
+      "category": "certificates",
+      "priority": "medium"
+    },
+    {
+      "id": "clearance_purpose",
+      "question": "What is barangay clearance used for?",
+      "answer": "Barangay Clearance is required for: Job applications, Business permits, Passport applications, Loan applications, SSS/GSIS transactions, School enrollment, and other government services requiring proof of good standing.",
+      "keywords": ["clearance", "purpose", "use", "needed", "requirements"],
+      "category": "certificates",
+      "priority": "medium"
+    },
+    {
+      "id": "residency_requirements",
+      "question": "What do I need for barangay residency certificate?",
+      "answer": "For Barangay Residency Certificate, you need: 1) Valid ID, 2) Proof of residency (3 months minimum), 3) ₱30 processing fee. This confirms your length of stay in the barangay.",
+      "keywords": ["residency", "certificate", "proof", "stay", "length"],
+      "category": "certificates",
+      "priority": "medium"
+    },
+    {
+      "id": "indigency_requirements",
+      "question": "How to get barangay indigency certificate?",
+      "answer": "Barangay Indigency Certificate is FREE for low-income residents. Requirements: 1) Valid ID, 2) Proof of income (below poverty line), 3) Barangay assessment. Used for medical assistance, scholarships, and social services.",
+      "keywords": ["indigency", "poor", "low-income", "free", "assistance"],
+      "category": "certificates",
+      "priority": "medium"
+    },
+    {
+      "id": "business_permit_requirements",
+      "question": "What are the requirements for barangay business permit?",
+      "answer": "For Business Permit, you need: 1) DTI/SEC Registration, 2) Mayor's Permit, 3) Barangay Clearance, 4) Location photos, 5) ₱100 processing fee. Required for legitimate business operations.",
+      "keywords": ["business", "permit", "dti", "mayor", "license"],
+      "category": "certificates",
+      "priority": "medium"
+    },
+    {
+      "id": "certificate_processing_time",
+      "question": "How long does it take to process certificates?",
+      "answer": "Processing times: Barangay Clearance (1-2 days), Residency Certificate (same day), Indigency Certificate (1-3 days), Business Permit (3-5 days). Rush processing available for additional fees.",
+      "keywords": ["processing", "time", "waiting", "rush", "fast"],
+      "category": "certificates",
+      "priority": "low"
+    },
+    {
+      "id": "blotter_report",
+      "question": "How do I report an incident to the barangay?",
+      "answer": "To report an incident: 1) Visit barangay hall during office hours, 2) Fill out blotter report form, 3) Provide witness information if available, 4) Barangay will investigate and mediate. All reports are confidential.",
+      "keywords": ["blotter", "report", "incident", "complaint", "investigation"],
+      "category": "blotter",
+      "priority": "high"
+    },
+    {
+      "id": "blotter_process",
+      "question": "What happens after I file a blotter report?",
+      "answer": "After filing: 1) Barangay assigns case number, 2) Initial investigation within 3 days, 3) Mediation session scheduled, 4) Resolution or escalation to higher authorities. Most cases resolved through mediation.",
+      "keywords": ["blotter", "process", "investigation", "mediation", "resolution"],
+      "category": "blotter",
+      "priority": "medium"
+    },
+    {
+      "id": "barangay_id_info",
+      "question": "How do I get a barangay ID?",
+      "answer": "For Barangay ID: 1) Must be registered resident (6 months+), 2) Bring 2x2 photo, 3) Valid ID for verification, 4) ₱20 processing fee. IDs are valid for 3 years and required for many local services.",
+      "keywords": ["id", "identification", "card", "photo", "registration"],
+      "category": "identification",
+      "priority": "high"
+    },
+    {
+      "id": "office_hours",
+      "question": "What are the barangay office hours?",
+      "answer": "Office Hours: Monday-Friday 8:00 AM - 5:00 PM, Saturday 8:00 AM - 12:00 PM. Closed on Sundays and holidays. Emergency services available 24/7 through barangay tanod hotlines.",
+      "keywords": ["hours", "office", "open", "schedule", "emergency"],
+      "category": "general",
+      "priority": "high"
+    },
+    {
+      "id": "contact_info",
+      "question": "How can I contact the barangay?",
+      "answer": "Contact Information: Phone (02) 123-4567, Email: barangay@batia.gov.ph, Facebook: Barangay Batia Official. Emergency Hotline: 0917-123-4567. Located at Barangay Hall, Poblacion, Batia.",
+      "keywords": ["contact", "phone", "email", "address", "hotline"],
+      "category": "general",
+      "priority": "high"
+    },
+    {
+      "id": "lost_documents",
+      "question": "What to do if I lost my barangay documents?",
+      "answer": "For lost documents: 1) File affidavit of loss, 2) Provide valid ID, 3) Pay ₱25 processing fee, 4) New document issued within 3-5 days. Always keep photocopies of important documents.",
+      "keywords": ["lost", "documents", "affidavit", "replacement", "photocopy"],
+      "category": "general",
+      "priority": "medium"
+    },
+    {
+      "id": "senior_citizen_benefits",
+      "question": "What benefits do senior citizens get from barangay?",
+      "answer": "Senior Citizen Benefits: 20% discount on medicines, Free medical check-ups, Priority service lines, Exemption from some fees, Monthly stipend assistance, Transportation subsidies, and special programs for active seniors.",
+      "keywords": ["senior", "citizen", "benefits", "discount", "assistance"],
+      "category": "social_services",
+      "priority": "medium"
+    },
+    {
+      "id": "pwd_assistance",
+      "question": "What assistance is available for PWDs?",
+      "answer": "PWD Assistance: Medical assistance, Mobility aid subsidies, Home modification grants, Job placement services, Educational scholarships, Transportation discounts, and special parking privileges.",
+      "keywords": ["pwd", "disabled", "assistance", "mobility", "grants"],
+      "category": "social_services",
+      "priority": "medium"
+    },
+    {
+      "id": "single_parent_help",
+      "question": "What help is available for single parents?",
+      "answer": "Single Parent Support: Financial assistance programs, Child care subsidies, Educational grants for children, Counseling services, Job training programs, Legal assistance, and emergency relief funds.",
+      "keywords": ["single", "parent", "help", "assistance", "children"],
+      "category": "social_services",
+      "priority": "medium"
+    },
+    {
+      "id": "community_events",
+      "question": "What community events does the barangay organize?",
+      "answer": "Community Events: Monthly health seminars, Clean-up drives, Sports tournaments, Cultural festivals, Senior citizen programs, Youth leadership camps, Disaster preparedness drills, and regular barangay assemblies.",
+      "keywords": ["events", "community", "programs", "activities", "seminars"],
+      "category": "community",
+      "priority": "low"
+    },
+    {
+      "id": "emergency_services",
+      "question": "What emergency services does the barangay provide?",
+      "answer": "Emergency Services: 24/7 barangay tanod patrol, Fire response coordination, Medical emergencies, Lost children assistance, Vehicle towing, Flood evacuation, and coordination with police/fire departments.",
+      "keywords": ["emergency", "services", "tanod", "police", "fire"],
+      "category": "emergency",
+      "priority": "high"
+    },
+    {
+      "id": "waste_disposal",
+      "question": "How does waste disposal work in the barangay?",
+      "answer": "Waste Disposal: Monday-Wednesday-Friday collection schedule, Segregate biodegradable and non-biodegradable waste, ₱50 quarterly fee, Special collection for bulky items, Eco-friendly disposal programs available.",
+      "keywords": ["waste", "garbage", "disposal", "collection", "segregation"],
+      "category": "utilities",
+      "priority": "medium"
+    }
+  ]
+}
