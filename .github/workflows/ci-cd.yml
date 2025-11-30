@@ -1,0 +1,186 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: barangay_management
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install root dependencies
+      run: npm ci
+
+    - name: Install client dependencies
+      run: |
+        cd client
+        npm ci
+
+    - name: Install server dependencies
+      run: |
+        cd server
+        npm ci
+
+    - name: Install test dependencies
+      run: |
+        cd tests
+        npm ci
+
+    - name: Install AI service dependencies
+      run: |
+        cd ai_service
+        pip install -r requirements.txt
+
+    - name: Setup database
+      run: |
+        mysql --host 127.0.0.1 --port 3306 -uroot -proot < database/schema.sql
+        mysql --host 127.0.0.1 --port 3306 -uroot -proot < database/insert_mock_data.js
+
+    - name: Run backend tests
+      run: |
+        cd server
+        npm test -- --coverage --watchAll=false
+      env:
+        DB_HOST: 127.0.0.1
+        DB_USER: root
+        DB_PASSWORD: root
+        DB_NAME: barangay_management
+
+    - name: Run AI service tests
+      run: |
+        cd ai_service
+        python -m pytest test_smart_suggestions.py -v --cov=. --cov-report=xml --cov-report=term
+
+    - name: Run existing integration tests
+      run: |
+        cd tests
+        npm test -- --coverage --watchAll=false
+      env:
+        AI_SERVICE_URL: http://localhost:5000
+        NODE_API_URL: http://localhost:3001/api
+
+    - name: Build client application
+      run: |
+        cd client
+        npm run build
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./server/coverage/lcov.info,./ai_service/coverage.xml,./tests/coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18.x
+        cache: 'npm'
+
+    - name: Install client dependencies
+      run: |
+        cd client
+        npm ci
+
+    - name: Run ESLint
+      run: |
+        cd client
+        npm run lint
+
+    - name: Check TypeScript (if applicable)
+      run: |
+        cd client
+        npx tsc --noEmit
+
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18.x
+
+    - name: Run npm audit
+      run: |
+        cd client && npm audit --audit-level high
+        cd ../server && npm audit --audit-level high
+        cd ../tests && npm audit --audit-level high
+
+    - name: Run security scan
+      uses: github/super-linter/slim@v5
+      env:
+        DEFAULT_BRANCH: main
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VALIDATE_ALL_CODEBASE: false
+        VALIDATE_JAVASCRIPT_ES: true
+        VALIDATE_PYTHON: true
+
+  deploy-staging:
+    needs: [test, lint, security]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        # Add your staging deployment commands here
+
+  deploy-production:
+    needs: [test, lint, security]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production environment..."
+        # Add your production deployment commands here

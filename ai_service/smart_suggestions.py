@@ -168,13 +168,22 @@ class AdvancedBarangayAI:
         if len(incomes) < 2:
             return 1.0
 
+        # Filter out invalid income values
+        valid_incomes = [inc for inc in incomes if inc is not None and inc >= 0]
+        if len(valid_incomes) < 2:
+            return 1.0
+
         # Calculate trend (simplified linear regression slope)
-        n = len(incomes)
+        n = len(valid_incomes)
         x = list(range(n))
-        y = incomes
+        y = valid_incomes
 
         slope = self.calculate_slope(x, y)
-        avg_income = sum(incomes) / len(incomes)
+        avg_income = sum(valid_incomes) / len(valid_incomes)
+
+        # Avoid division by zero
+        if avg_income == 0:
+            return 1.0
 
         # Normalize trend factor
         if slope < 0:  # Declining income = higher risk
@@ -290,7 +299,11 @@ class AdvancedBarangayAI:
         sum_xy = sum(xi * yi for xi, yi in zip(x, y))
         sum_xx = sum(xi * xi for xi in x)
 
-        slope = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x)
+        denominator = n * sum_xx - sum_x * sum_x
+        if denominator == 0:
+            return 0  # Avoid division by zero
+
+        slope = (n * sum_xy - sum_x * sum_y) / denominator
         return slope
 
     def advanced_predictive_policing(self, blotter_data, historical_patterns=None):

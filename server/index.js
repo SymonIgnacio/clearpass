@@ -3,17 +3,62 @@ const mysql = require('mysql2/promise');
 const cors = require('cors');
 const axios = require('axios');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+
+// Import monitoring system
+const {
+  register,
+  logger,
+  requestLogger,
+  monitorDatabaseQuery,
+  monitorAIService,
+  monitorCertificateIssuance,
+  errorHandler,
+  healthCheck
+} = require('./monitoring');
+
+// Import API documentation
+const { swaggerUi, swaggerSpec } = require('./swagger');
 
 const app = express();
 const port = process.env.SERVER_PORT || 3001;
+
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: {
+    error: 'Too many requests from this IP, please try again later.',
+    retryAfter: 15 * 60 * 1000
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Stricter rate limiting for sensitive endpoints
+const strictLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs for sensitive operations
+  message: {
+    error: 'Too many sensitive operations, please try again later.',
+    retryAfter: 15 * 60 * 1000
+  }
+});
 
 // Middleware
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Limit payload size
+app.use(requestLogger);
+
+// Apply rate limiting
+app.use('/api/certificates', strictLimiter); // Certificate operations are sensitive
+app.use('/api/residents', apiLimiter);
+app.use('/api/blotter', apiLimiter);
+app.use('/api/', apiLimiter);
 
 // Database connection
 const dbConfig = {
@@ -90,6 +135,21 @@ app.post('/api/residents', async (req, res) => {
       is_senior, is_pwd, is_single_parent, is_4ps, voter_status
     } = req.body;
 
+    // Input validation
+    if (!first_name || !last_name) {
+      return res.status(400).json({ error: 'First name and last name are required' });
+    }
+
+    if (!sitio_id || isNaN(sitio_id)) {
+      return res.status(400).json({ error: 'Valid sitio_id is required' });
+    }
+
+    // Verify sitio exists
+    const [sitioCheck] = await db.execute('SELECT id FROM sitios WHERE id = ?', [sitio_id]);
+    if (sitioCheck.length === 0) {
+      return res.status(400).json({ error: 'Invalid sitio_id - sitio does not exist' });
+    }
+
     const [result] = await db.execute(`
       INSERT INTO residents (
         first_name, last_name, middle_name, dob, age, gender, address, sitio_id,
@@ -99,7 +159,7 @@ app.post('/api/residents', async (req, res) => {
     `, [
       first_name, last_name, middle_name, dob, age, gender, address, sitio_id,
       mobile_number, employment_status, income_estimate,
-      is_senior, is_pwd, is_single_parent, is_4ps, voter_status
+      is_senior || false, is_pwd || false, is_single_parent || false, is_4ps || false, voter_status
     ]);
 
     res.status(201).json({ id: result.insertId, message: 'Resident created successfully' });
@@ -537,8 +597,31 @@ app.get('/api/certificates', async (req, res) => {
 
 // Issue new certificate
 app.post('/api/certificates', async (req, res) => {
+  const connection = await db.getConnection();
+
   try {
+    await connection.beginTransaction();
+
     const { resident_id, certificate_type_id, purpose, data, issued_by, status, fee_paid } = req.body;
+
+    // Enhanced input validation
+    if (!resident_id || isNaN(resident_id)) {
+      return res.status(400).json({ error: 'Valid resident_id is required' });
+    }
+
+    if (!certificate_type_id || isNaN(certificate_type_id)) {
+      return res.status(400).json({ error: 'Valid certificate_type_id is required' });
+    }
+
+    if (!purpose || purpose.trim().length === 0) {
+      return res.status(400).json({ error: 'Purpose is required' });
+    }
+
+    // Verify resident exists
+    const [residentCheck] = await connection.execute('SELECT id FROM residents WHERE id = ?', [resident_id]);
+    if (residentCheck.length === 0) {
+      return res.status(400).json({ error: 'Resident not found' });
+    }
 
     // Get certificate type name - Updated with all 9 types
     const certificateTypes = [
@@ -554,12 +637,16 @@ app.post('/api/certificates', async (req, res) => {
     ];
 
     const certType = certificateTypes.find(ct => ct.id === certificate_type_id);
-    const certificate_type = certType ? certType.name : 'Unknown Certificate';
+    if (!certType) {
+      return res.status(400).json({ error: 'Invalid certificate type' });
+    }
+
+    const certificate_type = certType.name;
 
     // CRITICAL BUSINESS RULE: Check blotter before issuing clearance or good moral certificates
     // As per survey requirements - block issuance for residents with active blotter cases
     if (certificate_type === 'Barangay Clearance' || certificate_type === 'Good Moral') {
-      const [blotterCheck] = await db.execute(`
+      const [blotterCheck] = await connection.execute(`
         SELECT COUNT(*) as active_cases,
                GROUP_CONCAT(case_number) as case_numbers,
                GROUP_CONCAT(incident_type) as incident_types
@@ -568,6 +655,7 @@ app.post('/api/certificates', async (req, res) => {
       `, [resident_id]);
 
       if (blotterCheck[0].active_cases > 0) {
+        await connection.rollback();
         return res.status(400).json({
           error: 'BLOCK ISSUANCE: Active blotter case found for this resident',
           details: {
@@ -580,20 +668,22 @@ app.post('/api/certificates', async (req, res) => {
       }
     }
 
-    // Generate certificate number
-    const controlNo = `CERT-${Date.now()}`;
+    // Generate certificate number with transaction safety
+    const controlNo = `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
-    const [result] = await db.execute(`
+    const [result] = await connection.execute(`
       INSERT INTO certificates_log (
         control_no, resident_id, certificate_type, purpose, data,
         date_issued, status, fee_paid, issued_by,
         signatory_captain, signatory_secretary
       ) VALUES (?, ?, ?, ?, ?, CURDATE(), ?, ?, ?, ?, ?)
     `, [
-      controlNo, resident_id, certificate_type, purpose, JSON.stringify(data || {}),
+      controlNo, resident_id, certificate_type, purpose.trim(), JSON.stringify(data || {}),
       status || 'approved', fee_paid || 0, issued_by || 1,
       'Captain Juan Dela Cruz', 'Secretary Maria Santos'
     ]);
+
+    await connection.commit();
 
     res.status(201).json({
       id: result.insertId,
@@ -601,8 +691,11 @@ app.post('/api/certificates', async (req, res) => {
       message: 'Certificate issued successfully'
     });
   } catch (error) {
+    await connection.rollback();
     console.error('Error issuing certificate:', error);
     res.status(500).json({ error: 'Failed to issue certificate' });
+  } finally {
+    connection.release();
   }
 });
 
@@ -1187,14 +1280,38 @@ app.post('/api/programs/:id/notify-participants', async (req, res) => {
   }
 });
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    service: 'Barangay Management API',
-    timestamp: new Date().toISOString()
-  });
+// Metrics endpoint for Prometheus
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+  } catch (error) {
+    res.status(500).end(error);
+  }
 });
+
+// Enhanced health check with monitoring
+app.get('/health', async (req, res) => {
+  try {
+    const { checks, isHealthy } = await healthCheck(db);
+    const statusCode = isHealthy ? 200 : 503;
+    res.status(statusCode).json(checks);
+  } catch (error) {
+    logger.error('Health check failed', { error: error.message });
+    res.status(503).json({
+      status: 'unhealthy',
+      service: 'Barangay Management API',
+      timestamp: new Date().toISOString(),
+      error: 'Health check failed'
+    });
+  }
+});
+
+// API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Add error handling middleware
+app.use(errorHandler);
 
 // Start server
 app.listen(port, () => {
