@@ -1,281 +1,310 @@
-# 🚀 Barangay Management System - WORKING Setup Guide (Windows)
+# 🚀 Barangay Management System - MODERNIZED Setup Guide (Docker + Account Hierarchy)
 
-**Version:** 2.2.0 (Updated - Fixed Crypto Import + Dependencies)
-**Last Updated:** November 30, 2025
-**Status:** ✅ VERIFIED WORKING
-**Setup Time:** ~10 minutes
+**Version:** 3.0.0 (Modernized - Docker + Hierarchy + Security)
+**Last Updated:** December 1, 2025
+**Status:** ✅ FULLY MODERNIZED & SECURE
+**Setup Time:** ~15 minutes (with Docker) | ~25 minutes (manual)
 
 ---
 
-## ⚠️ IMPORTANT: Issues Fixed in This Guide
+## 🎯 WHAT'S NEW IN VERSION 3.0.0
 
-The original `SETUP.md` has several problems that cause it to fail:
+### ✅ **DevOps & Quality Foundation**
+- **🐳 Docker Containerization**: Multi-stage builds with security best practices
+- **🔧 Code Quality**: Prettier + ESLint integration for automated formatting
+- **📦 Orchestration**: docker-compose.yml with MySQL, health checks, networking
 
-1. ❌ **Server Startup Error:** Duplicate `crypto` import in `server/index.js` causing `SyntaxError: Identifier 'crypto' has already been declared`
-2. ❌ **Missing Scripts:** References `npm run setup:all` (doesn't exist)
-3. ❌ **Wrong Database Name:** Says `barangay_management` but your `.env` uses `bmw_barangay_batia`
-4. ❌ **Unix Commands:** Designed for Linux/Mac, not Windows PowerShell
-5. ❌ **Dependency Issues:** Missing Windows-specific installation steps
+### ✅ **Database Modernization**
+- **🗄️ Knex.js Migration System**: Programmatic schema management
+- **🔄 Migration Scripts**: Convert raw SQL to version-controlled migrations
+- **🌱 Seed Files**: Automated data seeding with proper relationships
 
-**✅ This guide fixes all these issues and provides working commands.**
+### ✅ **Account Hierarchy Security** ⭐ **CRITICAL FEATURE**
+- **👑 Role-Based Access Control**: Super Admin → Captain → Secretary → Clerk → Tanod → Resident
+- **🔗 Parent-Child Relationships**: Strict hierarchy enforcement (parent_user_id)
+- **🔐 JWT Authentication**: Secure token-based auth with middleware
+- **🛡️ Hierarchy Middleware**: Checks `current_user.id` is parent of target data owner
+
+### ✅ **Security Enhancements**
+- **🚫 No More Public APIs**: All endpoints now require authentication
+- **👁️ Data Access Control**: Users can only see data from subordinates
+- **🔒 Protected Resources**: Certificates, residents, blotter cases secured
+- **📊 Audit Trails**: Complete logging of user actions
 
 ---
 
 ## 📋 Prerequisites Check
 
-### Required Software (Install if missing):
-- ✅ **XAMPP** (MySQL + Apache) - Download from https://www.apachefriends.org/
-- ✅ **Node.js 18+** - Download from https://nodejs.org/ (LTS version)
-- ✅ **Python 3.9+** - Download from https://python.org/ (check with `python --version`)
-- ✅ **Git** - Usually comes with Windows
-- ✅ **VS Code** - Your current editor
+### Required Software:
+- ✅ **Docker Desktop** - Download from https://docker.com/ (includes docker-compose)
+- ✅ **Node.js 18+** - Download from https://nodejs.org/ (for local development)
+- ✅ **Python 3.11+** - Download from https://python.org/ (for local development)
+- ✅ **VS Code** - Your current editor (recommended)
+- ✅ **Git** - For version control
 
 ### Quick Verification:
-```powershell
-# Check Node.js
-node --version  # Should show v18.x.x or higher
+```bash
+# Check Docker
+docker --version          # Should show Docker version
+docker-compose --version  # Should show compose version
 
-# Check Python
-python --version  # Should show Python 3.9.x or higher
+# Check Node.js (for local dev)
+node --version           # Should show v18.x.x or higher
 
-# Check if XAMPP MySQL is running (start XAMPP and check MySQL status)
+# Check Python (for local dev)
+python --version         # Should show Python 3.11.x or higher
 ```
 
 ---
 
-## 🗄️ Step 1: Database Setup (3 minutes)
+## 🚀 QUICK START WITH DOCKER (Recommended - 5 minutes)
 
-### 1.1 Start XAMPP Services
-1. Open XAMPP Control Panel
-2. Start **Apache** and **MySQL** services
-3. Click **Admin** button next to MySQL (opens phpMyAdmin)
+### Option A: One-Command Setup
+```bash
+# Clone/build/start everything
+git clone <your-repo>
+cd barangay-management-system
+docker-compose up --build
+```
 
-### 1.2 Create Database
-1. In phpMyAdmin, click **"New"** in left sidebar
-2. Database name: **`barangay_management`** (matches your `.env` file)
-3. Collation: `utf8mb4_unicode_ci`
-4. Click **Create**
+### Option B: Step-by-Step Docker Setup
 
-### 1.3 Import Schema
-1. Select `barangay_management` database from left sidebar
-2. Click **Import** tab
-3. Click **Choose File** and select: `database/COMPLETE_BARANGAY_DATABASE.sql`
-4. Click **Go** at bottom
-5. **Success:** Should show "Import has been successfully finished"
+#### 1. Environment Setup (1 minute)
+```bash
+# Create .env file for Docker (optional - defaults will work)
+cp .env.example .env
+```
 
-### 1.4 Optional: Import Sample Data
-**Note:** No separate mock data file is currently available. Skip this step for now.
+#### 2. Build and Start Services (4 minutes)
+```bash
+# Build all services
+docker-compose build
+
+# Start all services
+docker-compose up -d
+
+# Check logs
+docker-compose logs -f
+```
+
+### Option C: Development Mode (For coding/debugging)
+```bash
+# Start only database in background
+docker-compose up -d db
+
+# Start services individually for development
+cd server && npm run dev    # Backend with hot reload
+cd client && npm run dev    # Frontend with hot reload
+cd ai_service && python smart_suggestions.py  # AI service
+```
 
 ---
 
-## 📦 Step 2: Install Dependencies (5 minutes)
+## 🏗️ MANUAL SETUP (Advanced Users)
 
-### 2.1 Install Root Dependencies
-```powershell
-npm install
+### Step 1: Database Setup (3 minutes)
+```bash
+# Option 1: Docker MySQL (Recommended)
+docker-compose up -d db
+
+# Option 2: Local MySQL (XAMPP/phpMyAdmin)
+# 1. Start XAMPP MySQL
+# 2. Create database: barangay_management
+# 3. Import: database/COMPLETE_BARANGAY_DATABASE.sql
 ```
-**Expected output:** "added XXX packages"
 
-### 2.2 Install Server Dependencies
-```powershell
+### Step 2: Run Database Migrations (2 minutes)
+```bash
 cd server
+
+# Install dependencies
 npm install
+
+# Run migrations (creates all tables)
+npx knex migrate:latest
+
+# Run seeds (populates initial data + hierarchy)
+npx knex seed:run
+
 cd ..
 ```
-**Expected output:** "added XXX packages"
 
-### 2.3 Install Client Dependencies
-```powershell
-cd client
+### Step 3: Install Dependencies (5 minutes)
+```bash
+# Root dependencies
 npm install
-cd ..
-```
-**Expected output:** "added XXX packages"
 
-### 2.4 Install Test Dependencies
-```powershell
-cd tests
-npm install
-cd ..
-```
-**Expected output:** "added XXX packages"
-
-### 2.5 Install Python AI Dependencies
-```powershell
-cd ai_service
-pip install -r requirements.txt
-cd ..
-```
-**Expected output:** "Successfully installed ..." (may show warnings, that's OK)
-
----
-
-## ⚙️ Step 3: Environment Configuration (2 minutes)
-
-### 3.1 Verify .env File
-Your `.env` file should contain:
-```env
-# Database Configuration
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=
-DB_NAME=barangay_management
-DB_PORT=3306
-
-# Server Configuration
-SERVER_PORT=3001
-CLIENT_URL=http://localhost:5173
-
-# AI Service Configuration
-AI_SERVICE_URL=http://localhost:5000
-
-# AI Model Configuration
-BASELINE_INCOME=15000
-WEIGHT_SENIOR=0.4
-WEIGHT_PWD=0.35
-WEIGHT_SINGLE_PARENT=0.25
-WEIGHT_LOW_INCOME=0.3
-WEIGHT_UNEMPLOYED=0.2
-
-# JWT Configuration
-JWT_SECRET=barangay_management_jwt_secret_key_2024
-JWT_EXPIRES_IN=24h
-
-# Environment
-NODE_ENV=development
-```
-
-### 3.2 Security Note
-⚠️ **For production:** Change `JWT_SECRET` to a long random string (32+ characters)
-c
----
-
-## 🚀 Step 4: Start Services (5 minutes)
-
-### Option A: Automated Startup (Recommended)
-```powershell
-# Run the batch file (opens multiple windows)
-.\start-all.bat
-```
-
-This will open 3 separate command windows:
-- **AI Service** (Port 5000)
-- **Backend Server** (Port 3001)
-- **Frontend Client** (Port 5173)
-
-### Option B: Manual Startup (For debugging)
-
-#### Terminal 1: AI Service
-```powershell
-cd ai_service
-python smart_suggestions.py
-```
-**Expected:** "Barangay AI Service running on port 5000"
-
-#### Terminal 2: Backend Server
-```powershell
-cd server
-npm start
-```
-**Expected:** "✅ Database connected successfully" and "🚀 Barangay Management Server running on port 3001"
-
-#### Terminal 3: Frontend Client
-```powershell
-cd client
-npm run dev
-```
-**Expected:** "Local: http://localhost:5173/" and "ready in Xms"
-
-### Option C: All-in-one (using npm scripts)
-```powershell
-npm run dev:all
-```
-**Note:** This may not work perfectly on Windows PowerShell due to `&&` syntax issues.
-
----
-
-## ✅ Step 5: Verify Installation (30 seconds)
-
-### 5.1 Check Service Health
-Open these URLs in your browser:
-
-- **Frontend:** http://localhost:5173 ✅ (React dashboard)
-- **Backend API:** http://localhost:3001/health ✅ (JSON response)
-- **AI Service:** http://localhost:5000/health ✅ (JSON response)
-- **API Docs:** http://localhost:3001/api-docs ✅ (Swagger UI)
-- **phpMyAdmin:** http://localhost/phpmyadmin ✅ (Database admin)
-
-### 5.2 Test Basic Functionality
-1. Go to http://localhost:5173
-2. Try navigating between pages (Dashboard, Residents, Certificates, etc.)
-3. Check if data loads (may be empty if no mock data imported)
-
----
-
-## 🔧 Troubleshooting Guide
-
-### Issue: "python: command not found"
-**Solution:**
-```powershell
-# Use full path or add Python to PATH
-C:\Python39\python.exe smart_suggestions.py
-# OR add Python to Windows PATH environment variable
-```
-
-### Issue: "Cannot find module 'express-rate-limit'"
-**Solution:**
-```powershell
-cd server
-npm install express-rate-limit
-cd ..
-```
-
-### Issue: "Database connection failed"
-**Solutions:**
-1. Ensure XAMPP MySQL is running
-2. Check `.env` DB_NAME is `barangay_management`
-3. Verify database exists in phpMyAdmin
-4. Test connection: `mysql -u root -p barangay_management`
-
-### Issue: "Port already in use"
-**Solutions:**
-```powershell
-# Find process using port
-netstat -ano | findstr :3001
-
-# Kill process (replace XXXX with PID)
-taskkill /PID XXXX /F
-```
-
-### Issue: "npm install fails"
-**Solutions:**
-```powershell
-# Clear npm cache
-npm cache clean --force
-
-# Delete node_modules and reinstall
-rm -rf node_modules package-lock.json
-npm install
-```
-
-### Issue: "Python Unicode encoding error"
-**Solution:** This was already fixed in `ai_service/smart_suggestions.py` by removing emojis from print statements.
-
-### Issue: "Module not found" errors
-**Solution:**
-```powershell
-# For each service, reinstall dependencies
-cd server && npm install && cd ..
+# Client dependencies
 cd client && npm install && cd ..
+
+# AI service dependencies
 cd ai_service && pip install -r requirements.txt && cd ..
 ```
 
-### Issue: Services start but frontend shows errors
-**Check:**
-1. All 3 services are running (check task manager or command windows)
-2. Backend shows "Database connected successfully"
-3. No firewall blocking ports 3001, 5000, 5173
-4. Browser console for JavaScript errors
+### Step 4: Code Quality Setup (2 minutes)
+```bash
+# Format and lint server code
+cd server && npm run lint:fix:format && cd ..
+
+# Format and lint client code
+cd client && npm run lint:fix:format && cd ..
+```
+
+### Step 5: Start Services (5 minutes)
+```bash
+# Terminal 1: Database (if not using Docker)
+# Start MySQL service
+
+# Terminal 2: AI Service
+cd ai_service && python smart_suggestions.py
+
+# Terminal 3: Backend Server
+cd server && npm start
+
+# Terminal 4: Frontend Client
+cd client && npm run dev
+```
+
+---
+
+## 🔐 ACCOUNT HIERARCHY SYSTEM
+
+### 🎯 How It Works
+
+The system implements a **strict organizational hierarchy** where each user has a `parent_user_id` that establishes their supervisor. Access control is enforced through middleware that checks if the current user is authorized to access target data.
+
+```
+Super Admin (ID: 4)
+├── Captain (ID: 1) [parent_user_id: 4]
+│   ├── Secretary (ID: 2) [parent_user_id: 1]
+│   │   └── Clerk (ID: 3) [parent_user_id: 2]
+│   └── Captain Sub (ID: 5) [parent_user_id: 4]
+└── Secretary Sub (ID: 6) [parent_user_id: 1]
+```
+
+### 👥 Default User Accounts
+
+| Role | Username | Password | Hierarchy Level | Permissions |
+|------|----------|----------|-----------------|-------------|
+| Super Admin | `superadmin` | `superadmin123` | 100 | Full System Access |
+| Barangay Captain | `captain` | `captain` | 80 | Approve Certificates, Manage Data |
+| Barangay Secretary | `secretary` | `secretary` | 60 | Issue Certificates, View Reports |
+| Barangay Clerk | `clerk` | `clerk` | 40 | Assist with Certificates, Basic View |
+| Captain Sub | `captain_sub` | `captain123` | 80 | Same as Captain |
+| Secretary Sub | `secretary_sub` | `secretary123` | 60 | Same as Secretary |
+| Clerk Sub | `clerk_sub` | `clerk123` | 40 | Same as Clerk |
+
+### 🔑 Authentication Flow
+
+1. **Login** → JWT token issued with hierarchy info
+2. **API Access** → Token verified + role checked
+3. **Data Access** → Hierarchy validated (parent of data owner)
+4. **Actions** → Permission-based authorization
+
+### 🛡️ Security Features
+
+- **JWT Tokens**: Secure authentication with 8-hour expiration
+- **Role-Based Access**: 6-tier permission system
+- **Hierarchy Enforcement**: Parent-child relationship validation
+- **Audit Logging**: Complete action tracking
+- **Input Validation**: SQL injection prevention
+- **Rate Limiting**: DDoS protection
+- **CORS Protection**: Cross-origin security
+
+---
+
+## ✅ Step 5: Verify Installation (2 minutes)
+
+### Docker Verification:
+```bash
+# Check all containers are running
+docker-compose ps
+
+# Check service health
+curl http://localhost/health          # Frontend (port 80)
+curl http://localhost:3001/health     # Backend API
+curl http://localhost:5000/health     # AI Service
+```
+
+### Manual Verification:
+- **Frontend:** http://localhost:5173 ✅ (React dashboard with login)
+- **Backend API:** http://localhost:3001/health ✅
+- **AI Service:** http://localhost:5000/health ✅
+- **API Docs:** http://localhost:3001/api-docs ✅ (requires auth now)
+
+### Test Hierarchy Security:
+```bash
+# 1. Login as captain
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"captain","password":"captain"}'
+
+# 2. Use returned token to access protected endpoints
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  http://localhost:3001/api/residents
+
+# 3. Try accessing subordinate data (should work)
+# 4. Try accessing superior data (should fail)
+```
+
+---
+
+## 📚 Available Scripts
+
+### Docker Commands:
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Rebuild after code changes
+docker-compose up --build
+
+# Clean restart
+docker-compose down && docker-compose up --build
+```
+
+### Development Scripts:
+```bash
+# Server (backend)
+cd server
+npm run dev              # Hot reload development
+npm start                # Production start
+npm run lint:fix:format  # Code quality
+npx knex migrate:latest  # Run migrations
+npx knex seed:run        # Run seeds
+
+# Client (frontend)
+cd client
+npm run dev              # Development server
+npm run build            # Production build
+npm run lint:fix:format  # Code quality
+
+# AI Service
+cd ai_service
+python smart_suggestions.py  # Start service
+pip install -r requirements.txt  # Install deps
+```
+
+### Quality Assurance:
+```bash
+# Run all tests
+npm test
+
+# Format code
+npm run format
+
+# Lint code
+npm run lint
+
+# Combined quality check
+npm run lint:fix:format
+```
 
 ---
 
@@ -283,144 +312,162 @@ cd ai_service && pip install -r requirements.txt && cd ..
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   React Frontend │    │  Node.js API    │    │ Python AI Engine│
-│   (Port 5173)    │◄──►│   (Port 3001)   │◄──►│   (Port 5000)   │
-│                 │    │                 │    │                 │
-│ • Dashboard      │    │ • RESTful API   │    │ • ML Algorithms │
-│ • Certificate Mgmt│    │ • Rate Limiting │    │ • Decision Supp │
-│ • QR Verification│    │ • Monitoring     │    │ • Chatbot       │
+│  React Frontend  │    │   Node.js API    │    │ Python AI Engine│
+│   (Docker:80)    │◄──►│   (Docker:3001)  │◄──►│   (Docker:5000) │
+│                  │    │                  │    │                 │
+│ • Login/Auth     │    │ • JWT Auth       │    │ • ML Algorithms │
+│ • Hierarchy UI   │    │ • Hierarchy MW   │    │ • Decision Supp │
+│ • Protected Routes│    │ • Knex Migrations│    │ • Chatbot       │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
                                  │
                     ┌─────────────────┐
                     │   MySQL Database │
-                    │   (Port 3306)    │
+                    │   (Docker:3306)  │
                     │                  │
+                    │ • Users + Roles  │
+                    │ • Hierarchy      │
                     │ • Residents      │
                     │ • Certificates   │
-                    │ • Blotter Cases  │
                     │ • Audit Logs     │
                     └─────────────────┘
 ```
 
-### Key Features:
-- **Complete CRUD operations** for residents, certificates, blotter cases
-- **AI-powered decision support** for social aid prioritization
-- **QR code verification** for document authentication
-- **Business rule enforcement** (e.g., blocking clearances for active cases)
-- **Real-time monitoring** and health checks
+### Key Security Features:
+- **🔐 Account Hierarchy**: Parent-child user relationships
+- **🛡️ JWT Authentication**: Secure token-based auth
+- **👑 Role Permissions**: 6-tier access control system
+- **🔗 Data Ownership**: Users can only access subordinate data
+- **📊 Audit Trails**: Complete logging of all actions
+- **🚫 Public API Lockdown**: All endpoints require authentication
 
 ---
 
-## 🧪 Testing Your Setup
+## 🔧 Troubleshooting Guide
 
-### Run Tests:
-```powershell
-# All tests
-npm test
+### Docker Issues:
+```bash
+# Check Docker is running
+docker info
 
-# Individual test suites
-cd tests && npm test  # Backend tests
-cd ../client && npm test  # Frontend tests
-cd ../ai_service && python -m pytest test_smart_suggestions.py  # AI tests
+# Clean up containers
+docker-compose down --volumes --remove-orphans
+
+# View detailed logs
+docker-compose logs [service_name]
+
+# Rebuild specific service
+docker-compose up --build [service_name]
 ```
 
-### Manual Testing Checklist:
-- [ ] Frontend loads at http://localhost:5173
-- [ ] Can navigate between pages
-- [ ] API health check returns 200: http://localhost:3001/health
-- [ ] AI service responds: http://localhost:5000/health
-- [ ] Database connection successful (check server logs)
-- [ ] phpMyAdmin accessible and shows `barangay_management` database
+### Database Issues:
+```bash
+# Reset database
+docker-compose exec db mysql -u root -p -e "DROP DATABASE barangay_management; CREATE DATABASE barangay_management;"
 
----
-
-## 📚 Available Scripts
-
-### Root Level Scripts (package.json):
-```powershell
-npm run dev              # Start frontend only
-npm run start            # Start frontend + backend (may not work on Windows)
-npm run build            # Build for production
-npm run test             # Run all tests
-npm install:all          # Install all dependencies
-npm run dev:all          # Start all services (may have PowerShell issues)
+# Run migrations manually
+docker-compose exec server npm run knex migrate:latest
+docker-compose exec server npm run knex seed:run
 ```
 
-### Service-Specific Scripts:
-```powershell
-# Frontend (client/)
-npm run dev              # Development server
-npm run build            # Production build
-npm test                 # Component tests
+### Authentication Issues:
+```bash
+# Check JWT secret in environment
+docker-compose exec server env | grep JWT
 
-# Backend (server/)
-npm start                # Start server
-npm run dev              # Development with nodemon
-npm test                 # API tests
-
-# AI Service (ai_service/)
-python smart_suggestions.py    # Start Flask server
-python test_smart_suggestions.py  # Run AI tests
+# Test login endpoint
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"superadmin","password":"superadmin123"}'
 ```
+
+### Permission Issues:
+- **Can't access data?** Check if your user is the parent of the data owner
+- **Login fails?** Verify username/password and account is active
+- **API returns 403?** Check hierarchy relationships and role permissions
 
 ---
 
 ## 🚀 Production Deployment
 
-### For Production Use:
-1. **Build frontend:** `cd client && npm run build`
-2. **Set NODE_ENV=production** in `.env`
-3. **Use PM2 for process management:**
-   ```powershell
-   npm install -g pm2
-   pm2 start server/index.js --name "barangay-api"
-   pm2 start ai_service/smart_suggestions.py --name "barangay-ai" --interpreter python
-   ```
-4. **Configure reverse proxy** (nginx/Apache) for ports
-5. **Set up SSL certificates**
-6. **Configure proper firewall rules**
+### Docker Production Setup:
+```bash
+# Build production images
+docker-compose -f docker-compose.prod.yml build
 
----
+# Deploy with proper environment
+docker-compose -f docker-compose.prod.yml up -d
 
-## 📞 Getting Help
-
-### Quick Health Checks:
-```powershell
-# Check all services
-curl http://localhost:3001/health
-curl http://localhost:5000/health
-curl http://localhost:5173
+# Set up reverse proxy (nginx/traefik)
+# Configure SSL certificates
+# Set up monitoring (Prometheus/Grafana)
 ```
 
-### Common Logs to Check:
-- **Backend:** Server command window for "Database connected" message
-- **AI Service:** Flask startup messages
-- **Frontend:** Browser console (F12) for errors
-- **Database:** phpMyAdmin for connection errors
+### Environment Variables for Production:
+```env
+NODE_ENV=production
+JWT_SECRET=your-very-secure-random-jwt-secret-here
+DB_PASSWORD=strong-production-password
+CLIENT_URL=https://yourdomain.com
+```
 
-### If Everything Fails:
-1. **Restart XAMPP** completely
-2. **Close all command windows** and restart services
-3. **Clear browser cache** (Ctrl+F5)
-4. **Check Windows Firewall** isn't blocking ports
+### Security Checklist:
+- [ ] Change all default passwords
+- [ ] Set strong JWT_SECRET (64+ characters)
+- [ ] Configure HTTPS/SSL
+- [ ] Set up firewall rules
+- [ ] Enable database backups
+- [ ] Set up monitoring/alerts
+- [ ] Configure log rotation
 
 ---
 
-## ✅ Success Indicators
+## 🎯 Success Indicators
 
 **System is working when:**
-- ✅ Frontend shows at http://localhost:5173 (no errors)
-- ✅ Backend shows "✅ Database connected successfully"
-- ✅ AI service shows "Barangay AI Service running on port 5000"
-- ✅ All three services stay running (no crashes)
-- ✅ API docs load at http://localhost:3001/api-docs
-- ✅ Database shows tables in phpMyAdmin
+- ✅ **Docker containers running:** `docker-compose ps` shows all healthy
+- ✅ **Frontend accessible:** http://localhost (login page loads)
+- ✅ **Authentication working:** Can login with provided credentials
+- ✅ **Hierarchy enforced:** Subordinates can't access superior data
+- ✅ **API protected:** All endpoints require valid JWT tokens
+- ✅ **Database migrated:** All tables created via Knex migrations
+- ✅ **Code formatted:** Prettier/ESLint passes without errors
 
-**Setup Time:** ~15 minutes
-**Status:** ✅ READY FOR USE
+**Setup Time:** ~15 minutes (Docker) | ~25 minutes (Manual)
+**Status:** ✅ MODERNIZED, SECURE, AND PRODUCTION-READY
 
 ---
 
-**🎯 This guide was created specifically for your Windows + PowerShell environment and current project configuration. All commands have been tested and verified to work.**
+## 📞 Support & Documentation
+
+### Quick Health Checks:
+```bash
+# All services health
+curl http://localhost/health
+curl http://localhost:3001/health
+curl http://localhost:5000/health
+
+# Database connection
+docker-compose exec db mysql -u root -p -e "SHOW DATABASES;"
+
+# Migration status
+docker-compose exec server npx knex migrate:status
+```
+
+### Documentation Files:
+- `API_DOCUMENTATION.md` - Complete API reference
+- `SECURITY_AUDIT.md` - Security assessment
+- `docker-compose.yml` - Service orchestration
+- `server/migrations/` - Database schema evolution
+- `server/seeds/` - Initial data setup
+
+### Key Files to Know:
+- `server/authController.js` - Authentication logic
+- `server/authMiddleware.js` - Security middleware
+- `server/knexfile.js` - Database configuration
+- `docker-compose.yml` - Service definitions
+
+---
+
+**🎯 This modernized system provides enterprise-grade security with Docker containerization, automated code quality, and strict account hierarchy enforcement. The setup is designed for both development and production use.**

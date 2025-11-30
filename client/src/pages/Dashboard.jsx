@@ -31,6 +31,7 @@ import {
   Assignment,
   Group
 } from '@mui/icons-material'
+import { apiRequest } from '../utils/api'
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null)
@@ -48,11 +49,9 @@ const Dashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/census')
-      if (response.ok) {
-        const data = await response.json()
-        setStats(data)
-      }
+      const response = await apiRequest('census')
+      const data = await response.json()
+      setStats(data)
     } catch (error) {
       console.error('Error fetching stats:', error)
     } finally {
@@ -62,11 +61,9 @@ const Dashboard = () => {
 
   const fetchCertificates = async () => {
     try {
-      const response = await fetch('/api/certificates')
-      if (response.ok) {
-        const data = await response.json()
-        setCertificates(data)
-      }
+      const response = await apiRequest('certificates')
+      const data = await response.json()
+      setCertificates(data)
     } catch (error) {
       console.error('Error fetching certificates:', error)
     }
@@ -74,11 +71,9 @@ const Dashboard = () => {
 
   const fetchBlotterCases = async () => {
     try {
-      const response = await fetch('/api/blotter')
-      if (response.ok) {
-        const data = await response.json()
-        setBlotterCases(data)
-      }
+      const response = await apiRequest('blotter')
+      const data = await response.json()
+      setBlotterCases(data)
     } catch (error) {
       console.error('Error fetching blotter cases:', error)
     }
@@ -87,11 +82,9 @@ const Dashboard = () => {
   const fetchPatrolSuggestions = async () => {
     setPatrolLoading(true)
     try {
-      const response = await fetch('/api/ai/patrol-suggestions')
-      if (response.ok) {
-        const data = await response.json()
-        setPatrolSuggestions(data)
-      }
+      const response = await apiRequest('ai/patrol-suggestions')
+      const data = await response.json()
+      setPatrolSuggestions(data)
     } catch (error) {
       console.error('Error fetching patrol suggestions:', error)
     } finally {

@@ -6,6 +6,15 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
+// Import authentication system
+const authController = require('./authController');
+const {
+  verifyToken,
+  checkRole,
+  checkHierarchyAccess,
+  checkOwnershipOrHierarchy
+} = require('./authMiddleware');
+
 // Import monitoring system
 const {
   register,
@@ -108,11 +117,23 @@ const xlsx = require('xlsx');
 const upload = multer({ dest: 'uploads/' });
 
 // ==========================================
+// AUTHENTICATION & ACCOUNT HIERARCHY MODULE
+// ==========================================
+
+// Public authentication routes (no middleware needed)
+app.post('/api/auth/login', authController.login);
+app.post('/api/auth/register', verifyToken, checkRole(['Super Admin']), authController.register);
+
+// Protected auth routes
+app.get('/api/auth/profile', verifyToken, authController.getProfile);
+app.get('/api/auth/subordinates', verifyToken, authController.getSubordinates);
+
+// ==========================================
 // RESIDENT PROFILING MODULE (RBIM Enhanced)
 // ==========================================
 
-// Get all residents with RBIM data
-app.get('/api/residents', async (req, res) => {
+// Get all residents with RBIM data (protected - requires auth)
+app.get('/api/residents', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), async (req, res) => {
   try {
     const { page = 1, limit = 50, search, sitio_id, residency_status, show_vulnerable } = req.query;
     const offset = (page - 1) * limit;
@@ -186,8 +207,8 @@ app.get('/api/residents', async (req, res) => {
   }
 });
 
-// Get resident by ID (RBIM enhanced)
-app.get('/api/residents/:id', async (req, res) => {
+// Get resident by ID (RBIM enhanced) - protected with hierarchy check
+app.get('/api/residents/:id', verifyToken, checkOwnershipOrHierarchy, async (req, res) => {
   try {
     const [rows] = await db.execute(`
       SELECT
@@ -772,7 +793,7 @@ app.post('/api/residents/:id/generate-qr', async (req, res) => {
 // ==========================================
 
 // Get all households
-app.get('/api/households', async (req, res) => {
+app.get('/api/households', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), async (req, res) => {
   try {
     const [rows] = await db.execute(`
       SELECT h.*, s.name as sitio_name
@@ -788,7 +809,7 @@ app.get('/api/households', async (req, res) => {
 });
 
 // Get household by ID
-app.get('/api/households/:id', async (req, res) => {
+app.get('/api/households/:id', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), async (req, res) => {
   try {
     const [rows] = await db.execute(`
       SELECT h.*, s.name as sitio_name
@@ -925,7 +946,7 @@ app.delete('/api/households/:id', async (req, res) => {
 });
 
 // Get census statistics
-app.get('/api/census', async (req, res) => {
+app.get('/api/census', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), async (req, res) => {
   try {
     const [stats] = await db.execute(`
       SELECT

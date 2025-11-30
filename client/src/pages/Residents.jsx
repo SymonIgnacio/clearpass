@@ -31,7 +31,8 @@ import {
   AccordionDetails,
   Avatar,
   IconButton,
-  Tooltip
+  Tooltip,
+  Alert
 } from '@mui/material'
 import {
   Add,
@@ -48,6 +49,7 @@ import {
   Error,
   Warning
 } from '@mui/icons-material'
+import { apiRequest } from '../utils/api'
 
 const Residents = () => {
   const [residents, setResidents] = useState([])
@@ -112,7 +114,7 @@ const Residents = () => {
       if (residencyFilter) params.append('residency_status', residencyFilter)
       if (vulnerabilityFilter === 'vulnerable') params.append('show_vulnerable', 'true')
 
-      const response = await fetch(`/api/residents?${params}`)
+      const response = await apiRequest(`residents?${params}`)
       if (response.ok) {
         const data = await response.json()
         // Convert MySQL boolean values (0/1) to proper JavaScript booleans
@@ -133,7 +135,7 @@ const Residents = () => {
 
   const fetchHouseholds = async () => {
     try {
-      const response = await fetch('/api/households')
+      const response = await apiRequest('households')
       if (response.ok) {
         const data = await response.json()
         setHouseholds(data)
@@ -145,7 +147,7 @@ const Residents = () => {
 
   const fetchSitios = async () => {
     try {
-      const response = await fetch('/api/sitios')
+      const response = await apiRequest('sitios')
       if (response.ok) {
         const data = await response.json()
         setSitios(data)
@@ -159,14 +161,13 @@ const Residents = () => {
     if (!formData.first_name || !formData.last_name || !formData.birthdate) return
 
     try {
-      const response = await fetch('/api/residents/check-duplicate', {
+      const response = await apiRequest('residents/check-duplicate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           first_name: formData.first_name,
           last_name: formData.last_name,
           birthdate: formData.birthdate
-        })
+        }
       })
 
       if (response.ok) {
@@ -238,13 +239,12 @@ const Residents = () => {
 
   const handleSave = async () => {
     try {
-      const method = editing ? 'PUT' : 'POST'
-      const url = editing ? `/api/residents/${editing.Resident_ID}` : '/api/residents'
+      const endpoint = editing ? `residents/${editing.Resident_ID}` : 'residents'
+      const method = editing ? 'put' : 'post'
 
-      const response = await fetch(url, {
+      const response = await apiRequest(endpoint, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: formData
       })
 
       if (response.ok) {
@@ -267,13 +267,12 @@ const Residents = () => {
     if (!reason) return
 
     try {
-      const response = await fetch(`/api/residents/${residentId}/archive`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const response = await apiRequest(`residents/${residentId}/archive`, {
+        method: 'put',
+        body: {
           departure_reason: reason,
           departure_date: new Date().toISOString()
-        })
+        }
       })
 
       if (response.ok) {
@@ -296,8 +295,13 @@ const Residents = () => {
     formDataUpload.append('file', file)
 
     try {
+      // For file uploads, we need to use fetch directly since apiRequest expects JSON
+      const token = localStorage.getItem('authToken')
       const response = await fetch('/api/residents/bulk-import', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formDataUpload
       })
 
@@ -316,7 +320,7 @@ const Residents = () => {
 
   const generateQR = async (residentId) => {
     try {
-      const response = await fetch(`/api/residents/${residentId}/generate-qr`, {
+      const response = await apiRequest(`residents/${residentId}/generate-qr`, {
         method: 'POST'
       })
 
@@ -334,7 +338,7 @@ const Residents = () => {
 
   const getHouseholdMembers = async (householdId) => {
     try {
-      const response = await fetch(`/api/households/${householdId}/members`)
+      const response = await apiRequest(`households/${householdId}/members`)
       if (response.ok) {
         const data = await response.json()
         // Convert MySQL boolean values (0/1) to proper JavaScript booleans for household members
@@ -995,10 +999,9 @@ const Residents = () => {
           <Button onClick={() => setOpenHousehold(false)}>Cancel</Button>
           <Button onClick={async () => {
             try {
-              const response = await fetch('/api/households', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(householdFormData)
+              const response = await apiRequest('households', {
+                method: 'post',
+                body: householdFormData
               })
 
               if (response.ok) {

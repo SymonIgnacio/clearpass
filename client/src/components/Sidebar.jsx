@@ -12,7 +12,9 @@ import {
   Typography,
   Box,
   Avatar,
-  Chip
+  Chip,
+  Button,
+  Paper
 } from '@mui/material'
 import {
   Dashboard,
@@ -24,68 +26,83 @@ import {
   Security,
   QrCodeScanner,
   Event,
-  Analytics,
-  Assignment,
-  Group,
-  VerifiedUser
+  Logout,
+  AdminPanelSettings,
+  SupervisorAccount,
+  Person
 } from '@mui/icons-material'
 
 const drawerWidth = 280
 
-const Sidebar = () => {
+const Sidebar = ({ user, onLogout }) => {
   const location = useLocation()
 
-  const menuItems = [
+  // Define menu items with role-based access
+  const allMenuItems = [
     {
       text: 'Dashboard',
       icon: <Dashboard />,
       path: '/',
-      description: 'Overview & Analytics'
+      description: 'Overview & Analytics',
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // All roles can access
     },
     {
       text: 'Residents',
       icon: <People />,
       path: '/residents',
-      description: 'Manage Residents'
+      description: 'Manage Residents',
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // All roles can access
     },
     {
       text: 'Blotter',
       icon: <Gavel />,
       path: '/blotter',
-      description: 'Incident Reports'
+      description: 'Incident Reports',
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // All roles can access
     },
     {
       text: 'Certificates',
       icon: <Description />,
       path: '/certificates',
-      description: 'Issue Documents'
+      description: 'Issue Documents',
+      roles: ['admin', 'captain', 'secretary'] // Clerks cannot issue certificates
     },
     {
       text: 'Census',
       icon: <Assessment />,
       path: '/census',
-      description: 'Population Stats'
+      description: 'Population Stats',
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // All roles can access
     },
     {
       text: 'AI Patrol',
       icon: <SmartToy />,
       path: '/ai-patrol',
       description: 'Smart Deployment',
-      badge: 'AI'
+      badge: 'AI',
+      roles: ['admin', 'captain'] // Only admin and captain can use AI features
     },
     {
       text: 'QR Verify',
       icon: <QrCodeScanner />,
       path: '/qr-verify',
-      description: 'Document Verification'
+      description: 'Document Verification',
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // All roles can verify
     },
     {
       text: 'Events',
       icon: <Event />,
       path: '/events',
-      description: 'Community Programs'
+      description: 'Community Programs',
+      roles: ['admin', 'captain', 'secretary'] // Clerks have limited event management
     },
   ]
+
+  // Filter menu items based on user role
+  const menuItems = allMenuItems.filter(item => {
+    if (!user || !user.role) return false
+    return item.roles.includes(user.role)
+  })
 
   return (
     <Drawer
@@ -228,6 +245,68 @@ const Sidebar = () => {
       </List>
 
       <Box sx={{ flexGrow: 1 }} />
+
+      {/* User Info Section */}
+      {user && (
+        <Box sx={{ p: 2, mx: 2 }}>
+          <Paper
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              backgroundColor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+              <Avatar
+                sx={{
+                  width: 32,
+                  height: 32,
+                  mr: 1.5,
+                  bgcolor: user.role_name === 'Super Admin' ? 'error.main' :
+                           user.role_name === 'Barangay Captain' ? 'warning.main' :
+                           'primary.main'
+                }}
+              >
+                {user.role_name === 'Super Admin' ? <AdminPanelSettings sx={{ fontSize: 16 }} /> :
+                 user.role_name === 'Barangay Captain' ? <SupervisorAccount sx={{ fontSize: 16 }} /> :
+                 <Person sx={{ fontSize: 16 }} />}
+              </Avatar>
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }} noWrap>
+                  {user.full_name}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                  {user.role_name}
+                </Typography>
+              </Box>
+            </Box>
+
+            <Button
+              fullWidth
+              variant="outlined"
+              size="small"
+              onClick={onLogout}
+              startIcon={<Logout />}
+              sx={{
+                borderRadius: 2,
+                py: 0.75,
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                textTransform: 'none',
+                '&:hover': {
+                  backgroundColor: 'error.main',
+                  color: 'white',
+                  borderColor: 'error.main',
+                },
+              }}
+            >
+              Logout
+            </Button>
+          </Paper>
+        </Box>
+      )}
 
       <Box sx={{ p: 2, mx: 2, mb: 2 }}>
         <Box

@@ -23,6 +23,7 @@ import {
   Alert
 } from '@mui/material'
 import { Add, Description } from '@mui/icons-material'
+import { apiRequest } from '../utils/api'
 
 const Certificates = () => {
   const [certificates, setCertificates] = useState([])
@@ -45,11 +46,9 @@ const Certificates = () => {
 
   const fetchCertificates = async () => {
     try {
-      const response = await fetch('/api/certificates')
-      if (response.ok) {
-        const data = await response.json()
-        setCertificates(data)
-      }
+      const response = await apiRequest('certificates')
+      const data = await response.json()
+      setCertificates(data)
     } catch (error) {
       console.error('Error fetching certificates:', error)
     }
@@ -57,11 +56,9 @@ const Certificates = () => {
 
   const fetchResidents = async () => {
     try {
-      const response = await fetch('/api/residents?limit=1000') // Get more residents for selection
-      if (response.ok) {
-        const data = await response.json()
-        setResidents(data.data || []) // Handle paginated response
-      }
+      const response = await apiRequest('residents?limit=1000') // Get more residents for selection
+      const data = await response.json()
+      setResidents(data.data || []) // Handle paginated response
     } catch (error) {
       console.error('Error fetching residents:', error)
     }
@@ -69,11 +66,9 @@ const Certificates = () => {
 
   const fetchCertificateTypes = async () => {
     try {
-      const response = await fetch('/api/certificate-types')
-      if (response.ok) {
-        const data = await response.json()
-        setCertificateTypes(data)
-      }
+      const response = await apiRequest('certificate-types')
+      const data = await response.json()
+      setCertificateTypes(data)
     } catch (error) {
       console.error('Error fetching certificate types:', error)
     }
@@ -81,10 +76,9 @@ const Certificates = () => {
 
   const handleSave = async () => {
     try {
-      const response = await fetch('/api/certificates', {
+      const response = await apiRequest('certificates', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: formData
       })
 
       const data = await response.json()

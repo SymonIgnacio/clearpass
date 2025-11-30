@@ -15,6 +15,7 @@ import {
   Chip
 } from '@mui/material'
 import { Assessment, People, Elderly, Accessible, FamilyRestroom } from '@mui/icons-material'
+import { apiRequest } from '../utils/api'
 
 const Census = () => {
   const [censusData, setCensusData] = useState(null)
@@ -25,11 +26,9 @@ const Census = () => {
 
   const fetchCensusData = async () => {
     try {
-      const response = await fetch('/api/census')
-      if (response.ok) {
-        const data = await response.json()
-        setCensusData(data)
-      }
+      const response = await apiRequest('census')
+      const data = await response.json()
+      setCensusData(data)
     } catch (error) {
       console.error('Error fetching census data:', error)
     }

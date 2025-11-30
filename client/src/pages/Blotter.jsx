@@ -42,6 +42,7 @@ import {
   Cancel,
   PlayArrow
 } from '@mui/icons-material'
+import { apiRequest } from '../utils/api'
 
 // Hardcoded incident types per Katarungang Pambarangay categories
 const INCIDENT_CATEGORIES = {
@@ -115,11 +116,9 @@ const Blotter = () => {
 
   const fetchBlotterCases = async () => {
     try {
-      const response = await fetch('/api/blotter')
-      if (response.ok) {
-        const data = await response.json()
-        setBlotterCases(data)
-      }
+      const response = await apiRequest('blotter')
+      const data = await response.json()
+      setBlotterCases(data)
     } catch (error) {
       console.error('Error fetching blotter cases:', error)
     }
@@ -127,11 +126,9 @@ const Blotter = () => {
 
   const fetchResidents = async () => {
     try {
-      const response = await fetch('/api/residents')
-      if (response.ok) {
-        const data = await response.json()
-        setResidents(data)
-      }
+      const response = await apiRequest('residents')
+      const data = await response.json()
+      setResidents(data)
     } catch (error) {
       console.error('Error fetching residents:', error)
     }
@@ -139,11 +136,9 @@ const Blotter = () => {
 
   const fetchSitios = async () => {
     try {
-      const response = await fetch('/api/sitios')
-      if (response.ok) {
-        const data = await response.json()
-        setSitios(data)
-      }
+      const response = await apiRequest('sitios')
+      const data = await response.json()
+      setSitios(data)
     } catch (error) {
       console.error('Error fetching sitios:', error)
     }
@@ -180,10 +175,9 @@ const Blotter = () => {
         Status: 'Pending'
       }
 
-      const response = await fetch('/api/blotter', {
+      const response = await apiRequest('blotter', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: payload
       })
 
       if (response.ok) {
@@ -221,13 +215,12 @@ const Blotter = () => {
       const hearingDate = new Date()
       hearingDate.setDate(hearingDate.getDate() + 7) // Schedule for next week
 
-      const response = await fetch(`/api/blotter/${caseData.Case_Number}`, {
+      const response = await apiRequest(`blotter/${caseData.Case_Number}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           Status: 'Scheduled for Mediation',
           Hearing_Schedule: hearingDate.toISOString().slice(0, 16)
-        })
+        }
       })
 
       if (response.ok) {
@@ -250,14 +243,13 @@ const Blotter = () => {
         newStatus = 'Certificate to File Action Issued'
       }
 
-      const response = await fetch(`/api/blotter/${selectedCase.Case_Number}`, {
+      const response = await apiRequest(`blotter/${selectedCase.Case_Number}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           Status: newStatus,
           Hearing_Schedule: resolutionData.hearingDate,
           resolution_notes: resolutionData.outcomeNotes
-        })
+        }
       })
 
       if (response.ok) {

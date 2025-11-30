@@ -1,5 +1,5 @@
-import React from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { Container, Box } from '@mui/material'
@@ -11,8 +11,10 @@ import Census from './pages/Census'
 import AIPatrol from './pages/AIPatrol'
 import QRVerification from './pages/QRVerification'
 import CommunityEvents from './pages/CommunityEvents'
+import Login from './pages/Login'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
+import ProtectedRoute from './components/ProtectedRoute'
 
 const theme = createTheme({
   palette: {
@@ -239,43 +241,100 @@ const theme = createTheme({
 })
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [user, setUser] = useState(null)
+
+  // Check for existing authentication on app load
+  useEffect(() => {
+    const token = localStorage.getItem('authToken')
+    const storedUser = localStorage.getItem('user')
+
+    if (token && storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser)
+        setUser(parsedUser)
+        setIsAuthenticated(true)
+      } catch (error) {
+        // Invalid stored data, clear it
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('user')
+      }
+    }
+  }, [])
+
+  const handleLogin = (userData) => {
+    setUser(userData)
+    setIsAuthenticated(true)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('user')
+    setUser(null)
+    setIsAuthenticated(false)
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Box sx={{
-          display: 'flex',
-          minHeight: '100vh',
-          backgroundColor: 'background.default'
-        }}>
-          <Sidebar />
-          <Box
-            component="main"
-            sx={{
-              flexGrow: 1,
-              marginLeft: '280px', // Account for sidebar width
-              transition: 'margin-left 0.3s ease-in-out',
-            }}
-          >
-            <Header />
-            <Box sx={{
-              p: 4,
-              minHeight: 'calc(100vh - 64px)', // Account for header height
-              backgroundColor: 'background.default'
-            }}>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/residents" element={<Residents />} />
-                <Route path="/blotter" element={<Blotter />} />
-                <Route path="/certificates" element={<Certificates />} />
-                <Route path="/census" element={<Census />} />
-                <Route path="/ai-patrol" element={<AIPatrol />} />
-                <Route path="/qr-verify" element={<QRVerification />} />
-                <Route path="/events" element={<CommunityEvents />} />
-              </Routes>
-            </Box>
-          </Box>
-        </Box>
+        <Routes>
+          {/* Public login route */}
+          <Route
+            path="/login"
+            element={
+              isAuthenticated ? (
+                <Navigate to="/" replace />
+              ) : (
+                <Login onLogin={handleLogin} />
+              )
+            }
+          />
+
+          {/* Protected routes */}
+          <Route
+            path="/*"
+            element={
+              isAuthenticated ? (
+                <Box sx={{
+                  display: 'flex',
+                  minHeight: '100vh',
+                  backgroundColor: 'background.default'
+                }}>
+                  <Sidebar user={user} onLogout={handleLogout} />
+                  <Box
+                    component="main"
+                    sx={{
+                      flexGrow: 1,
+                      marginLeft: '280px', // Account for sidebar width
+                      transition: 'margin-left 0.3s ease-in-out',
+                    }}
+                  >
+                    <Header user={user} onLogout={handleLogout} />
+                    <Box sx={{
+                      p: 4,
+                      minHeight: 'calc(100vh - 64px)', // Account for header height
+                      backgroundColor: 'background.default'
+                    }}>
+                      <Routes>
+                        <Route path="/" element={<Dashboard user={user} />} />
+                        <Route path="/residents" element={<Residents user={user} />} />
+                        <Route path="/blotter" element={<Blotter user={user} />} />
+                        <Route path="/certificates" element={<Certificates user={user} />} />
+                        <Route path="/census" element={<Census user={user} />} />
+                        <Route path="/ai-patrol" element={<AIPatrol user={user} />} />
+                        <Route path="/qr-verify" element={<QRVerification user={user} />} />
+                        <Route path="/events" element={<CommunityEvents user={user} />} />
+                      </Routes>
+                    </Box>
+                  </Box>
+                </Box>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+        </Routes>
       </Router>
     </ThemeProvider>
   )
