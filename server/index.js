@@ -55,10 +55,11 @@ app.use(express.json({ limit: '10mb' })); // Limit payload size
 app.use(requestLogger);
 
 // Apply rate limiting
-app.use('/api/certificates', strictLimiter); // Certificate operations are sensitive
-app.use('/api/residents', apiLimiter);
-app.use('/api/blotter', apiLimiter);
-app.use('/api/', apiLimiter);
+// Temporarily disabled for development/testing
+// app.use('/api/certificates', strictLimiter); // Certificate operations are sensitive
+// app.use('/api/residents', apiLimiter);
+// app.use('/api/blotter', apiLimiter);
+// app.use('/api/', apiLimiter);
 
 // Database connection
 const dbConfig = {
@@ -85,34 +86,128 @@ async function initializeDatabase() {
 // Initialize database on startup
 initializeDatabase();
 
+// Utility function to calculate age
+function calculateAge(birthdate) {
+  if (!birthdate) return 0;
+  const birth = new Date(birthdate);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+
+  return age;
+}
+
+const multer = require('multer');
+const xlsx = require('xlsx');
+
+// Multer configuration for file uploads
+const upload = multer({ dest: 'uploads/' });
+
 // ==========================================
-// RESIDENT PROFILING MODULE
+// RESIDENT PROFILING MODULE (RBIM Enhanced)
 // ==========================================
 
-// Get all residents
+// Get all residents with RBIM data
 app.get('/api/residents', async (req, res) => {
   try {
+    const { page = 1, limit = 50, search, sitio_id, residency_status, show_vulnerable } = req.query;
+    const offset = (page - 1) * limit;
+
+    let whereConditions = [];
+    let values = [];
+
+    if (search) {
+      whereConditions.push('(r.First_Name LIKE ? OR r.Last_Name LIKE ? OR r.Mobile_Number LIKE ?)');
+      values.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    if (sitio_id) {
+      whereConditions.push('h.Sitio_ID = ?');
+      values.push(sitio_id);
+    }
+
+    if (residency_status) {
+      whereConditions.push('r.Residency_Status = ?');
+      values.push(residency_status);
+    }
+
+    if (show_vulnerable === 'true') {
+      whereConditions.push('v.Vulnerability_Score > 0');
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
     const [rows] = await db.execute(`
-      SELECT r.*, s.name as sitio_name
+      SELECT
+        r.*,
+        h.Household_Number,
+        h.Street_Address,
+        s.name as sitio_name,
+        v.Is_4Ps,
+        v.Is_PWD,
+        v.Is_Senior,
+        v.Is_Solo_Parent,
+        v.Is_Out_of_School_Youth,
+        v.Vulnerability_Score,
+        v.Disability_Type
       FROM residents r
-      LEFT JOIN sitios s ON r.sitio_id = s.id
-      ORDER BY r.last_name, r.first_name
-    `);
-    res.json(rows);
+      LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
+      ${whereClause}
+      ORDER BY r.Last_Name, r.First_Name
+      LIMIT ? OFFSET ?
+    `, [...values, parseInt(limit), offset]);
+
+    const [totalRows] = await db.execute(`
+      SELECT COUNT(*) as total
+      FROM residents r
+      LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
+      ${whereClause}
+    `, values);
+
+    res.json({
+      data: rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: totalRows[0].total,
+        pages: Math.ceil(totalRows[0].total / limit)
+      }
+    });
   } catch (error) {
     console.error('Error fetching residents:', error);
     res.status(500).json({ error: 'Failed to fetch residents' });
   }
 });
 
-// Get resident by ID
+// Get resident by ID (RBIM enhanced)
 app.get('/api/residents/:id', async (req, res) => {
   try {
     const [rows] = await db.execute(`
-      SELECT r.*, s.name as sitio_name
+      SELECT
+        r.*,
+        h.Household_Number,
+        h.Street_Address,
+        h.Household_Type,
+        s.name as sitio_name,
+        v.Is_4Ps,
+        v.Is_PWD,
+        v.Is_Senior,
+        v.Is_Solo_Parent,
+        v.Is_Out_of_School_Youth,
+        v.Vulnerability_Score,
+        v.Disability_Type
       FROM residents r
-      LEFT JOIN sitios s ON r.sitio_id = s.id
-      WHERE r.id = ?
+      LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
+      WHERE r.Resident_ID = ?
     `, [req.params.id]);
 
     if (rows.length === 0) {
@@ -126,85 +221,706 @@ app.get('/api/residents/:id', async (req, res) => {
   }
 });
 
-// Create new resident
-app.post('/api/residents', async (req, res) => {
+// Duplicate checker (RBIM requirement)
+app.post('/api/residents/check-duplicate', async (req, res) => {
   try {
+    const { first_name, last_name, birthdate } = req.body;
+
+    if (!first_name || !last_name || !birthdate) {
+      return res.status(400).json({ error: 'First name, last name, and birthdate are required' });
+    }
+
+    const [duplicates] = await db.execute(`
+      SELECT
+        r.Resident_ID,
+        r.First_Name,
+        r.Last_Name,
+        r.Birthdate,
+        r.Residency_Status,
+        h.Household_Number,
+        s.name as sitio_name
+      FROM residents r
+      LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
+      WHERE r.First_Name = ? AND r.Last_Name = ? AND r.Birthdate = ?
+      AND r.Residency_Status = 'Active'
+    `, [first_name.trim(), last_name.trim(), birthdate]);
+
+    res.json({
+      is_duplicate: duplicates.length > 0,
+      duplicates: duplicates,
+      message: duplicates.length > 0 ?
+        'Possible duplicate found. Please verify if this is the same person.' :
+        'No duplicates found. Safe to proceed.'
+    });
+  } catch (error) {
+    console.error('Error checking duplicates:', error);
+    res.status(500).json({ error: 'Failed to check for duplicates' });
+  }
+});
+
+// Create new resident (RBIM enhanced)
+app.post('/api/residents', async (req, res) => {
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
     const {
-      first_name, last_name, middle_name, dob, age, gender, address, sitio_id,
-      mobile_number, employment_status, income_estimate,
-      is_senior, is_pwd, is_single_parent, is_4ps, voter_status
+      household_id,
+      relation_to_head,
+      first_name,
+      middle_name,
+      last_name,
+      suffix,
+      birthdate,
+      gender,
+      civil_status,
+      occupation,
+      income_estimate,
+      mobile_number,
+      voter_status,
+      date_arrival,
+      profile_photo_url,
+      // Vulnerability data
+      is_4ps,
+      is_pwd,
+      is_solo_parent,
+      is_out_of_school_youth,
+      disability_type
     } = req.body;
 
-    // Input validation
-    if (!first_name || !last_name) {
-      return res.status(400).json({ error: 'First name and last name are required' });
+    // Validation
+    if (!first_name || !last_name || !birthdate || !household_id) {
+      return res.status(400).json({ error: 'Required fields: first_name, last_name, birthdate, household_id' });
     }
 
-    if (!sitio_id || isNaN(sitio_id)) {
-      return res.status(400).json({ error: 'Valid sitio_id is required' });
+    // Verify household exists
+    const [householdCheck] = await connection.execute(
+      'SELECT Household_ID FROM households WHERE Household_ID = ?',
+      [household_id]
+    );
+    if (householdCheck.length === 0) {
+      return res.status(400).json({ error: 'Invalid household_id - household does not exist' });
     }
 
-    // Verify sitio exists
-    const [sitioCheck] = await db.execute('SELECT id FROM sitios WHERE id = ?', [sitio_id]);
-    if (sitioCheck.length === 0) {
-      return res.status(400).json({ error: 'Invalid sitio_id - sitio does not exist' });
-    }
+    // Generate Resident_ID (UUID format)
+    const residentId = `RES-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
-    const [result] = await db.execute(`
+    // Generate QR Hash
+    const qrHash = crypto.createHash('sha256')
+      .update(`${residentId}-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`)
+      .digest('hex')
+      .substring(0, 16)
+      .toUpperCase();
+
+    // Insert resident
+    await connection.execute(`
       INSERT INTO residents (
-        first_name, last_name, middle_name, dob, age, gender, address, sitio_id,
-        mobile_number, employment_status, income_estimate,
-        is_senior, is_pwd, is_single_parent, is_4ps, voter_status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        Resident_ID, Household_ID, Relation_to_Head, First_Name, Middle_Name, Last_Name, Suffix,
+        Birthdate, Gender, Civil_Status, Occupation, Income_Estimate, Mobile_Number,
+        Voter_Status, Date_Arrival, Residency_Status, Profile_Photo_URL, QR_Hash_String
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      first_name, last_name, middle_name, dob, age, gender, address, sitio_id,
-      mobile_number, employment_status, income_estimate,
-      is_senior || false, is_pwd || false, is_single_parent || false, is_4ps || false, voter_status
+      residentId, household_id, relation_to_head || 'Head', first_name.trim(), middle_name?.trim(),
+      last_name.trim(), suffix?.trim(), birthdate, gender, civil_status || 'Single',
+      occupation?.trim(), income_estimate || 0, mobile_number?.trim(),
+      voter_status || 'Non-Registered', date_arrival, 'Active',
+      profile_photo_url?.trim(), qrHash
     ]);
 
-    res.status(201).json({ id: result.insertId, message: 'Resident created successfully' });
+    // Insert vulnerability data
+    await connection.execute(`
+      INSERT INTO vulnerabilities (
+        Resident_ID, Is_4Ps, Is_PWD, Is_Solo_Parent, Is_Out_of_School_Youth, Disability_Type
+      ) VALUES (?, ?, ?, ?, ?, ?)
+    `, [
+      residentId,
+      is_4ps || false,
+      is_pwd || false,
+      is_solo_parent || false,
+      is_out_of_school_youth || false,
+      disability_type?.trim()
+    ]);
+
+    // Update household member count
+    await connection.execute(`
+      UPDATE households
+      SET Total_Members = Total_Members + 1
+      WHERE Household_ID = ?
+    `, [household_id]);
+
+    await connection.commit();
+
+    res.status(201).json({
+      resident_id: residentId,
+      qr_hash: qrHash,
+      message: 'Resident created successfully'
+    });
   } catch (error) {
+    await connection.rollback();
     console.error('Error creating resident:', error);
     res.status(500).json({ error: 'Failed to create resident' });
+  } finally {
+    connection.release();
   }
 });
 
-// Update resident
+// Update resident (RBIM enhanced)
 app.put('/api/residents/:id', async (req, res) => {
+  const connection = await db.getConnection();
+
   try {
+    await connection.beginTransaction();
+
+    const residentId = req.params.id;
     const {
-      first_name, last_name, middle_name, age, gender, sitio_id,
-      is_senior, is_pwd, is_single_parent, employment_status, monthly_income,
-      contact_number, address, date_of_birth
+      household_id,
+      relation_to_head,
+      first_name,
+      middle_name,
+      last_name,
+      suffix,
+      birthdate,
+      gender,
+      civil_status,
+      occupation,
+      income_estimate,
+      mobile_number,
+      voter_status,
+      date_arrival,
+      residency_status,
+      profile_photo_url,
+      // Vulnerability updates
+      is_4ps,
+      is_pwd,
+      is_solo_parent,
+      is_out_of_school_youth,
+      disability_type
     } = req.body;
 
-    await db.execute(`
-      UPDATE residents SET
-        first_name = ?, last_name = ?, middle_name = ?, age = ?, gender = ?, sitio_id = ?,
-        is_senior = ?, is_pwd = ?, is_single_parent = ?, employment_status = ?, monthly_income = ?,
-        contact_number = ?, address = ?, date_of_birth = ?
-      WHERE id = ?
-    `, [
-      first_name, last_name, middle_name, age, gender, sitio_id,
-      is_senior, is_pwd, is_single_parent, employment_status, monthly_income,
-      contact_number, address, date_of_birth, req.params.id
-    ]);
+    // Update resident data
+    const residentUpdates = [];
+    const residentValues = [];
 
+    if (household_id !== undefined) {
+      residentUpdates.push('Household_ID = ?');
+      residentValues.push(household_id);
+    }
+    if (relation_to_head !== undefined) {
+      residentUpdates.push('Relation_to_Head = ?');
+      residentValues.push(relation_to_head);
+    }
+    if (first_name !== undefined) {
+      residentUpdates.push('First_Name = ?');
+      residentValues.push(first_name.trim());
+    }
+    if (middle_name !== undefined) {
+      residentUpdates.push('Middle_Name = ?');
+      residentValues.push(middle_name?.trim());
+    }
+    if (last_name !== undefined) {
+      residentUpdates.push('Last_Name = ?');
+      residentValues.push(last_name.trim());
+    }
+    if (suffix !== undefined) {
+      residentUpdates.push('Suffix = ?');
+      residentValues.push(suffix?.trim());
+    }
+    if (birthdate !== undefined) {
+      residentUpdates.push('Birthdate = ?');
+      residentValues.push(birthdate);
+    }
+    if (gender !== undefined) {
+      residentUpdates.push('Gender = ?');
+      residentValues.push(gender);
+    }
+    if (civil_status !== undefined) {
+      residentUpdates.push('Civil_Status = ?');
+      residentValues.push(civil_status);
+    }
+    if (occupation !== undefined) {
+      residentUpdates.push('Occupation = ?');
+      residentValues.push(occupation?.trim());
+    }
+    if (income_estimate !== undefined) {
+      residentUpdates.push('Income_Estimate = ?');
+      residentValues.push(income_estimate);
+    }
+    if (mobile_number !== undefined) {
+      residentUpdates.push('Mobile_Number = ?');
+      residentValues.push(mobile_number?.trim());
+    }
+    if (voter_status !== undefined) {
+      residentUpdates.push('Voter_Status = ?');
+      residentValues.push(voter_status);
+    }
+    if (date_arrival !== undefined) {
+      residentUpdates.push('Date_Arrival = ?');
+      residentValues.push(date_arrival);
+    }
+    if (residency_status !== undefined) {
+      residentUpdates.push('Residency_Status = ?');
+      residentValues.push(residency_status);
+    }
+    if (profile_photo_url !== undefined) {
+      residentUpdates.push('Profile_Photo_URL = ?');
+      residentValues.push(profile_photo_url?.trim());
+    }
+
+    if (residentUpdates.length > 0) {
+      const residentSql = `UPDATE residents SET ${residentUpdates.join(', ')} WHERE Resident_ID = ?`;
+      residentValues.push(residentId);
+      await connection.execute(residentSql, residentValues);
+    }
+
+    // Update vulnerability data
+    const vulnUpdates = [];
+    const vulnValues = [];
+
+    if (is_4ps !== undefined) {
+      vulnUpdates.push('Is_4Ps = ?');
+      vulnValues.push(is_4ps);
+    }
+    if (is_pwd !== undefined) {
+      vulnUpdates.push('Is_PWD = ?');
+      vulnValues.push(is_pwd);
+    }
+    if (is_solo_parent !== undefined) {
+      vulnUpdates.push('Is_Solo_Parent = ?');
+      vulnValues.push(is_solo_parent);
+    }
+    if (is_out_of_school_youth !== undefined) {
+      vulnUpdates.push('Is_Out_of_School_Youth = ?');
+      vulnValues.push(is_out_of_school_youth);
+    }
+    if (disability_type !== undefined) {
+      vulnUpdates.push('Disability_Type = ?');
+      vulnValues.push(disability_type?.trim());
+    }
+
+    if (vulnUpdates.length > 0) {
+      const vulnSql = `UPDATE vulnerabilities SET ${vulnUpdates.join(', ')} WHERE Resident_ID = ?`;
+      vulnValues.push(residentId);
+      await connection.execute(vulnSql, vulnValues);
+    }
+
+    await connection.commit();
     res.json({ message: 'Resident updated successfully' });
   } catch (error) {
+    await connection.rollback();
     console.error('Error updating resident:', error);
     res.status(500).json({ error: 'Failed to update resident' });
+  } finally {
+    connection.release();
   }
 });
 
-// Delete resident (hard delete since no is_active column)
-app.delete('/api/residents/:id', async (req, res) => {
+// Archive resident (Migration handler - RBIM requirement)
+app.put('/api/residents/:id/archive', async (req, res) => {
+  const connection = await db.getConnection();
+
   try {
-    await db.execute('DELETE FROM residents WHERE id = ?', [req.params.id]);
-    res.json({ message: 'Resident deleted successfully' });
+    await connection.beginTransaction();
+
+    const residentId = req.params.id;
+    const { departure_date, departure_reason, destination } = req.body;
+
+    // Update resident status
+    await connection.execute(`
+      UPDATE residents
+      SET Residency_Status = 'Transferred Out',
+          updated_at = CURRENT_TIMESTAMP
+      WHERE Resident_ID = ?
+    `, [residentId]);
+
+    // Update household member count
+    await connection.execute(`
+      UPDATE households
+      SET Total_Members = Total_Members - 1
+      WHERE Household_ID = (SELECT Household_ID FROM residents WHERE Resident_ID = ?)
+    `, [residentId]);
+
+    // Log the migration (you could create a separate migration_log table)
+    console.log(`Resident ${residentId} archived - Departure: ${departure_date}, Reason: ${departure_reason}, Destination: ${destination}`);
+
+    await connection.commit();
+    res.json({
+      message: 'Resident archived successfully',
+      status: 'Transferred Out'
+    });
   } catch (error) {
-    console.error('Error deleting resident:', error);
-    res.status(500).json({ error: 'Failed to delete resident' });
+    await connection.rollback();
+    console.error('Error archiving resident:', error);
+    res.status(500).json({ error: 'Failed to archive resident' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Bulk import residents (Excel/CSV parser)
+app.post('/api/residents/bulk-import', upload.single('file'), async (req, res) => {
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Read Excel file
+    const workbook = xlsx.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const data = xlsx.utils.sheet_to_json(worksheet);
+
+    const results = {
+      imported: 0,
+      skipped: 0,
+      errors: [],
+      duplicates: []
+    };
+
+    for (const row of data) {
+      try {
+        // Map Excel columns to database fields (adjust column names as needed)
+        const residentData = {
+          household_id: row['Household_ID'] || row['Household ID'],
+          relation_to_head: row['Relation_to_Head'] || row['Relation to Head'] || 'Member',
+          first_name: row['First_Name'] || row['First Name'],
+          middle_name: row['Middle_Name'] || row['Middle Name'],
+          last_name: row['Last_Name'] || row['Last Name'],
+          suffix: row['Suffix'],
+          birthdate: row['Birthdate'] || row['Date_of_Birth'] || row['DOB'],
+          gender: row['Gender'],
+          civil_status: row['Civil_Status'] || row['Civil Status'] || 'Single',
+          occupation: row['Occupation'],
+          income_estimate: parseFloat(row['Income_Estimate'] || row['Monthly_Income'] || '0'),
+          mobile_number: row['Mobile_Number'] || row['Contact_Number'] || row['Phone'],
+          voter_status: row['Voter_Status'] || row['Voter Status'] || 'Non-Registered',
+          date_arrival: row['Date_Arrival'] || row['Date Arrived'] || new Date().toISOString().split('T')[0],
+          is_4ps: row['Is_4Ps'] || row['4Ps_Member'] ? true : false,
+          is_pwd: row['Is_PWD'] || row['PWD'] ? true : false,
+          is_solo_parent: row['Is_Solo_Parent'] || row['Solo_Parent'] ? true : false,
+          is_out_of_school_youth: row['Is_Out_of_School_Youth'] || row['OSY'] ? true : false,
+          disability_type: row['Disability_Type'] || row['Disability Type']
+        };
+
+        // Check for duplicates
+        const [duplicates] = await connection.execute(`
+          SELECT Resident_ID FROM residents
+          WHERE First_Name = ? AND Last_Name = ? AND Birthdate = ? AND Residency_Status = 'Active'
+        `, [residentData.first_name, residentData.last_name, residentData.birthdate]);
+
+        if (duplicates.length > 0) {
+          results.duplicates.push({
+            name: `${residentData.first_name} ${residentData.last_name}`,
+            existing_id: duplicates[0].Resident_ID
+          });
+          results.skipped++;
+          continue;
+        }
+
+        // Generate IDs and insert (similar to single insert logic)
+        const residentId = `RES-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+        const qrHash = crypto.createHash('sha256')
+          .update(`${residentId}-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`)
+          .digest('hex')
+          .substring(0, 16)
+          .toUpperCase();
+
+        await connection.execute(`
+          INSERT INTO residents (
+            Resident_ID, Household_ID, Relation_to_Head, First_Name, Middle_Name, Last_Name, Suffix,
+            Birthdate, Gender, Civil_Status, Occupation, Income_Estimate, Mobile_Number,
+            Voter_Status, Date_Arrival, Residency_Status, QR_Hash_String
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          residentId, residentData.household_id, residentData.relation_to_head,
+          residentData.first_name, residentData.middle_name, residentData.last_name, residentData.suffix,
+          residentData.birthdate, residentData.gender, residentData.civil_status,
+          residentData.occupation, residentData.income_estimate, residentData.mobile_number,
+          residentData.voter_status, residentData.date_arrival, 'Active', qrHash
+        ]);
+
+        await connection.execute(`
+          INSERT INTO vulnerabilities (
+            Resident_ID, Is_4Ps, Is_PWD, Is_Solo_Parent, Is_Out_of_School_Youth, Disability_Type
+          ) VALUES (?, ?, ?, ?, ?, ?)
+        `, [
+          residentId, residentData.is_4ps, residentData.is_pwd,
+          residentData.is_solo_parent, residentData.is_out_of_school_youth, residentData.disability_type
+        ]);
+
+        results.imported++;
+      } catch (rowError) {
+        results.errors.push({
+          row: data.indexOf(row) + 2, // +2 because Excel is 1-indexed and has header
+          error: rowError.message,
+          data: row
+        });
+      }
+    }
+
+    await connection.commit();
+
+    // Clean up uploaded file
+    require('fs').unlinkSync(req.file.path);
+
+    res.json({
+      message: `Bulk import completed: ${results.imported} imported, ${results.skipped} skipped, ${results.errors.length} errors`,
+      results
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error in bulk import:', error);
+    res.status(500).json({ error: 'Failed to process bulk import' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Get household members
+app.get('/api/households/:id/members', async (req, res) => {
+  try {
+    const [members] = await db.execute(`
+      SELECT
+        r.*,
+        v.Is_4Ps,
+        v.Is_PWD,
+        v.Is_Senior,
+        v.Is_Solo_Parent,
+        v.Is_Out_of_School_Youth,
+        v.Vulnerability_Score
+      FROM residents r
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
+      WHERE r.Household_ID = ?
+      ORDER BY
+        CASE r.Relation_to_Head
+          WHEN 'Head' THEN 1
+          WHEN 'Spouse' THEN 2
+          ELSE 3
+        END,
+        r.Birthdate
+    `, [req.params.id]);
+
+    const [household] = await db.execute(`
+      SELECT h.*, s.name as sitio_name
+      FROM households h
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
+      WHERE h.Household_ID = ?
+    `, [req.params.id]);
+
+    if (household.length === 0) {
+      return res.status(404).json({ error: 'Household not found' });
+    }
+
+    res.json({
+      household: household[0],
+      members: members
+    });
+  } catch (error) {
+    console.error('Error fetching household members:', error);
+    res.status(500).json({ error: 'Failed to fetch household members' });
+  }
+});
+
+// Generate QR code for resident ID (RBIM enhanced)
+app.post('/api/residents/:id/generate-qr', async (req, res) => {
+  try {
+    const residentId = req.params.id;
+
+    // Generate unique QR code string (Barangay ID format)
+    const qrString = `BARANGAY-ID-${residentId}-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
+
+    // Update resident with QR code
+    await db.execute(
+      'UPDATE residents SET QR_Hash_String = ? WHERE Resident_ID = ?',
+      [qrString, residentId]
+    );
+
+    // Get updated resident data with household info
+    const [residents] = await db.execute(`
+      SELECT
+        r.*,
+        h.Household_Number,
+        h.Street_Address,
+        s.name as sitio_name,
+        v.Vulnerability_Score
+      FROM residents r
+      LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
+      WHERE r.Resident_ID = ?
+    `, [residentId]);
+
+    res.json({
+      success: true,
+      qr_code: qrString,
+      resident: residents[0],
+      message: 'QR code generated successfully for Barangay ID'
+    });
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    res.status(500).json({ error: 'Failed to generate QR code' });
+  }
+});
+
+// ==========================================
+// HOUSEHOLDS MANAGEMENT (RBIM)
+// ==========================================
+
+// Get all households
+app.get('/api/households', async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT h.*, s.name as sitio_name
+      FROM households h
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
+      ORDER BY h.Household_Number
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching households:', error);
+    res.status(500).json({ error: 'Failed to fetch households' });
+  }
+});
+
+// Get household by ID
+app.get('/api/households/:id', async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT h.*, s.name as sitio_name
+      FROM households h
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
+      WHERE h.Household_ID = ?
+    `, [req.params.id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Household not found' });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Error fetching household:', error);
+    res.status(500).json({ error: 'Failed to fetch household' });
+  }
+});
+
+// Create new household
+app.post('/api/households', async (req, res) => {
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const { Household_Number, Sitio_ID, Street_Address, Household_Type } = req.body;
+
+    // Validation
+    if (!Household_Number || !Sitio_ID || !Street_Address) {
+      return res.status(400).json({ error: 'Household_Number, Sitio_ID, and Street_Address are required' });
+    }
+
+    // Generate Household_ID
+    const householdId = `H-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
+    // Insert household
+    await connection.execute(`
+      INSERT INTO households (
+        Household_ID, Household_Number, Sitio_ID, Street_Address, Household_Type
+      ) VALUES (?, ?, ?, ?, ?)
+    `, [
+      householdId, Household_Number.trim(), Sitio_ID, Street_Address.trim(),
+      Household_Type || 'Nuclear'
+    ]);
+
+    await connection.commit();
+
+    res.status(201).json({
+      household_id: householdId,
+      message: 'Household created successfully'
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error creating household:', error);
+    res.status(500).json({ error: 'Failed to create household' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Update household
+app.put('/api/households/:id', async (req, res) => {
+  try {
+    const { Household_Number, Sitio_ID, Street_Address, Household_Type } = req.body;
+
+    const updates = [];
+    const values = [];
+
+    if (Household_Number !== undefined) {
+      updates.push('Household_Number = ?');
+      values.push(Household_Number.trim());
+    }
+    if (Sitio_ID !== undefined) {
+      updates.push('Sitio_ID = ?');
+      values.push(Sitio_ID);
+    }
+    if (Street_Address !== undefined) {
+      updates.push('Street_Address = ?');
+      values.push(Street_Address.trim());
+    }
+    if (Household_Type !== undefined) {
+      updates.push('Household_Type = ?');
+      values.push(Household_Type);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    const sql = `UPDATE households SET ${updates.join(', ')} WHERE Household_ID = ?`;
+    values.push(req.params.id);
+
+    await db.execute(sql, values);
+    res.json({ message: 'Household updated successfully' });
+  } catch (error) {
+    console.error('Error updating household:', error);
+    res.status(500).json({ error: 'Failed to update household' });
+  }
+});
+
+// Delete household
+app.delete('/api/households/:id', async (req, res) => {
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const householdId = req.params.id;
+
+    // Check if household has residents
+    const [residents] = await connection.execute(
+      'SELECT COUNT(*) as count FROM residents WHERE Household_ID = ?',
+      [householdId]
+    );
+
+    if (residents[0].count > 0) {
+      return res.status(400).json({
+        error: 'Cannot delete household with active residents. Archive residents first.'
+      });
+    }
+
+    await connection.execute('DELETE FROM households WHERE Household_ID = ?', [householdId]);
+    await connection.commit();
+
+    res.json({ message: 'Household deleted successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error deleting household:', error);
+    res.status(500).json({ error: 'Failed to delete household' });
+  } finally {
+    connection.release();
   }
 });
 
@@ -214,12 +930,14 @@ app.get('/api/census', async (req, res) => {
     const [stats] = await db.execute(`
       SELECT
         s.name as sitio_name,
-        COUNT(r.id) as total_residents,
-        SUM(CASE WHEN r.is_senior = 1 THEN 1 ELSE 0 END) as seniors,
-        SUM(CASE WHEN r.is_pwd = 1 THEN 1 ELSE 0 END) as pwd,
-        SUM(CASE WHEN r.is_single_parent = 1 THEN 1 ELSE 0 END) as single_parents
+        COUNT(r.Resident_ID) as total_residents,
+        SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as seniors,
+        SUM(CASE WHEN v.Is_PWD = 1 THEN 1 ELSE 0 END) as pwd,
+        SUM(CASE WHEN v.Is_Solo_Parent = 1 THEN 1 ELSE 0 END) as single_parents
       FROM sitios s
-      LEFT JOIN residents r ON s.id = r.sitio_id
+      LEFT JOIN households h ON s.id = h.Sitio_ID
+      LEFT JOIN residents r ON h.Household_ID = r.Household_ID
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
       GROUP BY s.id, s.name
       ORDER BY s.name
     `);
@@ -227,10 +945,11 @@ app.get('/api/census', async (req, res) => {
     const [overall] = await db.execute(`
       SELECT
         COUNT(*) as total_residents,
-        SUM(CASE WHEN is_senior = 1 THEN 1 ELSE 0 END) as total_seniors,
-        SUM(CASE WHEN is_pwd = 1 THEN 1 ELSE 0 END) as total_pwd,
-        SUM(CASE WHEN is_single_parent = 1 THEN 1 ELSE 0 END) as total_single_parents
-      FROM residents
+        SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as total_seniors,
+        SUM(CASE WHEN v.Is_PWD = 1 THEN 1 ELSE 0 END) as total_pwd,
+        SUM(CASE WHEN v.Is_Solo_Parent = 1 THEN 1 ELSE 0 END) as total_single_parents
+      FROM residents r
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
     `);
 
     res.json({
@@ -250,14 +969,16 @@ app.get('/api/analytics/census', async (req, res) => {
       SELECT
         s.id as sitio_id,
         s.name as sitio_name,
-        COUNT(r.id) as total_residents,
-        SUM(CASE WHEN r.gender = 'Male' THEN 1 ELSE 0 END) as total_men,
-        SUM(CASE WHEN r.gender = 'Female' THEN 1 ELSE 0 END) as total_women,
-        SUM(CASE WHEN r.is_senior = 1 THEN 1 ELSE 0 END) as total_seniors,
-        SUM(CASE WHEN r.is_pwd = 1 THEN 1 ELSE 0 END) as total_pwds,
-        SUM(CASE WHEN r.is_single_parent = 1 THEN 1 ELSE 0 END) as total_single_parents
+        COUNT(r.Resident_ID) as total_residents,
+        SUM(CASE WHEN r.Gender = 'Male' THEN 1 ELSE 0 END) as total_men,
+        SUM(CASE WHEN r.Gender = 'Female' THEN 1 ELSE 0 END) as total_women,
+        SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as total_seniors,
+        SUM(CASE WHEN v.Is_PWD = 1 THEN 1 ELSE 0 END) as total_pwds,
+        SUM(CASE WHEN v.Is_Solo_Parent = 1 THEN 1 ELSE 0 END) as total_single_parents
       FROM sitios s
-      LEFT JOIN residents r ON s.id = r.sitio_id
+      LEFT JOIN households h ON s.id = h.Sitio_ID
+      LEFT JOIN residents r ON h.Household_ID = r.Household_ID
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
       GROUP BY s.id, s.name
       ORDER BY s.name
     `);
@@ -265,12 +986,13 @@ app.get('/api/analytics/census', async (req, res) => {
     const [overall] = await db.execute(`
       SELECT
         COUNT(*) as total_residents,
-        SUM(CASE WHEN gender = 'Male' THEN 1 ELSE 0 END) as total_men,
-        SUM(CASE WHEN gender = 'Female' THEN 1 ELSE 0 END) as total_women,
-        SUM(CASE WHEN is_senior = 1 THEN 1 ELSE 0 END) as total_seniors,
-        SUM(CASE WHEN is_pwd = 1 THEN 1 ELSE 0 END) as total_pwds,
-        SUM(CASE WHEN is_single_parent = 1 THEN 1 ELSE 0 END) as total_single_parents
-      FROM residents
+        SUM(CASE WHEN Gender = 'Male' THEN 1 ELSE 0 END) as total_men,
+        SUM(CASE WHEN Gender = 'Female' THEN 1 ELSE 0 END) as total_women,
+        SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as total_seniors,
+        SUM(CASE WHEN v.Is_PWD = 1 THEN 1 ELSE 0 END) as total_pwds,
+        SUM(CASE WHEN v.Is_Solo_Parent = 1 THEN 1 ELSE 0 END) as total_single_parents
+      FROM residents r
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
     `);
 
     res.json({
@@ -291,10 +1013,10 @@ app.get('/api/analytics/census', async (req, res) => {
 app.get('/api/blotter', async (req, res) => {
   try {
     const [rows] = await db.execute(`
-      SELECT b.*, s.name as sitio_name, r.first_name, r.last_name
+      SELECT b.*,
+             s.name as sitio_name
       FROM blotter b
-      LEFT JOIN sitios s ON b.sitio_id = s.id
-      LEFT JOIN residents r ON b.respondent_id = r.id
+      LEFT JOIN sitios s ON b.Location_Sitio = s.name
       ORDER BY b.created_at DESC
     `);
     res.json(rows);
@@ -304,79 +1026,120 @@ app.get('/api/blotter', async (req, res) => {
   }
 });
 
-// Create new blotter record
+// Create new blotter record (using new Katarungang Pambarangay schema)
 app.post('/api/blotter', async (req, res) => {
   try {
     const {
-      complainant_id, respondent_id, respondent_name, incident_type,
-      incident_date, incident_time, location, sitio_id, description, 
-      status, severity, recorded_by
+      Case_Number,
+      Complainant_Details,
+      Respondent_Details,
+      Incident_Type,
+      Narrative,
+      DateTime_Incident,
+      Location_Sitio,
+      Status
     } = req.body;
 
-    // Get complainant name if ID provided
-    let complainant_name = null;
-    if (complainant_id) {
-      const [complainant] = await db.execute(
-        'SELECT CONCAT(first_name, " ", last_name) as name FROM residents WHERE id = ?',
-        [complainant_id]
-      );
-      complainant_name = complainant[0]?.name || 'Unknown';
+    // Validation
+    if (!Complainant_Details || !Incident_Type || !Narrative || !Location_Sitio) {
+      return res.status(400).json({ error: 'Required fields missing' });
     }
 
-    // Generate case number
-    const caseNumber = `BLT-${Date.now()}`;
+    // Generate case number if not provided
+    let caseNumber = Case_Number;
+    if (!caseNumber) {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const sequence = String(Math.floor(Math.random() * 999) + 1).padStart(4, '0');
+      caseNumber = `BLOT-${year}-${month}-${sequence}`;
+    }
 
     const [result] = await db.execute(`
       INSERT INTO blotter (
-        case_number, complainant_id, complainant_name, respondent_id, respondent_name, 
-        incident_type, incident_date, incident_time, location, sitio_id, 
-        description, status, severity, recorded_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        Case_Number, Complainant_Details, Respondent_Details, Incident_Type,
+        Narrative, DateTime_Incident, Location_Sitio, Status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      caseNumber, complainant_id, complainant_name, respondent_id, respondent_name,
-      incident_type, incident_date, incident_time, location, sitio_id,
-      description, status || 'Pending', severity || 'minor', recorded_by || 1
+      caseNumber,
+      JSON.stringify(Complainant_Details),
+      Respondent_Details ? JSON.stringify(Respondent_Details) : null,
+      Incident_Type,
+      Narrative,
+      DateTime_Incident,
+      Location_Sitio,
+      Status || 'Pending'
     ]);
 
-    res.status(201).json({ id: result.insertId, case_number: caseNumber, message: 'Blotter record created successfully' });
+    res.status(201).json({
+      id: result.insertId,
+      Case_Number: caseNumber,
+      message: 'Blotter record created successfully'
+    });
   } catch (error) {
     console.error('Error creating blotter record:', error);
     res.status(500).json({ error: 'Failed to create blotter record' });
   }
 });
 
-// Update blotter record
-app.put('/api/blotter/:id', async (req, res) => {
+// Update blotter record (using new schema)
+app.put('/api/blotter/:caseNumber', async (req, res) => {
   try {
     const {
-      complainant_id, respondent_id, respondent_name, incident_type,
-      incident_date, incident_time, location, sitio_id, description,
-      status, severity, resolution, resolved_date, resolved_by
+      Complainant_Details,
+      Respondent_Details,
+      Incident_Type,
+      Narrative,
+      DateTime_Incident,
+      Location_Sitio,
+      Status,
+      Hearing_Schedule
     } = req.body;
 
-    // Get complainant name if ID provided
-    let complainant_name = null;
-    if (complainant_id) {
-      const [complainant] = await db.execute(
-        'SELECT CONCAT(first_name, " ", last_name) as name FROM residents WHERE id = ?',
-        [complainant_id]
-      );
-      complainant_name = complainant[0]?.name || 'Unknown';
+    const updateFields = [];
+    const values = [];
+
+    if (Complainant_Details !== undefined) {
+      updateFields.push('Complainant_Details = ?');
+      values.push(JSON.stringify(Complainant_Details));
+    }
+    if (Respondent_Details !== undefined) {
+      updateFields.push('Respondent_Details = ?');
+      values.push(Respondent_Details ? JSON.stringify(Respondent_Details) : null);
+    }
+    if (Incident_Type !== undefined) {
+      updateFields.push('Incident_Type = ?');
+      values.push(Incident_Type);
+    }
+    if (Narrative !== undefined) {
+      updateFields.push('Narrative = ?');
+      values.push(Narrative);
+    }
+    if (DateTime_Incident !== undefined) {
+      updateFields.push('DateTime_Incident = ?');
+      values.push(DateTime_Incident);
+    }
+    if (Location_Sitio !== undefined) {
+      updateFields.push('Location_Sitio = ?');
+      values.push(Location_Sitio);
+    }
+    if (Status !== undefined) {
+      updateFields.push('Status = ?');
+      values.push(Status);
+    }
+    if (Hearing_Schedule !== undefined) {
+      updateFields.push('Hearing_Schedule = ?');
+      values.push(Hearing_Schedule);
     }
 
-    await db.execute(`
-      UPDATE blotter SET
-        complainant_id = ?, complainant_name = ?, respondent_id = ?, respondent_name = ?,
-        incident_type = ?, incident_date = ?, incident_time = ?, location = ?, sitio_id = ?,
-        description = ?, status = ?, severity = ?, resolution = ?, resolved_date = ?, resolved_by = ?
-      WHERE id = ?
-    `, [
-      complainant_id, complainant_name, respondent_id, respondent_name,
-      incident_type, incident_date, incident_time, location, sitio_id,
-      description, status, severity, resolution, resolved_date, resolved_by,
-      req.params.id
-    ]);
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
 
+    const sql = `UPDATE blotter SET ${updateFields.join(', ')} WHERE Case_Number = ?`;
+    values.push(req.params.caseNumber);
+
+    await db.execute(sql, values);
     res.json({ message: 'Blotter record updated successfully' });
   } catch (error) {
     console.error('Error updating blotter record:', error);
@@ -385,9 +1148,9 @@ app.put('/api/blotter/:id', async (req, res) => {
 });
 
 // Delete blotter record
-app.delete('/api/blotter/:id', async (req, res) => {
+app.delete('/api/blotter/:caseNumber', async (req, res) => {
   try {
-    await db.execute('DELETE FROM blotter WHERE id = ?', [req.params.id]);
+    await db.execute('DELETE FROM blotter WHERE Case_Number = ?', [req.params.caseNumber]);
     res.json({ message: 'Blotter record deleted successfully' });
   } catch (error) {
     console.error('Error deleting blotter record:', error);
@@ -399,179 +1162,30 @@ app.delete('/api/blotter/:id', async (req, res) => {
 // CERTIFICATE ISSUANCE MODULE
 // ==========================================
 
-// Get certificate types
+// Get certificate types (from database - removed hardcoded data)
 app.get('/api/certificate-types', async (req, res) => {
   try {
-    const certificateTypes = [
-      {
-        id: 1,
-        name: 'Barangay Indigency',
-        fee: 0,
-        validity_days: 90,
-        description: 'Proving a resident has no or limited income.',
-        purpose: 'To qualify the resident for financial discount',
-        when_needed: 'For assistance',
-        required_data: [
-          'Full Name of Applicant',
-          'Complete Address',
-          'Categorical Statement',
-          'Specific Purpose',
-          'Date of Issuance and Validity',
-          'Signature of Barangay Captain and Secretary'
-        ]
-      },
-      {
-        id: 2,
-        name: 'Barangay Residency',
-        fee: 30,
-        validity_days: 180,
-        description: 'Certifies an individual\'s residence within the barangay',
-        purpose: 'Confirms that an individual is a resident of the barangay.',
-        when_needed: 'Applying for government ID, Business permit, License',
-        required_data: [
-          'Full name of the resident.',
-          'Address within the barangay.',
-          'Period of residency (start date and up to present).',
-          'Purpose for which the certificate is issued.',
-          'Date of issuance and signature of the Barangay Captain and Secretary',
-          'Barangay seal and control number.'
-        ]
-      },
-      {
-        id: 3,
-        name: 'Barangay Certification',
-        fee: 25,
-        validity_days: 180,
-        description: 'Specific information of individuals',
-        purpose: 'Proof or Residency, Legal Administrative Confirmation',
-        when_needed: 'Applying for government ID, Business permit',
-        required_data: [
-          'Full name of individual',
-          'Complete address',
-          'Date of residency or length of stay.',
-          'Purpose of the certification',
-          'Date of issuance of the certificate.',
-          'Signature of the Punong Barangay or authorized official.',
-          'Barangay seal or stamp to authenticate the document.'
-        ]
-      },
-      {
-        id: 4,
-        name: 'Barangay Clearance',
-        fee: 50,
-        validity_days: 365,
-        description: 'Proves you have no issue or file complaint',
-        purpose: 'Certify a person is law-abiding resident',
-        when_needed: 'Apply for other clearances / job',
-        required_data: [
-          'Valid ID',
-          'Proof of Residency',
-          'CEDULA',
-          'Purpose',
-          'Payment',
-          'Personal Information (Name, Date of Birth, Address, Contact Number, Length of stay in barangay)',
-          'Signature of Barangay Captain and Secretary'
-        ]
-      },
-      {
-        id: 5,
-        name: 'Business Clearance',
-        fee: 100,
-        validity_days: 365,
-        description: 'Business allowed to operate in the barangay',
-        purpose: 'Verify Business is legitimate and follow the barangay regulation',
-        when_needed: 'Register or Renew your Business',
-        required_data: [
-          'Business Name',
-          'Business Address',
-          'Name of Owner',
-          'Type of Business',
-          'Valid ID of Owner',
-          'Barangay Residency',
-          'CEDULA',
-          'Payment',
-          'Signature of Barangay Captain and Secretary'
-        ]
-      },
-      {
-        id: 6,
-        name: 'Oath of Undertaking',
-        fee: 25,
-        validity_days: 180,
-        description: 'Individual promises to follow certain rules and responsibility',
-        purpose: 'Show a person\'s commitment to comply with rules, serves as a supporting document for the legal process.',
-        when_needed: 'Need to promise compliance with government requirements, Register for certain ID\'s',
-        required_data: [
-          'Full Name of the Person',
-          'Address',
-          'Statement of the promise/undertaking',
-          'Date signed',
-          'Signature of the applicant',
-          'Signature and Seal of the official administering the oath'
-        ]
-      },
-      {
-        id: 7,
-        name: 'Good Moral',
-        fee: 25,
-        validity_days: 180,
-        description: 'A person has good behavior, no major issues and conduct themselves properly',
-        purpose: 'Prove a person that has good character, Support Application',
-        when_needed: 'Enroll or Transfer in School, Apply for Scholarship or Job',
-        required_data: [
-          'Full Name of the Person',
-          'Date of Birth',
-          'Address',
-          'School year or Purpose',
-          'Name of barangay/school issuing the certificate',
-          'Statement confirming good moral character',
-          'Signature of the issuing officer',
-          'Date Issued'
-        ]
-      },
-      {
-        id: 8,
-        name: 'Low Income Certificate',
-        fee: 0,
-        validity_days: 90,
-        description: 'Certifies a person or family belongs to the low-income sector',
-        purpose: 'Prove a person or family has limited financial resources, Eligibility for discounts, social services, qualify for medical assistance',
-        when_needed: 'Applying scholarship, Applying for government assistance programs, Processing social welfare documents',
-        required_data: [
-          'Full Name of Applicant',
-          'Address / Proof of Residency',
-          'Valid ID',
-          'Household Information (Number of Family Member)',
-          'Source of Income',
-          'Estimate Monthly Income',
-          'Purpose of the Certificate',
-          'Date of Issuance',
-          'Signature of Barangay Captain and Secretary'
-        ]
-      },
-      {
-        id: 9,
-        name: 'Birth Certificate',
-        fee: 50,
-        validity_days: 0, // Permanent
-        description: 'Local Civil Registry that records a person\'s birth details',
-        purpose: 'Prove\'s a person identity, age, citizenship / Support Legal Transaction / Serves as a requirements',
-        when_needed: 'Enrollment, Applying Government ID / Employment, Processing Marriage/Divorce',
-        required_data: [
-          'Full Name of the Child',
-          'Date and place of Birth',
-          'Sex/Gender',
-          'Full Name of Parents',
-          'Nationality of Parents',
-          'Occupation of Parents',
-          'Address of parents at the time of birth',
-          'Registration Number / PSA Serial Number',
-          'Date of Registration',
-          'Signature of the Civil Registrar',
-          'Barangay Seal'
-        ]
-      }
-    ];
+    const [rows] = await db.execute(`
+      SELECT
+        id,
+        name,
+        fee,
+        validity_days,
+        description,
+        purpose,
+        when_needed,
+        required_data
+      FROM certificate_types
+      WHERE is_active = TRUE
+      ORDER BY name
+    `);
+
+    // Parse JSON required_data for each certificate type
+    const certificateTypes = rows.map(type => ({
+      ...type,
+      required_data: type.required_data ? JSON.parse(type.required_data) : []
+    }));
+
     res.json(certificateTypes);
   } catch (error) {
     console.error('Error fetching certificate types:', error);
@@ -583,9 +1197,9 @@ app.get('/api/certificate-types', async (req, res) => {
 app.get('/api/certificates', async (req, res) => {
   try {
     const [rows] = await db.execute(`
-      SELECT c.*, CONCAT(r.first_name, ' ', r.last_name) as resident_name
+      SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
       FROM certificates_log c
-      JOIN residents r ON c.resident_id = r.id
+      JOIN residents r ON c.resident_id = r.Resident_ID
       ORDER BY c.created_at DESC
     `);
     res.json(rows);
@@ -618,30 +1232,22 @@ app.post('/api/certificates', async (req, res) => {
     }
 
     // Verify resident exists
-    const [residentCheck] = await connection.execute('SELECT id FROM residents WHERE id = ?', [resident_id]);
+    const [residentCheck] = await connection.execute('SELECT Resident_ID FROM residents WHERE Resident_ID = ?', [resident_id]);
     if (residentCheck.length === 0) {
       return res.status(400).json({ error: 'Resident not found' });
     }
 
-    // Get certificate type name - Updated with all 9 types
-    const certificateTypes = [
-      { id: 1, name: 'Barangay Indigency' },
-      { id: 2, name: 'Barangay Residency' },
-      { id: 3, name: 'Barangay Certification' },
-      { id: 4, name: 'Barangay Clearance' },
-      { id: 5, name: 'Business Clearance' },
-      { id: 6, name: 'Oath of Undertaking' },
-      { id: 7, name: 'Good Moral' },
-      { id: 8, name: 'Low Income Certificate' },
-      { id: 9, name: 'Birth Certificate' }
-    ];
+    // Get certificate type name from database
+    const [certTypeRows] = await connection.execute(
+      'SELECT name FROM certificate_types WHERE id = ? AND is_active = TRUE',
+      [certificate_type_id]
+    );
 
-    const certType = certificateTypes.find(ct => ct.id === certificate_type_id);
-    if (!certType) {
+    if (certTypeRows.length === 0) {
       return res.status(400).json({ error: 'Invalid certificate type' });
     }
 
-    const certificate_type = certType.name;
+    const certificate_type = certTypeRows[0].name;
 
     // CRITICAL BUSINESS RULE: Check blotter before issuing clearance or good moral certificates
     // As per survey requirements - block issuance for residents with active blotter cases
@@ -709,7 +1315,7 @@ app.post('/api/ai/priority', async (req, res) => {
     const { resident_id } = req.body;
 
     // Get resident data
-    const [residents] = await db.execute('SELECT * FROM residents WHERE id = ?', [resident_id]);
+    const [residents] = await db.execute('SELECT * FROM residents WHERE Resident_ID = ?', [resident_id]);
     if (residents.length === 0) {
       return res.status(404).json({ error: 'Resident not found' });
     }
@@ -718,7 +1324,7 @@ app.post('/api/ai/priority', async (req, res) => {
 
     // Call AI service
     const aiResponse = await axios.post(`${process.env.AI_SERVICE_URL}/suggest-aid`, {
-      income_estimate: resident.income_estimate,
+      income_estimate: resident.Income_Estimate,
       is_senior: resident.is_senior,
       is_pwd: resident.is_pwd,
       is_single_parent: resident.is_single_parent,
@@ -727,7 +1333,7 @@ app.post('/api/ai/priority', async (req, res) => {
 
     res.json({
       resident_id,
-      resident_name: `${resident.first_name} ${resident.last_name}`,
+      resident_name: `${resident.First_Name} ${resident.Last_Name}`,
       ...aiResponse.data
     });
   } catch (error) {
@@ -742,7 +1348,7 @@ app.post('/api/ai/priority-score', async (req, res) => {
     const { resident_id } = req.body;
 
     // Get resident data
-    const [residents] = await db.execute('SELECT * FROM residents WHERE id = ?', [resident_id]);
+    const [residents] = await db.execute('SELECT * FROM residents WHERE Resident_ID = ?', [resident_id]);
     if (residents.length === 0) {
       return res.status(404).json({ error: 'Resident not found' });
     }
@@ -753,7 +1359,7 @@ app.post('/api/ai/priority-score', async (req, res) => {
     try {
       // Try AI service first
       const aiResponse = await axios.post(`${process.env.AI_SERVICE_URL || 'http://localhost:5000'}/suggest-aid`, {
-        monthly_income: resident.monthly_income || resident.income_estimate || 0,
+        monthly_income: resident.monthly_income || resident.Income_Estimate || 0,
         is_senior: resident.is_senior || false,
         is_pwd: resident.is_pwd || false,
         is_single_parent: resident.is_single_parent || false,
@@ -767,7 +1373,7 @@ app.post('/api/ai/priority-score', async (req, res) => {
     } catch (aiError) {
       // Fallback calculation
       fallback = true;
-      const income = resident.monthly_income || resident.income_estimate || 0;
+      const income = resident.monthly_income || resident.Income_Estimate || 0;
       const isSenior = resident.is_senior || false;
       const isPwd = resident.is_pwd || false;
       const isSingleParent = resident.is_single_parent || false;
@@ -816,8 +1422,8 @@ app.get('/api/ai/patrol-suggestions', async (req, res) => {
       SELECT b.*, s.name as sitio_name
       FROM blotter b
       LEFT JOIN sitios s ON b.sitio_id = s.id
-      WHERE b.date_filed >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-      ORDER BY b.date_filed DESC
+      WHERE b.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+      ORDER BY b.created_at DESC
     `);
 
     // Call AI service
@@ -899,7 +1505,7 @@ app.post('/api/residents/:id/generate-qr', async (req, res) => {
 
     // Update resident with QR code
     await db.execute(
-      'UPDATE residents SET qr_code_string = ? WHERE id = ?',
+      'UPDATE residents SET qr_code_string = ? WHERE Resident_ID = ?',
       [qrString, residentId]
     );
 
@@ -907,8 +1513,9 @@ app.post('/api/residents/:id/generate-qr', async (req, res) => {
     const [residents] = await db.execute(`
       SELECT r.*, s.name as sitio_name
       FROM residents r
-      LEFT JOIN sitios s ON r.sitio_id = s.id
-      WHERE r.id = ?
+      LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
+      WHERE r.Resident_ID = ?
     `, [residentId]);
 
     res.json({
@@ -961,12 +1568,13 @@ app.get('/verify-qr/:hash', async (req, res) => {
     // Check if hash exists in certificates_log
     const [certificates] = await db.execute(`
       SELECT c.*,
-             CONCAT(r.first_name, ' ', r.last_name) as resident_name,
-             r.mobile_number as contact_number,
+             CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name,
+             r.Mobile_Number as contact_number,
              s.name as sitio_name
       FROM certificates_log c
-      JOIN residents r ON c.resident_id = r.id
-      LEFT JOIN sitios s ON r.sitio_id = s.id
+      JOIN residents r ON c.resident_id = r.Resident_ID
+      LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
       WHERE c.qr_validation_string = ? AND c.status = 'Released'
     `, [qrHash]);
 
@@ -1192,11 +1800,11 @@ app.post('/api/sms/send', async (req, res) => {
     let targetMobile = mobile;
     if (resident_id && !mobile) {
       const [residents] = await db.execute(
-        'SELECT mobile_number FROM residents WHERE id = ?',
+        'SELECT Mobile_Number FROM residents WHERE Resident_ID = ?',
         [resident_id]
       );
-      if (residents.length > 0 && residents[0].mobile_number) {
-        targetMobile = residents[0].mobile_number;
+      if (residents.length > 0 && residents[0].Mobile_Number) {
+        targetMobile = residents[0].Mobile_Number;
       } else {
         return res.status(400).json({ error: 'Resident has no mobile number on record' });
       }
@@ -1245,11 +1853,11 @@ app.post('/api/programs/:id/notify-participants', async (req, res) => {
 
     // Get resident mobile numbers from the sitio
     const [participantData] = await db.execute(`
-      SELECT id, mobile_number, CONCAT(first_name, ' ', last_name) as name
+      SELECT Resident_ID as id, Mobile_Number as mobile_number, CONCAT(First_Name, ' ', Last_Name) as name
       FROM residents
       WHERE sitio_id = ?
-      AND mobile_number IS NOT NULL
-      AND mobile_number != ''
+      AND Mobile_Number IS NOT NULL
+      AND Mobile_Number != ''
       LIMIT ?
     `, [program.sitio_id, program.participants_count]);
 

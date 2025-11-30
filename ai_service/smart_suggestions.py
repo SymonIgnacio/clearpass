@@ -306,6 +306,143 @@ class AdvancedBarangayAI:
         slope = (n * sum_xy - sum_x * sum_y) / denominator
         return slope
 
+    def suggest_patrol_deployment(self, blotter_data):
+        """
+        AI Patrol Deployment Suggestions for Katarungang Pambarangay
+
+        Features:
+        - Filter recent cases (last 30 days)
+        - Risk-weighted scoring by incident category
+        - Sitio-based deployment recommendations
+        - Focus on patrol-relevant incidents (excludes Civil & Family Disputes)
+        """
+
+        if not blotter_data:
+            return {
+                "patrol_recommendations": ["No incident data available for patrol suggestions"],
+                "sitio_scores": {},
+                "analysis": "No blotter data provided"
+            }
+
+        current_time = datetime.now()
+        analysis_window = 30  # days
+
+        # Risk weights per category (Civil & Family Disputes = 0)
+        risk_weights = {
+            "Offenses Against Persons": 5,
+            "Offenses Against Property": 3,
+            "Community & Ordinance": 3,
+            "Civil & Family Disputes": 0  # Do not count for patrols
+        }
+
+        # 1. FILTER RECENT CASES AND CALCULATE SCORES
+        sitio_scores = defaultdict(int)
+        incident_counts = defaultdict(int)
+        recent_cases = []
+
+        for case in blotter_data:
+            incident_date = case.get('DateTime_Incident') or case.get('date_time') or case.get('created_at')
+            if not incident_date:
+                continue
+
+            try:
+                if isinstance(incident_date, str):
+                    incident_datetime = datetime.fromisoformat(incident_date.replace('Z', '+00:00'))
+                else:
+                    incident_datetime = incident_date
+
+                days_diff = (current_time - incident_datetime).days
+                if days_diff <= analysis_window:
+                    recent_cases.append(case)
+                    sitio = case.get('Location_Sitio') or case.get('sitio_name') or 'Unknown'
+                    incident_type = case.get('Incident_Type') or case.get('incident_type') or ''
+
+                    # Determine category from incident type
+                    category = self._categorize_incident(incident_type)
+                    weight = risk_weights.get(category, 0)
+
+                    if weight > 0:  # Only count patrol-relevant incidents
+                        sitio_scores[sitio] += weight
+                        incident_counts[incident_type] += 1
+
+            except Exception as e:
+                print(f"Error processing case: {e}")
+                continue
+
+        # 2. GENERATE DEPLOYMENT RECOMMENDATIONS
+        recommendations = []
+        sitio_deployment_details = {}
+
+        for sitio, score in sitio_scores.items():
+            if score > 20:
+                recommendation = f"Critical Zone: Deploy 4 Tanods to {sitio} immediately."
+                deployment = "4 Tanods (Critical)"
+            elif score > 10:
+                recommendation = f"Watchlist: Deploy 2 Tanods to {sitio}."
+                deployment = "2 Tanods (Watchlist)"
+            else:
+                recommendation = f"Monitor: Standard patrol for {sitio}."
+                deployment = "Standard Patrol"
+
+            recommendations.append(recommendation)
+            sitio_deployment_details[sitio] = {
+                "score": score,
+                "deployment": deployment,
+                "recommendation": recommendation
+            }
+
+        # 3. IDENTIFY TOP INCIDENT TYPE
+        if incident_counts:
+            top_incident = max(incident_counts.items(), key=lambda x: x[1])
+            top_incident_msg = f"Most common issue is {top_incident[0]}. Advise Tanods to focus on this."
+            recommendations.append(top_incident_msg)
+        else:
+            top_incident_msg = "No patrol-relevant incidents in analysis period."
+            recommendations.append(top_incident_msg)
+
+        # 4. SORT RECOMMENDATIONS BY PRIORITY
+        priority_order = {"Critical Zone": 0, "Watchlist": 1, "Monitor": 2, "Most common": 3}
+        recommendations.sort(key=lambda x: priority_order.get(x.split(':')[0], 99))
+
+        return {
+            "patrol_recommendations": recommendations,
+            "sitio_scores": dict(sitio_scores),
+            "sitio_deployment_details": sitio_deployment_details,
+            "top_incident": top_incident[0] if incident_counts else None,
+            "analysis_period_days": analysis_window,
+            "total_relevant_incidents": sum(incident_counts.values()),
+            "total_cases_analyzed": len(recent_cases),
+            "ai_model_used": "Katarungang Pambarangay Patrol Deployment v1.0",
+            "generated_at": datetime.now().isoformat()
+        }
+
+    def _categorize_incident(self, incident_type):
+        """Categorize incident type into main categories"""
+        if not incident_type:
+            return "Unknown"
+
+        # Define category mappings
+        category_mappings = {
+            "Offenses Against Persons": [
+                'Physical Injury', 'Unjust Vexation', 'Grave Threats', 'Alarming and Scandal'
+            ],
+            "Offenses Against Property": [
+                'Theft (Petty)', 'Malicious Mischief', 'Estafa (Swindling)', 'Trespassing'
+            ],
+            "Civil & Family Disputes": [
+                'Collection of Sum of Money', 'Ejectment', 'Boundary Dispute', 'Family Dispute'
+            ],
+            "Community & Ordinance": [
+                'Curfew Violation', 'Noise Barrage', 'Illegal Parking', 'Waste Management', 'Stray Animals'
+            ]
+        }
+
+        for category, types in category_mappings.items():
+            if any(inc_type.lower() in incident_type.lower() for inc_type in types):
+                return category
+
+        return "Unknown"
+
     def advanced_predictive_policing(self, blotter_data, historical_patterns=None):
         """
         Advanced Predictive Policing Algorithm
@@ -339,13 +476,17 @@ class AdvancedBarangayAI:
         analysis_window = 30  # days
 
         for incident in blotter_data:
-            sitio = incident.get('sitio_name', 'Unknown')
-            incident_date = incident.get('date_filed')
+            sitio = incident.get('Location_Sitio') or incident.get('sitio_name', 'Unknown')
+            incident_date = incident.get('DateTime_Incident') or incident.get('date_time') or incident.get('created_at')
             severity = incident.get('severity', 'Low')
 
             if incident_date:
                 try:
-                    incident_datetime = datetime.fromisoformat(incident_date.replace('Z', '+00:00'))
+                    if isinstance(incident_date, str):
+                        incident_datetime = datetime.fromisoformat(incident_date.replace('Z', '+00:00'))
+                    else:
+                        incident_datetime = incident_date
+
                     days_diff = (current_time - incident_datetime).days
 
                     if days_diff <= analysis_window:
@@ -872,6 +1013,21 @@ def suggest_patrol():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/suggest-patrol-deployment', methods=['POST'])
+def suggest_patrol_deployment():
+    """
+    Katarungang Pambarangay Patrol Deployment Suggestions
+    """
+    try:
+        data = request.get_json()
+        blotter_data = data.get('blotter_data', [])
+
+        result = ai_system.suggest_patrol_deployment(blotter_data)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/detect-fraud', methods=['POST'])
 def detect_fraud():
     """
@@ -1028,8 +1184,8 @@ def index():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print(f"🚀 Barangay AI Service running on port {port}")
-    print("📊 Available endpoints:")
+    print(f"Barangay AI Service running on port {port}")
+    print("Available endpoints:")
     print("  POST /suggest-aid - Social aid prioritization")
     print("  POST /suggest-patrol - Patrol deployment suggestions")
     print("  GET /health - Health check")

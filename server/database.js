@@ -24,11 +24,17 @@ async function getResidents() {
   const connection = await getConnection();
   try {
     const [rows] = await connection.execute(`
-      SELECT r.*, s.name as sitio_name 
-      FROM residents r 
-      LEFT JOIN sitios s ON r.sitio_id = s.id 
-      WHERE r.is_active = TRUE
-      ORDER BY r.last_name, r.first_name
+      SELECT r.*, s.name as sitio_name, h.Household_Number,
+             v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent, v.Is_Out_of_School_Youth,
+             v.Vulnerability_Score
+      FROM residents r
+      LEFT JOIN sitios s ON r.Household_ID IN (
+        SELECT Household_ID FROM households WHERE Sitio_ID = s.id
+      )
+      LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
+      WHERE r.Residency_Status = 'Active'
+      ORDER BY r.Last_Name, r.First_Name
     `);
     return rows;
   } finally {
@@ -41,16 +47,12 @@ async function getBlotterRecords() {
   const connection = await getConnection();
   try {
     const [rows] = await connection.execute(`
-      SELECT 
-        br.*,
-        CONCAT(complainant.first_name, ' ', complainant.last_name) as complainant_name,
-        CONCAT(respondent.first_name, ' ', respondent.last_name) as respondent_name,
+      SELECT
+        b.*,
         s.name as sitio_name
-      FROM blotter_records br
-      LEFT JOIN residents complainant ON br.complainant_id = complainant.id
-      LEFT JOIN residents respondent ON br.respondent_id = respondent.id
-      LEFT JOIN sitios s ON br.sitio_id = s.id
-      ORDER BY br.created_at DESC
+      FROM blotter b
+      LEFT JOIN sitios s ON b.Location_Sitio = s.name
+      ORDER BY b.DateTime_Incident DESC
     `);
     return rows;
   } finally {
@@ -76,17 +78,12 @@ async function getCertificates() {
   const connection = await getConnection();
   try {
     const [rows] = await connection.execute(`
-      SELECT 
+      SELECT
         c.*,
-        CONCAT(r.first_name, ' ', r.last_name) as resident_name,
-        ct.name as certificate_type_name,
-        ct.fee as certificate_fee,
-        CONCAT(issued_by.first_name, ' ', issued_by.last_name) as issued_by_name
-      FROM certificates c
-      LEFT JOIN residents r ON c.resident_id = r.id
-      LEFT JOIN certificate_types ct ON c.certificate_type_id = ct.id
-      LEFT JOIN users issued_by ON c.issued_by = issued_by.id
-      ORDER BY c.created_at DESC
+        CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
+      FROM certificates_log c
+      LEFT JOIN residents r ON c.resident_id = r.Resident_ID
+      ORDER BY c.date_issued DESC
     `);
     return rows;
   } finally {
@@ -99,14 +96,14 @@ async function checkBlotterStatus(residentId) {
   const connection = await getConnection();
   try {
     const [rows] = await connection.execute(`
-      SELECT 
+      SELECT
         COUNT(*) as active_cases,
-        GROUP_CONCAT(case_number SEPARATOR ', ') as case_numbers,
-        GROUP_CONCAT(incident_type SEPARATOR ', ') as incident_types
-      FROM blotter_records 
-      WHERE (complainant_id = ? OR respondent_id = ?) 
-      AND status IN ('Pending', 'Forwarded to Lupon')
-      AND severity IN ('major', 'critical')
+        GROUP_CONCAT(Case_Number SEPARATOR ', ') as case_numbers,
+        GROUP_CONCAT(Incident_Type SEPARATOR ', ') as incident_types
+      FROM blotter
+      WHERE (JSON_EXTRACT(Complainant_Details, '$.id') = ? OR JSON_EXTRACT(Respondent_Details, '$.id') = ?)
+      AND Status IN ('Pending', 'Scheduled for Mediation')
+      AND Incident_Type IN ('Physical Injury', 'Unjust Vexation', 'Grave Threats', 'Malicious Mischief', 'Theft (Petty)', 'Estafa (Swindling)')
     `, [residentId, residentId]);
     return {
       hasActiveCases: rows[0].active_cases > 0,
@@ -123,11 +120,11 @@ async function checkBlotterStatus(residentId) {
 async function getDashboardStats() {
   const connection = await getConnection();
   try {
-    const [residents] = await connection.execute('SELECT COUNT(*) as total FROM residents WHERE is_active = TRUE');
-    const [certificates] = await connection.execute('SELECT COUNT(*) as total FROM certificates WHERE status = "approved"');
-    const [activeBlotters] = await connection.execute('SELECT COUNT(*) as total FROM blotter_records WHERE status IN ("Pending", "Forwarded to Lupon")');
+    const [residents] = await connection.execute('SELECT COUNT(*) as total FROM residents WHERE Residency_Status = "Active"');
+    const [certificates] = await connection.execute('SELECT COUNT(*) as total FROM certificates_log WHERE status = "Released"');
+    const [activeBlotters] = await connection.execute('SELECT COUNT(*) as total FROM blotter WHERE Status IN ("Pending", "Scheduled for Mediation")');
     const [sitios] = await connection.execute('SELECT COUNT(*) as total FROM sitios');
-    
+
     return {
       totalResidents: residents[0].total,
       totalCertificates: certificates[0].total,
@@ -145,47 +142,38 @@ async function createCertificate(certificateData) {
   try {
     const {
       resident_id,
-      certificate_type_id,
+      certificate_type,
       purpose,
-      data,
       issued_by,
       status,
-      fee_paid
+      fee_amount
     } = certificateData;
 
-    // Generate a unique certificate number
-    const certificate_number = `CERT-${Date.now()}`;
-    const issue_date = new Date();
-
-    const blotter_check_date = new Date();
+    // Generate a unique control number
+    const control_no = `CERT-${Date.now()}`;
+    const date_issued = new Date();
 
     const [result] = await connection.execute(`
-      INSERT INTO certificates (
-        certificate_number,
+      INSERT INTO certificates_log (
+        control_no,
         resident_id,
-        certificate_type_id,
+        certificate_type,
         purpose,
-        data,
-        issued_by,
+        date_issued,
         status,
-        issue_date,
-        fee_paid,
-        blotter_check_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        fee_amount
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `, [
-      certificate_number,
+      control_no,
       resident_id,
-      certificate_type_id,
+      certificate_type,
       purpose,
-      JSON.stringify(data),
-      issued_by,
+      date_issued,
       status,
-      issue_date,
-      fee_paid,
-      blotter_check_date
+      fee_amount
     ]);
 
-    const [rows] = await connection.execute('SELECT * FROM certificates WHERE id = ?', [result.insertId]);
+    const [rows] = await connection.execute('SELECT * FROM certificates_log WHERE control_no = ?', [control_no]);
     return rows[0];
   } finally {
     await connection.end();
@@ -197,36 +185,38 @@ async function createBlotterRecord(blotterData) {
   const connection = await getConnection();
   try {
     const {
-      complainant_id,
-      respondent_id,
-      respondent_name,
+      complainant_details,
+      respondent_details,
       incident_type,
       incident_date,
       incident_time,
-      location,
-      sitio_id,
-      description,
+      location_sitio,
+      narrative,
       status,
-      severity,
       recorded_by
     } = blotterData;
 
     // Generate unique case number
-    const case_number = `BLT-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+    const case_number = `BLOT-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
 
     const [result] = await connection.execute(`
-      INSERT INTO blotter_records (
-        case_number, complainant_id, respondent_id, respondent_name,
-        incident_type, incident_date, incident_time, location, sitio_id,
-        description, status, severity, recorded_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO blotter (
+        Case_Number, Complainant_Details, Respondent_Details,
+        Incident_Type, DateTime_Incident, Location_Sitio,
+        Narrative, Status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      case_number, complainant_id, respondent_id, respondent_name,
-      incident_type, incident_date, incident_time, location, sitio_id,
-      description, status, severity, recorded_by
+      case_number,
+      JSON.stringify(complainant_details),
+      JSON.stringify(respondent_details || {}),
+      incident_type,
+      `${incident_date} ${incident_time}`,
+      location_sitio,
+      narrative,
+      status
     ]);
 
-    const [rows] = await connection.execute('SELECT * FROM blotter_records WHERE id = ?', [result.insertId]);
+    const [rows] = await connection.execute('SELECT * FROM blotter WHERE Case_Number = ?', [case_number]);
     return rows[0];
   } finally {
     await connection.end();
@@ -234,10 +224,10 @@ async function createBlotterRecord(blotterData) {
 }
 
 // Update blotter record
-async function updateBlotterRecord(id, updates) {
+async function updateBlotterRecord(caseNumber, updates) {
   const connection = await getConnection();
   try {
-    const allowedFields = ['status', 'resolution', 'resolved_date', 'resolved_by', 'incident_type', 'description', 'severity'];
+    const allowedFields = ['Status', 'Hearing_Schedule'];
     const updateFields = [];
     const values = [];
 
@@ -252,13 +242,13 @@ async function updateBlotterRecord(id, updates) {
       throw new Error('No valid fields to update');
     }
 
-    values.push(id);
+    values.push(caseNumber);
     await connection.execute(
-      `UPDATE blotter_records SET ${updateFields.join(', ')} WHERE id = ?`,
+      `UPDATE blotter SET ${updateFields.join(', ')} WHERE Case_Number = ?`,
       values
     );
 
-    const [rows] = await connection.execute('SELECT * FROM blotter_records WHERE id = ?', [id]);
+    const [rows] = await connection.execute('SELECT * FROM blotter WHERE Case_Number = ?', [caseNumber]);
     return rows[0];
   } finally {
     await connection.end();
@@ -266,10 +256,10 @@ async function updateBlotterRecord(id, updates) {
 }
 
 // Delete blotter record
-async function deleteBlotterRecord(id) {
+async function deleteBlotterRecord(caseNumber) {
   const connection = await getConnection();
   try {
-    await connection.execute('DELETE FROM blotter_records WHERE id = ?', [id]);
+    await connection.execute('DELETE FROM blotter WHERE Case_Number = ?', [caseNumber]);
     return { success: true, message: 'Blotter record deleted' };
   } finally {
     await connection.end();
@@ -281,41 +271,49 @@ async function getCensusStatistics() {
   const connection = await getConnection();
   try {
     const [stats] = await connection.execute(`
-      SELECT 
+      SELECT
         s.id as sitio_id,
         s.name as sitio_name,
-        COUNT(r.id) as total_residents,
-        SUM(CASE WHEN r.gender = 'Male' THEN 1 ELSE 0 END) as total_men,
-        SUM(CASE WHEN r.gender = 'Female' THEN 1 ELSE 0 END) as total_women,
-        SUM(CASE WHEN r.is_senior = TRUE THEN 1 ELSE 0 END) as total_seniors,
-        SUM(CASE WHEN r.is_pwd = TRUE THEN 1 ELSE 0 END) as total_pwds,
-        SUM(CASE WHEN r.is_single_parent = TRUE THEN 1 ELSE 0 END) as total_single_parents,
-        SUM(CASE WHEN r.is_4ps = TRUE THEN 1 ELSE 0 END) as total_4ps,
-        SUM(CASE WHEN r.is_voter = TRUE THEN 1 ELSE 0 END) as total_voters
+        COUNT(r.Resident_ID) as total_residents,
+        SUM(CASE WHEN r.Gender = 'Male' THEN 1 ELSE 0 END) as total_men,
+        SUM(CASE WHEN r.Gender = 'Female' THEN 1 ELSE 0 END) as total_women,
+        SUM(CASE WHEN v.Is_Senior = TRUE THEN 1 ELSE 0 END) as total_seniors,
+        SUM(CASE WHEN v.Is_PWD = TRUE THEN 1 ELSE 0 END) as total_pwds,
+        SUM(CASE WHEN v.Is_Solo_Parent = TRUE THEN 1 ELSE 0 END) as total_single_parents,
+        SUM(CASE WHEN v.Is_4Ps = TRUE THEN 1 ELSE 0 END) as total_4ps,
+        SUM(CASE WHEN r.Voter_Status = 'Registered' THEN 1 ELSE 0 END) as total_voters
       FROM sitios s
-      LEFT JOIN residents r ON s.id = r.sitio_id AND r.is_active = TRUE
+      LEFT JOIN households h ON s.id = h.Sitio_ID
+      LEFT JOIN residents r ON h.Household_ID = r.Household_ID AND r.Residency_Status = 'Active'
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
       GROUP BY s.id, s.name
       ORDER BY s.name
     `);
-    
+
     // Get overall totals
     const [totals] = await connection.execute(`
-      SELECT 
+      SELECT
         COUNT(*) as total_residents,
-        SUM(CASE WHEN gender = 'Male' THEN 1 ELSE 0 END) as total_men,
-        SUM(CASE WHEN gender = 'Female' THEN 1 ELSE 0 END) as total_women,
-        SUM(CASE WHEN is_senior = TRUE THEN 1 ELSE 0 END) as total_seniors,
-        SUM(CASE WHEN is_pwd = TRUE THEN 1 ELSE 0 END) as total_pwds,
-        SUM(CASE WHEN is_single_parent = TRUE THEN 1 ELSE 0 END) as total_single_parents,
-        SUM(CASE WHEN is_4ps = TRUE THEN 1 ELSE 0 END) as total_4ps,
-        SUM(CASE WHEN is_voter = TRUE THEN 1 ELSE 0 END) as total_voters
-      FROM residents 
-      WHERE is_active = TRUE
+        SUM(CASE WHEN Gender = 'Male' THEN 1 ELSE 0 END) as total_men,
+        SUM(CASE WHEN Gender = 'Female' THEN 1 ELSE 0 END) as total_women,
+        SUM(CASE WHEN Voter_Status = 'Registered' THEN 1 ELSE 0 END) as total_voters
+      FROM residents
+      WHERE Residency_Status = 'Active'
+    `);
+
+    // Get vulnerability totals separately
+    const [vulnerabilities] = await connection.execute(`
+      SELECT
+        SUM(CASE WHEN Is_Senior = TRUE THEN 1 ELSE 0 END) as total_seniors,
+        SUM(CASE WHEN Is_PWD = TRUE THEN 1 ELSE 0 END) as total_pwds,
+        SUM(CASE WHEN Is_Solo_Parent = TRUE THEN 1 ELSE 0 END) as total_single_parents,
+        SUM(CASE WHEN Is_4Ps = TRUE THEN 1 ELSE 0 END) as total_4ps
+      FROM vulnerabilities
     `);
 
     return {
       bySitio: stats,
-      overall: totals[0]
+      overall: { ...totals[0], ...vulnerabilities[0] }
     };
   } finally {
     await connection.end();
@@ -327,19 +325,21 @@ async function getSitioCensus(sitioId) {
   const connection = await getConnection();
   try {
     const [stats] = await connection.execute(`
-      SELECT 
+      SELECT
         s.id as sitio_id,
         s.name as sitio_name,
-        COUNT(r.id) as total_residents,
-        SUM(CASE WHEN r.gender = 'Male' THEN 1 ELSE 0 END) as total_men,
-        SUM(CASE WHEN r.gender = 'Female' THEN 1 ELSE 0 END) as total_women,
-        SUM(CASE WHEN r.is_senior = TRUE THEN 1 ELSE 0 END) as total_seniors,
-        SUM(CASE WHEN r.is_pwd = TRUE THEN 1 ELSE 0 END) as total_pwds,
-        SUM(CASE WHEN r.is_single_parent = TRUE THEN 1 ELSE 0 END) as total_single_parents,
-        SUM(CASE WHEN r.is_4ps = TRUE THEN 1 ELSE 0 END) as total_4ps,
-        SUM(CASE WHEN r.is_voter = TRUE THEN 1 ELSE 0 END) as total_voters
+        COUNT(r.Resident_ID) as total_residents,
+        SUM(CASE WHEN r.Gender = 'Male' THEN 1 ELSE 0 END) as total_men,
+        SUM(CASE WHEN r.Gender = 'Female' THEN 1 ELSE 0 END) as total_women,
+        SUM(CASE WHEN v.Is_Senior = TRUE THEN 1 ELSE 0 END) as total_seniors,
+        SUM(CASE WHEN v.Is_PWD = TRUE THEN 1 ELSE 0 END) as total_pwds,
+        SUM(CASE WHEN v.Is_Solo_Parent = TRUE THEN 1 ELSE 0 END) as total_single_parents,
+        SUM(CASE WHEN v.Is_4Ps = TRUE THEN 1 ELSE 0 END) as total_4ps,
+        SUM(CASE WHEN r.Voter_Status = 'Registered' THEN 1 ELSE 0 END) as total_voters
       FROM sitios s
-      LEFT JOIN residents r ON s.id = r.sitio_id AND r.is_active = TRUE
+      LEFT JOIN households h ON s.id = h.Sitio_ID
+      LEFT JOIN residents r ON h.Household_ID = r.Household_ID AND r.Residency_Status = 'Active'
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
       WHERE s.id = ?
       GROUP BY s.id, s.name
     `, [sitioId]);

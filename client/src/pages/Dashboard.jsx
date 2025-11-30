@@ -240,7 +240,7 @@ const Dashboard = () => {
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {statCards.map((card, index) => (
-          <Grid item xs={12} sm={6} lg={3} key={index}>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={index}>
             <Card
               sx={{
                 height: '100%',
@@ -323,7 +323,7 @@ const Dashboard = () => {
 
       {/* AI Command Center */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} lg={8}>
+        <Grid size={{ xs: 12, lg: 8 }}>
           <Card sx={{
             height: '100%',
             background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
@@ -417,7 +417,7 @@ const Dashboard = () => {
 
                   <Grid container spacing={2}>
                     {patrolSuggestions.recommendations.slice(0, 3).map((rec, index) => (
-                      <Grid item xs={12} sm={4} key={index}>
+                      <Grid size={{ xs: 12, sm: 4 }} key={index}>
                         <Card variant="outlined" sx={{
                           borderRadius: 2,
                           borderColor: '#e8eaed'
@@ -440,7 +440,7 @@ const Dashboard = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} lg={4}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Card sx={{
             height: '100%',
             background: 'linear-gradient(135deg, #fff3e0 0%, #ffffff 100%)',

@@ -57,10 +57,10 @@ const Certificates = () => {
 
   const fetchResidents = async () => {
     try {
-      const response = await fetch('/api/residents')
+      const response = await fetch('/api/residents?limit=1000') // Get more residents for selection
       if (response.ok) {
         const data = await response.json()
-        setResidents(data)
+        setResidents(data.data || []) // Handle paginated response
       }
     } catch (error) {
       console.error('Error fetching residents:', error)
@@ -136,9 +136,9 @@ const Certificates = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {certificates.map((cert) => (
-              <TableRow key={cert.id}>
-                <TableCell>{cert.certificate_number}</TableCell>
+            {certificates.map((cert, index) => (
+              <TableRow key={`cert-${index}-${cert.control_no || cert.id || 'unknown'}`}>
+                <TableCell>{cert.control_no || cert.certificate_number}</TableCell>
                 <TableCell>{cert.resident_name}</TableCell>
                 <TableCell>{cert.certificate_type}</TableCell>
                 <TableCell>{cert.purpose}</TableCell>
@@ -149,7 +149,7 @@ const Certificates = () => {
                     size="small"
                   />
                 </TableCell>
-                <TableCell>{new Date(cert.issued_date).toLocaleDateString()}</TableCell>
+                <TableCell>{new Date(cert.date_issued || cert.issued_date).toLocaleDateString()}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -175,8 +175,8 @@ const Certificates = () => {
                 required
               >
                 {residents.map((resident) => (
-                  <MenuItem key={resident.id} value={resident.id}>
-                    {resident.first_name} {resident.last_name} - {resident.sitio_name}
+                  <MenuItem key={`resident-${resident.Resident_ID}`} value={resident.Resident_ID}>
+                    {resident.First_Name} {resident.Last_Name} - {resident.sitio_name}
                   </MenuItem>
                 ))}
               </Select>

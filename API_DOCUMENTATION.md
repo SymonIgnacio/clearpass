@@ -317,6 +317,63 @@ Get AI-powered patrol deployment recommendations.
 }
 ```
 
+#### POST /api/ai/suggest-patrol-deployment
+Get Katarungang Pambarangay patrol deployment suggestions based on blotter data.
+
+**Request Body:**
+```json
+{
+  "blotter_data": [
+    {
+      "Case_Number": "BLOT-2024-11-0001",
+      "Incident_Type": "Noise Barrage",
+      "Location_Sitio": "Batia Proper",
+      "DateTime_Incident": "2024-11-25T14:30:00",
+      "Status": "Pending"
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "patrol_recommendations": [
+    "Critical Zone: Deploy 4 Tanods to Batia Proper immediately.",
+    "Watchlist: Deploy 2 Tanods to Northville 5.",
+    "Most common issue is Noise Barrage. Advise Tanods to focus on this."
+  ],
+  "sitio_scores": {
+    "Batia Proper": 15,
+    "Northville 5": 12
+  },
+  "sitio_deployment_details": {
+    "Batia Proper": {
+      "score": 15,
+      "deployment": "4 Tanods (Critical)",
+      "recommendation": "Critical Zone: Deploy 4 Tanods to Batia Proper immediately."
+    }
+  },
+  "top_incident": "Noise Barrage",
+  "analysis_period_days": 30,
+  "total_relevant_incidents": 8,
+  "total_cases_analyzed": 12,
+  "ai_model_used": "Katarungang Pambarangay Patrol Deployment v1.0",
+  "generated_at": "2024-11-30T10:42:00.000Z"
+}
+```
+
+**Risk Weighting Logic:**
+- **Offenses Against Persons:** 5 points
+- **Offenses Against Property:** 3 points
+- **Community & Ordinance:** 3 points
+- **Civil & Family Disputes:** 0 points (excluded from patrol recommendations)
+
+**Deployment Thresholds:**
+- **Score > 20:** Deploy 4 Tanods immediately (Critical Zone)
+- **Score > 10:** Deploy 2 Tanods (Watchlist)
+- **Score ≤ 10:** Standard patrol (Monitor)
+
 ### 📊 Analytics & Census
 
 #### GET /api/census

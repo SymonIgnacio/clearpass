@@ -38,13 +38,13 @@ const CommunityEvents = () => {
   const [editing, setEditing] = useState(null)
   const [participantsDialog, setParticipantsDialog] = useState(null)
   const [formData, setFormData] = useState({
-    event_name: '',
+    program_name: '',
     description: '',
-    event_date: '',
+    program_date: '',
     sitio_id: '',
     status: 'Planned',
     organizer: '',
-    budget: '',
+    budget_allocated: '',
     notes: ''
   })
 
@@ -68,10 +68,10 @@ const CommunityEvents = () => {
 
   const fetchResidents = async () => {
     try {
-      const response = await fetch('/api/residents')
+      const response = await fetch('/api/residents?limit=1000') // Get more residents for selection
       if (response.ok) {
         const data = await response.json()
-        setResidents(data)
+        setResidents(data.data || []) // Handle paginated response
       }
     } catch (error) {
       console.error('Error fetching residents:', error)
@@ -94,25 +94,25 @@ const CommunityEvents = () => {
     if (event) {
       setEditing(event)
       setFormData({
-        event_name: event.event_name || '',
+        program_name: event.program_name || '',
         description: event.description || '',
-        event_date: event.event_date || '',
+        program_date: event.program_date || '',
         sitio_id: event.sitio_id || '',
         status: event.status || 'Planned',
         organizer: event.organizer || '',
-        budget: event.budget || '',
+        budget_allocated: event.budget_allocated || '',
         notes: event.notes || ''
       })
     } else {
       setEditing(null)
       setFormData({
-        event_name: '',
+        program_name: '',
         description: '',
-        event_date: '',
+        program_date: '',
         sitio_id: '',
         status: 'Planned',
         organizer: '',
-        budget: '',
+        budget_allocated: '',
         notes: ''
       })
     }
@@ -222,12 +222,12 @@ const CommunityEvents = () => {
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {events.slice(0, 3).map((event) => (
-          <Grid item xs={12} md={4} key={event.id}>
+          <Grid size={{ xs: 12, md: 4 }} key={event.id}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                   <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    {event.event_name}
+                    {event.program_name}
                   </Typography>
                   <Chip
                     label={event.status}
@@ -237,7 +237,7 @@ const CommunityEvents = () => {
                 </Box>
 
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  📅 {new Date(event.event_date).toLocaleDateString()}
+                  📅 {new Date(event.program_date).toLocaleDateString()}
                 </Typography>
 
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -245,7 +245,7 @@ const CommunityEvents = () => {
                 </Typography>
 
                 <Typography variant="body2" sx={{ mb: 2 }}>
-                  👥 {event.participant_count || 0} participants
+                  👥 {event.participants_count || 0} participants
                 </Typography>
 
                 {event.description && (
@@ -265,7 +265,7 @@ const CommunityEvents = () => {
                     size="small"
                     variant="outlined"
                     onClick={() => handleSendBulkSMS(event.id)}
-                    disabled={!event.participant_count}
+                    disabled={!event.participants_count}
                   >
                     <Sms sx={{ mr: 1 }} />
                     Notify
@@ -296,7 +296,7 @@ const CommunityEvents = () => {
                 <TableCell>
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                      {event.event_name}
+                      {event.program_name}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {event.description?.substring(0, 50)}...
@@ -305,12 +305,12 @@ const CommunityEvents = () => {
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2">
-                    {new Date(event.event_date).toLocaleDateString()}
+                    {new Date(event.program_date).toLocaleDateString()}
                   </Typography>
                   <Chip
-                    label={getEventStatus(event.event_date)}
+                    label={getEventStatus(event.program_date)}
                     size="small"
-                    color={getEventStatus(event.event_date) === 'Today' ? 'warning' : 'default'}
+                    color={getEventStatus(event.program_date) === 'Today' ? 'warning' : 'default'}
                   />
                 </TableCell>
                 <TableCell>{event.sitio_name}</TableCell>
@@ -324,12 +324,12 @@ const CommunityEvents = () => {
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Typography variant="body2" sx={{ mr: 1 }}>
-                      {event.participant_count || 0}
+                      {event.participants_count || 0}
                     </Typography>
                     <People sx={{ fontSize: 16, color: 'text.secondary' }} />
                   </Box>
                 </TableCell>
-                <TableCell>₱{event.budget || 0}</TableCell>
+                <TableCell>₱{event.budget_allocated || 0}</TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Tooltip title="Edit Event">
@@ -343,13 +343,15 @@ const CommunityEvents = () => {
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Send SMS">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleSendBulkSMS(event.id)}
-                        disabled={!event.participant_count}
-                      >
-                        <Sms />
-                      </IconButton>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleSendBulkSMS(event.id)}
+                          disabled={!event.participants_count}
+                        >
+                          <Sms />
+                        </IconButton>
+                      </span>
                     </Tooltip>
                   </Box>
                 </TableCell>
@@ -367,8 +369,8 @@ const CommunityEvents = () => {
             <TextField
               fullWidth
               label="Event Name"
-              value={formData.event_name}
-              onChange={(e) => setFormData({...formData, event_name: e.target.value})}
+              value={formData.program_name}
+              onChange={(e) => setFormData({...formData, program_name: e.target.value})}
               required
             />
 
@@ -386,8 +388,8 @@ const CommunityEvents = () => {
                 fullWidth
                 label="Event Date"
                 type="date"
-                value={formData.event_date}
-                onChange={(e) => setFormData({...formData, event_date: e.target.value})}
+                value={formData.program_date}
+                onChange={(e) => setFormData({...formData, program_date: e.target.value})}
                 InputLabelProps={{ shrink: true }}
                 required
               />
@@ -418,8 +420,8 @@ const CommunityEvents = () => {
                 fullWidth
                 label="Budget"
                 type="number"
-                value={formData.budget}
-                onChange={(e) => setFormData({...formData, budget: e.target.value})}
+                value={formData.budget_allocated}
+                onChange={(e) => setFormData({...formData, budget_allocated: e.target.value})}
                 InputProps={{ startAdornment: '₱' }}
               />
             </Box>
@@ -458,7 +460,7 @@ const CommunityEvents = () => {
 
       {/* Add Participants Dialog */}
       <Dialog open={!!participantsDialog} onClose={() => setParticipantsDialog(null)} maxWidth="md" fullWidth>
-        <DialogTitle>Add Participants to "{participantsDialog?.event_name}"</DialogTitle>
+        <DialogTitle>Add Participants to "{participantsDialog?.program_name}"</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
             Select residents to add as participants to this event.
@@ -466,21 +468,21 @@ const CommunityEvents = () => {
 
           <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
             {residents.map((resident) => (
-              <Card key={resident.id} sx={{ mb: 1 }}>
+              <Card key={`participant-${resident.Resident_ID}`} sx={{ mb: 1 }}>
                 <CardContent sx={{ py: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Box>
                       <Typography variant="subtitle2">
-                        {resident.first_name} {resident.middle_name} {resident.last_name}
+                        {resident.First_Name} {resident.Middle_Name} {resident.Last_Name}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {resident.sitio_name} • Age: {resident.age}
+                        {resident.sitio_name} • Age: {resident.Age}
                       </Typography>
                     </Box>
                     <Button
                       size="small"
                       variant="outlined"
-                      onClick={() => handleAddParticipant(participantsDialog.id, resident.id)}
+                      onClick={() => handleAddParticipant(participantsDialog.id, resident.Resident_ID)}
                     >
                       Add
                     </Button>
