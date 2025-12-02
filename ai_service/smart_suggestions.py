@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import json
 import math
 import statistics
+import re
 from collections import defaultdict, Counter
 import random
 
@@ -979,6 +980,650 @@ class AdvancedBarangayAI:
                 "Strengthen community resilience programs"
             ]
 
+    def process_chatbot_message(self, user_message, session_id=None, user_context=None):
+        """
+        BANTAY Chatbot - Intelligent Conversational Assistant
+
+        Features:
+        - Rule-based intent detection
+        - FAQ matching with fuzzy string matching
+        - Appointment booking workflow
+        - Contextual conversation management
+        """
+
+        # Normalize input
+        message = user_message.lower().strip() if user_message else ""
+        if not message:
+            return {
+                "response": "Hello! I'm BANTAY, your barangay assistant. How can I help you today?",
+                "intent": "greeting",
+                "actions": []
+            }
+
+        # Initialize response data
+        response_data = {
+            "response": "",
+            "intent": "unknown",
+            "confidence": 0.0,
+            "actions": [],
+            "appointment_booked": False,
+            "requires_followup": False
+        }
+
+        # 1. INTENT DETECTION
+        intent_result = self._detect_intent(message)
+        response_data.update(intent_result)
+
+        # 2. GENERATE RESPONSE BASED ON INTENT
+        if intent_result["intent"] == "faq":
+            response_data["response"] = self._handle_faq_query(message, intent_result.get("faq_match"))
+
+        elif intent_result["intent"] == "appointment_request":
+            response_data["response"] = self._handle_appointment_request(message, user_context)
+
+        elif intent_result["intent"] == "certificate_inquiry":
+            response_data["response"] = self._handle_certificate_inquiry(message)
+
+        elif intent_result["intent"] == "blotter_inquiry":
+            response_data["response"] = self._handle_blotter_inquiry(message)
+
+        elif intent_result["intent"] == "general_inquiry":
+            response_data["response"] = self._handle_general_inquiry(message)
+
+        elif intent_result["intent"] == "greeting":
+            response_data["response"] = "Hello! I'm BANTAY, your barangay assistant. I can help you with:\n\n• Certificate requests and requirements\n• Appointment scheduling\n• Filing blotter reports\n• General barangay information\n\nWhat would you like to know?"
+
+        elif intent_result["intent"] == "gratitude":
+            response_data["response"] = "You're welcome! Feel free to ask me anything about barangay services. Have a great day! 👋"
+
+        else:
+            # Fallback response
+            response_data["response"] = "I understand you're asking about barangay services. Could you please provide more details about what you need help with? I can assist with certificates, appointments, blotter reports, and general information."
+
+        return response_data
+
+    def _detect_intent(self, message):
+        """Detect user intent using keyword matching and pattern recognition"""
+
+        # Define intent patterns with keywords and weights
+        intent_patterns = {
+            "greeting": {
+                "keywords": ["hello", "hi", "good morning", "good afternoon", "good evening", "hey", "bantay"],
+                "patterns": [r"^(hi|hello|hey|good\s+(morning|afternoon|evening))"],
+                "weight": 1.0
+            },
+            "gratitude": {
+                "keywords": ["thank you", "thanks", "thank you very much", "appreciate", "grateful"],
+                "patterns": [r"(thank|thanks|appreciate)"],
+                "weight": 1.0
+            },
+            "appointment_request": {
+                "keywords": ["appointment", "schedule", "book", "meet", "see", "talk to", "speak with"],
+                "patterns": [r"(appointment|schedule|book|meet|see)"],
+                "weight": 0.9
+            },
+            "certificate_inquiry": {
+                "keywords": ["certificate", "clearance", "residency", "indigency", "business", "good moral"],
+                "patterns": [r"(certificate|clearance|residency|indigency|business|good moral)"],
+                "weight": 0.8
+            },
+            "blotter_inquiry": {
+                "keywords": ["blotter", "report", "complaint", "incident", "file", "complain"],
+                "patterns": [r"(blotter|report|complaint|incident|file|complain)"],
+                "weight": 0.8
+            },
+            "faq": {
+                "keywords": ["hours", "open", "closed", "time", "office", "location", "address", "contact", "phone", "requirements"],
+                "patterns": [],
+                "weight": 0.7
+            }
+        }
+
+        best_match = {"intent": "unknown", "confidence": 0.0}
+
+        for intent, config in intent_patterns.items():
+            confidence = 0.0
+
+            # Keyword matching
+            for keyword in config["keywords"]:
+                if keyword in message:
+                    confidence += config["weight"] * 0.3
+
+            # Pattern matching
+            for pattern in config["patterns"]:
+                if re.search(pattern, message, re.IGNORECASE):
+                    confidence += config["weight"] * 0.4
+
+            # Fuzzy matching for FAQ
+            if intent == "faq":
+                faq_match = self._find_faq_match(message)
+                if faq_match:
+                    confidence += 0.5
+                    best_match["faq_match"] = faq_match
+
+            if confidence > best_match["confidence"]:
+                best_match = {
+                    "intent": intent,
+                    "confidence": min(confidence, 1.0),
+                    "faq_match": best_match.get("faq_match")
+                }
+
+        return best_match
+
+    def _find_faq_match(self, message):
+        """Find the best matching FAQ using fuzzy string matching"""
+        try:
+            from fuzzywuzzy import fuzz
+        except ImportError:
+            # Fallback to simple string matching if fuzzywuzzy not available
+            return self._simple_faq_match(message)
+
+        # This would require database integration
+        # For now, return None - will be implemented with database
+        return None
+
+    def _simple_faq_match(self, message):
+        """Simple FAQ matching without fuzzywuzzy"""
+        faq_keywords = {
+            "hours": "office_hours",
+            "open": "office_hours",
+            "closed": "office_hours",
+            "time": "office_hours",
+            "office": "office_hours",
+            "requirements": "requirements",
+            "clearance": "requirements",
+            "contact": "contact",
+            "phone": "contact",
+            "address": "contact",
+            "location": "contact"
+        }
+
+        for keyword, category in faq_keywords.items():
+            if keyword in message:
+                return {"category": category, "confidence": 0.8}
+
+        return None
+
+    def _handle_faq_query(self, message, faq_match):
+        """Handle FAQ queries"""
+        if faq_match and faq_match.get("category"):
+            category = faq_match["category"]
+
+            faq_responses = {
+                "office_hours": "Our barangay office is open from Monday to Friday, 8:00 AM to 5:00 PM, and Saturday from 8:00 AM to 12:00 NN. We are closed on Sundays and holidays.",
+                "requirements": "Requirements vary by certificate type. For barangay clearance, you need: valid ID, proof of residency, cedula, and P50 fee. Would you like me to help you schedule an appointment?",
+                "contact": "You can reach us at: 📞 (02) 123-4567, 📧 info@barangay-batia.gov.ph, 📍 Barangay Hall, Batia Proper"
+            }
+
+            return faq_responses.get(category, "I can help you with information about office hours, requirements, and contact details. Could you be more specific?")
+
+        return "I have information about office hours, requirements, and contact details. What would you like to know?"
+
+    def _handle_appointment_request(self, message, user_context):
+        """Handle appointment booking requests"""
+        # Extract appointment type from message
+        appointment_types = {
+            "certificate": ["certificate", "clearance", "residency", "indigency"],
+            "blotter": ["blotter", "complaint", "report", "incident"],
+            "inquiry": ["inquiry", "question", "ask", "talk"]
+        }
+
+        detected_type = "inquiry"  # default
+
+        for app_type, keywords in appointment_types.items():
+            if any(keyword in message for keyword in keywords):
+                detected_type = app_type
+                break
+
+        type_labels = {
+            "certificate": "Certificate Request",
+            "blotter": "Blotter Filing",
+            "inquiry": "General Inquiry"
+        }
+
+        response = f"I can help you schedule an appointment for: **{type_labels.get(detected_type, 'General Inquiry')}**\n\n"
+        response += "To proceed, please provide:\n"
+        response += "• Your full name\n"
+        response += "• Contact number\n"
+        response += "• Preferred date and time\n"
+        response += "• Brief description of your needs\n\n"
+        response += "Or I can guide you through the process step by step. Would you like to start?"
+
+        return response
+
+    def _handle_certificate_inquiry(self, message):
+        """Handle certificate-related inquiries"""
+        certificates = {
+            "clearance": "Barangay Clearance (P50) - Proves clean record",
+            "residency": "Barangay Residency (P30) - Confirms residence",
+            "indigency": "Certificate of Indigency (Free) - For financial assistance",
+            "business": "Business Clearance (P100) - For business operations",
+            "good moral": "Good Moral Certificate (P25) - Character reference"
+        }
+
+        response = "We offer several types of certificates:\n\n"
+        for cert_type, description in certificates.items():
+            if cert_type in message:
+                response += f"**{description}**\n\n"
+                if "clearance" in cert_type:
+                    response += "Requirements: Valid ID, proof of residency, cedula, P50 fee\n"
+                response += "Would you like to schedule an appointment to apply?"
+                return response
+
+        response += "\n".join([f"• {desc}" for desc in certificates.values()])
+        response += "\n\nWhich certificate are you interested in? I can help you with the requirements and schedule an appointment."
+
+        return response
+
+    def _handle_blotter_inquiry(self, message):
+        """Handle blotter/complaint inquiries"""
+        response = "For filing a blotter report (complaint), you'll need:\n\n"
+        response += "• Valid ID\n"
+        response += "• At least one witness (if possible)\n"
+        response += "• Detailed description of the incident\n"
+        response += "• Any supporting evidence\n\n"
+        response += "Our barangay officers will mediate and help resolve the issue through the Katarungang Pambarangay process.\n\n"
+        response += "Would you like to schedule an appointment to file your complaint?"
+
+        return response
+
+    def _handle_general_inquiry(self, message):
+        """Handle general inquiries"""
+        return "I'm here to help with barangay services! I can assist you with:\n\n• Certificate applications and requirements\n• Scheduling appointments\n• Filing blotter reports\n• General information about our office\n\nWhat specific information do you need?"
+
+    def book_appointment(self, appointment_data):
+        """
+        Book an appointment through the chatbot system
+
+        appointment_data should contain:
+        - visitor_name: Full name
+        - visitor_contact: Phone number
+        - appointment_type: Type of appointment
+        - appointment_date: Preferred date
+        - appointment_time: Preferred time
+        - purpose: Description of needs
+        """
+        required_fields = ['visitor_name', 'visitor_contact', 'appointment_type', 'purpose']
+
+        # Validate required fields
+        for field in required_fields:
+            if not appointment_data.get(field):
+                return {
+                    "success": False,
+                    "error": f"Missing required field: {field}",
+                    "appointment_id": None
+                }
+
+        # Generate appointment ID
+        appointment_id = f"APP-{datetime.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
+
+        # In a real implementation, this would save to database
+        # For now, we'll return a mock successful response
+
+        appointment_details = {
+            "appointment_id": appointment_id,
+            "status": "confirmed",
+            "scheduled_date": appointment_data.get('appointment_date', 'Next available slot'),
+            "scheduled_time": appointment_data.get('appointment_time', 'To be confirmed'),
+            "assigned_staff": "Barangay Secretary",
+            "confirmation_message": f"Your appointment has been scheduled. Please bring valid ID and required documents."
+        }
+
+        return {
+            "success": True,
+            "appointment": appointment_details,
+            "message": "Appointment booked successfully! You'll receive a confirmation SMS."
+        }
+
+    def get_available_slots(self, appointment_type, preferred_date=None):
+        """Get available appointment slots"""
+        # Mock available slots - in real implementation, check database
+        base_slots = {
+            "certificate": ["9:00 AM", "10:00 AM", "11:00 AM", "1:00 PM", "2:00 PM"],
+            "blotter": ["9:00 AM", "11:00 AM", "1:00 PM", "3:00 PM"],
+            "inquiry": ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM"]
+        }
+
+        slots = base_slots.get(appointment_type, base_slots["inquiry"])
+
+        return {
+            "available_slots": slots,
+            "next_available_date": preferred_date or datetime.now().strftime('%Y-%m-%d'),
+            "note": "Slots are subject to availability and confirmation"
+        }
+
+    def generate_analytics_report(self, report_type, date_range=None, filters=None):
+        """
+        Ronda.ai - Generate comprehensive analytics reports
+
+        Supports multiple report types with data aggregation and insights
+        """
+        if not date_range:
+            # Default to last 30 days
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=30)
+        else:
+            start_date = datetime.fromisoformat(date_range.get('start', (datetime.now() - timedelta(days=30)).isoformat()))
+            end_date = datetime.fromisoformat(date_range.get('end', datetime.now().isoformat()))
+
+        report_data = {
+            "report_type": report_type,
+            "generated_at": datetime.now().isoformat(),
+            "date_range": {
+                "start": start_date.isoformat(),
+                "end": end_date.isoformat(),
+                "days": (end_date - start_date).days
+            },
+            "filters": filters or {},
+            "metrics": {},
+            "insights": [],
+            "recommendations": []
+        }
+
+        # This would query the database in a real implementation
+        # For now, we'll generate mock analytics based on report type
+
+        if report_type == "incident_analysis":
+            report_data.update(self._generate_incident_analysis_report(start_date, end_date, filters))
+        elif report_type == "trend_analysis":
+            report_data.update(self._generate_trend_analysis_report(start_date, end_date, filters))
+        elif report_type == "predictive_forecast":
+            report_data.update(self._generate_predictive_forecast_report(start_date, end_date, filters))
+        elif report_type == "resource_allocation":
+            report_data.update(self._generate_resource_allocation_report(start_date, end_date, filters))
+
+        return report_data
+
+    def _generate_incident_analysis_report(self, start_date, end_date, filters):
+        """Generate detailed incident analysis report"""
+        # Mock data - in real implementation, query blotter table
+        mock_incidents = [
+            {"date": "2025-12-01", "type": "Physical Injury", "sitio": "Batia Proper", "severity": "High"},
+            {"date": "2025-12-02", "type": "Theft", "sitio": "Northville 5", "severity": "Medium"},
+            {"date": "2025-12-03", "type": "Unjust Vexation", "sitio": "St. Martha", "severity": "Low"},
+            {"date": "2025-12-05", "type": "Physical Injury", "sitio": "Batia Proper", "severity": "High"},
+            {"date": "2025-12-07", "type": "Malicious Mischief", "sitio": "Northville 5", "severity": "Medium"},
+            {"date": "2025-12-10", "type": "Theft", "sitio": "St. Martha", "severity": "Medium"},
+            {"date": "2025-12-12", "type": "Physical Injury", "sitio": "Batia Proper", "severity": "Critical"},
+            {"date": "2025-12-15", "type": "Unjust Vexation", "sitio": "Northville 5", "severity": "Low"},
+        ]
+
+        # Filter by date range
+        filtered_incidents = [
+            inc for inc in mock_incidents
+            if start_date <= datetime.fromisoformat(inc["date"]) <= end_date
+        ]
+
+        # Calculate metrics
+        total_incidents = len(filtered_incidents)
+        incidents_by_type = {}
+        incidents_by_sitio = {}
+        incidents_by_severity = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0}
+
+        for inc in filtered_incidents:
+            incidents_by_type[inc["type"]] = incidents_by_type.get(inc["type"], 0) + 1
+            incidents_by_sitio[inc["sitio"]] = incidents_by_sitio.get(inc["sitio"], 0) + 1
+            incidents_by_severity[inc["severity"]] += 1
+
+        # Generate insights
+        insights = []
+        if total_incidents > 0:
+            avg_daily = total_incidents / max(1, (end_date - start_date).days)
+            insights.append(f"Average of {avg_daily:.1f} incidents per day")
+
+            top_type = max(incidents_by_type.items(), key=lambda x: x[1])
+            insights.append(f"Most common incident: {top_type[0]} ({top_type[1]} cases)")
+
+            top_sitio = max(incidents_by_sitio.items(), key=lambda x: x[1])
+            insights.append(f"Highest incident area: {top_sitio[0]} ({top_sitio[1]} cases)")
+
+            critical_count = incidents_by_severity["Critical"]
+            if critical_count > 0:
+                insights.append(f"⚠️ {critical_count} critical incidents requiring immediate attention")
+
+        # Generate recommendations
+        recommendations = []
+        if incidents_by_severity["Critical"] > 2:
+            recommendations.append("Increase patrol presence in high-risk areas")
+        if len(incidents_by_type) > 3:
+            recommendations.append("Implement targeted prevention programs for common incident types")
+        if max(incidents_by_sitio.values()) > total_incidents * 0.4:
+            recommendations.append("Focus community outreach in hotspot areas")
+
+        return {
+            "metrics": {
+                "total_incidents": total_incidents,
+                "incidents_by_type": incidents_by_type,
+                "incidents_by_sitio": incidents_by_sitio,
+                "incidents_by_severity": incidents_by_severity,
+                "average_daily_incidents": round(total_incidents / max(1, (end_date - start_date).days), 2)
+            },
+            "insights": insights,
+            "recommendations": recommendations,
+            "chart_data": {
+                "incident_trends": self._generate_trend_chart_data(filtered_incidents, start_date, end_date),
+                "type_distribution": incidents_by_type,
+                "sitio_distribution": incidents_by_sitio,
+                "severity_distribution": incidents_by_severity
+            }
+        }
+
+    def _generate_trend_analysis_report(self, start_date, end_date, filters):
+        """Generate trend analysis with time series insights"""
+        # Generate weekly trend data
+        weeks = []
+        current = start_date
+        while current <= end_date:
+            week_end = min(current + timedelta(days=6), end_date)
+            weeks.append({
+                "week": f"{current.strftime('%m/%d')}-{week_end.strftime('%m/%d')}",
+                "incidents": random.randint(0, 8),  # Mock data
+                "start_date": current.isoformat(),
+                "end_date": week_end.isoformat()
+            })
+            current = week_end + timedelta(days=1)
+
+        # Calculate trend
+        incident_counts = [w["incidents"] for w in weeks]
+        if len(incident_counts) >= 2:
+            trend_slope = self.calculate_slope(list(range(len(incident_counts))), incident_counts)
+            if trend_slope > 0.5:
+                trend = "INCREASING"
+                trend_description = "Incident rates are rising"
+            elif trend_slope < -0.5:
+                trend = "DECREASING"
+                trend_description = "Incident rates are declining"
+            else:
+                trend = "STABLE"
+                trend_description = "Incident rates are stable"
+        else:
+            trend = "INSUFFICIENT_DATA"
+            trend_description = "Not enough data for trend analysis"
+            trend_slope = 0
+
+        # Seasonal analysis (mock)
+        seasonal_patterns = {
+            "weekday_avg": 3.2,
+            "weekend_avg": 4.8,
+            "peak_hour": "10:00 PM - 2:00 AM",
+            "low_hour": "6:00 AM - 9:00 AM"
+        }
+
+        return {
+            "metrics": {
+                "trend_direction": trend,
+                "trend_slope": round(trend_slope, 2),
+                "total_period_incidents": sum(incident_counts),
+                "peak_week_incidents": max(incident_counts),
+                "low_week_incidents": min(incident_counts)
+            },
+            "insights": [
+                trend_description,
+                f"Peak week: {max(incident_counts)} incidents",
+                f"Lowest week: {min(incident_counts)} incidents",
+                "Weekend incidents are 50% higher than weekdays",
+                f"Peak incident hours: {seasonal_patterns['peak_hour']}"
+            ],
+            "recommendations": [
+                "Adjust patrol schedules based on peak hours",
+                "Implement weekend-specific security measures" if seasonal_patterns["weekend_avg"] > seasonal_patterns["weekday_avg"] * 1.2 else "Continue standard patrol schedules",
+                "Monitor trend closely - consider intervention if rising continues"
+            ],
+            "chart_data": {
+                "weekly_trends": weeks,
+                "seasonal_patterns": seasonal_patterns,
+                "moving_average": self._calculate_moving_average(incident_counts, 2)
+            }
+        }
+
+    def _generate_predictive_forecast_report(self, start_date, end_date, filters):
+        """Generate predictive forecasting with confidence intervals"""
+        # Simple linear regression forecasting
+        historical_data = [5, 7, 4, 8, 6, 9, 5, 7, 6, 8]  # Mock historical data
+
+        # Calculate trend and forecast next 4 weeks
+        if len(historical_data) >= 3:
+            x = list(range(len(historical_data)))
+            slope = self.calculate_slope(x, historical_data)
+            intercept = sum(historical_data) / len(historical_data) - slope * (len(x) - 1) / 2
+
+            forecast_periods = 4
+            forecast = []
+            confidence_interval = []
+
+            for i in range(forecast_periods):
+                period = len(historical_data) + i
+                predicted = slope * period + intercept
+                forecast.append(max(0, predicted))  # Ensure non-negative
+
+                # Simple confidence interval (±20% of prediction)
+                ci_lower = max(0, predicted * 0.8)
+                ci_upper = predicted * 1.2
+                confidence_interval.append({"lower": ci_lower, "upper": ci_upper})
+
+            forecast_accuracy = 85  # Mock accuracy percentage
+        else:
+            forecast = []
+            confidence_interval = []
+            forecast_accuracy = 0
+
+        return {
+            "metrics": {
+                "forecast_period_weeks": 4,
+                "forecast_accuracy": forecast_accuracy,
+                "trend_slope": slope if len(historical_data) >= 3 else 0,
+                "historical_data_points": len(historical_data)
+            },
+            "insights": [
+                f"Next 4 weeks forecast: {sum(forecast):.0f} total incidents",
+                f"Average weekly prediction: {sum(forecast)/len(forecast):.1f} incidents",
+                f"Forecast confidence: {forecast_accuracy}%",
+                "Trend indicates " + ("increasing" if slope > 0 else "decreasing") + " incident rates"
+            ],
+            "recommendations": [
+                "Prepare resources based on forecast predictions",
+                "Monitor actual vs predicted trends weekly",
+                "Adjust prevention strategies based on forecast accuracy",
+                "Consider additional patrols during predicted high periods"
+            ],
+            "chart_data": {
+                "historical_data": historical_data,
+                "forecast_data": forecast,
+                "confidence_intervals": confidence_interval,
+                "forecast_dates": [(end_date + timedelta(days=i*7)).strftime('%Y-%m-%d') for i in range(4)]
+            }
+        }
+
+    def _generate_resource_allocation_report(self, start_date, end_date, filters):
+        """Generate resource allocation optimization report"""
+        # Mock resource allocation analysis
+        current_allocation = {
+            "tanods": 12,
+            "vehicles": 3,
+            "budget_monthly": 150000,
+            "coverage_areas": 4
+        }
+
+        recommended_allocation = {
+            "tanods": 15,
+            "vehicles": 4,
+            "budget_monthly": 185000,
+            "coverage_areas": 4
+        }
+
+        efficiency_metrics = {
+            "current_response_time": "12 minutes",
+            "recommended_response_time": "8 minutes",
+            "coverage_efficiency": 78,
+            "resource_utilization": 82
+        }
+
+        return {
+            "metrics": {
+                "current_allocation": current_allocation,
+                "recommended_allocation": recommended_allocation,
+                "efficiency_improvement": {
+                    "response_time_reduction": "33%",
+                    "coverage_increase": "15%",
+                    "cost_efficiency": "8%"
+                }
+            },
+            "insights": [
+                "Current allocation covers 78% of high-risk areas effectively",
+                "Recommended changes would reduce response time by 33%",
+                "Additional 3 tanods would improve weekend coverage significantly",
+                "Vehicle allocation optimization could save 15% on fuel costs"
+            ],
+            "recommendations": [
+                "Increase tanod count from 12 to 15 for better coverage",
+                "Add one patrol vehicle for improved response times",
+                "Implement shift rotation system for 24/7 coverage",
+                "Allocate additional budget for training and equipment"
+            ],
+            "chart_data": {
+                "allocation_comparison": {
+                    "current": current_allocation,
+                    "recommended": recommended_allocation
+                },
+                "efficiency_metrics": efficiency_metrics,
+                "cost_benefit_analysis": {
+                    "additional_cost": recommended_allocation["budget_monthly"] - current_allocation["budget_monthly"],
+                    "expected_benefits": ["33% faster response", "15% better coverage", "20% reduction in incidents"]
+                }
+            }
+        }
+
+    def _generate_trend_chart_data(self, incidents, start_date, end_date):
+        """Generate trend chart data for visualization"""
+        daily_incidents = {}
+        current = start_date
+        while current <= end_date:
+            daily_incidents[current.strftime('%Y-%m-%d')] = 0
+            current += timedelta(days=1)
+
+        for incident in incidents:
+            date_key = incident["date"]
+            daily_incidents[date_key] = daily_incidents.get(date_key, 0) + 1
+
+        return {
+            "dates": list(daily_incidents.keys()),
+            "incident_counts": list(daily_incidents.values()),
+            "cumulative": [sum(list(daily_incidents.values())[:i+1]) for i in range(len(daily_incidents))]
+        }
+
+    def _calculate_moving_average(self, data, window_size):
+        """Calculate moving average for trend smoothing"""
+        if len(data) < window_size:
+            return data
+
+        moving_avg = []
+        for i in range(len(data)):
+            start_idx = max(0, i - window_size + 1)
+            avg = sum(data[start_idx:i+1]) / len(data[start_idx:i+1])
+            moving_avg.append(round(avg, 2))
+
+        return moving_avg
+
 # Initialize AI system
 ai_system = AdvancedBarangayAI()
 
@@ -1108,6 +1753,247 @@ def forecast_aid_demands():
         # Forecast future aid demands
         forecast = ai_system.forecast_aid_demands(historical_aid_data, population_trends)
         return jsonify(forecast)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/chatbot/message', methods=['POST'])
+def chatbot_message():
+    """
+    BANTAY Chatbot Message Processing
+    """
+    try:
+        data = request.get_json()
+        user_message = data.get('message', '')
+        session_id = data.get('session_id')
+        user_context = data.get('context', {})
+
+        if not user_message:
+            return jsonify({"error": "Message is required"}), 400
+
+        # Process message through BANTAY chatbot
+        response = ai_system.process_chatbot_message(user_message, session_id, user_context)
+
+        return jsonify({
+            "response": response["response"],
+            "intent": response["intent"],
+            "confidence": response["confidence"],
+            "actions": response["actions"],
+            "appointment_booked": response["appointment_booked"],
+            "requires_followup": response["requires_followup"],
+            "timestamp": datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/chatbot/appointment/book', methods=['POST'])
+def book_appointment():
+    """
+    Book an appointment through BANTAY chatbot
+    """
+    try:
+        appointment_data = request.get_json()
+
+        # Validate required fields
+        required_fields = ['visitor_name', 'visitor_contact', 'appointment_type', 'purpose']
+        for field in required_fields:
+            if not appointment_data.get(field):
+                return jsonify({
+                    "success": False,
+                    "error": f"Missing required field: {field}"
+                }), 400
+
+        # Book appointment using AI system
+        result = ai_system.book_appointment(appointment_data)
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/chatbot/appointment/slots', methods=['GET'])
+def get_appointment_slots():
+    """
+    Get available appointment slots
+    """
+    try:
+        appointment_type = request.args.get('type', 'inquiry')
+        preferred_date = request.args.get('date')
+
+        slots = ai_system.get_available_slots(appointment_type, preferred_date)
+
+        return jsonify(slots)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/chatbot/faq', methods=['GET'])
+def get_faq():
+    """
+    Get chatbot FAQ data
+    """
+    try:
+        # In a real implementation, this would query the database
+        # For now, return static FAQ data
+        faq_data = [
+            {
+                "category": "office_hours",
+                "question": "What are your office hours?",
+                "answer": "Our barangay office is open from Monday to Friday, 8:00 AM to 5:00 PM, and Saturday from 8:00 AM to 12:00 NN. We are closed on Sundays and holidays.",
+                "keywords": "hours, open, closed, time, schedule"
+            },
+            {
+                "category": "requirements",
+                "question": "What are the requirements for barangay clearance?",
+                "answer": "Requirements for Barangay Clearance:\n1. Valid ID (any government-issued)\n2. Proof of residency (utility bill, lease agreement, etc.)\n3. Community Tax Certificate (Cedula)\n4. Payment of P50.00 fee\nProcessing time: 10-15 minutes",
+                "keywords": "clearance, requirements, documents, needed, cedula"
+            },
+            {
+                "category": "contact",
+                "question": "How can I contact the barangay?",
+                "answer": "You can reach us through:\n📞 Phone: (02) 123-4567\n📧 Email: info@barangay-batia.gov.ph\n📍 Address: Barangay Hall, Batia Proper",
+                "keywords": "contact, phone, email, address, reach"
+            }
+        ]
+
+        return jsonify({"faq": faq_data})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/analytics/generate-report', methods=['POST'])
+def generate_analytics_report():
+    """
+    Generate comprehensive analytics reports
+    """
+    try:
+        data = request.get_json()
+        report_type = data.get('report_type', 'incident_analysis')
+        date_range = data.get('date_range')
+        filters = data.get('filters', {})
+
+        if report_type not in ['incident_analysis', 'trend_analysis', 'predictive_forecast', 'resource_allocation']:
+            return jsonify({"error": "Invalid report type"}), 400
+
+        # Generate report using AI system
+        report = ai_system.generate_analytics_report(report_type, date_range, filters)
+
+        return jsonify(report)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/analytics/dashboard-summary', methods=['GET'])
+def get_dashboard_summary():
+    """
+    Get dashboard summary data for Ronda.ai
+    """
+    try:
+        # Generate quick summary for dashboard
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=30)
+
+        # Mock summary data - in real implementation, query database
+        summary = {
+            "total_incidents_30d": 28,
+            "active_cases": 5,
+            "high_risk_areas": ["Batia Proper", "Northville 5"],
+            "trend_direction": "STABLE",
+            "forecast_next_week": 8,
+            "response_time_avg": "12 minutes",
+            "coverage_percentage": 78,
+            "generated_at": datetime.now().isoformat()
+        }
+
+        return jsonify(summary)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/analytics/charts/<chart_type>', methods=['GET'])
+def get_chart_data(chart_type):
+    """
+    Get specific chart data for analytics dashboard
+    """
+    try:
+        # Generate chart data based on type
+        if chart_type == 'incident_trends':
+            # Last 30 days incident trends
+            dates = [(datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(29, -1, -1)]
+            data = [random.randint(0, 5) for _ in range(30)]
+            chart_data = {
+                "labels": dates,
+                "datasets": [{
+                    "label": "Daily Incidents",
+                    "data": data,
+                    "borderColor": "#1DB954",
+                    "backgroundColor": "rgba(29, 185, 84, 0.1)",
+                    "tension": 0.4
+                }]
+            }
+
+        elif chart_type == 'incident_types':
+            chart_data = {
+                "labels": ["Physical Injury", "Theft", "Unjust Vexation", "Malicious Mischief", "Other"],
+                "datasets": [{
+                    "label": "Incidents by Type",
+                    "data": [8, 6, 4, 3, 7],
+                    "backgroundColor": [
+                        "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"
+                    ]
+                }]
+            }
+
+        elif chart_type == 'sitio_distribution':
+            chart_data = {
+                "labels": ["Batia Proper", "Northville 5", "St. Martha", "AFP/PNP"],
+                "datasets": [{
+                    "label": "Incidents by Sitio",
+                    "data": [12, 8, 5, 3],
+                    "backgroundColor": [
+                        "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0"
+                    ]
+                }]
+            }
+
+        elif chart_type == 'hourly_patterns':
+            chart_data = {
+                "labels": [f"{i}:00" for i in range(24)],
+                "datasets": [{
+                    "label": "Incidents by Hour",
+                    "data": [random.randint(0, 3) for _ in range(24)],
+                    "borderColor": "#1DB954",
+                    "backgroundColor": "rgba(29, 185, 84, 0.1)",
+                    "fill": true
+                }]
+            }
+
+        else:
+            return jsonify({"error": "Unknown chart type"}), 400
+
+        return jsonify(chart_data)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/analytics/export/<report_id>', methods=['GET'])
+def export_analytics_report(report_id):
+    """
+    Export analytics report (PDF/Excel format)
+    """
+    try:
+        # In a real implementation, this would generate and return a file
+        # For now, return mock response
+        export_data = {
+            "report_id": report_id,
+            "export_format": "pdf",
+            "file_size": "2.3 MB",
+            "download_url": f"/downloads/reports/{report_id}.pdf",
+            "generated_at": datetime.now().isoformat()
+        }
+
+        return jsonify(export_data)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

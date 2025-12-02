@@ -1,0 +1,24 @@
+{
+  "faqs": [
+    {
+      "question": "How do I register as a resident?",
+      "answer": "Visit the barangay hall with valid ID and proof of address",
+      "keywords": ["register", "resident", "id"]
+    },
+    {
+      "question": "What are the barangay office hours?",
+      "answer": "Monday to Friday, 8:00 AM to 5:00 PM",
+      "keywords": ["hours", "office", "schedule"]
+    },
+    {
+      "question": "How to file a blotter report?",
+      "answer": "Go to barangay hall or call hotline 123-4567",
+      "keywords": ["blotter", "report", "complaint"]
+    },
+    {
+      "question": "What documents do I need for barangay clearance?",
+      "answer": "Valid ID and proof of residence",
+      "keywords": ["clearance", "documents", "requirements"]
+    }
+  ]
+}

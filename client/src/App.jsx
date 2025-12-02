@@ -9,12 +9,15 @@ import Blotter from './pages/Blotter'
 import Certificates from './pages/Certificates'
 import Census from './pages/Census'
 import AIPatrol from './pages/AIPatrol'
+import RondaAnalytics from './pages/RondaAnalytics'
+import OCRAutoFill from './pages/OCRAutoFill'
 import QRVerification from './pages/QRVerification'
 import CommunityEvents from './pages/CommunityEvents'
 import Login from './pages/Login'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import ProtectedRoute from './components/ProtectedRoute'
+import BantayChatbot from './components/BantayChatbot'
 
 const theme = createTheme({
   palette: {
@@ -323,11 +326,16 @@ function App() {
                         <Route path="/certificates" element={<Certificates user={user} />} />
                         <Route path="/census" element={<Census user={user} />} />
                         <Route path="/ai-patrol" element={<AIPatrol user={user} />} />
+                        <Route path="/ronda-analytics" element={<RondaAnalytics user={user} />} />
+                        <Route path="/ocr-autofill" element={<OCRAutoFill user={user} />} />
                         <Route path="/qr-verify" element={<QRVerification user={user} />} />
                         <Route path="/events" element={<CommunityEvents user={user} />} />
                       </Routes>
                     </Box>
                   </Box>
+
+                  {/* BANTAY AI Chatbot - Available on all authenticated pages */}
+                  <BantayChatbot />
                 </Box>
               ) : (
                 <Navigate to="/login" replace />

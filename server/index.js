@@ -1438,17 +1438,17 @@ app.post('/api/ai/priority-score', async (req, res) => {
 // Predictive Patrol Suggestions
 app.get('/api/ai/patrol-suggestions', async (req, res) => {
   try {
-    // Get recent blotter data (last 7 days)
+    // Get recent blotter data (last 30 days for better analysis)
     const [blotterData] = await db.execute(`
       SELECT b.*, s.name as sitio_name
       FROM blotter b
-      LEFT JOIN sitios s ON b.sitio_id = s.id
-      WHERE b.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+      LEFT JOIN sitios s ON b.Location_Sitio = s.name
+      WHERE b.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
       ORDER BY b.created_at DESC
     `);
 
     // Call AI service
-    const aiResponse = await axios.post(`${process.env.AI_SERVICE_URL}/suggest-patrol`, {
+    const aiResponse = await axios.post(`${process.env.AI_SERVICE_URL || 'http://localhost:5000'}/suggest-patrol`, {
       blotter_data: blotterData
     });
 

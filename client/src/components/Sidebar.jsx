@@ -29,7 +29,9 @@ import {
   Logout,
   AdminPanelSettings,
   SupervisorAccount,
-  Person
+  Person,
+  Analytics,
+  DocumentScanner
 } from '@mui/icons-material'
 
 const drawerWidth = 280
@@ -95,6 +97,22 @@ const Sidebar = ({ user, onLogout }) => {
       path: '/events',
       description: 'Community Programs',
       roles: ['admin', 'captain', 'secretary'] // Clerks have limited event management
+    },
+    {
+      text: 'Ronda Analytics',
+      icon: <Analytics />,
+      path: '/ronda-analytics',
+      description: 'AI Incident Analysis',
+      badge: 'AI',
+      roles: ['admin', 'captain'] // Only admin and captain can access analytics
+    },
+    {
+      text: 'OCR Auto-Fill',
+      icon: <DocumentScanner />,
+      path: '/ocr-autofill',
+      description: 'Document Scanning',
+      badge: 'AI',
+      roles: ['admin', 'captain', 'secretary'] // All staff can use OCR
     },
   ]
 

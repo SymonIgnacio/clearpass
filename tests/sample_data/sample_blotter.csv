@@ -1,0 +1,11 @@
+date,category,description,status,location
+2024-01-01,Theft,Stolen bicycle,Resolved,Zone 1
+2024-01-02,Assault,Domestic dispute,Ongoing,Zone 2
+2024-01-03,Theft,Pickpocketing,Resolved,Zone 1
+2024-01-15,Noise Complaint,Loud music,Resolved,Zone 3
+2024-02-01,Assault,Bar fight,Ongoing,Zone 2
+2024-02-05,Vandalism,Graffiti on wall,Resolved,Zone 1
+2024-02-10,Theft,Stolen phone,Under Investigation,Zone 3
+2024-03-01,Assault,Street fight,Resolved,Zone 2
+2024-03-05,Noise Complaint,Late night party,Resolved,Zone 3
+2024-03-10,Vandalism,Broken windows,Under Investigation,Zone 1

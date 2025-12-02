@@ -105,7 +105,7 @@ const Dashboard = () => {
     },
     {
       title: 'Active Cases',
-      value: blotterCases.filter(case_ => case_.status === 'Pending').length,
+      value: blotterCases.filter(case_ => (case_.status || case_.Status) === 'Pending').length,
       subtitle: 'Ongoing Investigations',
       icon: <Gavel sx={{ fontSize: 32 }} />,
       color: '#ea4335',
