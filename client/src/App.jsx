@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { Container, Box } from '@mui/material'
 import Dashboard from './pages/Dashboard'
+import ResidentDashboard from './pages/ResidentDashboard'
 import Residents from './pages/Residents'
 import Blotter from './pages/Blotter'
-import Certificates from './pages/Certificates'
+import DocumentsDashboard from './pages/DocumentsDashboard'
 import Census from './pages/Census'
-import AIPatrol from './pages/AIPatrol'
-import RondaAnalytics from './pages/RondaAnalytics'
+import AIDashboard from './pages/AIDashboard'
 import OCRAutoFill from './pages/OCRAutoFill'
 import QRVerification from './pages/QRVerification'
 import CommunityEvents from './pages/CommunityEvents'
 import Login from './pages/Login'
+import ResidentSignup from './pages/ResidentSignup'
+import AccountVerification from './components/AccountVerification'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import ProtectedRoute from './components/ProtectedRoute'
 import BantayChatbot from './components/BantayChatbot'
+import ErrorBoundary from './components/ErrorBoundary'
+import { NotificationProvider } from './contexts/NotificationContext'
 
 const theme = createTheme({
   palette: {
@@ -247,22 +251,60 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState(null)
 
-  // Check for existing authentication on app load
+  // Enhanced authentication check with retry logic
   useEffect(() => {
-    const token = localStorage.getItem('authToken')
-    const storedUser = localStorage.getItem('user')
+    const checkAuthentication = async () => {
+      const token = localStorage.getItem('authToken')
+      const storedUser = localStorage.getItem('user')
 
-    if (token && storedUser) {
+      if (!token || !storedUser) {
+        setIsAuthenticated(false)
+        return
+      }
+
       try {
+        const parsedUser = JSON.parse(storedUser)
+        console.log('🔐 Initializing with stored auth data:', { userId: parsedUser.id, role: parsedUser.role })
+
+        // Try to verify the token and get fresh profile data
+        const profileResponse = await fetch('http://localhost:3001/api/auth/profile', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json()
+          console.log('✅ Profile verification successful:', { userId: profileData.id, role: profileData.role })
+
+          // Update with fresh data from server
+          localStorage.setItem('user', JSON.stringify(profileData))
+          setUser(profileData)
+          setIsAuthenticated(true)
+        } else if (profileResponse.status === 401) {
+          // Token expired or invalid - clear auth data
+          console.log('❌ Token expired or invalid, clearing auth data')
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('user')
+          setIsAuthenticated(false)
+        } else {
+          // Other errors - try to use stored data as fallback
+          console.warn('⚠️ Profile verification failed, using stored data as fallback')
+          setUser(parsedUser)
+          setIsAuthenticated(true)
+        }
+      } catch (error) {
+        // Network or parsing error - use stored data as fallback
+        console.warn('⚠️ Authentication check failed, using stored data as fallback:', error.message)
         const parsedUser = JSON.parse(storedUser)
         setUser(parsedUser)
         setIsAuthenticated(true)
-      } catch (error) {
-        // Invalid stored data, clear it
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('user')
       }
     }
+
+    checkAuthentication()
   }, [])
 
   const handleLogin = (userData) => {
@@ -278,11 +320,13 @@ function App() {
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <ErrorBoundary>
+      <NotificationProvider>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
-          {/* Public login route */}
+          {/* Public routes */}
           <Route
             path="/login"
             element={
@@ -294,9 +338,31 @@ function App() {
             }
           />
 
-          {/* Protected routes */}
           <Route
-            path="/*"
+            path="/signup"
+            element={
+              isAuthenticated ? (
+                <Navigate to="/" replace />
+              ) : (
+                <ResidentSignup />
+              )
+            }
+          />
+
+          <Route
+            path="/verify-account"
+            element={
+              isAuthenticated ? (
+                <Navigate to="/" replace />
+              ) : (
+                <AccountVerification />
+              )
+            }
+          />
+
+          {/* Protected Layout Route */}
+          <Route
+            path="/"
             element={
               isAuthenticated ? (
                 <Box sx={{
@@ -319,32 +385,53 @@ function App() {
                       minHeight: 'calc(100vh - 64px)', // Account for header height
                       backgroundColor: 'background.default'
                     }}>
-                      <Routes>
-                        <Route path="/" element={<Dashboard user={user} />} />
-                        <Route path="/residents" element={<Residents user={user} />} />
-                        <Route path="/blotter" element={<Blotter user={user} />} />
-                        <Route path="/certificates" element={<Certificates user={user} />} />
-                        <Route path="/census" element={<Census user={user} />} />
-                        <Route path="/ai-patrol" element={<AIPatrol user={user} />} />
-                        <Route path="/ronda-analytics" element={<RondaAnalytics user={user} />} />
-                        <Route path="/ocr-autofill" element={<OCRAutoFill user={user} />} />
-                        <Route path="/qr-verify" element={<QRVerification user={user} />} />
-                        <Route path="/events" element={<CommunityEvents user={user} />} />
-                      </Routes>
+                      <Outlet />
+                      {/* BANTAY AI Chatbot - Available on all authenticated pages */}
+                      <BantayChatbot />
                     </Box>
                   </Box>
-
-                  {/* BANTAY AI Chatbot - Available on all authenticated pages */}
-                  <BantayChatbot />
                 </Box>
               ) : (
                 <Navigate to="/login" replace />
               )
             }
-          />
+          >
+            {/* Nested protected routes */}
+            <Route index element={
+              user?.role === 'resident' ?
+                <ResidentDashboard user={user} /> :
+                <Dashboard user={user} />
+            } />
+            <Route path="residents" element={<Residents user={user} />} />
+            <Route path="blotter" element={<Blotter user={user} />} />
+            <Route
+              path="documents"
+              element={
+                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary']}>
+                  <DocumentsDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path="census" element={<Census user={user} />} />
+            <Route path="ai-dashboard" element={<AIDashboard user={user} />} />
+            <Route path="events" element={<CommunityEvents user={user} />} />
+
+            {/* Legacy redirects */}
+            <Route path="qr-verify" element={<Navigate to="/" replace />} />
+            <Route path="qr-verification" element={<Navigate to="/" replace />} />
+
+            {/* Backward compatibility redirects */}
+            <Route path="certificates" element={<Navigate to="documents" replace />} />
+            <Route path="document-templates" element={<Navigate to="documents" replace />} />
+            <Route path="ai-patrol" element={<Navigate to="ai-dashboard" replace />} />
+            <Route path="ronda-analytics" element={<Navigate to="ai-dashboard" replace />} />
+          </Route>
         </Routes>
       </Router>
     </ThemeProvider>
+  </NotificationProvider>
+</ErrorBoundary>
   )
 }
 

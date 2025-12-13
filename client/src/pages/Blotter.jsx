@@ -116,11 +116,39 @@ const Blotter = () => {
 
   const fetchBlotterCases = async () => {
     try {
+      console.log('🔍 Fetching blotter cases...')
       const response = await apiRequest('blotter')
+      console.log('🔍 Blotter API response status:', response.status)
+      console.log('🔍 Blotter API response ok:', response.ok)
+
+      if (!response.ok) {
+        console.error('❌ Blotter API error:', response.status, response.statusText)
+        // Show user-friendly error message
+        alert(`Error loading blotter data: ${response.status} ${response.statusText}. Please check console for details.`)
+        return
+      }
+
       const data = await response.json()
+      console.log('🔍 Blotter API response data:', data)
+      console.log('🔍 Blotter data length:', Array.isArray(data) ? data.length : 'not an array')
+
+      if (!Array.isArray(data)) {
+        console.error('❌ Blotter API returned non-array data:', typeof data, data)
+        alert('Error: API returned unexpected data format. Please check console for details.')
+        return
+      }
+
       setBlotterCases(data)
+
+      if (data.length === 0) {
+        console.log('⚠️ No blotter cases found in database')
+        alert('No blotter cases found in the database. This may be expected for a new installation.')
+      } else {
+        console.log(`✅ Loaded ${data.length} blotter cases successfully`)
+      }
     } catch (error) {
-      console.error('Error fetching blotter cases:', error)
+      console.error('❌ Error fetching blotter cases:', error)
+      alert(`Error loading blotter cases: ${error.message}. Please check console for details.`)
     }
   }
 
@@ -345,35 +373,67 @@ const Blotter = () => {
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth>
+            <FormControl fullWidth size="small">
               <InputLabel>Status</InputLabel>
               <Select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 label="Status"
+                sx={{
+                  minWidth: 200,
+                  '& .MuiSelect-select': {
+                    fontSize: '0.875rem',
+                    padding: '8px 14px',
+                  }
+                }}
               >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="Pending">Pending</MenuItem>
-                <MenuItem value="Scheduled for Mediation">Scheduled for Mediation</MenuItem>
-                <MenuItem value="Amicably Settled">Amicably Settled</MenuItem>
-                <MenuItem value="Certificate to File Action Issued">Certificate to File Action Issued</MenuItem>
-                <MenuItem value="Dismissed">Dismissed</MenuItem>
-                <MenuItem value="Ongoing">Ongoing</MenuItem>
+                <MenuItem value="">
+                  <Box sx={{ fontSize: '0.875rem' }}>All Statuses</Box>
+                </MenuItem>
+                <MenuItem value="Pending">
+                  <Box sx={{ fontSize: '0.875rem' }}>Pending</Box>
+                </MenuItem>
+                <MenuItem value="Scheduled for Mediation">
+                  <Box sx={{ fontSize: '0.875rem', whiteSpace: 'normal' }}>Scheduled for Mediation</Box>
+                </MenuItem>
+                <MenuItem value="Amicably Settled">
+                  <Box sx={{ fontSize: '0.875rem', whiteSpace: 'normal' }}>Amicably Settled</Box>
+                </MenuItem>
+                <MenuItem value="Certificate to File Action Issued">
+                  <Box sx={{ fontSize: '0.875rem', whiteSpace: 'normal' }}>Certificate to File Action Issued</Box>
+                </MenuItem>
+                <MenuItem value="Dismissed">
+                  <Box sx={{ fontSize: '0.875rem' }}>Dismissed</Box>
+                </MenuItem>
+                <MenuItem value="Ongoing">
+                  <Box sx={{ fontSize: '0.875rem' }}>Ongoing</Box>
+                </MenuItem>
               </Select>
             </FormControl>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth>
+            <FormControl fullWidth size="small">
               <InputLabel>Sitio</InputLabel>
               <Select
                 value={sitioFilter}
                 onChange={(e) => setSitioFilter(e.target.value)}
                 label="Sitio"
+                sx={{
+                  minWidth: 160,
+                  '& .MuiSelect-select': {
+                    fontSize: '0.875rem',
+                    padding: '8px 14px',
+                  }
+                }}
               >
-                <MenuItem value="">All Sitios</MenuItem>
+                <MenuItem value="">
+                  <Box sx={{ fontSize: '0.875rem' }}>All Sitios</Box>
+                </MenuItem>
                 {SITIOS.map((sitio) => (
-                  <MenuItem key={sitio} value={sitio}>{sitio}</MenuItem>
+                  <MenuItem key={sitio} value={sitio}>
+                    <Box sx={{ fontSize: '0.875rem' }}>{sitio}</Box>
+                  </MenuItem>
                 ))}
               </Select>
             </FormControl>

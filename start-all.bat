@@ -19,7 +19,7 @@ echo.
 echo All services are starting...
 echo - AI Service: http://localhost:5000
 echo - Backend API: http://localhost:3001
-echo - Frontend: http://localhost:5173
+echo - Frontend: http://localhost:5174
 echo.
 echo Press any key to exit...
 pause >nul

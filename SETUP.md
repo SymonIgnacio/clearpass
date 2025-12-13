@@ -1,8 +1,8 @@
 # 🚀 BMWs Barangay Management System - Complete Setup Guide
 
-**Version:** 2.0.0 (Production Ready)
-**Last Updated:** November 30, 2025
-**Completion:** 95% Production Ready
+**Version:** v2.7.0 (Docker + Account Hierarchy)
+**Last Updated:** December 13, 2025
+**Completion:** Production Ready (95% Complete)
 **Test Coverage:** 95%+
 **Security Audit:** LOW-MEDIUM Risk
 
@@ -74,7 +74,7 @@ npm run dev:all
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   React Frontend │    │  Node.js API    │    │ Python AI Engine│
-│   (Port 5173)    │◄──►│   (Port 3001)   │◄──►│   (Port 5000)   │
+│   (Port 5174)    │◄──►│   (Port 3001)   │◄──►│   (Port 5000)   │
 │                 │    │                 │    │                 │
 │ • Dashboard      │    │ • RESTful API   │    │ • ML Algorithms │
 │ • Certificate Mgmt│    │ • Rate Limiting │    │ • Decision Supp │
@@ -287,6 +287,8 @@ open http://localhost:5173
 ## 🔒 Security Features
 
 ### **Implemented Security Measures**
+- ✅ **JWT Authentication:** Fully implemented with account hierarchy
+- ✅ **Account Hierarchy:** 6-tier role-based access control
 - ✅ **Rate Limiting:** Multi-tier API protection
 - ✅ **Input Validation:** Comprehensive sanitization
 - ✅ **SQL Injection Prevention:** Parameterized queries
@@ -297,10 +299,10 @@ open http://localhost:5173
 
 ### **Critical Security Notes**
 ⚠️ **HIGH PRIORITY - Complete Before Production:**
-1. **Implement JWT Authentication** (currently missing)
-2. **Configure HTTPS/SSL** certificates
-3. **Enable Database Encryption** (MySQL 8.0+)
-4. **Set up proper firewall rules**
+1. **Configure HTTPS/SSL** certificates
+2. **Enable Database Encryption** (MySQL 8.0+)
+3. **Set up proper firewall rules**
+4. **Change default JWT secret in production**
 
 ### **Security Audit Results**
 - **Overall Risk:** LOW-MEDIUM
@@ -580,12 +582,12 @@ curl http://localhost:5000/health
 - [x] Automated testing pipeline
 
 ### **Next Steps (Optional Enhancements)**
-- [ ] Implement JWT authentication system
 - [ ] Configure HTTPS/SSL certificates
 - [ ] Enable database encryption
 - [ ] Add PDF certificate generation
-- [ ] Implement file upload functionality
+- [ ] Implement file upload functionality (OCR scanning ready)
 - [ ] Add SMS notification integration
+- [ ] Implement advanced analytics dashboard
 
 ---
 

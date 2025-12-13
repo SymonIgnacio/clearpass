@@ -1,8 +1,8 @@
 {
   "name": "barangay-management-system",
   "private": true,
-  "version": "1.0.0",
-  "type": "commonjs",
+  "version": "2.7.0",
+  "type": "module",
   "description": "Complete Barangay Management System with AI Integration",
   "scripts": {
     "dev": "vite",
@@ -14,7 +14,10 @@
     "test:watch": "cd tests && npm run test:watch",
     "test:coverage": "cd tests && npm run test:coverage",
     "install:all": "npm install && cd server && npm install && cd ../client && npm install && cd ../tests && npm install",
-    "dev:all": "concurrently \"cd client && npm run dev\" \"cd server && npm run dev\" \"cd ai_service && python smart_suggestions.py\""
+    "dev:all": "concurrently \"cd client && npm run dev\" \"cd server && npm run dev\" \"cd ai_service && python smart_suggestions.py\"",
+    "firebase:create-accounts": "node setup_firebase_accounts.js create",
+    "firebase:list-accounts": "node setup_firebase_accounts.js list",
+    "firebase:delete-accounts": "node setup_firebase_accounts.js delete"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -22,9 +25,15 @@
     "@mui/icons-material": "^7.3.5",
     "@mui/material": "^7.3.5",
     "@mui/x-data-grid": "^8.18.0",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
+    "csurf": "^1.11.0",
+    "dotenv": "^17.2.3",
     "express": "^4.19.2",
+    "express-rate-limit": "^7.5.1",
     "firebase": "^12.6.0",
+    "firebase-admin": "^13.6.0",
+    "helmet": "^7.2.0",
     "jspdf": "^3.0.3",
     "knex": "^3.1.0",
     "mysql2": "^3.15.3",
@@ -32,7 +41,10 @@
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.6",
     "react-webcam": "^7.2.0",
-    "recharts": "^3.4.1"
+    "recharts": "^3.4.1",
+    "validator": "^13.11.0",
+    "ws": "^8.18.3",
+    "xss-clean": "^0.1.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

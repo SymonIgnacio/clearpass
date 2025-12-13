@@ -26,11 +26,13 @@ import {
   IconButton,
   Tooltip,
   Avatar,
-  AvatarGroup
+  AvatarGroup,
+  Alert
 } from '@mui/material'
 import { Add, Event, People, Edit, PersonAdd, Sms } from '@mui/icons-material'
+import { apiRequest } from '../utils/api'
 
-const CommunityEvents = () => {
+const CommunityEvents = ({ user }) => {
   const [events, setEvents] = useState([])
   const [residents, setResidents] = useState([])
   const [sitios, setSitios] = useState([])
@@ -42,6 +44,7 @@ const CommunityEvents = () => {
     description: '',
     program_date: '',
     sitio_id: '',
+    target_beneficiaries: [],
     status: 'Planned',
     organizer: '',
     budget_allocated: '',
@@ -56,11 +59,9 @@ const CommunityEvents = () => {
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch('/api/programs')
-      if (response.ok) {
-        const data = await response.json()
-        setEvents(data)
-      }
+      const response = await apiRequest('programs')
+      const data = await response.json()
+      setEvents(data)
     } catch (error) {
       console.error('Error fetching events:', error)
     }
@@ -68,11 +69,9 @@ const CommunityEvents = () => {
 
   const fetchResidents = async () => {
     try {
-      const response = await fetch('/api/residents?limit=1000') // Get more residents for selection
-      if (response.ok) {
-        const data = await response.json()
-        setResidents(data.data || []) // Handle paginated response
-      }
+      const response = await apiRequest('residents?limit=50') // Limit for performance
+      const data = await response.json()
+      setResidents(data.data || []) // Handle paginated response
     } catch (error) {
       console.error('Error fetching residents:', error)
     }
@@ -80,11 +79,9 @@ const CommunityEvents = () => {
 
   const fetchSitios = async () => {
     try {
-      const response = await fetch('/api/sitios')
-      if (response.ok) {
-        const data = await response.json()
-        setSitios(data)
-      }
+      const response = await apiRequest('sitios')
+      const data = await response.json()
+      setSitios(data)
     } catch (error) {
       console.error('Error fetching sitios:', error)
     }
@@ -98,6 +95,7 @@ const CommunityEvents = () => {
         description: event.description || '',
         program_date: event.program_date || '',
         sitio_id: event.sitio_id || '',
+        target_beneficiaries: event.target_beneficiaries || [],
         status: event.status || 'Planned',
         organizer: event.organizer || '',
         budget_allocated: event.budget_allocated || '',
@@ -110,6 +108,7 @@ const CommunityEvents = () => {
         description: '',
         program_date: '',
         sitio_id: '',
+        target_beneficiaries: [],
         status: 'Planned',
         organizer: '',
         budget_allocated: '',
@@ -124,68 +123,75 @@ const CommunityEvents = () => {
     setEditing(null)
   }
 
+  const [successMessage, setSuccessMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
+  const [smsDialog, setSmsDialog] = useState(null)
+  const [smsMessage, setSmsMessage] = useState('')
+
   const handleSave = async () => {
     try {
-      const method = editing ? 'PUT' : 'POST'
-      const url = editing ? `/api/programs/${editing.id}` : '/api/programs'
+      const response = editing
+        ? await apiRequest(`programs/${editing.id}`, {
+            method: 'PUT',
+            body: formData
+          })
+        : await apiRequest('programs', {
+            method: 'POST',
+            body: formData
+          })
 
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
-
-      if (response.ok) {
-        fetchEvents()
-        handleCloseDialog()
-      }
+      const result = await response.json()
+      setSuccessMessage(editing ? 'Event updated successfully!' : 'Event created successfully!')
+      fetchEvents()
+      handleCloseDialog()
+      setTimeout(() => setSuccessMessage(''), 3000)
     } catch (error) {
       console.error('Error saving event:', error)
+      setErrorMessage('Failed to save event. Please try again.')
+      setTimeout(() => setErrorMessage(''), 3000)
     }
   }
 
   const handleAddParticipant = async (eventId, residentId) => {
     try {
-      const response = await fetch(`/api/programs/${eventId}/add-participant`, {
+      const response = await apiRequest(`programs/${eventId}/add-participant`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resident_id: residentId })
+        body: { resident_id: residentId }
       })
 
-      if (response.ok) {
-        fetchEvents()
-        setParticipantsDialog(null)
-      } else {
-        const error = await response.json()
-        alert(error.error || 'Failed to add participant')
-      }
+      const result = await response.json()
+      setSuccessMessage('Participant added successfully!')
+      fetchEvents()
+      setParticipantsDialog(null)
+      setTimeout(() => setSuccessMessage(''), 3000)
     } catch (error) {
       console.error('Error adding participant:', error)
-      alert('Failed to add participant')
+      setErrorMessage('Failed to add participant. Please try again.')
+      setTimeout(() => setErrorMessage(''), 3000)
     }
   }
 
   const handleSendBulkSMS = async (eventId) => {
-    const message = prompt('Enter SMS message to send to all participants (use {name} for personalization):')
-    if (!message) return
+    setSmsDialog(eventId)
+    setSmsMessage(`Join us for our upcoming event! We'll see you there. - Barangay Batia`)
+  }
 
+  const handleConfirmSendSMS = async () => {
     try {
-      const response = await fetch(`/api/programs/${eventId}/notify-participants`, {
+      const response = await apiRequest(`programs/${smsDialog}/notify-participants`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message })
+        body: { message: smsMessage }
       })
 
-      if (response.ok) {
-        const result = await response.json()
-        alert(`SMS sent to ${result.sms_sent} participants!`)
-      } else {
-        const error = await response.json()
-        alert(error.error || 'Failed to send SMS')
-      }
+      const result = await response.json()
+      setSuccessMessage(`SMS sent to ${result.sms_sent || 0} participants!`)
+      setSmsDialog(null)
+      setSmsMessage('')
+      setTimeout(() => setSuccessMessage(''), 3000)
     } catch (error) {
       console.error('Error sending bulk SMS:', error)
-      alert('Failed to send bulk SMS')
+      setErrorMessage('Failed to send SMS. Please try again.')
+      setTimeout(() => setErrorMessage(''), 3000)
     }
   }
 
@@ -208,16 +214,36 @@ const CommunityEvents = () => {
     return 'Upcoming'
   }
 
+  // Check if user can manage events (Secretary and above)
+  const canManageEvents = user && ['admin', 'captain', 'secretary'].includes(user.role)
+
   return (
     <Box>
+      {(successMessage || errorMessage) && (
+        <Box sx={{ mb: 3 }}>
+          {successMessage && (
+            <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>
+              {successMessage}
+            </Alert>
+          )}
+          {errorMessage && (
+            <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+              {errorMessage}
+            </Alert>
+          )}
+        </Box>
+      )}
+
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">
           <Event sx={{ mr: 1, verticalAlign: 'middle' }} />
           Community Events & Programs
         </Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()}>
-          Create Event
-        </Button>
+        {canManageEvents && (
+          <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()}>
+            Create Event
+          </Button>
+        )}
       </Box>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -332,16 +358,20 @@ const CommunityEvents = () => {
                 <TableCell>₱{event.budget_allocated || 0}</TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Tooltip title="Edit Event">
-                      <IconButton size="small" onClick={() => handleOpenDialog(event)}>
-                        <Edit />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Add Participants">
-                      <IconButton size="small" onClick={() => setParticipantsDialog(event)}>
-                        <PersonAdd />
-                      </IconButton>
-                    </Tooltip>
+                    {canManageEvents && (
+                      <Tooltip title="Edit Event">
+                        <IconButton size="small" onClick={() => handleOpenDialog(event)}>
+                          <Edit />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {canManageEvents && (
+                      <Tooltip title="Add Participants">
+                        <IconButton size="small" onClick={() => setParticipantsDialog(event)}>
+                          <PersonAdd />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     <Tooltip title="Send SMS">
                       <span>
                         <IconButton
@@ -494,6 +524,37 @@ const CommunityEvents = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setParticipantsDialog(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Send SMS Dialog */}
+      <Dialog open={!!smsDialog} onClose={() => setSmsDialog(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Send SMS Notification</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Send SMS notification to all event participants.
+          </Typography>
+
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="SMS Message"
+            value={smsMessage}
+            onChange={(e) => setSmsMessage(e.target.value)}
+            helperText={`${smsMessage.length}/160 characters`}
+            inputProps={{ maxLength: 160 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSmsDialog(null)}>Cancel</Button>
+          <Button
+            onClick={handleConfirmSendSMS}
+            variant="contained"
+            disabled={!smsMessage.trim()}
+          >
+            Send SMS
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

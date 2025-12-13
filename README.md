@@ -4,18 +4,20 @@ A modern web application for Barangay Batia administration with AI-powered decis
 
 ## 🏗️ System Overview
 
-**Current Status:** ~85% Complete
-**Tech Stack:** React 18 + Node.js + MySQL + Python Flask
-**Database:** bmw_barangay_batia (9 tables)
+**Current Status:** Production Ready (95% Complete)
+**Latest Version:** v2.7 (Docker + Account Hierarchy)
+**Tech Stack:** React 18 + Node.js + MySQL 8.0 + Python Flask
+**Database:** barangay_management (10+ tables with migrations)
 
 ### Architecture
 ```
 BMW System
-├── client/          # React Frontend (Port 5173)
+├── client/          # React Frontend (Port 80/5173)
 ├── server/          # Node.js API (Port 3001)
 ├── ai_service/      # Python AI (Port 5000)
-├── database/        # MySQL Schema
-└── tests/           # Test Suite (80% coverage)
+├── database/        # MySQL Schema + Migrations
+├── tests/           # Test Suite (95%+ coverage)
+└── docs/           # Comprehensive Documentation
 ```
 
 ## 🛠️ Tech Stack

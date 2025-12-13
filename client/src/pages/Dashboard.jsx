@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Grid,
   Card,
@@ -34,6 +35,7 @@ import {
 import { apiRequest } from '../utils/api'
 
 const Dashboard = () => {
+  const navigate = useNavigate()
   const [stats, setStats] = useState(null)
   const [certificates, setCertificates] = useState([])
   const [blotterCases, setBlotterCases] = useState([])
@@ -47,6 +49,28 @@ const Dashboard = () => {
     fetchBlotterCases()
   }, [])
 
+  const handleQuickAction = (action) => {
+    switch (action) {
+      case 'Register Resident':
+        navigate('/residents')
+        break
+      case 'Report Incident':
+        navigate('/blotter')
+        break
+      case 'Issue Certificate':
+        navigate('/documents')
+        break
+      case 'AI Analysis':
+        navigate('/ai-dashboard')
+        break
+      case 'Community Events':
+        navigate('/events')
+        break
+      default:
+        break
+    }
+  }
+
   const fetchStats = async () => {
     try {
       const response = await apiRequest('census')
@@ -54,6 +78,7 @@ const Dashboard = () => {
       setStats(data)
     } catch (error) {
       console.error('Error fetching stats:', error)
+      setStats({ overall: { total_residents: 0, total_seniors: 0, total_pwd: 0, total_single_parents: 0 } })
     } finally {
       setLoading(false)
     }
@@ -63,9 +88,10 @@ const Dashboard = () => {
     try {
       const response = await apiRequest('certificates')
       const data = await response.json()
-      setCertificates(data)
+      setCertificates(data || [])
     } catch (error) {
       console.error('Error fetching certificates:', error)
+      setCertificates([])
     }
   }
 
@@ -73,9 +99,10 @@ const Dashboard = () => {
     try {
       const response = await apiRequest('blotter')
       const data = await response.json()
-      setBlotterCases(data)
+      setBlotterCases(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error fetching blotter cases:', error)
+      setBlotterCases([])
     }
   }
 
@@ -87,6 +114,7 @@ const Dashboard = () => {
       setPatrolSuggestions(data)
     } catch (error) {
       console.error('Error fetching patrol suggestions:', error)
+      setPatrolSuggestions(null)
     } finally {
       setPatrolLoading(false)
     }
@@ -105,7 +133,7 @@ const Dashboard = () => {
     },
     {
       title: 'Active Cases',
-      value: blotterCases.filter(case_ => (case_.status || case_.Status) === 'Pending').length,
+      value: Array.isArray(blotterCases) ? blotterCases.filter(case_ => (case_.status || case_.Status) === 'Pending').length : 0,
       subtitle: 'Ongoing Investigations',
       icon: <Gavel sx={{ fontSize: 32 }} />,
       color: '#ea4335',
@@ -125,7 +153,7 @@ const Dashboard = () => {
     },
     {
       title: 'Vulnerable Groups',
-      value: (stats?.overall?.total_seniors || 0) + (stats?.overall?.total_pwd || 0) + (stats?.overall?.total_single_parents || 0),
+      value: Number(stats?.overall?.total_seniors || 0) + Number(stats?.overall?.total_pwd || 0) + Number(stats?.overall?.total_single_parents || 0),
       subtitle: 'Seniors, PWD, Single Parents',
       icon: <Security sx={{ fontSize: 32 }} />,
       color: '#fbbc04',
@@ -384,9 +412,9 @@ const Dashboard = () => {
                 <Box>
                   <Alert
                     severity={
-                      patrolSuggestions.overall_risk_assessment === 'CRITICAL' ? 'error' :
-                      patrolSuggestions.overall_risk_assessment === 'HIGH' ? 'error' :
-                      patrolSuggestions.overall_risk_assessment === 'MEDIUM' ? 'warning' :
+                      patrolSuggestions.overall_risk_level === 'CRITICAL' ? 'error' :
+                      patrolSuggestions.overall_risk_level === 'HIGH' ? 'error' :
+                      patrolSuggestions.overall_risk_level === 'MEDIUM' ? 'warning' :
                       'success'
                     }
                     sx={{
@@ -396,11 +424,11 @@ const Dashboard = () => {
                     }}
                   >
                     <Typography variant="h6" sx={{ fontWeight: 500, mb: 1 }}>
-                      {patrolSuggestions.overall_risk_assessment} Risk Level
+                      {patrolSuggestions.overall_risk_level} Risk Level
                     </Typography>
                     <Typography variant="body2">
-                      Confidence: {Math.round(patrolSuggestions.confidence_score * 100)}% •
-                      Max Incidents: {patrolSuggestions.max_risk_score}
+                      Total Incidents: {patrolSuggestions.risk_assessment?.total_incidents || 0} •
+                      Peak Hours: {patrolSuggestions.risk_assessment?.peak_hours || 'N/A'}
                     </Typography>
                   </Alert>
 
@@ -409,7 +437,7 @@ const Dashboard = () => {
                   </Typography>
 
                   <Grid container spacing={2}>
-                    {patrolSuggestions.recommendations.slice(0, 3).map((rec, index) => (
+                    {patrolSuggestions.patrol_suggestions?.slice(0, 3).map((rec, index) => (
                       <Grid size={{ xs: 12, sm: 4 }} key={index}>
                         <Card variant="outlined" sx={{
                           borderRadius: 2,
@@ -425,7 +453,13 @@ const Dashboard = () => {
                           </CardContent>
                         </Card>
                       </Grid>
-                    ))}
+                    )) || (
+                      <Grid size={{ xs: 12 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          No patrol suggestions available
+                        </Typography>
+                      </Grid>
+                    )}
                   </Grid>
                 </Box>
               )}
@@ -456,6 +490,7 @@ const Dashboard = () => {
                     key={index}
                     variant="outlined"
                     startIcon={action.icon}
+                    onClick={() => handleQuickAction(action.label)}
                     sx={{
                       justifyContent: 'flex-start',
                       py: 1.5,

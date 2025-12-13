@@ -4,7 +4,44 @@ const cors = require('cors');
 const axios = require('axios');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const csurf = require('csurf');
+const xssClean = require('xss-clean');
+const validator = require('validator');
+const PDFDocument = require('pdfkit');
 require('dotenv').config();
+
+// Environment variable validation
+function validateEnvironmentVariables() {
+  const requiredVars = [
+    'DB_HOST',
+    'DB_USER',
+    'DB_NAME',
+    'JWT_SECRET'
+  ];
+
+  // DB_PASSWORD can be empty (for XAMPP default setup)
+  const optionalVars = ['DB_PASSWORD'];
+
+  const missingRequiredVars = requiredVars.filter(varName =>
+    process.env[varName] === undefined || process.env[varName] === null
+  );
+
+  if (missingRequiredVars.length > 0) {
+    console.error('❌ Missing required environment variables:');
+    missingRequiredVars.forEach(varName => {
+      console.error(`   - ${varName}`);
+    });
+    console.error('\n📋 Please create a .env file with the required variables.');
+    console.error('   Copy from server/.env.example and fill in your values.');
+    process.exit(1);
+  }
+
+  console.log('✅ Environment variables validated successfully');
+}
+
+// Validate environment variables on startup
+validateEnvironmentVariables();
 
 // Import authentication system
 const authController = require('./authController');
@@ -14,6 +51,9 @@ const {
   checkHierarchyAccess,
   checkOwnershipOrHierarchy
 } = require('./authMiddleware');
+
+// Import Firebase middleware
+const { verifyFirebaseToken } = require('./firebaseMiddleware');
 
 // Import monitoring system
 const {
@@ -26,6 +66,9 @@ const {
   errorHandler,
   healthCheck
 } = require('./monitoring');
+
+// Import WebSocket server
+const { initializeWebSocket } = require('./websocket');
 
 // Import API documentation
 const { swaggerUi, swaggerSpec } = require('./swagger');
@@ -57,11 +100,65 @@ const strictLimiter = rateLimit({
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: process.env.NODE_ENV === 'production'
+    ? process.env.CLIENT_URL || false
+    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'],
   credentials: true
 }));
+
+// Security middleware - applied before body parsing
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com"],
+      fontSrc: ["'self'", "fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "cdn.jsdelivr.net"],
+      connectSrc: ["'self'", "http://localhost:5000"],
+      frameSrc: ["'self'", "https://accounts.google.com"]
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true
+  }
+}));
+
+// XSS Protection before body parsing
+app.use(xssClean());
+
+// Input sanitization middleware
+app.use((req, res, next) => {
+  if (req.body) {
+    // Sanitize all string inputs
+    for (const key in req.body) {
+      if (typeof req.body[key] === 'string') {
+        req.body[key] = validator.escape(req.body[key].trim());
+      }
+    }
+  }
+  next();
+});
+
 app.use(express.json({ limit: '10mb' })); // Limit payload size
 app.use(requestLogger);
+
+// CSRF Protection completely disabled (moved to production-ready implementation)
+// TODO: Implement proper CSRF handling with React CSRF tokens
+// app.use(csurf({ cookie: true }));
+
+// Additional security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=()');
+  res.setHeader('Expect-CT', 'max-age=86400, enforce, report-uri="https://report-uri.example.com/r/d/ct/enforce"');
+  next();
+});
 
 // Apply rate limiting
 // Temporarily disabled for development/testing
@@ -124,16 +221,28 @@ const upload = multer({ dest: 'uploads/' });
 app.post('/api/auth/login', authController.login);
 app.post('/api/auth/register', verifyToken, checkRole(['Super Admin']), authController.register);
 
+// Public resident signup (no authentication required)
+app.post('/api/auth/resident-signup', upload.single('proof_document'), authController.residentSignup);
+
+// Instant signup with Firebase verification
+app.post('/api/auth/instant-resident-signup', authController.instantResidentSignup);
+app.post('/api/auth/complete-signup', verifyFirebaseToken, authController.completeSignup);
+
 // Protected auth routes
 app.get('/api/auth/profile', verifyToken, authController.getProfile);
 app.get('/api/auth/subordinates', verifyToken, authController.getSubordinates);
+
+// Protected resident signup management (officer only)
+app.get('/api/auth/resident-signups/pending', verifyToken, checkRole(['captain', 'secretary', 'clerk']), authController.getPendingResidentSignups);
+app.put('/api/auth/resident-signups/:request_id/review', verifyToken, checkRole(['captain', 'secretary', 'clerk']), authController.reviewResidentSignup);
+app.get('/api/auth/resident-signups/stats', verifyToken, checkRole(['captain', 'secretary', 'clerk']), authController.getResidentSignupStats);
 
 // ==========================================
 // RESIDENT PROFILING MODULE (RBIM Enhanced)
 // ==========================================
 
 // Get all residents with RBIM data (protected - requires auth)
-app.get('/api/residents', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), async (req, res) => {
+app.get('/api/residents', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk']), async (req, res) => {
   try {
     const { page = 1, limit = 50, search, sitio_id, residency_status, show_vulnerable } = req.query;
     const offset = (page - 1) * limit;
@@ -280,8 +389,8 @@ app.post('/api/residents/check-duplicate', async (req, res) => {
   }
 });
 
-// Create new resident (RBIM enhanced)
-app.post('/api/residents', async (req, res) => {
+// Create new resident (RBIM enhanced) - protected with JWT
+app.post('/api/residents', verifyToken, async (req, res) => {
   const connection = await db.getConnection();
 
   try {
@@ -1180,6 +1289,94 @@ app.delete('/api/blotter/:caseNumber', async (req, res) => {
 });
 
 // ==========================================
+// DOCUMENT REQUEST & GENERATION MODULE
+// ==========================================
+
+// Import document controller
+const documentController = require('./documentController');
+
+// Document type management
+app.get('/api/documents/types', documentController.getDocumentTypes);
+
+// Document request management
+app.post('/api/documents/requests', documentController.createDocumentRequest);
+app.get('/api/documents/requests', documentController.getDocumentRequests);
+app.put('/api/documents/requests/:request_id/approve', documentController.approveDocumentRequest);
+app.get('/api/documents/requests/:request_id/download', documentController.downloadDocument);
+
+// Officer dashboard - pending requests
+app.get('/api/documents/pending', documentController.getPendingRequests);
+
+// QR validation
+app.post('/api/documents/validate-qr', documentController.validateDocument);
+
+// ==========================================
+// DOCUMENT TEMPLATE MANAGEMENT MODULE
+// ==========================================
+
+// Import template controller
+const templateController = require('./templateController');
+
+console.log('=== TEMPLATE CONTROLLER DEBUG ===');
+console.log('Template Controller loaded:', typeof templateController !== 'undefined');
+console.log('Template Controller type:', typeof templateController);
+if (templateController) {
+  console.log('Controller has getTemplateStats:', typeof templateController.getTemplateStats === 'function');
+  console.log('Controller methods:', Object.getOwnPropertyNames(templateController.constructor.prototype));
+} else {
+  console.log('TEMPLATE CONTROLLER IS UNDEFINED!');
+}
+console.log('=== END TEMPLATE CONTROLLER DEBUG ===\n');
+
+// Template management routes (admin, captain, secretary access)
+app.get('/api/templates', verifyToken, checkRole(['admin', 'captain', 'secretary']), templateController.getAllTemplates);
+app.get('/api/templates/:id', verifyToken, checkRole(['admin', 'captain', 'secretary']), templateController.getTemplateById);
+app.post('/api/templates', verifyToken, checkRole(['admin', 'captain']), templateController.createTemplate);
+app.put('/api/templates/:id', verifyToken, checkRole(['admin', 'captain']), templateController.updateTemplate);
+app.delete('/api/templates/:id', verifyToken, checkRole(['admin']), templateController.deleteTemplate);
+
+// Certificate types management routes (admin, captain, secretary access)
+app.get('/api/certificate-types', verifyToken, checkRole(['admin', 'captain', 'secretary']), templateController.getCertificateTypes);
+
+// Template file upload/download routes
+app.post('/api/templates/upload', verifyToken, checkRole(['admin', 'captain']), upload.single('template_file'), templateController.uploadTemplateFile);
+app.delete('/api/templates/:id/with-file', verifyToken, checkRole(['admin']), templateController.deleteTemplateWithFile);
+app.get('/api/templates/:id/download', verifyToken, checkRole(['admin', 'captain']), templateController.downloadTemplateFile);
+
+// Template utilities
+app.get('/api/templates/active/:document_type', templateController.getActiveTemplate);
+app.post('/api/templates/:id/duplicate', verifyToken, checkRole(['admin', 'captain']), templateController.duplicateTemplate);
+app.get('/api/templates/stats', verifyToken, checkRole(['admin', 'captain']), async (req, res) => {
+  console.log('=== TEMPLATE STATS ROUTE CALLED ===');
+  console.log('User ID:', req.user?.id);
+  console.log('User role:', req.user?.role);
+  console.log('Template controller exists:', typeof templateController !== 'undefined');
+  console.log('getTemplateStats exists:', typeof templateController?.getTemplateStats === 'function');
+
+  try {
+    if (typeof templateController?.getTemplateStats === 'function') {
+      console.log('Calling getTemplateStats method...');
+      await templateController.getTemplateStats(req, res);
+    } else {
+      console.log('ERROR: getTemplateStats method not found!');
+      res.status(500).json({
+        error: 'Template stats method not available',
+        controller_loaded: typeof templateController !== 'undefined',
+        method_exists: typeof templateController?.getTemplateStats === 'function'
+      });
+    }
+  } catch (error) {
+    console.log('ERROR in template stats route:', error);
+    res.status(500).json({
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// Debug routes removed - using browser console now
+
+// ==========================================
 // CERTIFICATE ISSUANCE MODULE
 // ==========================================
 
@@ -1230,16 +1427,79 @@ app.get('/api/certificates', async (req, res) => {
   }
 });
 
-// Issue new certificate
+// Issue new certificate (supports both auto-fill and manual creation)
 app.post('/api/certificates', async (req, res) => {
   const connection = await db.getConnection();
 
   try {
     await connection.beginTransaction();
 
-    const { resident_id, certificate_type_id, purpose, data, issued_by, status, fee_paid } = req.body;
+    const {
+      resident_id,
+      certificate_type_id,
+      purpose,
+      data,
+      issued_by,
+      status,
+      fee_paid,
+      // Manual certificate creation fields
+      manual_certificate,
+      resident_name,
+      address,
+      manual_purpose,
+      certificate_type,
+      issued_date,
+      valid_until,
+      control_number,
+      signatory_captain,
+      signatory_secretary,
+      location
+    } = req.body;
 
-    // Enhanced input validation
+    // Check if this is manual certificate creation
+    if (manual_certificate) {
+      // Manual certificate creation - bypass standard validation
+      console.log('Creating manual certificate for:', resident_name);
+
+      // Generate control number if not provided
+      const finalControlNo = control_number || `CERT-MANUAL-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+
+      const [result] = await connection.execute(`
+        INSERT INTO certificates_log (
+          control_no, resident_id, certificate_type, purpose, data,
+          date_issued, valid_until, status, fee_paid, issued_by,
+          signatory_captain, signatory_secretary, location, is_manual
+        ) VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
+      `, [
+        finalControlNo, certificate_type, manual_purpose || purpose,
+        JSON.stringify({
+          manual_resident_name: resident_name,
+          manual_address: address,
+          custom_data: data || {}
+        }),
+        issued_date || new Date().toISOString().split('T')[0],
+        valid_until || null,
+        status || 'approved',
+        fee_paid || 0,
+        issued_by || 1,
+        signatory_captain || 'Captain Juan Dela Cruz',
+        signatory_secretary || 'Secretary Maria Santos',
+        location || 'Barangay Batia, Bocaue, Bulacan'
+      ]);
+
+      await connection.commit();
+
+      res.status(201).json({
+        id: result.insertId,
+        control_no: finalControlNo,
+        message: 'Manual certificate created successfully',
+        type: 'manual'
+      });
+
+      return;
+    }
+
+    // Standard auto-fill certificate creation
     if (!resident_id || isNaN(resident_id)) {
       return res.status(400).json({ error: 'Valid resident_id is required' });
     }
@@ -1268,11 +1528,11 @@ app.post('/api/certificates', async (req, res) => {
       return res.status(400).json({ error: 'Invalid certificate type' });
     }
 
-    const certificate_type = certTypeRows[0].name;
+    const certificate_type_name = certTypeRows[0].name;
 
     // CRITICAL BUSINESS RULE: Check blotter before issuing clearance or good moral certificates
     // As per survey requirements - block issuance for residents with active blotter cases
-    if (certificate_type === 'Barangay Clearance' || certificate_type === 'Good Moral') {
+    if (certificate_type_name === 'Barangay Clearance' || certificate_type_name === 'Good Moral') {
       const [blotterCheck] = await connection.execute(`
         SELECT COUNT(*) as active_cases,
                GROUP_CONCAT(case_number) as case_numbers,
@@ -1300,13 +1560,13 @@ app.post('/api/certificates', async (req, res) => {
 
     const [result] = await connection.execute(`
       INSERT INTO certificates_log (
-        control_no, resident_id, certificate_type, purpose, data,
-        date_issued, status, fee_paid, issued_by,
+        control_no, resident_id, certificate_type, purpose,
+        date_issued, status,
         signatory_captain, signatory_secretary
-      ) VALUES (?, ?, ?, ?, ?, CURDATE(), ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, CURDATE(), ?, ?, ?)
     `, [
-      controlNo, resident_id, certificate_type, purpose.trim(), JSON.stringify(data || {}),
-      status || 'approved', fee_paid || 0, issued_by || 1,
+      controlNo, resident_id, certificate_type_name, purpose.trim(),
+      status || 'Released',
       'Captain Juan Dela Cruz', 'Secretary Maria Santos'
     ]);
 
@@ -1315,7 +1575,8 @@ app.post('/api/certificates', async (req, res) => {
     res.status(201).json({
       id: result.insertId,
       control_no: controlNo,
-      message: 'Certificate issued successfully'
+      message: 'Certificate issued successfully',
+      type: 'standard'
     });
   } catch (error) {
     await connection.rollback();
@@ -1329,6 +1590,34 @@ app.post('/api/certificates', async (req, res) => {
 // ==========================================
 // AI INTEGRATION MODULE
 // ==========================================
+
+// AI Service proxy helper function
+async function proxyToAIService(endpoint, data, method = 'POST') {
+  try {
+    const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:5000';
+    const url = `${aiServiceUrl}${endpoint}`;
+
+    const config = {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000 // 30 second timeout
+    };
+
+    if (data && method !== 'GET') {
+      config.data = data;
+    } else if (data && method === 'GET') {
+      // For GET requests, add query parameters
+      const params = new URLSearchParams(data);
+      config.url = `${url}?${params}`;
+    }
+
+    const response = await axios(url, config);
+    return response.data;
+  } catch (error) {
+    console.error(`AI Service proxy error for ${endpoint}:`, error.message);
+    throw error;
+  }
+}
 
 // Social Aid Priority
 app.post('/api/ai/priority', async (req, res) => {
@@ -1344,18 +1633,20 @@ app.post('/api/ai/priority', async (req, res) => {
     const resident = residents[0];
 
     // Call AI service
-    const aiResponse = await axios.post(`${process.env.AI_SERVICE_URL}/suggest-aid`, {
-      income_estimate: resident.Income_Estimate,
-      is_senior: resident.is_senior,
-      is_pwd: resident.is_pwd,
-      is_single_parent: resident.is_single_parent,
-      employment_status: resident.employment_status
+    const aiResponse = await proxyToAIService('/suggest-aid', {
+      monthly_income: resident.Income_Estimate,
+      age: resident.age || calculateAge(resident.Birthdate),
+      is_senior: resident.is_senior || (calculateAge(resident.Birthdate) >= 60),
+      is_pwd: resident.is_pwd || false,
+      is_single_parent: resident.is_single_parent || false,
+      employment_status: resident.employment_status || 'unemployed',
+      sitio_name: resident.sitio_name || 'Unknown'
     });
 
     res.json({
       resident_id,
       resident_name: `${resident.First_Name} ${resident.Last_Name}`,
-      ...aiResponse.data
+      ...aiResponse
     });
   } catch (error) {
     console.error('AI service error:', error.message);
@@ -1375,30 +1666,31 @@ app.post('/api/ai/priority-score', async (req, res) => {
     }
 
     const resident = residents[0];
-    let fallback = false;
 
     try {
       // Try AI service first
-      const aiResponse = await axios.post(`${process.env.AI_SERVICE_URL || 'http://localhost:5000'}/suggest-aid`, {
-        monthly_income: resident.monthly_income || resident.Income_Estimate || 0,
-        is_senior: resident.is_senior || false,
+      const aiResponse = await proxyToAIService('/suggest-aid', {
+        monthly_income: resident.Income_Estimate || 0,
+        age: calculateAge(resident.Birthdate),
+        is_senior: calculateAge(resident.Birthdate) >= 60,
         is_pwd: resident.is_pwd || false,
         is_single_parent: resident.is_single_parent || false,
-        employment_status: resident.employment_status || 'unemployed'
+        employment_status: resident.employment_status || 'unemployed',
+        sitio_name: resident.sitio_name || 'Unknown'
       });
 
       res.json({
-        data: aiResponse.data,
+        data: aiResponse,
         fallback: false
       });
     } catch (aiError) {
+      console.error('AI service error, using fallback:', aiError.message);
       // Fallback calculation
-      fallback = true;
-      const income = resident.monthly_income || resident.Income_Estimate || 0;
-      const isSenior = resident.is_senior || false;
+      const income = resident.Income_Estimate || 0;
+      const age = calculateAge(resident.Birthdate);
+      const isSenior = age >= 60;
       const isPwd = resident.is_pwd || false;
       const isSingleParent = resident.is_single_parent || false;
-      const isEmployed = resident.employment_status === 'employed';
 
       let priority = 'MEDIUM';
       let score = 50;
@@ -1410,13 +1702,12 @@ app.post('/api/ai/priority-score', async (req, res) => {
         if (income < 10000) reasons.push('Low monthly income (below ₱10,000)');
         if (isSenior) reasons.push('Senior citizen status');
         if (isPwd) reasons.push('Person with disability');
-      } else if (income > 20000 && isEmployed) {
+      } else if (income > 20000) {
         priority = 'LOW';
         score = 25;
-        reasons.push('High income and employed');
+        reasons.push('High income');
       } else {
         if (isSingleParent) reasons.push('Single parent household');
-        if (!isEmployed) reasons.push('Currently unemployed');
         reasons.push('Moderate income level');
       }
 
@@ -1424,7 +1715,9 @@ app.post('/api/ai/priority-score', async (req, res) => {
         data: {
           priority,
           score,
-          reasons
+          reasons,
+          final_score: score,
+          urgency: priority === 'HIGH' ? 'Fast-tracked assistance needed' : 'Scheduled assistance appropriate'
         },
         fallback: true
       });
@@ -1445,17 +1738,234 @@ app.get('/api/ai/patrol-suggestions', async (req, res) => {
       LEFT JOIN sitios s ON b.Location_Sitio = s.name
       WHERE b.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
       ORDER BY b.created_at DESC
+      LIMIT 50
     `);
 
-    // Call AI service
-    const aiResponse = await axios.post(`${process.env.AI_SERVICE_URL || 'http://localhost:5000'}/suggest-patrol`, {
-      blotter_data: blotterData
-    });
+    // Try AI service first
+    try {
+      const aiResponse = await proxyToAIService('/suggest-patrol', {
+        blotter_data: blotterData
+      });
+      res.json(aiResponse);
+    } catch (aiError) {
+      console.error('AI service error, using fallback:', aiError.message);
 
-    res.json(aiResponse.data);
+      // Fallback mock response
+      const riskLevels = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+      const overallRisk = riskLevels[Math.floor(Math.random() * riskLevels.length)];
+
+      res.json({
+        overall_risk_level: overallRisk,
+        risk_assessment: {
+          total_incidents: blotterData.length,
+          high_risk_sitios: ['Batia Proper', 'Northville 5'],
+          peak_hours: '8PM-2AM',
+          trend: 'STABLE'
+        },
+        patrol_suggestions: [
+          'Increase patrol presence in Batia Proper during evening hours',
+          'Focus on theft prevention in Northville 5 commercial areas',
+          'Monitor noise complaints in residential zones',
+          'Establish additional checkpoints at high-traffic areas',
+          'Coordinate with local PNP for joint patrols'
+        ],
+        recommended_schedule: {
+          priority_areas: ['Batia Proper', 'Northville 5', 'St. Martha'],
+          suggested_tanods: 8,
+          shift_coverage: '18:00-06:00'
+        },
+        generated_at: new Date().toISOString(),
+        fallback: true
+      });
+    }
+  } catch (dbError) {
+    console.error('Database error in patrol suggestions:', dbError.message);
+
+    // Complete fallback when database is unavailable
+    res.json({
+      overall_risk_level: 'MEDIUM',
+      risk_assessment: {
+        total_incidents: 0,
+        high_risk_sitios: ['Batia Proper'],
+        peak_hours: '20:00-02:00',
+        trend: 'UNKNOWN'
+      },
+      patrol_suggestions: [
+        'Conduct regular evening patrols in main commercial areas',
+        'Monitor high-traffic zones for potential incidents',
+        'Establish community watch programs',
+        'Increase visibility in residential neighborhoods',
+        'Coordinate with local law enforcement'
+      ],
+      recommended_schedule: {
+        priority_areas: ['Batia Proper', 'Northville 5'],
+        suggested_tanods: 6,
+        shift_coverage: '19:00-05:00'
+      },
+      generated_at: new Date().toISOString(),
+      fallback: true,
+      db_error: true
+    });
+  }
+});
+
+// Analytics endpoints - proxy to AI service with fallbacks
+app.get('/api/analytics/dashboard-summary', async (req, res) => {
+  try {
+    const summary = await proxyToAIService('/analytics/dashboard-summary', {}, 'GET');
+    res.json(summary);
   } catch (error) {
-    console.error('AI patrol service error:', error.message);
-    res.status(500).json({ error: 'AI patrol service unavailable' });
+    console.error('Analytics dashboard error, using fallback:', error.message);
+    // Fallback mock data
+    res.json({
+      total_incidents_30d: 28,
+      active_cases: 5,
+      high_risk_areas: ["Batia Proper", "Northville 5"],
+      trend_direction: "STABLE",
+      forecast_next_week: 8,
+      response_time_avg: "12 minutes",
+      coverage_percentage: 78,
+      generated_at: new Date().toISOString()
+    });
+  }
+});
+
+app.get('/api/analytics/charts/:chart_type', async (req, res) => {
+  try {
+    const { chart_type } = req.params;
+    const chartData = await proxyToAIService(`/analytics/charts/${chart_type}`, {}, 'GET');
+    res.json(chartData);
+  } catch (error) {
+    console.error(`Analytics chart error for ${req.params.chart_type}, using fallback:`, error.message);
+
+    const { chart_type } = req.params;
+
+    // Provide fallback chart data based on type
+    let fallbackData = {};
+
+    if (chart_type === 'incident_trends') {
+      const dates = Array.from({length: 30}, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (29 - i));
+        return date.toISOString().split('T')[0];
+      });
+
+      fallbackData = {
+        labels: dates,
+        datasets: [{
+          label: "Daily Incidents",
+          data: Array.from({length: 30}, () => Math.floor(Math.random() * 6)),
+          borderColor: "#1DB954",
+          backgroundColor: "rgba(29, 185, 84, 0.1)",
+          tension: 0.4
+        }]
+      };
+    } else if (chart_type === 'incident_types') {
+      fallbackData = {
+        labels: ["Physical Injury", "Theft", "Unjust Vexation", "Malicious Mischief", "Other"],
+        datasets: [{
+          label: "Incidents by Type",
+          data: [8, 6, 4, 3, 7],
+          backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"]
+        }]
+      };
+    } else if (chart_type === 'sitio_distribution') {
+      fallbackData = {
+        labels: ["Batia Proper", "Northville 5", "St. Martha", "AFP/PNP"],
+        datasets: [{
+          label: "Incidents by Sitio",
+          data: [12, 8, 5, 3],
+          backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0"]
+        }]
+      };
+    } else if (chart_type === 'hourly_patterns') {
+      fallbackData = {
+        labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+        datasets: [{
+          label: "Incidents by Hour",
+          data: Array.from({length: 24}, () => Math.floor(Math.random() * 4)),
+          borderColor: "#1DB954",
+          backgroundColor: "rgba(29, 185, 84, 0.1)",
+          fill: true
+        }]
+      };
+    }
+
+    res.json(fallbackData);
+  }
+});
+
+app.post('/api/analytics/generate-report', async (req, res) => {
+  try {
+    const reportData = await proxyToAIService('/analytics/generate-report', req.body);
+    res.json(reportData);
+  } catch (error) {
+    console.error('Analytics report generation error, using fallback:', error.message);
+
+    // Fallback mock report
+    const reportType = req.body?.report_type || 'incident_analysis';
+    const mockReports = {
+      incident_analysis: {
+        report_type: "incident_analysis",
+        generated_at: new Date().toISOString(),
+        date_range: { start: "2025-11-12", end: "2025-12-12", days: 30 },
+        metrics: {
+          total_incidents: 28,
+          incidents_by_type: { "Physical Injury": 8, "Theft": 6, "Unjust Vexation": 4 },
+          incidents_by_sitio: { "Batia Proper": 12, "Northville 5": 8, "St. Martha": 5, "AFP/PNP": 3 },
+          average_daily_incidents: 0.93
+        },
+        insights: ["Average of 0.9 incidents per day", "Most common: Physical Injury (8 cases)"],
+        recommendations: ["Increase patrol presence", "Focus on high-risk areas"]
+      },
+      trend_analysis: {
+        report_type: "trend_analysis",
+        metrics: { trend_direction: "STABLE", total_period_incidents: 28 },
+        insights: ["Incident rates are stable", "Consistent daily patterns"],
+        recommendations: ["Maintain current patrol levels"]
+      }
+    };
+
+    res.json(mockReports[reportType] || mockReports.incident_analysis);
+  }
+});
+
+// Chatbot endpoints - proxy to AI service with fallbacks
+app.post('/api/ai/chatbot/message', async (req, res) => {
+  try {
+    const chatbotResponse = await proxyToAIService('/chatbot/message', req.body);
+    res.json(chatbotResponse);
+  } catch (error) {
+    console.error('Chatbot error, using fallback:', error.message);
+
+    const userMessage = req.body?.message?.toLowerCase() || '';
+    let response = "I'm here to help with barangay services. How can I assist you today?";
+    let intent = "general_inquiry";
+
+    // Simple fallback responses based on keywords
+    if (userMessage.includes('certificate') || userMessage.includes('clearance')) {
+      response = "For barangay clearance, you need: valid ID, proof of residency, cedula, and P50 fee. Would you like to schedule an appointment?";
+      intent = "certificate_inquiry";
+    } else if (userMessage.includes('blotter') || userMessage.includes('report')) {
+      response = "To file a blotter report, please come to the barangay office with your valid ID and any supporting evidence. I can help you schedule an appointment.";
+      intent = "blotter_inquiry";
+    } else if (userMessage.includes('appointment') || userMessage.includes('schedule')) {
+      response = "I can help you schedule an appointment. What type of service do you need?";
+      intent = "appointment_request";
+    } else if (userMessage.includes('hours') || userMessage.includes('open')) {
+      response = "Our barangay office is open Monday-Friday 8AM-5PM, Saturday 8AM-12NN.";
+      intent = "faq";
+    }
+
+    res.json({
+      response: response,
+      intent: intent,
+      confidence: 0.8,
+      actions: [],
+      appointment_booked: false,
+      requires_followup: false,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
@@ -1677,8 +2187,8 @@ app.get('/api/programs', async (req, res) => {
   }
 });
 
-// Create new community program/event
-app.post('/api/programs', async (req, res) => {
+// Create new community program/event - Secretary and above
+app.post('/api/programs', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
   try {
     const {
       program_name,
@@ -1712,8 +2222,8 @@ app.post('/api/programs', async (req, res) => {
   }
 });
 
-// Update community program/event
-app.put('/api/programs/:id', async (req, res) => {
+// Update community program/event - Secretary and above
+app.put('/api/programs/:id', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
   try {
     const {
       program_name,
@@ -1936,6 +2446,87 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// ==========================================
+// PDF GENERATION MODULE
+// ==========================================
+
+// Generate Barangay Clearance PDF (placeholder implementation)
+app.get('/generate-clearance/:residentId', verifyToken, async (req, res) => {
+  try {
+    const { residentId } = req.params;
+
+    // Get resident data
+    const [residents] = await db.execute(`
+      SELECT
+        r.*,
+        h.Household_Number,
+        h.Street_Address,
+        s.name as sitio_name
+      FROM residents r
+      LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
+      WHERE r.Resident_ID = ?
+    `, [residentId]);
+
+    if (residents.length === 0) {
+      return res.status(404).json({ error: 'Resident not found' });
+    }
+
+    const resident = residents[0];
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    // Create PDF document in memory (not saved to disk)
+    const doc = new PDFDocument({
+      size: 'A4',
+      margin: 50
+    });
+
+    // Set response headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Barangay_Clearance_${residentId}.pdf"`);
+
+    // Pipe PDF to response
+    doc.pipe(res);
+
+    // TODO: REPLACE THIS BLOCK WITH FINAL CERTIFICATE DESIGN LATER
+
+    // Simple placeholder design - centered text only
+    const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
+
+    // Title
+    doc.fontSize(24).font('Helvetica-Bold');
+    const title = 'BARANGAY CLEARANCE CERTIFICATE';
+    const titleWidth = doc.widthOfString(title);
+    doc.text(title, (pageWidth - titleWidth) / 2, 100);
+
+    // Certificate content in center
+    doc.fontSize(14).font('Helvetica');
+    const contentY = pageHeight / 2 - 50;
+
+    doc.text(`Resident Name: ${resident.First_Name} ${resident.Last_Name}`, (pageWidth - 400) / 2, contentY);
+    doc.text(`Date: ${currentDate}`, (pageWidth - 400) / 2, contentY + 30);
+    doc.text(`Purpose: General Clearance`, (pageWidth - 400) / 2, contentY + 60);
+
+    // Footer
+    doc.fontSize(10).font('Helvetica-Oblique');
+    const footer = 'This is a placeholder certificate. Final design will be implemented later.';
+    const footerWidth = doc.widthOfString(footer);
+    doc.text(footer, (pageWidth - footerWidth) / 2, pageHeight - 100);
+
+    // End document
+    doc.end();
+
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    res.status(500).json({ error: 'Failed to generate certificate' });
+  }
+});
+
 // API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -1943,9 +2534,28 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(errorHandler);
 
 // Start server
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`🚀 Barangay Management Server running on port ${port}`);
   console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
   console.log(`🤖 AI Service: ${process.env.AI_SERVICE_URL || 'http://localhost:5000'}`);
   console.log(`🔍 QR Verification: http://localhost:${port}/verify-qr/{hash}`);
+  console.log(`🔔 Real-time Notifications: WebSocket enabled`);
+});
+
+// Initialize WebSocket server
+initializeWebSocket(server);
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+  });
 });

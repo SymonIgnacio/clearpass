@@ -46,74 +46,51 @@ const Sidebar = ({ user, onLogout }) => {
       icon: <Dashboard />,
       path: '/',
       description: 'Overview & Analytics',
-      roles: ['admin', 'captain', 'secretary', 'clerk'] // All roles can access
+      roles: ['admin', 'captain', 'secretary', 'clerk', 'resident'] // All roles can access
     },
     {
       text: 'Residents',
       icon: <People />,
       path: '/residents',
       description: 'Manage Residents',
-      roles: ['admin', 'captain', 'secretary', 'clerk'] // All roles can access
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // Clerks and below can't manage residents
     },
     {
       text: 'Blotter',
       icon: <Gavel />,
       path: '/blotter',
       description: 'Incident Reports',
-      roles: ['admin', 'captain', 'secretary', 'clerk'] // All roles can access
+      roles: ['admin', 'captain', 'secretary', 'clerk', 'resident'] // All roles can access
     },
     {
-      text: 'Certificates',
+      text: 'Document Center',
       icon: <Description />,
-      path: '/certificates',
-      description: 'Issue Documents',
-      roles: ['admin', 'captain', 'secretary'] // Clerks cannot issue certificates
+      path: '/documents',
+      description: 'Certificates & Templates',
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // Clerks can issue but limited management
     },
     {
       text: 'Census',
       icon: <Assessment />,
       path: '/census',
       description: 'Population Stats',
-      roles: ['admin', 'captain', 'secretary', 'clerk'] // All roles can access
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // No resident access needed
     },
     {
-      text: 'AI Patrol',
+      text: 'AI Hub',
       icon: <SmartToy />,
-      path: '/ai-patrol',
-      description: 'Smart Deployment',
+      path: '/ai-dashboard',
+      description: 'AI Command Center & Analytics',
       badge: 'AI',
-      roles: ['admin', 'captain'] // Only admin and captain can use AI features
-    },
-    {
-      text: 'QR Verify',
-      icon: <QrCodeScanner />,
-      path: '/qr-verify',
-      description: 'Document Verification',
-      roles: ['admin', 'captain', 'secretary', 'clerk'] // All roles can verify
+      roles: ['admin', 'captain', 'secretary', 'clerk', 'resident'] // All roles can access AI features
     },
     {
       text: 'Events',
       icon: <Event />,
       path: '/events',
       description: 'Community Programs',
-      roles: ['admin', 'captain', 'secretary'] // Clerks have limited event management
-    },
-    {
-      text: 'Ronda Analytics',
-      icon: <Analytics />,
-      path: '/ronda-analytics',
-      description: 'AI Incident Analysis',
-      badge: 'AI',
-      roles: ['admin', 'captain'] // Only admin and captain can access analytics
-    },
-    {
-      text: 'OCR Auto-Fill',
-      icon: <DocumentScanner />,
-      path: '/ocr-autofill',
-      description: 'Document Scanning',
-      badge: 'AI',
-      roles: ['admin', 'captain', 'secretary'] // All staff can use OCR
-    },
+      roles: ['admin', 'captain', 'secretary', 'clerk', 'resident'] // All roles can view, Secretary+ can create/manage
+    }
   ]
 
   // Filter menu items based on user role

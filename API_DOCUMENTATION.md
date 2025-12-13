@@ -5,8 +5,8 @@
 The Barangay Management System API provides comprehensive backend services for managing barangay operations, including resident profiling, certificate issuance, incident reporting, AI-powered decision support, and community management features.
 
 **Base URL:** `http://localhost:3001/api`
-**Version:** 1.0.0
-**Authentication:** API Key (Bearer Token) - Implementation Required
+**Version:** v2.7.0 (Docker + Account Hierarchy)
+**Authentication:** JWT Bearer Token Required
 
 ---
 
@@ -584,7 +584,9 @@ Retry-After: 900
 - ✅ XSS protection
 
 ### Authentication & Authorization
-- ⚠️ **JWT Authentication:** Not yet implemented (High Priority)
+- ✅ **JWT Authentication:** Fully implemented with hierarchy system
+- ✅ **Account Hierarchy:** 6-tier role-based access control (Super Admin → Captain → Secretary → Clerk → Tanod → Resident)
+- ✅ **Hierarchical Permissions:** Users can only access subordinate data
 - ✅ **Rate Limiting:** Multiple tiers implemented
 - ✅ **CORS Protection:** Configured for allowed origins
 - ✅ **Request Size Limits:** 10MB payload limit

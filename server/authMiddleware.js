@@ -12,8 +12,7 @@ const ROLE_HIERARCHY = {
   'captain': { level: 2, permissions: ['read', 'write', 'manage_certificates'], display_name: 'Barangay Captain' },
   'secretary': { level: 3, permissions: ['read', 'write', 'manage_documents'], display_name: 'Barangay Secretary' },
   'clerk': { level: 4, permissions: ['read', 'write'], display_name: 'Barangay Clerk' },
-  'tanod': { level: 5, permissions: ['read', 'patrol'], display_name: 'Barangay Tanod' },
-  'resident': { level: 6, permissions: ['read'], display_name: 'Resident' }
+  'resident': { level: 5, permissions: ['read'], display_name: 'Resident' }
 };
 
 // Verify JWT token and attach user to request
