@@ -523,10 +523,15 @@ class TemplateController {
    * Upload a template file (stored in database)
    */
   async uploadTemplateFile(req, res) {
+    console.log('=== UPLOAD TEMPLATE FILE STARTED ===');
+    console.log('Request body:', { template_name: req.body?.template_name, document_type: req.body?.document_type });
+    console.log('File received:', req.file ? `${req.file.originalname} (${req.file.size} bytes, ${req.file.mimetype})` : 'NO FILE');
+
     const connection = await mysql.createConnection(dbConfig);
 
     try {
       if (!req.file) {
+        console.log('ERROR: No file in request');
         return res.status(400).json({
           success: false,
           message: 'No file uploaded'
@@ -536,50 +541,35 @@ class TemplateController {
       const { template_name, document_type } = req.body;
 
       if (!template_name || !document_type) {
-        // Clean up uploaded file if validation fails
-        try {
-          await fs.unlink(req.file.path);
-        } catch (unlinkError) {
-          console.error('Error deleting invalid upload:', unlinkError);
-        }
-
+        console.log('ERROR: Missing required fields');
         return res.status(400).json({
           success: false,
           message: 'Template name and document type are required'
         });
       }
 
+      console.log('✅ Required fields validated');
+
       // Check if template name already exists
+      console.log('Checking for duplicate template name...');
       const [existingTemplates] = await connection.execute(
         'SELECT id FROM document_templates WHERE template_name = ?',
         [template_name]
       );
 
       if (existingTemplates.length > 0) {
-        // Clean up uploaded file if template name exists
-        try {
-          await fs.unlink(req.file.path);
-        } catch (unlinkError) {
-          console.error('Error deleting duplicate upload:', unlinkError);
-        }
-
+        console.log('ERROR: Template name already exists');
         return res.status(409).json({
           success: false,
           message: 'Template name already exists'
         });
       }
 
-      // Read file content and convert to buffer for database storage
-      let fileData = null;
-      try {
-        fileData = await fs.readFile(req.file.path);
-      } catch (readError) {
-        console.error('Error reading uploaded file:', readError);
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to read uploaded file'
-        });
-      }
+      console.log('✅ Template name is unique');
+
+      // File data is already in buffer from multer memory storage
+      const fileData = req.file.buffer;
+      console.log('File buffer size:', fileData?.length || 0);
 
       // Create template record in database with file stored as BLOB
       const templateContent = JSON.stringify({
@@ -594,6 +584,9 @@ class TemplateController {
         font_size: 12
       });
 
+      console.log('Template content JSON created');
+
+      console.log('Inserting into database...');
       const [result] = await connection.execute(`
         INSERT INTO document_templates (
           template_name, document_type, template_content,
@@ -610,12 +603,7 @@ class TemplateController {
         req.user?.id || null
       ]);
 
-      // Clean up temporary uploaded file
-      try {
-        await fs.unlink(req.file.path);
-      } catch (unlinkError) {
-        console.error('Error cleaning up temporary file:', unlinkError);
-      }
+      console.log('✅ Database insert successful, ID:', result.insertId);
 
       // Fetch the created template
       const [newTemplates] = await connection.execute(
@@ -629,6 +617,8 @@ class TemplateController {
         template_content: JSON.parse(newTemplate.template_content)
       };
 
+      console.log('✅ Template upload completed successfully');
+
       res.status(201).json({
         success: true,
         message: 'Template file uploaded and stored in database successfully',
@@ -636,14 +626,16 @@ class TemplateController {
       });
 
     } catch (error) {
-      console.error('Error uploading template file:', error);
+      console.error('❌ Error uploading template file:', error);
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
 
-      // Clean up uploaded file on error
+      // Clean up uploaded file on error (though not needed for memory storage)
       if (req.file && req.file.path) {
         try {
           await fs.unlink(req.file.path);
         } catch (unlinkError) {
-          console.error('Error cleaning up failed upload:', unlinkError);
+          console.error('❌ Error cleaning up failed upload:', unlinkError);
         }
       }
 
@@ -654,6 +646,7 @@ class TemplateController {
       });
     } finally {
       await connection.end();
+      console.log('=== UPLOAD TEMPLATE FILE FINISHED ===');
     }
   }
 

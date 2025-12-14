@@ -3,7 +3,7 @@ echo 🔄 Running database migrations...
 echo =====================================
 
 cd server
-npx knex migrate:latest --knexfile server/knexfile.js
+npx knex migrate:latest --knexfile knexfile.js
 
 if %ERRORLEVEL% EQU 0 (
     echo ✅ Database migrations completed successfully
@@ -13,7 +13,7 @@ if %ERRORLEVEL% EQU 0 (
 )
 
 echo 🌱 Running database seeds...
-npx knex seed:run --knexfile server/knexfile.js
+npx knex seed:run --knexfile knexfile.js
 
 if %ERRORLEVEL% EQU 0 (
     echo ✅ Database seeds completed successfully

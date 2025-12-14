@@ -219,11 +219,21 @@ const uploadBlob = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Accept images and PDFs
-    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+    // Accept images, PDFs, and Word documents
+    const allowedMimetypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+
+    if (allowedMimetypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only images and PDF files are allowed'));
+      cb(new Error('Only images, PDFs, and Word documents are allowed'));
     }
   }
 });

@@ -3,4 +3,4 @@
   publish = "client/dist"
 
 [build.environment]
-  # VITE_API_BASE_URL = "https://your-backend-url/api"  # Uncomment and replace with your backend URL
+  VITE_API_BASE_URL = "https://your-backend-url/api"

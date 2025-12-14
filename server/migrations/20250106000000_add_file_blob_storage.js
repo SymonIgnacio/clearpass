@@ -2,9 +2,9 @@
 
 module.exports = {
   async up(knex) {
-    // Add BLOB columns for storing files directly in database
+  // Add BLOB columns for storing files directly in database
     await knex.schema.alterTable('document_templates', (table) => {
-      table.binary('file_data').nullable().comment('Binary file data stored in database');
+      table.specificType('file_data', 'MEDIUMBLOB').nullable().comment('Binary file data stored in database (16MB limit)');
       table.string('file_encoding', 50).nullable().comment('File encoding type (e.g., base64)');
       table.index(['is_active', 'document_type'], 'idx_templates_active_type');
     });

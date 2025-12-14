@@ -1,6 +1,23 @@
 const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
-const db = require('./database');
+const mysql = require('mysql2/promise');
+
+// Database connection pool
+let db;
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'barangay_management',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+};
+
+// Initialize database pool (call this after dotenv config)
+async function initializeDatabasePool() {
+  db = await mysql.createPool(dbConfig);
+}
 
 // Store connected clients
 const clients = new Map();
