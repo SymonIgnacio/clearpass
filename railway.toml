@@ -1,0 +1,14 @@
+[build]
+builder = "NIXPACKS"
+
+[environment]
+NODE_ENV = "production"
+
+[deploy]
+startCommand = "npm start"
+
+[services.railway]
+envVars = [
+  { name = "PORT", value = "$PORT" },
+  { name = "SERVER_PORT", value = "$PORT" }
+]
