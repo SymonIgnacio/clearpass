@@ -156,10 +156,10 @@ class SSLConfig {
    */
   logProductionInstructions() {
     console.log('\n' + '='.repeat(80));
-    console.log('🔒 PRODUCTION SSL SETUP INSTRUCTIONS');
+    console.log('PRODUCTION SSL SETUP INSTRUCTIONS');
     console.log('='.repeat(80));
 
-    console.log('\n1. Install Certbot (Let's Encrypt):');
+    console.log('\n1. Install Certbot (Lets Encrypt):');
     console.log('   sudo apt-get install certbot  # Ubuntu/Debian');
     console.log('   sudo yum install certbot     # CentOS/RHEL');
 

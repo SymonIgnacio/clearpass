@@ -2,6 +2,7 @@ const express = require('express');
 const promClient = require('prom-client');
 const { createLogger, format, transports } = require('winston');
 const crypto = require('crypto');
+const path = require('path');
 
 // Sensitive data sanitization patterns
 const SENSITIVE_PATTERNS = [
