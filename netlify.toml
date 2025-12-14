@@ -3,4 +3,4 @@
   publish = "client/dist"
 
 [build.environment]
-  VITE_API_BASE_URL = "https://your-backend-url/api"
+  VITE_API_BASE_URL = "https://clearpass-production.up.railway.app"
