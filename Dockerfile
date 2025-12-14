@@ -3,23 +3,22 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files and install root dependencies first
 COPY package*.json ./
-
-# Copy source code (including client for building)
-COPY . .
-
-# Install dependencies with dev dependencies for building
 RUN npm install
 
+# Copy client directory contents
+COPY client/ ./client/
+
 # Build the client
-RUN npm run build --prefix client
+WORKDIR /app/client
+RUN npm install && npm run build
 
-# Remove dev dependencies
-RUN npm prune --production
+# Go back to root directory
+WORKDIR /app
 
-# Clean cache
-RUN npm cache clean --force
+# Remove dev dependencies and clean up
+RUN npm prune --production && npm cache clean --force
 
 # Expose port
 EXPOSE 3001
