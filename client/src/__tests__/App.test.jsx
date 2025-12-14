@@ -88,8 +88,6 @@ jest.mock('../pages/RondaAnalytics', () => {
   };
 });
 
-
-
 jest.mock('../pages/QRVerification', () => {
   return function MockQRVerification() {
     return <div data-testid="qr-verification-page">QR Verification Page</div>;
