@@ -5,16 +5,31 @@ const path = require('path');
 // Initialize Firebase Admin SDK
 const initializeFirebaseAdmin = () => {
   if (!admin.apps.length) {
-    // Load service account from JSON file
     let serviceAccount;
-    const serviceAccountPath = path.join(__dirname, '..', 'firebase-service-account.json');
 
-    try {
-      serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-    } catch (error) {
-      console.warn('⚠️  Firebase service account file not found or invalid:', error.message);
-      console.warn('   Using MySQL authentication only. Some Firebase features will be unavailable.');
-      return; // Continue without Firebase
+    // First, try to get service account from environment variable
+    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    if (serviceAccountKey) {
+      try {
+        serviceAccount = JSON.parse(serviceAccountKey);
+        console.log('✅ Firebase service account loaded from environment variable');
+      } catch (envError) {
+        console.warn('⚠️  Firebase service account environment variable is invalid JSON:', envError.message);
+      }
+    }
+
+    // If not in environment variable, try to load from file
+    if (!serviceAccount) {
+      const serviceAccountPath = path.join(__dirname, '..', 'firebase-service-account.json');
+      try {
+        serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+        console.log('✅ Firebase service account loaded from file');
+      } catch (fileError) {
+        console.warn('⚠️  Firebase service account file not found or invalid:', fileError.message);
+        console.warn('   To use Firebase, set FIREBASE_SERVICE_ACCOUNT_KEY environment variable or add firebase-service-account.json file');
+        console.warn('   Using MySQL authentication only. Some Firebase features will be unavailable.');
+        return; // Continue without Firebase
+      }
     }
 
     try {
