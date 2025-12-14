@@ -117,20 +117,7 @@ app.use(cors({
   credentials: true
 }));
 
-// Serve static files from React build in production
-if (process.env.NODE_ENV === 'production') {
-  const path = require('path');
-  app.use(express.static(path.join(__dirname, '../client/dist')));
-
-  // Handle SPA routing - serve index.html for any non-API routes
-  app.get('*', (req, res) => {
-    // Skip API routes
-    if (req.path.startsWith('/api/')) {
-      return res.status(404).json({ error: 'API not found' });
-    }
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-  });
-}
+// Note: Static file serving removed for separate frontend deployment
 
 // Security middleware - applied before body parsing
 app.use(helmet({
