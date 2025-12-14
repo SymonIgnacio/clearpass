@@ -1,7 +1,6 @@
 [build]
-builder = "NIXPACKS"
-buildCommand = "echo 'Cache cleared - rebuild' && cd server && npm install && cd ../client && npm install && npm run build"
-sourceDir = "server"
+builder = "DOCKERFILE"
+dockerfilePath = "./Dockerfile"
 
 [deploy]
 startCommand = "node index.js"
