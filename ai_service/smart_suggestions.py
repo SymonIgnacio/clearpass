@@ -2069,10 +2069,35 @@ def index():
     })
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    print(f"Barangay AI Service running on port {port}")
-    print("Available endpoints:")
-    print("  POST /suggest-aid - Social aid prioritization")
-    print("  POST /suggest-patrol - Patrol deployment suggestions")
-    print("  GET /health - Health check")
-    app.run(debug=True, host='0.0.0.0', port=port)
+    port = int(os.environ.get('PORT', 8080))
+    debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    environment = os.environ.get('FLASK_ENV', 'production')
+
+    print("\n" + "="*60)
+    print("🏛️  ADVANCED BARANGAY AI SERVICE STARTING")
+    print("="*60)
+    print(f"📡 Port: {port}")
+    print(f"🔧 Debug Mode: {debug_mode}")
+    print(f"🌍 Environment: {environment}")
+    print(f"🏥 Health Check: http://localhost:{port}/health")
+    print("="*60)
+
+    if debug_mode:
+        print("⚠️  WARNING: Running in DEBUG mode!")
+        print("   This is not suitable for production deployment.")
+        print("   Use Gunicorn for production instead.")
+        print("="*60)
+
+    print("🤖 Available AI Endpoints:")
+    print("   POST /suggest-aid - Social aid prioritization")
+    print("   POST /suggest-patrol - Advanced predictive policing")
+    print("   POST /detect-fraud - Certificate fraud detection")
+    print("   POST /optimize-budget - AI budget optimization")
+    print("   POST /predict-emergency - Emergency response prediction")
+    print("   POST /analyze-community-health - Health risk assessment")
+    print("   POST /forecast-aid-demands - Aid demand forecasting")
+    print("   POST /chatbot/message - BANTAY intelligent chatbot")
+    print("="*60)
+    print("🚀 Starting Flask application...")
+
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)
