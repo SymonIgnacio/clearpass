@@ -1,7 +1,7 @@
 {
   "name": "barangay-management-system",
   "private": true,
-  "version": "2.7.0",
+  "version": "2.7.1",
   "type": "module",
   "description": "Complete Barangay Management System with AI Integration",
   "scripts": {

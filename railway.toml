@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "cd server && npm install && cd ../client && npm install && npm run build"
+buildCommand = "echo 'Cache cleared - rebuild' && cd server && npm install && cd ../client && npm install && npm run build"
 sourceDir = "server"
 
 [deploy]
