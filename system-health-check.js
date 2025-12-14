@@ -591,27 +591,36 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const checker = new SystemHealthChecker();
 
   // Load environment variables if .env exists
-  // Note: In ES modules, we can't use require for dotenv, so we'll use a simpler approach
+  // Note: In ES modules, we need to handle async imports properly
   try {
     const { readFileSync } = await import('fs');
-    const dotenvPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '.env');
-    if (readFileSync) {
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
+
+    const dotenvPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'server', '.env');
+    try {
+      const envContent = readFileSync(dotenvPath, 'utf8');
       // Simple dotenv parsing (basic implementation)
-      try {
-        const envContent = readFileSync(dotenvPath, 'utf8');
-        envContent.split('\n').forEach(line => {
-          const [key, ...valueParts] = line.split('=');
+      envContent.split('\n').forEach(line => {
+        const trimmedLine = line.trim();
+        if (trimmedLine && !trimmedLine.startsWith('#') && trimmedLine.includes('=')) {
+          const [key, ...valueParts] = trimmedLine.split('=');
           if (key && valueParts.length > 0) {
             const value = valueParts.join('=').trim();
-            if (value) process.env[key.trim()] = value.replace(/^["']|["']$/g, '');
+            if (value) {
+              // Remove quotes if present
+              const cleanValue = value.replace(/^["']|["']$/g, '');
+              process.env[key.trim()] = cleanValue;
+            }
           }
-        });
-      } catch (e) {
-        // .env file not found or can't be read, continue without it
-      }
+        }
+      });
+      console.log('✅ Environment variables loaded from server/.env');
+    } catch (e) {
+      console.log('⚠️ Could not load server/.env file, using defaults');
     }
   } catch (e) {
-    // fs import failed, continue without loading .env
+    console.log('⚠️ Could not import fs module, skipping .env loading');
   }
 
   checker.runAllTests().catch(error => {

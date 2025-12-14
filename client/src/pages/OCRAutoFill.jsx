@@ -86,6 +86,7 @@ const OCRAutoFill = () => {
   const [showWebcam, setShowWebcam] = useState(false);
   const [validationDialog, setValidationDialog] = useState(false);
   const [editedData, setEditedData] = useState({});
+  const [uploadError, setUploadError] = useState('');
 
   const webcamRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -103,15 +104,58 @@ const OCRAutoFill = () => {
     processImage(imageSrc);
   }, [webcamRef]);
 
+  const validateFile = (file) => {
+    // Define allowed file types and size limit (5MB to match server)
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    // Check file type
+    if (!allowedTypes.includes(file.type)) {
+      return {
+        valid: false,
+        error: 'Invalid file type. Please upload an image (JPEG, PNG, GIF) or PDF file.'
+      };
+    }
+
+    // Check file size
+    if (file.size > maxSize) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      return {
+        valid: false,
+        error: `File too large (${sizeMB}MB). Maximum size allowed is 5MB.`
+      };
+    }
+
+    return { valid: true };
+  };
+
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
-    if (file) {
+    if (!file) return;
+
+    // Clear any previous errors
+    setUploadError('');
+
+    // Validate file
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      setUploadError(validation.error);
+      // Reset the file input
+      event.target.value = '';
+      return;
+    }
+
+    try {
       const reader = new FileReader();
       reader.onload = (e) => {
         setImageSrc(e.target.result);
         processImage(e.target.result);
       };
       reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('File reading error:', error);
+      setUploadError('Error reading file. Please try again.');
+      event.target.value = '';
     }
   };
 
@@ -283,29 +327,48 @@ const OCRAutoFill = () => {
           )}
 
           {selectedDocType && (
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="contained"
-                startIcon={<PhotoCamera />}
-                onClick={() => {
-                  setCaptureMode('camera');
-                  setShowWebcam(true);
-                }}
-                sx={{ borderRadius: 2 }}
-              >
-                Use Camera
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Upload />}
-                onClick={() => {
-                  setCaptureMode('upload');
-                  fileInputRef.current.click();
-                }}
-                sx={{ borderRadius: 2 }}
-              >
-                Upload Image
-              </Button>
+            <Box>
+              <Box sx={{ display: 'flex', gap: 2, mb: uploadError ? 2 : 0 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<PhotoCamera />}
+                  onClick={() => {
+                    setCaptureMode('camera');
+                    setUploadError(''); // Clear any previous errors
+                    setShowWebcam(true);
+                  }}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Use Camera
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<Upload />}
+                  onClick={() => {
+                    setCaptureMode('upload');
+                    setUploadError(''); // Clear any previous errors
+                    fileInputRef.current.click();
+                  }}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Upload Image
+                </Button>
+              </Box>
+
+              {uploadError && (
+                <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
+                  <Typography variant="body2">
+                    <Error sx={{ fontSize: 18, mr: 1, verticalAlign: 'middle' }} />
+                    {uploadError}
+                  </Typography>
+                </Alert>
+              )}
+
+              {selectedDocType && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+                  Supported formats: JPEG, PNG, GIF, PDF • Maximum size: 5MB
+                </Typography>
+              )}
             </Box>
           )}
         </CardContent>

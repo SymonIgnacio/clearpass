@@ -116,8 +116,11 @@ const BantayChatbot = () => {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState('connected'); // 'connected', 'connecting', 'disconnected', 'retrying'
+  const [retryCount, setRetryCount] = useState(0);
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const messagesEndRef = useRef(null);
+  const retryTimeoutRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -126,6 +129,84 @@ const BantayChatbot = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Helper function to get status icon and color
+  const getStatusInfo = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return { icon: <CheckCircle />, color: '#4caf50', text: 'Online' };
+      case 'connecting':
+        return { icon: <CircularProgress size={16} />, color: '#ff9800', text: 'Connecting...' };
+      case 'retrying':
+        return { icon: <AccessTime />, color: '#ff9800', text: `Retrying (${retryCount}/3)...` };
+      case 'disconnected':
+        return { icon: <Error />, color: '#f44336', text: 'Offline' };
+      default:
+        return { icon: <CheckCircle />, color: '#4caf50', text: 'Online' };
+    }
+  };
+
+  // Enhanced API request with retry logic and connection status
+  const sendChatMessage = async (message, retryAttempt = 0) => {
+    const maxRetries = 3;
+    const retryDelays = [1000, 2000, 4000]; // Exponential backoff
+
+    try {
+      setConnectionStatus('connecting');
+      const response = await apiRequest('ai/chatbot/message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message,
+          session_id: sessionId,
+          context: {}
+        })
+      });
+
+      setConnectionStatus('connected');
+      setRetryCount(0);
+
+      const data = await response.json();
+
+      return {
+        success: true,
+        data: data
+      };
+
+    } catch (error) {
+      console.error(`Chatbot error (attempt ${retryAttempt + 1}):`, error);
+
+      if (retryAttempt < maxRetries - 1) {
+        setConnectionStatus('retrying');
+        setRetryCount(retryAttempt + 1);
+
+        // Schedule retry with delay
+        return new Promise((resolve) => {
+          retryTimeoutRef.current = setTimeout(async () => {
+            const result = await sendChatMessage(message, retryAttempt + 1);
+            resolve(result);
+          }, retryDelays[retryAttempt]);
+        });
+      } else {
+        // All retries failed
+        setConnectionStatus('disconnected');
+        setRetryCount(0);
+
+        throw error;
+      }
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
@@ -138,43 +219,53 @@ const BantayChatbot = () => {
       type: 'user'
     };
 
+    const messageToSend = inputValue;
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
 
     try {
-      const response = await apiRequest('ai/chatbot/message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: inputValue,
-          session_id: sessionId,
-          context: {}
-        })
-      });
+      // Clear any existing retry timeout
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
 
-      const data = await response.json();
+      const result = await sendChatMessage(messageToSend);
 
-      const botMessage = {
-        id: Date.now() + 1,
-        text: data.response,
-        isUser: false,
-        timestamp: new Date(),
-        type: 'bot',
-        intent: data.intent,
-        confidence: data.confidence,
-        actions: data.actions || []
-      };
+      if (result.success) {
+        const botMessage = {
+          id: Date.now() + 1,
+          text: result.data.response,
+          isUser: false,
+          timestamp: new Date(),
+          type: 'bot',
+          intent: result.data.intent,
+          confidence: result.data.confidence,
+          actions: result.data.actions || []
+        };
 
-      setMessages(prev => [...prev, botMessage]);
+        setMessages(prev => [...prev, botMessage]);
+      }
 
     } catch (error) {
-      console.error('Chatbot error:', error);
+      console.error('Chatbot error after all retries:', error);
+
+      // Add connection status message if not just a simple error
+      if (connectionStatus === 'disconnected') {
+        const connectionMessage = {
+          id: Date.now() + 2,
+          text: "🔴 Connection lost. The chatbot service is currently unavailable. Please try again later or contact the barangay office directly.",
+          isUser: false,
+          timestamp: new Date(),
+          type: 'system'
+        };
+        setMessages(prev => [...prev, connectionMessage]);
+      }
+
       const errorMessage = {
         id: Date.now() + 1,
-        text: "Sorry, I'm having trouble connecting right now. Please try again later or contact the barangay office directly.",
+        text: "❌ Sorry, I'm having trouble connecting right now. Please check your internet connection and try again.",
         isUser: false,
         timestamp: new Date(),
         type: 'error'
@@ -313,13 +404,23 @@ const BantayChatbot = () => {
             <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', mr: 2 }}>
               <SmartToy />
             </Avatar>
-            <Box>
+            <Box sx={{ flex: 1 }}>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 BANTAY Assistant
               </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                Barangay AI Support • Online
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: getStatusInfo().color,
+                  fontSize: '0.7rem'
+                }}>
+                  {getStatusInfo().icon}
+                </Box>
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  {getStatusInfo().text}
+                </Typography>
+              </Box>
             </Box>
           </Box>
           <IconButton

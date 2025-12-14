@@ -77,6 +77,9 @@ const { swaggerUi, swaggerSpec } = require('./swagger');
 const app = express();
 const port = process.env.SERVER_PORT || 3001;
 
+// Import SSL configuration
+const sslConfig = require('./ssl-config');
+
 // Rate limiting
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -3407,12 +3410,40 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // Add error handling middleware
 app.use(errorHandler);
 
-// Start server
-const server = app.listen(port, () => {
-  console.log(`🚀 Barangay Management Server running on port ${port}`);
+// Determine if HTTPS should be enabled
+const enableHTTPS = process.env.NODE_ENV === 'production' || process.env.ENABLE_HTTPS === 'true';
+
+// Start server (HTTP or HTTPS based on configuration)
+let server;
+
+if (enableHTTPS) {
+  // HTTPS server with SSL certificates
+  const httpsOptions = sslConfig.getHttpsOptions();
+
+  if (httpsOptions) {
+    const https = require('https');
+    server = https.createServer(httpsOptions, app);
+    console.log('🔒 HTTPS server enabled with SSL certificates');
+  } else {
+    console.log('⚠️ HTTPS requested but SSL certificates not available, falling back to HTTP');
+    server = app.listen(port);
+  }
+} else {
+  // HTTP server for development
+  server = app.listen(port);
+}
+
+server.listen(port, () => {
+  const protocol = enableHTTPS ? 'https' : 'http';
+  console.log(`🚀 Barangay Management Server running on ${protocol}://localhost:${port}`);
   console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
   console.log(`🤖 AI Service: ${process.env.AI_SERVICE_URL || 'http://localhost:5000'}`);
-  console.log(`🔍 QR Verification: http://localhost:${port}/verify-qr/{hash}`);
+  console.log(`🔍 QR Verification: ${protocol}://localhost:${port}/verify-qr/{hash}`);
+
+  if (!enableHTTPS) {
+    console.log('⚠️  WARNING: Running on HTTP (not secure) - set NODE_ENV=production or ENABLE_HTTPS=true for HTTPS');
+  }
+
   console.log(`🔔 Real-time Notifications: WebSocket enabled`);
 });
 

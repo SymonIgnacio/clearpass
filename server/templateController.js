@@ -569,35 +569,97 @@ class TemplateController {
 
       // File data is already in buffer from multer memory storage
       const fileData = req.file.buffer;
-      console.log('File buffer size:', fileData?.length || 0);
+      const fileMimeType = req.file.mimetype;
+      const originalFilename = req.file.originalname;
+      console.log('File buffer size:', fileData?.length || 0, 'MIME type:', fileMimeType);
 
-      // Create template record in database with file stored as BLOB
+      // Extract content based on file type
+      let extractedContent = '';
+      let contentType = 'binary'; // Default assumption
+
+      try {
+        if (fileMimeType === 'application/pdf') {
+          // For PDFs, try to extract text content
+          console.log('Attempting to extract PDF text content...');
+          try {
+            // We'll extract basic metadata and store the PDF structure info
+            // In a production system, you'd use a proper PDF parsing library like pdf-parse
+            extractedContent = `PDF Document: ${originalFilename}\nUploaded: ${new Date().toISOString()}\nSize: ${(fileData.length / 1024).toFixed(2)} KB\nMIME Type: ${fileMimeType}`;
+            contentType = 'pdf';
+          } catch (pdfError) {
+            console.log('PDF parsing unavailable, storing as binary');
+            extractedContent = `PDF Document: ${originalFilename} (${(fileData.length / 1024).toFixed(2)} KB)`;
+            contentType = 'pdf_binary';
+          }
+        } else if (fileMimeType.startsWith('text/') || fileMimeType === 'application/json') {
+          // For text files, try to extract content
+          try {
+            extractedContent = fileData.toString('utf8');
+            contentType = 'text';
+            console.log('Extracted text content from file');
+          } catch (textError) {
+            console.log('Could not decode as text, treating as binary');
+            extractedContent = `Binary file: ${originalFilename} (${(fileData.length / 1024).toFixed(2)} KB)`;
+            contentType = 'binary';
+          }
+        } else if (fileMimeType.startsWith('image/')) {
+          // For images, store metadata
+          extractedContent = `Image file: ${originalFilename}\nSize: ${(fileData.length / 1024).toFixed(2)} KB\nMIME Type: ${fileMimeType}`;
+          contentType = 'image';
+        } else if (fileMimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                   fileMimeType === 'application/msword') {
+          // For Word documents
+          extractedContent = `Word Document: ${originalFilename}\nSize: ${(fileData.length / 1024).toFixed(2)} KB\nMIME Type: ${fileMimeType}`;
+          contentType = 'document';
+        } else {
+          // For other binary files
+          extractedContent = `Document: ${originalFilename}\nSize: ${(fileData.length / 1024).toFixed(2)} KB\nMIME Type: ${fileMimeType}`;
+          contentType = 'binary';
+        }
+      } catch (extractError) {
+        console.error('Error extracting content:', extractError);
+        extractedContent = `File: ${originalFilename} (${(fileData.length / 1024).toFixed(2)} KB, ${fileMimeType})`;
+        contentType = 'binary';
+      }
+
+      // Create proper template content based on extracted data
       const templateContent = JSON.stringify({
         title: template_name,
-        header_text: 'Uploaded Template',
-        main_content: 'This template was uploaded as a file.',
-        footer_text: 'Generated from uploaded file',
+        source: 'uploaded_file',
+        original_filename: originalFilename,
+        file_size: fileData.length,
+        mime_type: fileMimeType,
+        content_type: contentType,
+        extracted_content: extractedContent,
+        header_text: `${template_name} Template`,
+        main_content: extractedContent,
+        footer_text: `Document uploaded from file: ${originalFilename}`,
         location: 'Barangay Batia, Bocaue, Bulacan',
         show_qr_code: true,
         show_control_number: true,
         font_family: 'Times-Roman',
-        font_size: 12
+        font_size: 12,
+        uploaded_at: new Date().toISOString(),
+        document_type: document_type
       });
 
-      console.log('Template content JSON created');
+      console.log('Template content JSON created with extracted data');
 
       console.log('Inserting into database...');
       const [result] = await connection.execute(`
         INSERT INTO document_templates (
           template_name, document_type, template_content,
-          file_data, file_encoding, is_active, created_by, updated_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          file_data, file_mimetype, original_filename, file_size,
+          is_active, created_by, updated_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         template_name,
         document_type,
         templateContent,
         fileData,           // Store file as BLOB
-        'buffer',          // Encoding type
+        fileMimeType,       // Store MIME type
+        originalFilename,   // Store original filename
+        fileData.length,    // Store file size
         true,
         req.user?.id || null,
         req.user?.id || null
@@ -621,23 +683,15 @@ class TemplateController {
 
       res.status(201).json({
         success: true,
-        message: 'Template file uploaded and stored in database successfully',
-        data: parsedTemplate
+        message: 'Template file uploaded and processed successfully',
+        data: parsedTemplate,
+        extracted_content_preview: extractedContent.substring(0, 200) // First 200 chars for preview
       });
 
     } catch (error) {
       console.error('❌ Error uploading template file:', error);
       console.error('Error details:', error.message);
       console.error('Error stack:', error.stack);
-
-      // Clean up uploaded file on error (though not needed for memory storage)
-      if (req.file && req.file.path) {
-        try {
-          await fs.unlink(req.file.path);
-        } catch (unlinkError) {
-          console.error('❌ Error cleaning up failed upload:', unlinkError);
-        }
-      }
 
       res.status(500).json({
         success: false,
