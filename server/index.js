@@ -10,6 +10,9 @@ const csurf = require('csurf');
 const xssClean = require('xss-clean');
 const validator = require('validator');
 const PDFDocument = require('pdfkit');
+const bcrypt = require('bcrypt');
+const knex = require('knex');
+const admin = require('firebase-admin');
 require('dotenv').config();
 
 // Environment variable validation
