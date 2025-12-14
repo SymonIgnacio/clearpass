@@ -10,7 +10,7 @@ COPY package*.json ./
 COPY . .
 
 # Install dependencies with dev dependencies for building
-RUN npm ci
+RUN npm install
 
 # Build the client
 RUN npm run build --prefix client
