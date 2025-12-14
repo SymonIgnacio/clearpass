@@ -1,14 +1,9 @@
 [build]
 builder = "NIXPACKS"
+buildCommand = "cd client && npm install && npm run build"
+
+[deploy]
+startCommand = "cd server && npm install && npm start"
 
 [environment]
 NODE_ENV = "production"
-
-[deploy]
-startCommand = "npm start"
-
-[services.railway]
-envVars = [
-  { name = "PORT", value = "$PORT" },
-  { name = "SERVER_PORT", value = "$PORT" }
-]
