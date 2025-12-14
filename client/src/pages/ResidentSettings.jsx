@@ -43,7 +43,7 @@ import {
 } from '@mui/icons-material';
 import { useNotifications } from '../contexts/NotificationContext';
 
-const Settings = ({ user }) => {
+const ResidentSettings = ({ user }) => {
   const { addNotification } = useNotifications();
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState({
@@ -258,7 +258,7 @@ const Settings = ({ user }) => {
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
-        Account Settings
+        Resident Settings
       </Typography>
 
       {/* Success Message */}
@@ -318,7 +318,7 @@ const Settings = ({ user }) => {
                     value={profile.email}
                     onChange={handleProfileChange('email')}
                     error={!!errors.email}
-                    helperText={errors.email || 'Optional - Used for notifications'}
+                    helperText={errors.email || 'Optional - Used for notifications and verification'}
                     InputProps={{
                       startAdornment: <Email sx={{ mr: 1, color: 'action.active' }} />
                     }}
@@ -354,6 +354,99 @@ const Settings = ({ user }) => {
             </CardContent>
           </Card>
 
+          {/* Email Verification Section */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <VerifiedUser sx={{ mr: 2, color: 'primary.main' }} />
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Email Verification
+                </Typography>
+              </Box>
+
+              <Divider sx={{ mb: 3 }} />
+
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Verify your email address to ensure you receive important notifications and can access all resident features.
+              </Typography>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <Email sx={{ color: 'action.active' }} />
+                <Typography variant="body1">
+                  {profile.email || 'No email set'}
+                </Typography>
+              </Box>
+
+              <Button
+                variant="contained"
+                onClick={async () => {
+                  if (!profile.email) {
+                    addNotification({
+                      type: 'error',
+                      title: 'No Email',
+                      message: 'Please set an email address first before verifying'
+                    });
+                    return;
+                  }
+
+                  setVerificationLoading(true);
+                  try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch('http://localhost:3001/api/auth/verify-email-for-residency', {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                      }
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                      setVerificationStatus(data);
+
+                      if (data.action === 'email_sent') {
+                        addNotification({
+                          type: 'success',
+                          title: 'Verification Email Sent',
+                          message: 'Please check your email inbox and spam folder, then click the verification link.'
+                        });
+                      }
+                    } else {
+                      addNotification({
+                        type: 'error',
+                        title: 'Verification Failed',
+                        message: data.error || 'Failed to send verification email'
+                      });
+                    }
+                  } catch (error) {
+                    console.error('Email verification error:', error);
+                    addNotification({
+                      type: 'error',
+                      title: 'Network Error',
+                      message: 'Failed to send verification email. Please try again.'
+                    });
+                  } finally {
+                    setVerificationLoading(false);
+                  }
+                }}
+                disabled={verificationLoading || !profile.email}
+                startIcon={verificationLoading ? null : <Send />}
+                color="primary"
+              >
+                {verificationLoading ? 'Sending...' :
+                 verificationStatus?.action === 'email_sent' ? 'Resend Verification Email' :
+                 'Verify Email Address'}
+              </Button>
+
+              {verificationStatus?.action === 'email_sent' && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                  📧 Verification email sent! Check your inbox and click the verification link.
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Security Section */}
           <Card sx={{ mb: 3 }}>
             <CardContent>
@@ -385,7 +478,6 @@ const Settings = ({ user }) => {
           </Card>
 
           {/* Residency Verification Section - Only for residents */}
-          {user?.role === 'resident' && (
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -572,138 +664,6 @@ const Settings = ({ user }) => {
               )}
             </CardContent>
           </Card>
-          )}
-
-          {/* Become a Registered Resident Section - Only show for non-staff users who want to become residents */}
-          {user?.role !== 'resident' && !['admin', 'captain', 'secretary', 'clerk'].includes(user?.role) && (
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                  <VerifiedUser sx={{ mr: 2, color: 'primary.main' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Become a Registered Resident
-                  </Typography>
-                </Box>
-
-                <Divider sx={{ mb: 3 }} />
-
-                {verificationStatus?.action === 'promoted' ? (
-                  <Alert severity="success" sx={{ mb: 3 }}>
-                    <Typography variant="body2">
-                      🎉 Congratulations! You are now a registered resident.
-                      <br />
-                      You can now access all resident features and apply for full residency verification.
-                    </Typography>
-                  </Alert>
-                ) : verificationStatus?.action === 'email_sent' ? (
-                  <Alert severity="info" sx={{ mb: 3 }}>
-                    <Typography variant="body2">
-                      📧 Verification email sent! Please check your email inbox and spam folder, then click the verification link.
-                      <br />
-                      After verification, return here to complete your resident registration.
-                    </Typography>
-                  </Alert>
-                ) : (
-                  <>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                      Verify your email to become a registered resident in our system. This unlocks additional features and allows you to apply for full residency verification through our officers.
-                    </Typography>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <VerifiedUser sx={{ mr: 1, color: 'success.main' }} />
-                      <Typography variant="body2">
-                        <strong>What you'll get as a registered resident:</strong>
-                      </Typography>
-                    </Box>
-
-                    <Box component="ul" sx={{ pl: 3, mb: 3, '& li': { mb: 1 } }}>
-                      <Typography component="li" variant="body2" color="text.secondary">
-                        Access to all resident-only features
-                      </Typography>
-                      <Typography component="li" variant="body2" color="text.secondary">
-                        Eligible for document requests and certificates
-                      </Typography>
-                      <Typography component="li" variant="body2" color="text.secondary">
-                        Ability to apply for officer-reviewed residency verification
-                      </Typography>
-                      <Typography component="li" variant="body2" color="text.secondary">
-                        Dedicated support and notifications
-                      </Typography>
-                    </Box>
-
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={async () => {
-                        setVerificationLoading(true);
-                        try {
-                          const token = localStorage.getItem('authToken');
-                          const response = await fetch('http://localhost:3001/api/auth/verify-email-for-residency', {
-                            method: 'POST',
-                            headers: {
-                              'Authorization': `Bearer ${token}`,
-                              'Content-Type': 'application/json'
-                            }
-                          });
-
-                          const data = await response.json();
-
-                          if (response.ok) {
-                            setVerificationStatus(data);
-
-                            if (data.action === 'promoted') {
-                              // Update user in localStorage
-                              const updatedUser = { ...user, resident_id: data.user.resident_id };
-                              localStorage.setItem('user', JSON.stringify(updatedUser));
-
-                              addNotification({
-                                type: 'success',
-                                title: 'Welcome, Resident!',
-                                message: 'Your account has been upgraded to resident status.'
-                              });
-                            } else {
-                              addNotification({
-                                type: 'info',
-                                title: 'Email Sent',
-                                message: 'Verification email sent. Please check your email.'
-                              });
-                            }
-                          } else {
-                            addNotification({
-                              type: 'error',
-                              title: 'Verification Failed',
-                              message: data.error || 'Failed to initiate email verification'
-                            });
-                          }
-                        } catch (error) {
-                          console.error('Email verification error:', error);
-                          addNotification({
-                            type: 'error',
-                            title: 'Network Error',
-                            message: 'Failed to send verification email. Please try again.'
-                          });
-                        } finally {
-                          setVerificationLoading(false);
-                        }
-                      }}
-                      disabled={verificationLoading}
-                      startIcon={verificationLoading ? null : <Send />}
-                      size="large"
-                      sx={{ minWidth: 200 }}
-                    >
-                      {verificationLoading ? 'Processing...' :
-                       verificationStatus?.action === 'email_sent' ? 'Resend Verification' :
-                       'Verify Email & Become Resident'}
-                    </Button>
-
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                      This process is completely optional and can be completed at any time.
-                    </Typography>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          )}
         </Grid>
 
         {/* Profile Summary Sidebar */}
@@ -846,4 +806,4 @@ const Settings = ({ user }) => {
   );
 };
 
-export default Settings;
+export default ResidentSettings;

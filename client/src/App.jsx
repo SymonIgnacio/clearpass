@@ -15,6 +15,8 @@ import OCRAutoFill from './pages/OCRAutoFill'
 import QRVerification from './pages/QRVerification'
 import CommunityEvents from './pages/CommunityEvents'
 import Settings from './pages/Settings'
+import SuperAdminSettings from './pages/SuperAdminSettings'
+import ResidentSettings from './pages/ResidentSettings'
 import Login from './pages/Login'
 import OfficerLogin from './pages/OfficerLogin'
 import ResidentSignup from './pages/ResidentSignup'
@@ -460,7 +462,11 @@ function App() {
             <Route path="census" element={<Census user={user} />} />
             <Route path="ai-dashboard" element={<AIDashboard user={user} />} />
             <Route path="events" element={<CommunityEvents user={user} />} />
-            <Route path="settings" element={<Settings user={user} />} />
+            <Route path="settings" element={
+              user?.role === 'resident' ?
+                <ResidentSettings user={user} /> :
+                <SuperAdminSettings user={user} />
+            } />
 
             {/* Legacy redirects */}
             <Route path="qr-verify" element={<Navigate to="/" replace />} />

@@ -3,6 +3,7 @@ const mysql = require('mysql2/promise');
 const cors = require('cors');
 const axios = require('axios');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const csurf = require('csurf');
@@ -249,17 +250,78 @@ app.post('/api/auth/complete-signup', verifyFirebaseToken, authController.comple
 // Email verification for residency graduation
 app.post('/api/auth/verify-email-for-residency', verifyFirebaseToken, authController.verifyEmailForResidency);
 
-// Residency verification submission with file upload (BLOB storage)
-app.post('/api/auth/submit-residency-verification', verifyFirebaseToken, uploadBlob.single('proof_document'), async (req, res) => {
+// Residency verification submission with file upload (support both Firebase and JWT tokens)
+app.post('/api/auth/submit-residency-verification', uploadBlob.single('proof_document'), async (req, res) => {
   try {
-    // The file will be handled by multer - it's uploaded to 'uploads/' directory
-    // We should store the file path in the database and queue for officer review
-
     const { proof_type, notes } = req.body;
-    const firebaseUid = req.firebaseUser.uid;
 
-    console.log('🚀 [Residency Verification] Submitting for Firebase UID:', firebaseUid);
-    console.log('📄 File received:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'NONE');
+    // Check authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        error: 'Authorization header required'
+      });
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+
+    // Determine if it's a Firebase token (long) or JWT token (short)
+    let user, firebaseUser, userId;
+
+    if (token.length > 500) {
+      // Firebase ID token
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        firebaseUser = {
+          uid: decodedToken.uid,
+          email: decodedToken.email,
+          name: decodedToken.name
+        };
+
+        // Get user by Firebase UID
+        const [userRows] = await db.execute(
+          'SELECT id, full_name, email, resident_id FROM users WHERE firebase_uid = ?',
+          [firebaseUser.uid]
+        );
+
+        if (userRows.length > 0) {
+          user = userRows[0];
+          userId = user.id;
+        }
+      } catch (firebaseError) {
+        return res.status(401).json({
+          error: 'Invalid Firebase token'
+        });
+      }
+    } else {
+      // JWT token - verify directly with jsonwebtoken
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        userId = decoded.id;
+
+        const [userRows] = await db.execute(
+          'SELECT id, full_name, email, resident_id FROM users WHERE id = ?',
+          [userId]
+        );
+
+        if (userRows.length > 0) {
+          user = userRows[0];
+        }
+      } catch (jwtError) {
+        return res.status(401).json({
+          error: 'Invalid JWT token'
+        });
+      }
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User account not found'
+      });
+    }
+
+    console.log('🚀 [Residency Verification] Submitting for user:', userId, user.full_name);
 
     if (!proof_type) {
       return res.status(400).json({
@@ -273,26 +335,15 @@ app.post('/api/auth/submit-residency-verification', verifyFirebaseToken, uploadB
       });
     }
 
-    // Get user details from database by Firebase UID
-    const [userRows] = await db.execute(
-      'SELECT id, full_name, email, resident_id FROM users WHERE firebase_uid = ?',
-      [firebaseUid]
-    );
-
-    if (userRows.length === 0) {
-      return res.status(404).json({
-        error: 'User account not found'
-      });
-    }
-
-    const user = userRows[0];
-
     // Ensure user has a resident record
     let residentId = user.resident_id;
     if (!residentId) {
       // Create a basic resident record if it doesn't exist
-      residentId = `RES-TEMP-${Date.now()}-${firebaseUid.substring(0, 8)}`;
-      console.log('📝 Creating temporary resident record for user:', user.id);
+      residentId = firebaseUser ?
+        `RES-TEMP-${Date.now()}-${firebaseUser.uid.substring(0, 8)}` :
+        `RES-TEMP-${Date.now()}-${userId}`;
+
+      console.log('📝 Creating temporary resident record for user:', userId);
 
       try {
         await db.execute(
@@ -303,7 +354,7 @@ app.post('/api/auth/submit-residency-verification', verifyFirebaseToken, uploadB
         // Link resident to user
         await db.execute(
           'UPDATE users SET resident_id = ? WHERE id = ?',
-          [residentId, user.id]
+          [residentId, userId]
         );
       } catch (createError) {
         console.error('Error creating resident record:', createError);
@@ -314,6 +365,8 @@ app.post('/api/auth/submit-residency-verification', verifyFirebaseToken, uploadB
     // Generate request ID
     const requestId = `REQ-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
+    console.log('📄 File received:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'NONE');
+
     // Insert verification request with BLOB storage
     const [result] = await db.execute(`
       INSERT INTO resident_verification_requests (
@@ -322,7 +375,7 @@ app.post('/api/auth/submit-residency-verification', verifyFirebaseToken, uploadB
       ) VALUES (?, ?, ?, 'buffer', ?, ?, ?, ?, ?, 'pending', NOW())
     `, [
       requestId,
-      user.id,
+      userId,
       req.file.buffer, // Store actual file data as BLOB
       req.file.originalname, // Store original filename
       req.file.mimetype, // Store MIME type
@@ -331,13 +384,12 @@ app.post('/api/auth/submit-residency-verification', verifyFirebaseToken, uploadB
       notes || null
     ]);
 
-    console.log('✅ Residency verification submitted:', result.insertId);
-    console.log('📁 File stored as BLOB in database');
+    console.log('✅ Residency verification submitted:', requestId);
 
     res.json({
       success: true,
       message: 'Residency verification request submitted successfully',
-      request_id: result.insertId,
+      request_id: requestId,
       file_name: req.file.originalname,
       submitted_at: new Date().toISOString()
     });
