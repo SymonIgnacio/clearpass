@@ -438,7 +438,7 @@ The Barangay Management System has achieved **ENTERPRISE-GRADE SECURITY** standa
 
 - [x] **CORS Configuration**
   - Properly configured CORS headers
-  - Origin validation (localhost:5173)
+  - Origin validation (localhost:5174)
   - Credential handling
 
 ### ⚠️ Areas Requiring Attention

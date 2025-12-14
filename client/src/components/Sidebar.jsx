@@ -14,7 +14,8 @@ import {
   Avatar,
   Chip,
   Button,
-  Paper
+  Paper,
+  Tooltip
 } from '@mui/material'
 import {
   Dashboard,
@@ -31,7 +32,9 @@ import {
   SupervisorAccount,
   Person,
   Analytics,
-  DocumentScanner
+  DocumentScanner,
+  Settings,
+  Lock
 } from '@mui/icons-material'
 
 const drawerWidth = 280
@@ -39,7 +42,7 @@ const drawerWidth = 280
 const Sidebar = ({ user, onLogout }) => {
   const location = useLocation()
 
-  // Define menu items with role-based access
+  // Menu items with role-based access control - hide items user doesn't have access to
   const allMenuItems = [
     {
       text: 'Dashboard',
@@ -53,28 +56,35 @@ const Sidebar = ({ user, onLogout }) => {
       icon: <People />,
       path: '/residents',
       description: 'Manage Residents',
-      roles: ['admin', 'captain', 'secretary', 'clerk'] // Clerks and below can't manage residents
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // Show based on permissions (STAFF ONLY)
+    },
+    {
+      text: 'Users',
+      icon: <SupervisorAccount />,
+      path: '/users',
+      description: 'Manage User Accounts',
+      roles: ['admin', 'captain', 'secretary'] // Show based on permissions (STAFF ONLY)
     },
     {
       text: 'Blotter',
       icon: <Gavel />,
       path: '/blotter',
       description: 'Incident Reports',
-      roles: ['admin', 'captain', 'secretary', 'clerk', 'resident'] // All roles can access
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // Staff roles only (RESIDENTS SHOULD NOT SEE THIS)
     },
     {
       text: 'Document Center',
       icon: <Description />,
       path: '/documents',
       description: 'Certificates & Templates',
-      roles: ['admin', 'captain', 'secretary', 'clerk'] // Clerks can issue but limited management
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // Show based on permissions (STAFF ONLY)
     },
     {
       text: 'Census',
       icon: <Assessment />,
       path: '/census',
       description: 'Population Stats',
-      roles: ['admin', 'captain', 'secretary', 'clerk'] // No resident access needed
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // Staff roles only
     },
     {
       text: 'AI Hub',
@@ -82,20 +92,29 @@ const Sidebar = ({ user, onLogout }) => {
       path: '/ai-dashboard',
       description: 'AI Command Center & Analytics',
       badge: 'AI',
-      roles: ['admin', 'captain', 'secretary', 'clerk', 'resident'] // All roles can access AI features
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // Staff roles only (RESIDENTS SHOULD NOT ACCESS STAFF AI FEATURES)
     },
     {
       text: 'Events',
       icon: <Event />,
       path: '/events',
       description: 'Community Programs',
-      roles: ['admin', 'captain', 'secretary', 'clerk', 'resident'] // All roles can view, Secretary+ can create/manage
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // Staff roles only (RESIDENTS SHOULD NOT SEE INTERNAL EVENTS MANAGEMENT)
+    },
+    {
+      text: 'Settings',
+      icon: <Settings />,
+      path: '/settings',
+      description: 'Account Settings & Document Requests',
+      roles: ['admin', 'captain', 'secretary', 'clerk', 'resident'] // All roles can access their settings
     }
   ]
 
   // Filter menu items based on user role
   const menuItems = allMenuItems.filter(item => {
     if (!user || !user.role) return false
+
+    // Check if user role is in item's allowed roles
     return item.roles.includes(user.role)
   })
 

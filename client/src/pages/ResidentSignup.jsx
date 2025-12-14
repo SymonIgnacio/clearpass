@@ -11,23 +11,15 @@ import {
   CircularProgress,
   Avatar,
   Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Card,
-  CardContent,
-  Divider,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
   Stepper,
   Step,
-  StepLabel
+  StepLabel,
+  Card,
+  CardContent
 } from '@mui/material'
-import { PersonAdd, Email, Phone, ArrowBack } from '@mui/icons-material'
+import { PersonAdd, Email, ArrowBack } from '@mui/icons-material'
 import { auth } from '../firebase'
-import { createUserWithEmailAndPassword, signInWithPhoneNumber, RecaptchaVerifier } from 'firebase/auth'
+import { createUserWithEmailAndPassword } from 'firebase/auth'
 
 const ResidentSignup = () => {
   const navigate = useNavigate()
@@ -81,37 +73,52 @@ const ResidentSignup = () => {
     setError('')
 
     try {
-      // Create Firebase account with email
+      console.log('🔄 Starting resident signup process...')
+
+      // Firebase-only authentication for residents
+      console.log('🔥 Creating Firebase account...')
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password)
+      console.log('✅ Firebase account created successfully')
 
-      // Firebase account created successfully - no need to create database record yet
-      // Database record will be created after email verification in completeSignup
-      console.log('Firebase account created successfully:', userCredential.user.uid)
+      console.log('🎉 Resident signup completed successfully - Firebase auth only')
 
-      // Navigate to verification page
-      navigate('/verify-account', {
-        state: {
-          signupData: {
-            username: formData.username,
-            password: formData.password,
-            full_name: formData.full_name,
-            email: formData.email,
-            notes: formData.notes
-          },
-          verificationMethod: 'email'
-        }
-      })
+      // For residents, we just need to authenticate with Firebase
+      // They get direct access with their Firebase identity
+      // Store basic user info for UI purposes, but no backend records
+      const userInfo = {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        displayName: userCredential.user.displayName || formData.full_name,
+        role: 'resident',
+        auth_type: 'firebase_only'
+      }
+
+      // Store in localStorage for frontend state management
+      localStorage.setItem('residentUser', JSON.stringify(userInfo))
+      localStorage.setItem('residentAuthToken', await userCredential.user.getIdToken())
+
+      console.log('🎉 Resident signup and authentication completed successfully')
+
+      // Show success message briefly, then navigate
+      setTimeout(() => {
+        console.log('🚀 Redirecting to resident dashboard...')
+        navigate('/', { replace: true })
+      }, 2000)
 
     } catch (err) {
-      console.error('Account creation error:', err)
+      console.error('❌ Account creation error:', err)
+
+      // Handle Firebase errors
       if (err.code === 'auth/email-already-in-use') {
-        setError('An account with this email already exists')
+        setError('An account with this email already exists. Please try logging in instead.')
       } else if (err.code === 'auth/weak-password') {
-        setError('Password is too weak')
+        setError('Password is too weak. Please use a stronger password.')
       } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email address')
+        setError('Invalid email address. Please enter a valid email.')
+      } else if (err.message.includes('network') || err.message.includes('fetch')) {
+        setError('Network error. Please check your internet connection and try again.')
       } else {
-        setError('Failed to create account. Please try again.')
+        setError(err.message || 'Failed to create account. Please try again.')
       }
     } finally {
       setLoading(false)
@@ -138,7 +145,7 @@ const ResidentSignup = () => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 required
                 fullWidth
@@ -154,6 +161,8 @@ const ResidentSignup = () => {
                 sx={{ mb: 2 }}
               />
             </Grid>
+
+
 
             <Grid item xs={12}>
               <TextField
@@ -232,7 +241,7 @@ const ResidentSignup = () => {
 
             <Alert severity="info" sx={{ mb: 3, textAlign: 'left' }}>
               <Typography variant="body2">
-                After creating your account, you'll receive an email verification link. Click the link in your email to activate your account and complete the signup process.
+                Your account will be created instantly! After signup, you can optionally verify your email in Account Settings to become a registered resident. For full access, submit residency verification through an officer.
               </Typography>
             </Alert>
 
@@ -247,7 +256,7 @@ const ResidentSignup = () => {
                 fontWeight: 600
               }}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Create Account & Send Verification'}
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Create Account'}
             </Button>
           </Box>
         )

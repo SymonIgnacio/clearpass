@@ -60,7 +60,7 @@ npm run dev:all
 ```
 
 ### Step 5: Verify Installation (30 sec)
-- **Frontend:** http://localhost:5173
+- **Frontend:** http://localhost:5174
 - **Backend API:** http://localhost:3001/health
 - **API Docs:** http://localhost:3001/api-docs
 - **Metrics:** http://localhost:3001/metrics
@@ -168,7 +168,7 @@ DB_PORT=3306
 
 # Server Configuration
 SERVER_PORT=3001
-CLIENT_URL=http://localhost:5173
+CLIENT_URL=http://localhost:5174
 NODE_ENV=development
 LOG_LEVEL=info
 
@@ -211,7 +211,7 @@ GRAFANA_PORT=3000
 npm run dev:all
 
 # This starts:
-# - Frontend (http://localhost:5173)
+# - Frontend (http://localhost:5174)
 # - Backend API (http://localhost:3001)
 # - AI Service (http://localhost:5000)
 # - File watchers for auto-restart
@@ -278,7 +278,7 @@ curl http://localhost:3001/metrics
 open http://localhost:3001/api-docs
 
 # Frontend Functionality
-open http://localhost:5173
+open http://localhost:5174
 # Test: Resident CRUD, Certificate Issuance, QR Verification
 ```
 

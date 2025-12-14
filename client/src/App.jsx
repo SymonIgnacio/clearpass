@@ -6,6 +6,7 @@ import { Container, Box } from '@mui/material'
 import Dashboard from './pages/Dashboard'
 import ResidentDashboard from './pages/ResidentDashboard'
 import Residents from './pages/Residents'
+import Users from './pages/Users'
 import Blotter from './pages/Blotter'
 import DocumentsDashboard from './pages/DocumentsDashboard'
 import Census from './pages/Census'
@@ -13,7 +14,9 @@ import AIDashboard from './pages/AIDashboard'
 import OCRAutoFill from './pages/OCRAutoFill'
 import QRVerification from './pages/QRVerification'
 import CommunityEvents from './pages/CommunityEvents'
+import Settings from './pages/Settings'
 import Login from './pages/Login'
+import OfficerLogin from './pages/OfficerLogin'
 import ResidentSignup from './pages/ResidentSignup'
 import AccountVerification from './components/AccountVerification'
 import Sidebar from './components/Sidebar'
@@ -251,57 +254,66 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState(null)
 
-  // Enhanced authentication check with retry logic
+  // Authentication check - supports staff and resident authentication
   useEffect(() => {
     const checkAuthentication = async () => {
-      const token = localStorage.getItem('authToken')
-      const storedUser = localStorage.getItem('user')
+      // Check for officer authentication (database + JWT)
+      const officerToken = localStorage.getItem('authToken')
+      const officerUser = localStorage.getItem('user')
 
-      if (!token || !storedUser) {
+      // Check for resident authentication (Firebase-based)
+      const residentUser = localStorage.getItem('residentUser')
+      const residentToken = localStorage.getItem('residentAuthToken')
+
+      // No authentication found - set logged out
+      if ((!officerToken || !officerUser) && (!residentUser || !residentToken)) {
         setIsAuthenticated(false)
+        setUser(null)
         return
       }
 
-      try {
-        const parsedUser = JSON.parse(storedUser)
-        console.log('🔐 Initializing with stored auth data:', { userId: parsedUser.id, role: parsedUser.role })
+      // Handle officer authentication
+      if (officerToken && officerUser) {
+        try {
+          const parsedUser = JSON.parse(officerUser)
+          console.log('🔐 Initializing with officer auth data:', { userId: parsedUser.id, role: parsedUser.role })
 
-        // Try to verify the token and get fresh profile data
-        const profileResponse = await fetch('http://localhost:3001/api/auth/profile', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        })
-
-        if (profileResponse.ok) {
-          const profileData = await profileResponse.json()
-          console.log('✅ Profile verification successful:', { userId: profileData.id, role: profileData.role })
-
-          // Update with fresh data from server
-          localStorage.setItem('user', JSON.stringify(profileData))
-          setUser(profileData)
+          setUser(parsedUser)
           setIsAuthenticated(true)
-        } else if (profileResponse.status === 401) {
-          // Token expired or invalid - clear auth data
-          console.log('❌ Token expired or invalid, clearing auth data')
+        } catch (error) {
+          console.error('❌ Failed to parse stored officer user data:', error)
           localStorage.removeItem('authToken')
           localStorage.removeItem('user')
           setIsAuthenticated(false)
-        } else {
-          // Other errors - try to use stored data as fallback
-          console.warn('⚠️ Profile verification failed, using stored data as fallback')
-          setUser(parsedUser)
-          setIsAuthenticated(true)
         }
-      } catch (error) {
-        // Network or parsing error - use stored data as fallback
-        console.warn('⚠️ Authentication check failed, using stored data as fallback:', error.message)
-        const parsedUser = JSON.parse(storedUser)
-        setUser(parsedUser)
-        setIsAuthenticated(true)
+        return
       }
+
+      // Handle resident authentication
+      if (residentUser && residentToken) {
+        try {
+          const parsedUser = JSON.parse(residentUser)
+          console.log('🔐 Initializing with resident auth data:', { uid: parsedUser.uid, role: parsedUser.role })
+
+          // Validate the localStorage data structure
+          if (parsedUser && parsedUser.uid && parsedUser.email && parsedUser.role === 'resident') {
+            setUser(parsedUser)
+            setIsAuthenticated(true)
+            console.log('✅ Resident authentication successful via localStorage')
+          } else {
+            throw new Error('Invalid resident user data structure')
+          }
+        } catch (error) {
+          console.error('❌ Failed to parse resident user data:', error)
+          localStorage.removeItem('residentUser')
+          localStorage.removeItem('residentAuthToken')
+          setIsAuthenticated(false)
+        }
+        return
+      }
+
+      // No valid authentication found
+      setIsAuthenticated(false)
     }
 
     checkAuthentication()
@@ -313,10 +325,23 @@ function App() {
   }
 
   const handleLogout = () => {
+    // Determine appropriate login page based on user type
+    const isStaffUser = user?.role && ['admin', 'captain', 'secretary', 'clerk'].includes(user.role);
+    const loginPage = isStaffUser ? '/officerlogin' : '/login';
+
+    // Clear all authentication data for both user types
     localStorage.removeItem('authToken')
     localStorage.removeItem('user')
+    localStorage.removeItem('residentAuthToken')
+    localStorage.removeItem('residentUser')
+
     setUser(null)
     setIsAuthenticated(false)
+
+    // Programmatically navigate to the appropriate login page
+    setTimeout(() => {
+      window.location.href = loginPage;
+    }, 100);
   }
 
   return (
@@ -334,6 +359,17 @@ function App() {
                 <Navigate to="/" replace />
               ) : (
                 <Login onLogin={handleLogin} />
+              )
+            }
+          />
+
+          <Route
+            path="/officerlogin"
+            element={
+              isAuthenticated ? (
+                <Navigate to="/" replace />
+              ) : (
+                <OfficerLogin onLogin={handleLogin} />
               )
             }
           />
@@ -403,11 +439,19 @@ function App() {
                 <Dashboard user={user} />
             } />
             <Route path="residents" element={<Residents user={user} />} />
+            <Route
+              path="users"
+              element={
+                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary']}>
+                  <Users user={user} />
+                </ProtectedRoute>
+              }
+            />
             <Route path="blotter" element={<Blotter user={user} />} />
             <Route
               path="documents"
               element={
-                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary']}>
+                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary', 'clerk']}>
                   <DocumentsDashboard />
                 </ProtectedRoute>
               }
@@ -416,6 +460,7 @@ function App() {
             <Route path="census" element={<Census user={user} />} />
             <Route path="ai-dashboard" element={<AIDashboard user={user} />} />
             <Route path="events" element={<CommunityEvents user={user} />} />
+            <Route path="settings" element={<Settings user={user} />} />
 
             {/* Legacy redirects */}
             <Route path="qr-verify" element={<Navigate to="/" replace />} />

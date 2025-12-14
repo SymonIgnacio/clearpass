@@ -93,7 +93,7 @@ Create a `.env` file in the ai_service directory:
 FLASK_ENV=development
 PORT=5000
 DEBUG=True
-CORS_ORIGINS=http://localhost:3001,http://localhost:5173
+CORS_ORIGINS=http://localhost:3001,http://localhost:5174
 ```
 
 ## Testing

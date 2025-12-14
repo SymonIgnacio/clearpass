@@ -6,13 +6,55 @@ const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'deve
  * Handles JWT verification and hierarchy-based access control
  */
 
-// Role hierarchy mapping (same as in authController)
+// Enhanced Role hierarchy mapping with distinct permissions
 const ROLE_HIERARCHY = {
-  'admin': { level: 1, permissions: ['read', 'write', 'delete', 'manage_users'], display_name: 'Super Admin' },
-  'captain': { level: 2, permissions: ['read', 'write', 'manage_certificates'], display_name: 'Barangay Captain' },
-  'secretary': { level: 3, permissions: ['read', 'write', 'manage_documents'], display_name: 'Barangay Secretary' },
-  'clerk': { level: 4, permissions: ['read', 'write'], display_name: 'Barangay Clerk' },
-  'resident': { level: 5, permissions: ['read'], display_name: 'Resident' }
+  'admin': {
+    level: 1,
+    permissions: [
+      'read', 'write', 'delete', 'manage_users',
+      'manage_system', 'audit_logs', 'bulk_operations',
+      'security_mgmt', 'financial', 'system_config'
+    ],
+    display_name: 'Super Admin',
+    description: 'Complete system administration and configuration'
+  },
+  'captain': {
+    level: 2,
+    permissions: [
+      'read', 'write', 'manage_staff', 'manage_certificates',
+      'manage_budget', 'approve_requests', 'generate_reports',
+      'supervise_clerks'
+    ],
+    display_name: 'Barangay Captain',
+    description: 'Leadership, budget authority, and staff supervision'
+  },
+  'secretary': {
+    level: 3,
+    permissions: [
+      'read', 'write', 'manage_documents', 'manage_events',
+      'manage_residents', 'process_requests', 'create_templates',
+      'issue_certificates'
+    ],
+    display_name: 'Barangay Secretary',
+    description: 'Administrative documentation and resident services'
+  },
+  'clerk': {
+    level: 4,
+    permissions: [
+      'read', 'write', 'process_requests', 'create_reports',
+      'data_entry', 'basic_support'
+    ],
+    display_name: 'Barangay Clerk',
+    description: 'Frontline processing and basic administrative support'
+  },
+  'resident': {
+    level: 5,
+    permissions: [
+      'read', 'submit_requests', 'view_own_data'
+    ],
+    display_name: 'Resident',
+    description: 'Basic access to services and own records'
+  }
 };
 
 // Verify JWT token and attach user to request

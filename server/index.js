@@ -207,35 +207,484 @@ function calculateAge(birthdate) {
   return age;
 }
 
+// Modified multer configuration to store files in memory for BLOB storage
 const multer = require('multer');
 const xlsx = require('xlsx');
 
-// Multer configuration for file uploads
-const upload = multer({ dest: 'uploads/' });
+// Configuration for BLOB storage (in-memory)
+const uploadBlob = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept images and PDFs
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images and PDF files are allowed'));
+    }
+  }
+});
+
+// Legacy configuration for file system storage (if needed)
+const uploadDisk = multer({ dest: 'uploads/' });
 
 // ==========================================
 // AUTHENTICATION & ACCOUNT HIERARCHY MODULE
 // ==========================================
 
 // Public authentication routes (no middleware needed)
-app.post('/api/auth/login', authController.login);
+app.post('/api/auth/login', authController.residentLogin); // Residents - Firebase only
+app.post('/api/auth/officer-login', authController.staffLogin); // Staff - Database only
 app.post('/api/auth/register', verifyToken, checkRole(['Super Admin']), authController.register);
 
 // Public resident signup (no authentication required)
-app.post('/api/auth/resident-signup', upload.single('proof_document'), authController.residentSignup);
+app.post('/api/auth/resident-signup', uploadBlob.single('proof_document'), authController.residentSignup);
 
 // Instant signup with Firebase verification
 app.post('/api/auth/instant-resident-signup', authController.instantResidentSignup);
 app.post('/api/auth/complete-signup', verifyFirebaseToken, authController.completeSignup);
 
-// Protected auth routes
-app.get('/api/auth/profile', verifyToken, authController.getProfile);
+// Email verification for residency graduation
+app.post('/api/auth/verify-email-for-residency', verifyFirebaseToken, authController.verifyEmailForResidency);
+
+// Residency verification submission with file upload (BLOB storage)
+app.post('/api/auth/submit-residency-verification', verifyFirebaseToken, uploadBlob.single('proof_document'), async (req, res) => {
+  try {
+    // The file will be handled by multer - it's uploaded to 'uploads/' directory
+    // We should store the file path in the database and queue for officer review
+
+    const { proof_type, notes } = req.body;
+    const firebaseUid = req.firebaseUser.uid;
+
+    console.log('🚀 [Residency Verification] Submitting for Firebase UID:', firebaseUid);
+    console.log('📄 File received:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'NONE');
+
+    if (!proof_type) {
+      return res.status(400).json({
+        error: 'Proof type is required'
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'Proof document file is required'
+      });
+    }
+
+    // Get user details from database by Firebase UID
+    const [userRows] = await db.execute(
+      'SELECT id, full_name, email, resident_id FROM users WHERE firebase_uid = ?',
+      [firebaseUid]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(404).json({
+        error: 'User account not found'
+      });
+    }
+
+    const user = userRows[0];
+
+    // Ensure user has a resident record
+    let residentId = user.resident_id;
+    if (!residentId) {
+      // Create a basic resident record if it doesn't exist
+      residentId = `RES-TEMP-${Date.now()}-${firebaseUid.substring(0, 8)}`;
+      console.log('📝 Creating temporary resident record for user:', user.id);
+
+      try {
+        await db.execute(
+          'INSERT INTO residents (Resident_ID, First_Name, Email, Residency_Status, Date_Arrival, created_at) VALUES (?, ?, ?, ?, CURDATE(), NOW())',
+          [residentId, user.full_name || 'Unknown', user.email || '', 'pending']
+        );
+
+        // Link resident to user
+        await db.execute(
+          'UPDATE users SET resident_id = ? WHERE id = ?',
+          [residentId, user.id]
+        );
+      } catch (createError) {
+        console.error('Error creating resident record:', createError);
+        // Continue anyway - may already exist
+      }
+    }
+
+    // Generate request ID
+    const requestId = `REQ-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
+    // Insert verification request with BLOB storage
+    const [result] = await db.execute(`
+      INSERT INTO resident_verification_requests (
+        request_id, user_id, file_data, file_encoding, original_filename, mime_type, file_size,
+        proof_type, notes, status, submitted_at
+      ) VALUES (?, ?, ?, 'buffer', ?, ?, ?, ?, ?, 'pending', NOW())
+    `, [
+      requestId,
+      user.id,
+      req.file.buffer, // Store actual file data as BLOB
+      req.file.originalname, // Store original filename
+      req.file.mimetype, // Store MIME type
+      req.file.size, // Store file size
+      proof_type,
+      notes || null
+    ]);
+
+    console.log('✅ Residency verification submitted:', result.insertId);
+    console.log('📁 File stored as BLOB in database');
+
+    res.json({
+      success: true,
+      message: 'Residency verification request submitted successfully',
+      request_id: result.insertId,
+      file_name: req.file.originalname,
+      submitted_at: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Residency verification submission error:', error);
+    res.status(500).json({
+      error: 'Failed to submit residency verification request',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Get residency verification status
+app.get('/api/auth/residency-verification/status', verifyFirebaseToken, async (req, res) => {
+  try {
+    const firebaseUid = req.firebaseUser.uid;
+
+    // Get user ID first
+    const [userRows] = await db.execute('SELECT id FROM users WHERE firebase_uid = ?', [firebaseUid]);
+    if (userRows.length === 0) {
+      return res.json({ found: false, message: 'User not found' });
+    }
+
+    const userId = userRows[0].id;
+
+    // Get latest verification request for this user using resident_verification_requests table
+    const [rows] = await db.execute(`
+      SELECT
+        rvr.*, u.full_name, u.email,
+        r.First_Name, r.Last_Name, r.Residency_Status as resident_status
+      FROM resident_verification_requests rvr
+      JOIN users u ON rvr.user_id = u.id
+      LEFT JOIN residents r ON u.resident_id = r.Resident_ID
+      WHERE rvr.user_id = ? AND rvr.status != 'rejected'
+      ORDER BY rvr.submitted_at DESC
+      LIMIT 1
+    `, [userId]);
+
+    if (rows.length === 0) {
+      return res.json({
+        found: false,
+        message: 'No active verification request found'
+      });
+    }
+
+    const request = rows[0];
+
+    res.json({
+      found: true,
+      status: request.status,
+      request_id: request.id,
+      proof_type: request.proof_type,
+      notes: request.notes,
+      submitted_at: request.submitted_at,
+      reviewed_at: request.reviewed_at,
+      officer_notes: request.review_notes,
+      review_reason: request.review_reason
+    });
+
+  } catch (error) {
+    console.error('Error fetching verification status:', error);
+    res.status(500).json({
+      error: 'Failed to fetch verification status'
+    });
+  }
+});
+
+// Protected auth routes (use Firebase middleware for residents, JWT for staff)
+// Check user auth type and route accordingly
+app.get('/api/auth/profile', (req, res, next) => {
+  // Check for resident Firebase token first
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split('Bearer ')[1];
+    // Check if it looks like a Firebase ID token (longer than typical JWT)
+    if (token && token.length > 500) {
+      return verifyFirebaseToken(req, res, next); // Resident path
+    }
+  }
+  // Default to JWT verification for staff
+  return verifyToken(req, res, next);
+}, authController.getProfile);
+
+app.put('/api/auth/profile', (req, res, next) => {
+  // Check for resident Firebase token first
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split('Bearer ')[1];
+    // Check if it looks like a Firebase ID token (longer than typical JWT)
+    if (token && token.length > 500) {
+      return verifyFirebaseToken(req, res, next); // Resident path
+    }
+  }
+  // Default to JWT verification for staff
+  return verifyToken(req, res, next);
+}, authController.updateProfile);
+
 app.get('/api/auth/subordinates', verifyToken, authController.getSubordinates);
+
+// Firebase users management
+app.get('/api/auth/firebase-users', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
+  try {
+    console.log('=== FETCHING FIREBASE USERS ===');
+
+    // Get Firebase users using Admin SDK
+    const firebaseUsers = [];
+    let nextPageToken;
+
+    do {
+      const listUsersResult = await admin.auth().listUsers(1000, nextPageToken);
+      firebaseUsers.push(...listUsersResult.users);
+      nextPageToken = listUsersResult.pageToken;
+    } while (nextPageToken);
+
+    console.log(`Found ${firebaseUsers.length} Firebase users`);
+
+    // Get corresponding database records for enhanced info
+    const dbUsers = await knex('users')
+      .whereNotNull('firebase_uid')
+      .select('firebase_uid', 'full_name', 'email', 'role', 'is_active', 'created_at', 'last_login', 'residency_status');
+
+    // Create a map for quick lookup
+    const dbUserMap = {};
+    dbUsers.forEach(dbUser => {
+      dbUserMap[dbUser.firebase_uid] = dbUser;
+    });
+
+    // Combine Firebase and database data
+    const combinedUsers = firebaseUsers.map(firebaseUser => {
+      const dbUser = dbUserMap[firebaseUser.uid];
+      const displayName = firebaseUser.displayName || firebaseUser.email.split('@')[0];
+
+      return {
+        id: firebaseUser.uid,
+        firebase_uid: firebaseUser.uid,
+        username: displayName,
+        full_name: dbUser?.full_name || displayName,
+        email: firebaseUser.email,
+        role: dbUser?.role || 'resident',
+        is_active: dbUser?.is_active !== false, // Default to true if not in DB
+        email_verified: firebaseUser.emailVerified,
+        phone_verified: firebaseUser.phoneNumber ? true : false,
+        created_at: firebaseUser.metadata.creationTime,
+        last_login: firebaseUser.metadata.lastSignInTime,
+        residency_status: dbUser?.residency_status || 'pending'
+      };
+    });
+
+    console.log(`Returning ${combinedUsers.length} combined users`);
+
+    res.json({
+      success: true,
+      users: combinedUsers,
+      total: combinedUsers.length
+    });
+
+  } catch (error) {
+    console.error('Error fetching Firebase users:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch Firebase users',
+      details: error.message
+    });
+  }
+});
 
 // Protected resident signup management (officer only)
 app.get('/api/auth/resident-signups/pending', verifyToken, checkRole(['captain', 'secretary', 'clerk']), authController.getPendingResidentSignups);
 app.put('/api/auth/resident-signups/:request_id/review', verifyToken, checkRole(['captain', 'secretary', 'clerk']), authController.reviewResidentSignup);
 app.get('/api/auth/resident-signups/stats', verifyToken, checkRole(['captain', 'secretary', 'clerk']), authController.getResidentSignupStats);
+
+// Protected residency verification management
+app.get('/api/auth/residency-verifications/pending', verifyToken, checkRole(['captain', 'secretary', 'clerk']), authController.getPendingResidencyVerifications);
+app.put('/api/auth/residency-verifications/:request_id/review', verifyToken, checkRole(['captain', 'secretary', 'clerk']), authController.reviewResidencyVerification);
+app.get('/api/auth/residency-verifications/status/:user_id', verifyToken, authController.getResidencyVerificationStatus);
+
+// BLOB file retrieval endpoint - serve files stored in database
+app.get('/api/auth/residency-verifications/:request_id/file', verifyFirebaseToken, async (req, res) => {
+  try {
+    const requestId = req.params.request_id;
+    const firebaseUid = req.firebaseUser.uid;
+
+    // Get the verification request to check ownership and file data
+    const [rows] = await db.execute(`
+      SELECT rvr.file_data, rvr.original_filename, rvr.mime_type, rvr.file_size, rvr.user_id, u.firebase_uid
+      FROM resident_verification_requests rvr
+      JOIN users u ON rvr.user_id = u.id
+      WHERE rvr.id = ? AND rvr.status != 'rejected'
+    `, [requestId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Verification request not found' });
+    }
+
+    const request = rows[0];
+
+    // Check if user owns this verification request (or is staff)
+    if (request.firebase_uid !== firebaseUid) {
+      // Only allow officers to view files they review
+      return res.status(403).json({ error: 'Access denied - not your verification request' });
+    }
+
+    if (!request.file_data) {
+      return res.status(404).json({ error: 'No file attached to this verification request' });
+    }
+
+    // Set appropriate headers for file download/display
+    const fileName = request.original_filename || 'verification_document.bin';
+    const mimeType = request.mime_type || 'application/octet-stream';
+
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+    if (request.file_size) {
+      res.setHeader('Content-Length', request.file_size);
+    }
+
+    // Send the BLOB data directly
+    res.send(request.file_data);
+
+  } catch (error) {
+    console.error('Error retrieving BLOB file:', error);
+    res.status(500).json({ error: 'Failed to retrieve file' });
+  }
+});
+
+// Officer endpoint to view resident verification files
+app.get('/api/auth/residency-verifications/:request_id/file/officer', verifyToken, checkRole(['captain', 'secretary', 'clerk']), async (req, res) => {
+  try {
+    const requestId = req.params.request_id;
+
+    // Get the verification request file data
+    const [rows] = await db.execute(`
+      SELECT file_data, original_filename, mime_type, file_size
+      FROM resident_verification_requests
+      WHERE id = ?
+    `, [requestId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Verification request not found' });
+    }
+
+    const request = rows[0];
+
+    if (!request.file_data) {
+      return res.status(404).json({ error: 'No file attached to this verification request' });
+    }
+
+    // Set appropriate headers
+    const fileName = request.original_filename || 'verification_document.bin';
+    const mimeType = request.mime_type || 'application/octet-stream';
+
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+    if (request.file_size) {
+      res.setHeader('Content-Length', request.file_size);
+    }
+
+    // Send the BLOB data directly
+    res.send(request.file_data);
+
+  } catch (error) {
+    console.error('Error retrieving BLOB file for officer:', error);
+    res.status(500).json({ error: 'Failed to retrieve file' });
+  }
+});
+
+// ==========================================
+// PUBLIC STATS ENDPOINTS (No Auth Required)
+// ==========================================
+
+// Template stats endpoint - does not require authentication
+app.get('/api/templates/stats', async (req, res) => {
+  try {
+    console.log('=== TEMPLATE STATS ROUTE CALLED ===');
+    console.log('Template controller exists:', typeof templateController !== 'undefined');
+    console.log('getTemplateStats exists:', typeof templateController?.getTemplateStats === 'function');
+
+    if (typeof templateController?.getTemplateStats === 'function') {
+      console.log('Calling getTemplateStats method...');
+      await templateController.getTemplateStats(req, res);
+    } else {
+      console.log('ERROR: getTemplateStats method not found!');
+      res.status(500).json({
+        error: 'Template stats method not available',
+        controller_loaded: typeof templateController !== 'undefined',
+        method_exists: typeof templateController?.getTemplateStats === 'function'
+      });
+    }
+  } catch (error) {
+    console.log('ERROR in template stats route:', error);
+    res.status(500).json({
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// Certificate types endpoint - does not require authentication
+app.get('/api/certificate-types', async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT
+        id,
+        name,
+        fee,
+        validity_days,
+        description,
+        purpose,
+        when_needed,
+        required_data
+      FROM certificate_types
+      WHERE is_active = TRUE
+      ORDER BY name
+    `);
+
+    console.log('Certificate types API called, found:', rows.length, 'types');
+
+    // Parse JSON required_data for each certificate type
+    const certificateTypes = rows.map(type => ({
+      id: type.id,
+      label: type.name, // Frontend expects 'label' property
+      name: type.name,  // Keep both for compatibility
+      fee: type.fee,
+      validity_days: type.validity_days,
+      description: type.description,
+      purpose: type.purpose,
+      when_needed: type.when_needed,
+      required_data: type.required_data ? JSON.parse(type.required_data) : [],
+      is_active: true
+    }));
+
+    // Return in the format expected by frontend
+    res.json({
+      success: true,
+      data: certificateTypes
+    });
+  } catch (error) {
+    console.error('Error fetching certificate types:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch certificate types'
+    });
+  }
+});
 
 // ==========================================
 // RESIDENT PROFILING MODULE (RBIM Enhanced)
@@ -689,7 +1138,7 @@ app.put('/api/residents/:id/archive', async (req, res) => {
 });
 
 // Bulk import residents (Excel/CSV parser)
-app.post('/api/residents/bulk-import', upload.single('file'), async (req, res) => {
+app.post('/api/residents/bulk-import', uploadBlob.single('file'), async (req, res) => {
   const connection = await db.getConnection();
 
   try {
@@ -1339,17 +1788,15 @@ app.delete('/api/templates/:id', verifyToken, checkRole(['admin']), templateCont
 app.get('/api/certificate-types', verifyToken, checkRole(['admin', 'captain', 'secretary']), templateController.getCertificateTypes);
 
 // Template file upload/download routes
-app.post('/api/templates/upload', verifyToken, checkRole(['admin', 'captain']), upload.single('template_file'), templateController.uploadTemplateFile);
+app.post('/api/templates/upload', verifyToken, checkRole(['admin', 'captain']), uploadBlob.single('template_file'), templateController.uploadTemplateFile);
 app.delete('/api/templates/:id/with-file', verifyToken, checkRole(['admin']), templateController.deleteTemplateWithFile);
 app.get('/api/templates/:id/download', verifyToken, checkRole(['admin', 'captain']), templateController.downloadTemplateFile);
 
-// Template utilities
+// Template utilities (stats endpoint doesn't require authentication since it's just statistics)
 app.get('/api/templates/active/:document_type', templateController.getActiveTemplate);
 app.post('/api/templates/:id/duplicate', verifyToken, checkRole(['admin', 'captain']), templateController.duplicateTemplate);
-app.get('/api/templates/stats', verifyToken, checkRole(['admin', 'captain']), async (req, res) => {
+app.get('/api/templates/stats', async (req, res) => {
   console.log('=== TEMPLATE STATS ROUTE CALLED ===');
-  console.log('User ID:', req.user?.id);
-  console.log('User role:', req.user?.role);
   console.log('Template controller exists:', typeof templateController !== 'undefined');
   console.log('getTemplateStats exists:', typeof templateController?.getTemplateStats === 'function');
 
@@ -1398,28 +1845,82 @@ app.get('/api/certificate-types', async (req, res) => {
       ORDER BY name
     `);
 
+    console.log('Certificate types API called, found:', rows.length, 'types');
+
     // Parse JSON required_data for each certificate type
     const certificateTypes = rows.map(type => ({
-      ...type,
-      required_data: type.required_data ? JSON.parse(type.required_data) : []
+      id: type.id,
+      label: type.name, // Frontend expects 'label' property
+      name: type.name,  // Keep both for compatibility
+      fee: type.fee,
+      validity_days: type.validity_days,
+      description: type.description,
+      purpose: type.purpose,
+      when_needed: type.when_needed,
+      required_data: type.required_data ? JSON.parse(type.required_data) : [],
+      is_active: true
     }));
 
-    res.json(certificateTypes);
+    // Return in the format expected by frontend
+    res.json({
+      success: true,
+      data: certificateTypes
+    });
   } catch (error) {
     console.error('Error fetching certificate types:', error);
-    res.status(500).json({ error: 'Failed to fetch certificate types' });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch certificate types'
+    });
   }
 });
 
-// Get all certificates
-app.get('/api/certificates', async (req, res) => {
+// Get all certificates (supports both resident and staff with dynamic auth)
+app.get('/api/certificates', (req, res, next) => {
+  // Check for resident Firebase token first
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split('Bearer ')[1];
+    // Check if it looks like a Firebase ID token (longer than typical JWT)
+    if (token && token.length > 500) {
+      return verifyFirebaseToken(req, res, next); // Resident path
+    }
+  }
+  // Default to JWT verification for staff (unrestricted access)
+  return verifyToken(req, res, next);
+}, async (req, res) => {
   try {
-    const [rows] = await db.execute(`
-      SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
-      FROM certificates_log c
-      JOIN residents r ON c.resident_id = r.Resident_ID
-      ORDER BY c.created_at DESC
-    `);
+    // Check if user is a resident (Firebase authenticated)
+    const isResident = req.firebaseUser ? true : false;
+
+    let query, values;
+
+    if (isResident && req.firebaseUser) {
+      // Resident can only see their own certificates
+      query = `
+        SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
+        FROM certificates_log c
+        JOIN residents r ON c.resident_id = r.Resident_ID
+        WHERE EXISTS (
+          SELECT 1 FROM users u
+          WHERE u.resident_id = r.Resident_ID
+          AND u.firebase_uid = ?
+        )
+        ORDER BY c.created_at DESC
+      `;
+      values = [req.firebaseUser.uid];
+    } else {
+      // Staff can see all certificates
+      query = `
+        SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
+        FROM certificates_log c
+        JOIN residents r ON c.resident_id = r.Resident_ID
+        ORDER BY c.created_at DESC
+      `;
+      values = [];
+    }
+
+    const [rows] = await db.execute(query, values);
     res.json(rows);
   } catch (error) {
     console.error('Error fetching certificates:', error);
@@ -2008,6 +2509,304 @@ app.post('/api/tanod-schedules', async (req, res) => {
 });
 
 // ==========================================
+// USER MANAGEMENT MODULE (Secretary and above)
+// ==========================================
+
+// Get all users (admin management)
+app.get('/api/users', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
+  try {
+    const { page = 1, limit = 50, search, role: roleFilter, status } = req.query;
+    const offset = (page - 1) * limit;
+
+    let whereConditions = [];
+    let values = [];
+
+    if (search) {
+      whereConditions.push("(full_name LIKE ? OR username LIKE ? OR email LIKE ?)");
+      values.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    if (roleFilter) {
+      whereConditions.push("role = ?");
+      values.push(roleFilter);
+    }
+
+    if (status) {
+      if (status === 'active') {
+        whereConditions.push("is_active = true");
+      } else if (status === 'inactive') {
+        whereConditions.push("is_active = false");
+      }
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    const [rows] = await db.execute(`
+      SELECT
+        id,
+        username,
+        full_name,
+        email,
+        contact_number,
+        role,
+        is_active,
+        firebase_uid,
+        resident_id,
+        last_login,
+        created_at
+      FROM users
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `, [...values, parseInt(limit), offset]);
+
+    const [totalRows] = await db.execute(`
+      SELECT COUNT(*) as total FROM users ${whereClause}
+    `, values);
+
+    res.json({
+      users: rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: totalRows[0].total,
+        pages: Math.ceil(totalRows[0].total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Get user by ID
+app.get('/api/users/:id', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT
+        id,
+        username,
+        full_name,
+        email,
+        contact_number,
+        role,
+        is_active,
+        firebase_uid,
+        resident_id,
+        last_login,
+        created_at,
+        updated_at
+      FROM users WHERE id = ?
+    `, [req.params.id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ user: rows[0] });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+// Create new user
+app.post('/api/users', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
+  try {
+    const {
+      username,
+      full_name,
+      email,
+      contact_number,
+      role,
+      is_active = true
+    } = req.body;
+
+    // Validation
+    if (!username || !full_name || !role) {
+      return res.status(400).json({ error: 'Username, full name, and role are required' });
+    }
+
+    // Check if username already exists
+    const [existing] = await db.execute('SELECT id FROM users WHERE username = ?', [username]);
+    if (existing.length > 0) {
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+
+    // Generate temporary password
+    const tempPassword = crypto.randomBytes(8).toString('hex');
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(tempPassword, saltRounds);
+
+    const [result] = await db.execute(`
+      INSERT INTO users (
+        username,
+        password_hash,
+        full_name,
+        email,
+        contact_number,
+        role,
+        is_active,
+        created_at,
+        updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+    `, [username, passwordHash, full_name, email, contact_number, role, is_active]);
+
+    res.status(201).json({
+      user: {
+        id: result.insertId,
+        username,
+        full_name,
+        email,
+        contact_number,
+        role,
+        is_active,
+        temp_password: tempPassword // Send temp password to admin for sharing
+      },
+      message: 'User created successfully. Temporary password generated.'
+    });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+// Update user
+app.put('/api/users/:id', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const {
+      full_name,
+      email,
+      contact_number,
+      role,
+      is_active
+    } = req.body;
+
+    // Build update query dynamically
+    const updates = [];
+    const values = [];
+
+    if (full_name !== undefined) {
+      updates.push('full_name = ?');
+      values.push(full_name);
+    }
+    if (email !== undefined) {
+      updates.push('email = ?');
+      values.push(email);
+    }
+    if (contact_number !== undefined) {
+      updates.push('contact_number = ?');
+      values.push(contact_number);
+    }
+    if (role !== undefined) {
+      updates.push('role = ?');
+      values.push(role);
+    }
+    if (is_active !== undefined) {
+      updates.push('is_active = ?');
+      values.push(is_active);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    // Add updated_at
+    updates.push('updated_at = NOW()');
+
+    const sql = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+    values.push(userId);
+
+    await db.execute(sql, values);
+
+    res.json({ message: 'User updated successfully' });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+// Toggle user active status
+app.put('/api/users/:id/toggle-status', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { is_active } = req.body;
+
+    if (is_active === undefined) {
+      return res.status(400).json({ error: 'is_active value is required' });
+    }
+
+    await db.execute(
+      'UPDATE users SET is_active = ?, updated_at = NOW() WHERE id = ?',
+      [is_active, userId]
+    );
+
+    res.json({
+      message: `User ${is_active ? 'activated' : 'deactivated'} successfully`
+    });
+  } catch (error) {
+    console.error('Error toggling user status:', error);
+    res.status(500).json({ error: 'Failed to update user status' });
+  }
+});
+
+// Reset user password
+app.put('/api/users/:id/reset-password', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { new_password } = req.body;
+
+    if (!new_password || new_password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(new_password, saltRounds);
+
+    await db.execute(
+      'UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?',
+      [passwordHash, userId]
+    );
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+// Delete user
+app.delete('/api/users/:id', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Prevent deletion of current user
+    if (req.user.id == userId) {
+      return res.status(400).json({ error: 'Cannot delete your own account' });
+    }
+
+    // Check if user has active residents (optional - you may want to prevent or handle this)
+    const [residents] = await db.execute('SELECT COUNT(*) as count FROM users WHERE id = ? AND resident_id IS NOT NULL', [userId]);
+
+    if (residents[0].count > 0) {
+      // Option 1: Prevent deletion
+      // return res.status(400).json({ error: 'Cannot delete user with associated resident record' });
+
+      // Option 2: Update resident record (remove association)
+      await db.execute('UPDATE users SET resident_id = NULL WHERE id = ?', [userId]);
+    }
+
+    await db.execute('DELETE FROM users WHERE id = ?', [userId]);
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// ==========================================
 // UTILITY ENDPOINTS
 // ==========================================
 
@@ -2169,9 +2968,22 @@ app.get('/verify-qr/:hash', async (req, res) => {
 // COMMUNITY EVENTS MODULE
 // ==========================================
 
-// Get all community programs/events
-app.get('/api/programs', async (req, res) => {
+// Get all community programs/events (supports both resident and staff with dynamic auth)
+app.get('/api/programs', (req, res, next) => {
+  // Check for resident Firebase token first
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split('Bearer ')[1];
+    // Check if it looks like a Firebase ID token (longer than typical JWT)
+    if (token && token.length > 500) {
+      return verifyFirebaseToken(req, res, next); // Resident path - programs are public
+    }
+  }
+  // Default to JWT verification for staff (required for access)
+  return verifyToken(req, res, next);
+}, async (req, res) => {
   try {
+    // Programs are public information for residents - no filtering needed
     const [rows] = await db.execute(`
       SELECT p.*,
              s.name as sitio_name,
@@ -2540,6 +3352,31 @@ const server = app.listen(port, () => {
   console.log(`🤖 AI Service: ${process.env.AI_SERVICE_URL || 'http://localhost:5000'}`);
   console.log(`🔍 QR Verification: http://localhost:${port}/verify-qr/{hash}`);
   console.log(`🔔 Real-time Notifications: WebSocket enabled`);
+});
+
+// Notification REST endpoints
+// Poll for notifications (fallback when WebSocket unavailable)
+app.get('/api/notifications/poll', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get user notifications using the getUserNotifications function from websocket module
+    const websocketModule = require('./websocket');
+    const notifications = await websocketModule.getUserNotifications(userId);
+
+    // Return latest 10 notifications
+    const recentNotifications = notifications.slice(0, 10);
+
+    res.json({
+      success: true,
+      notifications: recentNotifications,
+      count: recentNotifications.length,
+      hasUnread: recentNotifications.some(n => !n.read)
+    });
+  } catch (error) {
+    console.error('Error polling notifications:', error);
+    res.status(500).json({ error: 'Failed to poll notifications' });
+  }
 });
 
 // Initialize WebSocket server

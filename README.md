@@ -12,7 +12,7 @@ A modern web application for Barangay Batia administration with AI-powered decis
 ### Architecture
 ```
 BMW System
-├── client/          # React Frontend (Port 80/5173)
+├── client/          # React Frontend (Port 80/5174)
 ├── server/          # Node.js API (Port 3001)
 ├── ai_service/      # Python AI (Port 5000)
 ├── database/        # MySQL Schema + Migrations
@@ -105,7 +105,7 @@ npm run dev:all
 ```
 
 Services will start on:
-- Frontend: http://localhost:5173
+- Frontend: http://localhost:5174
 - Backend API: http://localhost:3001
 - AI Service: http://localhost:5000
 

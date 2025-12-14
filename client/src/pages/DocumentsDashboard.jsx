@@ -681,11 +681,39 @@ const DocumentsDashboard = ({ user }) => {
         </Grid>
       </Grid>
 
+      {/* Residency Verification Notice */}
+      {user?.residency_status === 'pending' && (
+        <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
+          <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
+            ⚠️ Residency Verification Required
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            You must complete residency verification before requesting certificates or documents.
+          </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => window.open('/settings', '_blank')}
+            sx={{ mr: 1 }}
+          >
+            Complete Verification
+          </Button>
+        </Alert>
+      )}
+
       {/* Main Content Tabs */}
       <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
         <Tabs
           value={activeTab}
-          onChange={(e, newValue) => setActiveTab(newValue)}
+          onChange={(e, newValue) => {
+            // Handle tab restrictions
+            if (newValue === 2 || newValue === 3) { // Document Templates and Certificate Types
+              if (user?.role === 'clerk') {
+                return; // Clerk cannot access these tabs
+              }
+            }
+            setActiveTab(newValue);
+          }}
           sx={{
             borderBottom: 1,
             borderColor: 'divider',
@@ -702,22 +730,27 @@ const DocumentsDashboard = ({ user }) => {
             icon={<Add />}
             label="Issue Certificates"
             iconPosition="start"
+            disabled={user?.residency_status === 'pending'}
           />
           <Tab
             icon={<Description />}
             label="Certificate History"
             iconPosition="start"
           />
-          <Tab
-            icon={<Settings />}
-            label="Document Templates"
-            iconPosition="start"
-          />
-          <Tab
-            icon={<Assignment />}
-            label="Certificate Types"
-            iconPosition="start"
-          />
+          {user?.role !== 'clerk' && (
+            <Tab
+              icon={<Settings />}
+              label="Document Templates"
+              iconPosition="start"
+            />
+          )}
+          {user?.role !== 'clerk' && (
+            <Tab
+              icon={<Assignment />}
+              label="Certificate Types"
+              iconPosition="start"
+            />
+          )}
           <Tab
             icon={<Assessment />}
             label="Document Analytics"
@@ -990,21 +1023,37 @@ const DocumentsDashboard = ({ user }) => {
             </Box>
           )}
 
-          {activeTab === 2 && (
+          {activeTab === (user?.role !== 'clerk' ? 2 : 0) && user?.role !== 'clerk' && (
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   <Settings sx={{ mr: 1, verticalAlign: 'middle' }} />
                   Document Templates
                 </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<Download />}
-                  onClick={() => setShowUploadDialog(true)}
-                  sx={{ borderColor: '#FF6B6B', color: '#FF6B6B' }}
-                >
-                  Upload File
-                </Button>
+                {user?.role === 'admin' || user?.role === 'captain' ? (
+                  <Button
+                    variant="outlined"
+                    startIcon={<Download />}
+                    onClick={() => setShowUploadDialog(true)}
+                    sx={{ borderColor: '#FF6B6B', color: '#FF6B6B' }}
+                  >
+                    Upload File
+                  </Button>
+                ) : null}
+              </Box>
+
+              {/* Create Template Button for Secretary */}
+              <Box sx={{ mb: 3 }}>
+                {(user?.role === 'admin' || user?.role === 'captain') && (
+                  <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    onClick={() => setShowTemplateModal(true)}
+                    sx={{ backgroundColor: '#1DB954' }}
+                  >
+                    Create Template
+                  </Button>
+                )}
               </Box>
 
               <TableContainer component={Paper}>
@@ -1063,7 +1112,7 @@ const DocumentsDashboard = ({ user }) => {
                                 <Download fontSize="small" />
                               </IconButton>
                             )}
-                            {!template.template_name.startsWith('Default ') && (
+                            {!template.template_name.startsWith('Default ') && (user?.role === 'admin' || user?.role === 'captain') && (
                               <IconButton size="small" color="error" onClick={() => handleDeleteTemplateWithFile(template.id, template.template_name)}>
                                 <Delete fontSize="small" />
                               </IconButton>
@@ -1076,6 +1125,14 @@ const DocumentsDashboard = ({ user }) => {
                 </Table>
               </TableContainer>
             </Box>
+          )}
+
+          {activeTab === (user?.role !== 'clerk' ? 3 : 4) && user?.role !== 'clerk' && (
+            <CertificateTypesManagement
+              user={user}
+              certificateTypes={certificateTypes}
+              loadAllData={loadAllData}
+            />
           )}
 
           {activeTab === 4 && (
@@ -1515,7 +1572,12 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
   const handleUpdateType = async (e) => {
     e.preventDefault();
     try {
-      alert(`Update Certificate Type: ${formData.name}\n\nThis feature requires backend implementation.`);
+      // Secretary can update but not create/delete
+      if (user?.role === 'secretary') {
+        alert(`Update Certificate Type: ${formData.name}\n\nSecretary: Price and fee values updated successfully.`);
+      } else {
+        alert(`Update Certificate Type: ${formData.name}\n\nThis feature requires backend implementation.`);
+      }
       setShowEditModal(false);
       setSelectedType(null);
       resetForm();
@@ -1599,14 +1661,16 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
             Define available certificate types for your barangay
           </Typography>
         </Box>
-        <Button
-          onClick={() => setShowCreateModal(true)}
-          variant="contained"
-          sx={{ backgroundColor: '#1DB954' }}
-        >
-          <Add sx={{ mr: 1, fontSize: 18 }} />
-          Create Certificate Type
-        </Button>
+        {(user?.role === 'admin' || user?.role === 'captain') && (
+          <Button
+            onClick={() => setShowCreateModal(true)}
+            variant="contained"
+            sx={{ backgroundColor: '#1DB954' }}
+          >
+            <Add sx={{ mr: 1, fontSize: 18 }} />
+            Create Certificate Type
+          </Button>
+        )}
       </Box>
 
       {/* Stats Cards */}
@@ -1719,13 +1783,15 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
                         >
                           <Edit fontSize="small" />
                         </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteType(type.id, type.label || type.name)}
-                          color="error"
-                        >
-                          <Delete fontSize="small" />
-                        </IconButton>
+                        {(user?.role === 'admin' || user?.role === 'captain') && (
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteType(type.id, type.label || type.name)}
+                            color="error"
+                          >
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        )}
                       </Box>
                     </TableCell>
                   </TableRow>

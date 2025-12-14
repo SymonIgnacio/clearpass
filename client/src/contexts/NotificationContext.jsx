@@ -121,13 +121,33 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const startPolling = () => {
+    // Only poll if user has server-side authentication (staff users)
+    // Residents use Firebase-only auth and don't need server notifications
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      console.log('📡 Skipping notification polling - user has Firebase-only auth (no server token)');
+      return () => {}; // Return empty cleanup function
+    }
+
+    console.log('📡 Starting notification polling for authenticated staff user');
+
     // Fallback polling mechanism every 30 seconds
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/notifications/poll`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/notifications/poll`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
         if (response.ok) {
           const data = await response.json();
           data.forEach(notification => handleNewNotification(notification));
+        } else if (response.status === 401) {
+          console.error('❌ Notification polling failed: Unauthorized. Clearing invalid token.');
+          localStorage.removeItem('authToken');
+          clearInterval(pollInterval);
         }
       } catch (error) {
         console.error('Error polling notifications:', error);

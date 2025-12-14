@@ -235,6 +235,27 @@ const ResidentDashboard = ({ user }) => {
         </Box>
       </Box>
 
+      {user?.residency_status === 'pending' && (
+        <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
+          <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
+            ⚠️ Residency Verification Required
+          </Typography>
+          <Typography variant="body2">
+            To access document and certificate requests, please verify your barangay residency. Visit Settings to submit your proof of residency.
+          </Typography>
+          <Box sx={{ mt: 2 }}>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => navigate('/settings')}
+              sx={{ mr: 1 }}
+            >
+              Complete Verification
+            </Button>
+          </Box>
+        </Alert>
+      )}
+
       {error && (
         <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
           {error}

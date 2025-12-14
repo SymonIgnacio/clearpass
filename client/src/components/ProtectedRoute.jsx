@@ -7,49 +7,85 @@ const ProtectedRoute = ({ children, requiredRoles = [] }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(null)
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [accessDenied, setAccessDenied] = useState(false)
 
   useEffect(() => {
     const checkAuth = async () => {
+      let authSuccess = false
+      let authUser = null
+
       try {
-        const token = localStorage.getItem('authToken')
-        const storedUser = localStorage.getItem('user')
+        // Check for officer authentication (database + JWT)
+        const officerToken = localStorage.getItem('authToken')
+        const officerUser = localStorage.getItem('user')
 
-        if (!token || !storedUser) {
-          setIsAuthenticated(false)
-          setLoading(false)
-          return
+        // Check for resident authentication (Firebase-only)
+        const residentUser = localStorage.getItem('residentUser')
+        const residentToken = localStorage.getItem('residentAuthToken')
+
+        // Both authentication methods missing
+        if ((!officerToken || !officerUser) && (!residentUser || !residentToken)) {
+          authSuccess = false
         }
-
-        // Verify token with backend
-        const response = await apiRequest('auth/profile')
-        const userData = await response.json()
-        setUser(userData)
-        setIsAuthenticated(true)
-
-        // Check role-based access if required roles are specified
-        if (requiredRoles.length > 0) {
-          const userRole = userData.role
-          if (!requiredRoles.includes(userRole)) {
-            setAccessDenied(true)
+        // Officer authentication - just validate localStorage data
+        else if (officerToken && officerUser) {
+          try {
+            const userData = JSON.parse(officerUser)
+            // Validate the stored user object has required fields
+            if (userData && userData.id && userData.username && userData.role) {
+              authUser = userData
+              authSuccess = true
+              console.log('✅ Officer authentication verified via localStorage')
+            } else {
+              console.log('❌ Officer user data validation failed')
+              authSuccess = false
+            }
+          } catch (error) {
+            console.error('❌ Officer authentication failed:', error)
+            // Officer data invalid - clear it and try resident auth
+            localStorage.removeItem('authToken')
+            localStorage.removeItem('user')
+            authSuccess = false
           }
         }
 
-        // Update localStorage with fresh data
-        localStorage.setItem('user', JSON.stringify(userData))
+        // Resident authentication (check if officer auth failed or not present)
+        if (!authSuccess && residentUser && residentToken) {
+          try {
+            const userData = JSON.parse(residentUser)
+            // For residents, just validate the localStorage data exists and is valid
+            // Firebase handles session management client-side, so we trust the stored data
+            if (userData && userData.uid && userData.email && userData.role === 'resident') {
+              authUser = userData
+              authSuccess = true
+              console.log('✅ Resident authentication verified via localStorage')
+            } else {
+              console.log('❌ Resident user data validation failed')
+              authSuccess = false
+            }
+          } catch (error) {
+            console.error('❌ Resident authentication failed:', error)
+            // Resident data invalid - clear it
+            localStorage.removeItem('residentUser')
+            localStorage.removeItem('residentAuthToken')
+            authSuccess = false
+          }
+        }
 
       } catch (error) {
-        // Token invalid or expired
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('user')
-        setIsAuthenticated(false)
+        console.error('Authentication check failed:', error)
+        authSuccess = false
       } finally {
+        // Set authentication state based on results
+        setIsAuthenticated(authSuccess)
+        if (authSuccess && authUser) {
+          setUser(authUser)
+        }
         setLoading(false)
       }
     }
 
     checkAuth()
-  }, [requiredRoles])
+  }, [])
 
   // Show loading spinner while checking authentication
   if (loading) {
@@ -77,40 +113,16 @@ const ProtectedRoute = ({ children, requiredRoles = [] }) => {
     return <Navigate to="/login" replace />
   }
 
-  // Show access denied if user doesn't have required role
-  if (accessDenied) {
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100vh',
-          bgcolor: 'background.default',
-          p: 3
-        }}
-      >
-        <Alert severity="error" sx={{ maxWidth: 600, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Access Denied
-          </Typography>
-          <Typography variant="body1">
-            You don't have permission to access this page. This page requires one of the following roles:
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold' }}>
-            {requiredRoles.join(', ')}
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 2 }}>
-            Your current role: {user?.role}
-          </Typography>
-        </Alert>
-        <Typography variant="body2" color="text.secondary">
-          Please contact your administrator if you believe this is an error.
-        </Typography>
-      </Box>
-    )
-  }
+    // Check role-based access if required roles are specified
+    if (requiredRoles.length > 0) {
+      const userRole = user.role
+      const hasRequiredRole = requiredRoles.includes(userRole)
+
+      if (!hasRequiredRole) {
+        // Redirect unauthorized users to home/dashboard
+        return <Navigate to="/" replace />
+      }
+    }
 
   // Render protected content with user context
   return React.cloneElement(children, { user })

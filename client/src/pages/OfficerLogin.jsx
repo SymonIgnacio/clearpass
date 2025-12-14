@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
   Container,
   Paper,
@@ -12,17 +12,14 @@ import {
   Avatar,
   Grid
 } from '@mui/material'
-import { LockOutlined, PersonAdd, Business } from '@mui/icons-material'
-import { auth } from '../firebase'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { LockOutlined, PersonAdd } from '@mui/icons-material'
+import { apiRequest } from '../utils/api'
 
-const Login = ({ onLogin }) => {
-  const navigate = useNavigate()
+const OfficerLogin = ({ onLogin }) => {
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: ''
   })
-  const [isUsingUsername, setIsUsingUsername] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -39,64 +36,25 @@ const Login = ({ onLogin }) => {
     setError('')
 
     try {
-      console.log('🔐 Attempting resident login...')
+      const response = await apiRequest('auth/officer-login', {
+        method: 'POST',
+        body: formData
+      })
+      const { token, user } = await response.json()
 
-      // Authenticate with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password)
-      const user = userCredential.user
+      // Store token and user data
+      localStorage.setItem('authToken', token)
+      localStorage.setItem('user', JSON.stringify(user))
 
-      console.log('✅ Firebase authentication successful:', { uid: user.uid, email: user.email })
-
-      // Get additional user data from the Firebase User object
-      const userInfo = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || user.email.split('@')[0],
-        emailVerified: user.emailVerified,
-        role: 'resident',
-        auth_type: 'firebase',
-        created_at: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
-      }
-
-      // Store resident authentication data in localStorage
-      localStorage.setItem('residentUser', JSON.stringify(userInfo))
-      localStorage.setItem('residentAuthToken', await user.getIdToken())
-      localStorage.setItem('residentAuthTimestamp', Date.now().toString())
-
-      // Clear any officer auth data to avoid conflicts
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('user')
-
-      console.log('✅ Resident login successful - proceeding to dashboard')
+      // Clear any resident auth data (in case user was logged in as resident)
+      localStorage.removeItem('residentUser')
+      localStorage.removeItem('residentAuthToken')
 
       // Call onLogin callback to update app state
-      if (onLogin) {
-        onLogin(userInfo)
-      }
-
-      // Navigate to dashboard
-      navigate('/')
-
+      onLogin(user)
     } catch (err) {
-      console.error('❌ Resident login error:', err)
-
-      let errorMessage = 'Login failed. Please try again.'
-
-      // Handle specific Firebase errors
-      if (err.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email address.'
-      } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        errorMessage = 'Invalid email or password.'
-      } else if (err.code === 'auth/user-disabled') {
-        errorMessage = 'This account has been disabled.'
-      } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address format.'
-      } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed login attempts. Please try again later.'
-      }
-
-      setError(errorMessage)
+      console.error('Officer login error:', err)
+      setError('Login failed. Please check your credentials.')
     } finally {
       setLoading(false)
     }
@@ -127,12 +85,16 @@ const Login = ({ onLogin }) => {
             <LockOutlined sx={{ fontSize: 32 }} />
           </Avatar>
 
-          <Typography component="h1" variant="h4" sx={{ mt: 2, mb: 1, fontWeight: 600, color: 'primary.main' }}>
-            Resident Login
+          <Typography component="h1" variant="h4" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
+            Officer Login
           </Typography>
 
           <Typography variant="body1" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
-            Sign in to your resident account to access barangay services
+            Sign in to access the barangay management system
+          </Typography>
+
+          <Typography variant="body2" color="primary" sx={{ mb: 2, fontWeight: 500 }}>
+            Staff & Officers Only
           </Typography>
 
           {error && (
@@ -143,10 +105,8 @@ const Login = ({ onLogin }) => {
 
           <Alert severity="info" sx={{ width: '100%', mb: 2 }}>
             <Typography variant="body2">
-              This login is for residents and the general public who have created accounts through our signup process.
-              Barangay staff should use the Officer Login.
-              <br />
-              <strong>Note:</strong> Complete your residency verification in Settings after login.
+              This login is for authorized barangay staff only (Captain, Secretary, Clerk, Admin).
+              Residents should use the main login page.
             </Typography>
           </Alert>
 
@@ -155,15 +115,16 @@ const Login = ({ onLogin }) => {
               margin="normal"
               required
               fullWidth
-              id="email"
-              label="Email or Username"
-              name="email"
-              autoComplete="email"
+              id="username"
+              label="Username"
+              name="username"
+              autoComplete="username"
               autoFocus
-              value={formData.email}
+              value={formData.username}
               onChange={handleChange}
               disabled={loading}
               sx={{ mb: 2 }}
+              helperText="Use your staff username (e.g., captain, secretary)"
             />
 
             <TextField
@@ -194,16 +155,18 @@ const Login = ({ onLogin }) => {
                 fontWeight: 600
               }}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In as Officer'}
             </Button>
+
+
 
             <Box sx={{ mt: 2, textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Don't have an account?
+                For residents and the general public:
               </Typography>
               <Button
                 component={Link}
-                to="/signup"
+                to="/login"
                 variant="outlined"
                 startIcon={<PersonAdd />}
                 disabled={loading}
@@ -214,17 +177,17 @@ const Login = ({ onLogin }) => {
                   fontWeight: 500
                 }}
               >
-                Create an Account
+                Use Resident Login
               </Button>
             </Box>
-
-
           </Box>
+
+
 
           <Typography variant="body2" color="text.secondary" sx={{ mt: 3, textAlign: 'center' }}>
             © 2025 Barangay Management System
             <br />
-            Resident Services Portal
+            Authorized Personnel Access
           </Typography>
         </Paper>
       </Box>
@@ -232,4 +195,4 @@ const Login = ({ onLogin }) => {
   )
 }
 
-export default Login
+export default OfficerLogin

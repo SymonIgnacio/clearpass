@@ -251,22 +251,93 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState(null)
 
-  // Check for existing authentication on app load
+  // Enhanced authentication check with retry logic - supports both staff and resident auth
   useEffect(() => {
-    const token = localStorage.getItem('authToken')
-    const storedUser = localStorage.getItem('user')
+    // Check for officer authentication (database + JWT)
+    const officerToken = localStorage.getItem('authToken')
+    const officerUser = localStorage.getItem('user')
 
-    if (token && storedUser) {
+    // Check for resident authentication (Firebase-only)
+    const residentUser = localStorage.getItem('residentUser')
+    const residentToken = localStorage.getItem('residentAuthToken')
+
+    // No authentication found - set logged out
+    if ((!officerToken || !officerUser) && (!residentUser || !residentToken)) {
+      setIsAuthenticated(false)
+      setUser(null)
+      return
+    }
+
+    // Handle officer authentication
+    if (officerToken && officerUser) {
       try {
-        const parsedUser = JSON.parse(storedUser)
+        const parsedUser = JSON.parse(officerUser)
+        console.log('🔐 Initializing with officer auth data:', { userId: parsedUser.id, role: parsedUser.role })
+
+        // Try to verify the token and get fresh profile data
+        const profileResponse = fetch('http://localhost:3001/api/auth/profile', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${officerToken}`,
+            'Content-Type': 'application/json'
+          }
+        }).then(response => {
+          if (response.ok) {
+            return response.json().then(profileData => {
+              console.log('✅ Officer profile verification successful:', { userId: profileData.id, role: profileData.role })
+              localStorage.setItem('user', JSON.stringify(profileData))
+              setUser(profileData)
+              setIsAuthenticated(true)
+            })
+          } else if (response.status === 401) {
+            console.log('❌ Officer token expired or invalid, clearing auth data')
+            localStorage.removeItem('authToken')
+            localStorage.removeItem('user')
+            setIsAuthenticated(false)
+          }
+        }).catch(error => {
+          console.warn('⚠️ Officer authentication check failed, using stored data as fallback:', error.message)
+          setUser(parsedUser)
+          setIsAuthenticated(true)
+        })
+      } catch (error) {
+        console.warn('⚠️ Officer authentication load failed:', error.message)
+        if (officerUser) {
+          try {
+            const parsedUser = JSON.parse(officerUser)
+            setUser(parsedUser)
+            setIsAuthenticated(true)
+          } catch (parseError) {
+            console.error('Failed to parse stored officer user data')
+            setIsAuthenticated(false)
+          }
+        }
+      }
+      return
+    }
+
+    // Handle resident authentication
+    if (residentUser && residentToken) {
+      try {
+        const parsedUser = JSON.parse(residentUser)
+        console.log('🔐 Initializing with resident auth data:', { uid: parsedUser.uid, role: parsedUser.role })
+
+        // For residents, just validate localStorage data exists
+        // Firebase handles session management client-side
         setUser(parsedUser)
         setIsAuthenticated(true)
+        console.log('✅ Resident authentication successful via localStorage')
       } catch (error) {
-        // Invalid stored data, clear it
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('user')
+        console.error('❌ Failed to parse resident user data:', error)
+        localStorage.removeItem('residentUser')
+        localStorage.removeItem('residentAuthToken')
+        setIsAuthenticated(false)
       }
+      return
     }
+
+    // Should have been caught by the early return, but just in case
+    setIsAuthenticated(false)
   }, [])
 
   const handleLogin = (userData) => {

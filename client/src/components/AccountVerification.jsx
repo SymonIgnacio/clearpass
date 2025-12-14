@@ -389,7 +389,8 @@ const AccountVerification = () => {
               <strong>Next steps:</strong><br />
               1. Check your email inbox (and spam folder)<br />
               2. Click the verification link in the email<br />
-              3. Return here and click "Check Verification Status"
+              3. Your email will be verified automatically<br />
+              4. Complete residency verification in Settings to access documents and certificates
             </Typography>
           </Alert>
 
@@ -401,10 +402,8 @@ const AccountVerification = () => {
 
           <Button
             fullWidth
-            variant="contained"
-            onClick={checkVerificationStatus}
-            disabled={checkingVerification || loading}
-            startIcon={checkingVerification ? <CircularProgress size={20} color="inherit" /> : <Refresh />}
+            variant="outlined"
+            onClick={() => navigate('/login')}
             sx={{
               mt: 2,
               mb: 2,
@@ -413,7 +412,7 @@ const AccountVerification = () => {
               fontWeight: 600
             }}
           >
-            {checkingVerification ? 'Checking...' : 'Check Verification Status'}
+            Continue to Login
           </Button>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', mt: 2 }}>
