@@ -88,11 +88,7 @@ jest.mock('../pages/RondaAnalytics', () => {
   };
 });
 
-jest.mock('../pages/OCRAutoFill', () => {
-  return function MockOCRAutoFill() {
-    return <div data-testid="ocr-autofill-page">OCR AutoFill Page</div>;
-  };
-});
+
 
 jest.mock('../pages/QRVerification', () => {
   return function MockQRVerification() {
@@ -265,7 +261,6 @@ describe('App Component', () => {
         { path: '/census', expectedPage: 'census-page' },
         { path: '/ai-patrol', expectedPage: 'ai-patrol-page' },
         { path: '/ronda-analytics', expectedPage: 'ronda-analytics-page' },
-        { path: '/ocr-autofill', expectedPage: 'ocr-autofill-page' },
         { path: '/qr-verify', expectedPage: 'qr-verification-page' },
         { path: '/events', expectedPage: 'community-events-page' }
       ];
