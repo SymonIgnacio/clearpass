@@ -12,9 +12,6 @@ RUN npm install
 # Copy all source files
 COPY . .
 
-# Explicitly copy client directory again (Railway caching issue workaround)
-COPY client/ ./client/
-
 # Build the client (with explicit working directory changes)
 RUN mkdir -p client && cd client && npm install && npm run build && cd ..
 

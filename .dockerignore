@@ -1,0 +1,9 @@
+node_modules
+.git
+.env*
+firebase-service-account.json
+client/node_modules
+server/node_modules
+ai_service/__pycache__/
+*.log
+.dockerignore
