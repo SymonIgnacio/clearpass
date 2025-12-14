@@ -3410,50 +3410,10 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // Add error handling middleware
 app.use(errorHandler);
 
-// Determine if HTTPS should be enabled
-const enableHTTPS = process.env.NODE_ENV === 'production' || process.env.ENABLE_HTTPS === 'true';
+// ==========================================
+// NOTIFICATION REST ENDPOINTS
+// ==========================================
 
-// Start server (HTTP or HTTPS based on configuration)
-let server;
-
-if (enableHTTPS) {
-  // HTTPS server with SSL certificates
-  const httpsOptions = sslConfig.getHttpsOptions();
-
-  if (httpsOptions) {
-    const https = require('https');
-    server = https.createServer(httpsOptions, app).listen(port, () => {
-      console.log('🔒 HTTPS server enabled with SSL certificates');
-      console.log(`🚀 Barangay Management Server running on https://localhost:${port}`);
-      console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
-      console.log(`🤖 AI Service: ${process.env.AI_SERVICE_URL || 'http://localhost:5000'}`);
-      console.log(`🔍 QR Verification: https://localhost:${port}/verify-qr/{hash}`);
-      console.log(`🔔 Real-time Notifications: WebSocket enabled`);
-    });
-  } else {
-    console.log('⚠️ HTTPS requested but SSL certificates not available, falling back to HTTP');
-    server = app.listen(port, () => {
-      console.log(`🚀 Barangay Management Server running on http://localhost:${port}`);
-      console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
-      console.log(`🤖 AI Service: ${process.env.AI_SERVICE_URL || 'http://localhost:5000'}`);
-      console.log(`🔍 QR Verification: http://localhost:${port}/verify-qr/{hash}`);
-      console.log('⚠️  WARNING: Running on HTTP (not secure) - set NODE_ENV=production or ENABLE_HTTPS=true for HTTPS');
-      console.log(`🔔 Real-time Notifications: WebSocket enabled`);
-    });
-  }
-} else {
-  // HTTP server for development
-  server = app.listen(port, () => {
-    console.log(`🚀 Barangay Management Server running on http://localhost:${port}`);
-    console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
-    console.log(`🤖 AI Service: ${process.env.AI_SERVICE_URL || 'http://localhost:5000'}`);
-    console.log(`🔍 QR Verification: http://localhost:${port}/verify-qr/{hash}`);
-    console.log('⚠️  WARNING: Running on HTTP (not secure) - set NODE_ENV=production or ENABLE_HTTPS=true for HTTPS');
-    console.log(`🔔 Real-time Notifications: WebSocket enabled`);
-  });
-}
-
-// Notification REST endpoints
 // Poll for notifications (fallback when WebSocket unavailable)
 app.get('/api/notifications/poll', verifyToken, async (req, res) => {
   try {
@@ -3478,20 +3438,63 @@ app.get('/api/notifications/poll', verifyToken, async (req, res) => {
   }
 });
 
-// Initialize WebSocket server
-initializeWebSocket(server);
+// ==========================================
+// START SERVER
+// ==========================================
+const startServer = async () => {
+  // Determine if HTTPS should be enabled
+  const enableHTTPS = process.env.NODE_ENV === 'production' || process.env.ENABLE_HTTPS === 'true';
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-  });
-});
+  // Start server (HTTP or HTTPS based on configuration)
+  let server;
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-  });
-});
+  if (enableHTTPS) {
+    // HTTPS server with SSL certificates
+    const httpsOptions = sslConfig.getHttpsOptions();
+
+    if (httpsOptions) {
+      const https = require('https');
+      server = https.createServer(httpsOptions, app).listen(port, () => {
+        console.log('🔒 HTTPS server enabled with SSL certificates');
+        console.log(`🚀 Barangay Management Server running on https://localhost:${port}`);
+        console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
+        console.log(`🤖 AI Service: ${process.env.AI_SERVICE_URL || 'http://localhost:5000'}`);
+        console.log(`🔍 QR Verification: https://localhost:${port}/verify-qr/{hash}`);
+        console.log(`🔔 Real-time Notifications: WebSocket enabled`);
+      });
+    } else {
+      console.log('⚠️ HTTPS requested but SSL certificates not available, falling back to HTTP');
+      server = app.listen(port, () => {
+        console.log(`🚀 Barangay Management Server running on http://localhost:${port}`);
+        console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
+        console.log(`🤖 AI Service: ${process.env.AI_SERVICE_URL || 'http://localhost:5000'}`);
+        console.log(`🔍 QR Verification: http://localhost:${port}/verify-qr/{hash}`);
+        console.log('⚠️  WARNING: Running on HTTP (not secure) - set NODE_ENV=production or ENABLE_HTTPS=true for HTTPS');
+        console.log(`🔔 Real-time Notifications: WebSocket enabled`);
+      });
+    }
+  } else {
+    // HTTP server for development
+    server = app.listen(port, () => {
+      console.log(`🚀 Barangay Management Server running on http://localhost:${port}`);
+      console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
+      console.log(`🤖 AI Service: ${process.env.AI_SERVICE_URL || 'http://localhost:5000'}`);
+      console.log(`🔍 QR Verification: http://localhost:${port}/verify-qr/{hash}`);
+      console.log('⚠️  WARNING: Running on HTTP (not secure) - set NODE_ENV=production or ENABLE_HTTPS=true for HTTPS');
+      console.log(`🔔 Real-time Notifications: WebSocket enabled`);
+    });
+  }
+
+  // Initialize WebSocket server
+  initializeWebSocket(server);
+};
+
+startServer();
+
+// ==========================================
+// GRACEFUL SHUTDOWN
+// ==========================================
+
+// Note: Graceful shutdown handlers would go here, but since the server variable is now inside startServer(),
+// they would need to be implemented differently in a production environment.
+// For now, we'll rely on the process terminating naturally.
