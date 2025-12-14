@@ -6,7 +6,7 @@
   "description": "Complete Barangay Management System with AI Integration",
   "scripts": {
     "dev": "npm run dev --prefix client",
-    "start": "concurrently \"npm run dev --prefix client\" \"node server/index.js\"",
+    "start": "node server/index.js",
     "build": "npm run build --prefix client",
     "lint": "eslint .",
     "preview": "npm run preview --prefix client",
