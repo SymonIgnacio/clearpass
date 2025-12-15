@@ -231,6 +231,66 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '10mb' })); // Limit payload size
 app.use(requestLogger);
 
+// Apply CORS middleware to ALL routes (including /api/*) with OPTIONS handling
+app.use('/api', cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Allow ALL Netlify domains in production
+    if (process.env.NODE_ENV === 'production' && origin && origin.includes('netlify.app')) {
+      console.log(`✅ API CORS ALLOW: ${origin} - ${new Date().toISOString()}`);
+      return callback(null, true);
+    }
+
+    // Allow localhost in development
+    if (process.env.NODE_ENV !== 'production' && origin && (
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      corsOrigins.includes(origin)
+    )) {
+      return callback(null, true);
+    }
+
+    // Production-specific domains
+    if (corsOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    console.log(`❌ API CORS DENY: ${origin} - ${new Date().toISOString()}`);
+    return callback(new Error('API access denied by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With'
+  ],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
+}));
+
+// Handle preflight OPTIONS requests for all /api routes
+app.options('/api/*', cors({
+  origin: function (origin, callback) {
+    // Allow all Netlify origins for preflight
+    if (process.env.NODE_ENV === 'production' && (!origin || origin.includes('netlify.app'))) {
+      return callback(null, true);
+    }
+    // Allow localhost in development
+    if (process.env.NODE_ENV !== 'production' && (!origin ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      corsOrigins.includes(origin)
+    )) {
+      return callback(null, true);
+    }
+    return callback(null, true); // Allow for other cases
+  },
+  credentials: true
+}));
+
 // CSRF Protection completely disabled (moved to production-ready implementation)
 // TODO: Implement proper CSRF handling with React CSRF tokens
 // app.use(csurf({ cookie: true }));
