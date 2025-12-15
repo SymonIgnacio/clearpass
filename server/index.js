@@ -291,8 +291,10 @@ console.log('🔧 [Route Registration] Registering authentication routes...');
 // ==========================================
 
 // Public authentication routes (no middleware needed)
+// Support both /auth/... and /api/auth/... paths temporarily for compatibility
 console.log('🔧 [Route Registration] Setting up /api/auth/login');
-app.post('/api/auth/login', authController.residentLogin); // Residents - Firebase only
+app.post('/api/auth/login', authController.residentLogin); // Primary /api route
+app.post('/auth/login', authController.residentLogin); // Legacy /auth route
 
 console.log('🔧 [Route Registration] Setting up /api/auth/officer-login');
 app.post('/api/auth/officer-login', (req, res) => {
@@ -301,10 +303,19 @@ app.post('/api/auth/officer-login', (req, res) => {
     hasPassword: !!req.body?.password
   });
   return authController.staffLogin(req, res);
-}); // Staff - Database only
+}); // Primary /api route
+
+app.post('/auth/officer-login', (req, res) => {
+  console.log('🚀 [Route Hit] /auth/officer-login called with body:', {
+    username: req.body?.username,
+    hasPassword: !!req.body?.password
+  });
+  return authController.staffLogin(req, res);
+}); // Legacy /auth route
 
 console.log('🔧 [Route Registration] Setting up /api/auth/register');
 app.post('/api/auth/register', verifyToken, checkRole(['Super Admin']), authController.register);
+app.post('/auth/register', verifyToken, checkRole(['Super Admin']), authController.register);
 
 console.log('🔧 [Route Registration] Authentication routes registered successfully');
 
