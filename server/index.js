@@ -3230,9 +3230,10 @@ app.get('/residents', verifyToken, checkRole(['admin', 'captain', 'secretary', '
     let whereClause = '';
     let values = [];
 
-    if (search) {
+    if (search && search.trim()) {
       whereClause = 'WHERE r.First_Name LIKE ? OR r.Last_Name LIKE ? OR r.Mobile_Number LIKE ?';
-      values = [`%${search}%`, `%${search}%`, `%${search}%`];
+      const searchTerm = `%${search.trim()}%`;
+      values = [searchTerm, searchTerm, searchTerm];
     }
 
     const [rows] = await db.execute(`
