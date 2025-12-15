@@ -54,7 +54,23 @@ const OfficerLogin = ({ onLogin }) => {
       onLogin(user)
     } catch (err) {
       console.error('Officer login error:', err)
-      setError('Login failed. Please check your credentials.')
+      // Show more detailed error information
+      let errorMessage = 'Login failed. Please check your credentials.'
+      if (err.message) {
+        errorMessage += ` (${err.message})`
+      }
+      // Try to get error details from response if available
+      if (err.response) {
+        try {
+          const errorData = await err.response.json()
+          if (errorData.error) {
+            errorMessage = errorData.error
+          }
+        } catch (parseError) {
+          // Ignore parse errors
+        }
+      }
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

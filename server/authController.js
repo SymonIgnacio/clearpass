@@ -1535,6 +1535,7 @@ async function staffLogin(req, res) {
     const { username, password } = req.body;
 
     console.log('🔐 Staff login attempt for:', username);
+    console.log('🔐 Request body:', { username, hasPassword: !!password });
 
     // Get client IP for logging
     const clientIP = req.ip || req.connection.remoteAddress ||
@@ -1564,21 +1565,36 @@ async function staffLogin(req, res) {
     }
 
     // Find staff user in users table (using Knex for consistency with existing code)
-    const user = await knex('users')
-      .where('username', username)
-      .where('is_active', true)
-      .first();
+    let user;
+    try {
+      console.log('🔍 Staff login: querying users table for username:', username);
+      user = await knex('users')
+        .where('username', username)
+        .where('is_active', true)
+        .first();
+      console.log('🔍 Staff login: query result:', { found: !!user, userId: user?.id, userRole: user?.role });
+    } catch (dbError) {
+      console.error('❌ Staff login database error:', dbError);
+      return res.status(500).json({
+        error: 'Database connection error',
+        details: dbError.message
+      });
+    }
 
     if (!user) {
       console.log('❌ Staff login failed: user not found');
 
       // Log failed attempt
-      await knex('login_attempts').insert({
-        username: username || '',
-        ip_address: clientIP,
-        success: false,
-        reason: 'Missing credentials'
-      }).catch(err => console.error('Failed to log login attempt:', err));
+      try {
+        await knex('login_attempts').insert({
+          username: username || '',
+          ip_address: clientIP,
+          success: false,
+          reason: 'User not found'
+        }).catch(err => console.error('Failed to log login attempt:', err));
+      } catch (logError) {
+        console.error('Failed to create log entry:', logError);
+      }
 
       return res.status(401).json({
         error: 'Invalid credentials'
@@ -1681,12 +1697,16 @@ async function staffLogin(req, res) {
       user: userResponse
     });
 
-  } catch (error) {
-    console.error('Staff login error:', error);
-    res.status(500).json({
-      error: 'Internal server error during staff authentication'
-    });
-  }
+    } catch (error) {
+      console.error('❌ Staff login error:', error);
+      console.error('❌ Error stack:', error.stack);
+      console.error('❌ Error name:', error.name);
+      console.error('❌ Error message:', error.message);
+      res.status(500).json({
+        error: 'Internal server error during staff authentication',
+        details: error.message
+      });
+    }
 }
 
 /**
