@@ -4,11 +4,13 @@ const mysql = require('mysql2/promise');
 const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
 
 // Initialize database connection (same as server)
+// Use the same database config as server/index.js
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'barangay_management',
+  host: process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost',
+  user: process.env.MYSQL_USERNAME || process.env.DB_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || '',
+  database: process.env.MYSQL_DATABASE || process.env.DB_NAME || 'barangay_management',
+  port: process.env.MYSQL_PORT || process.env.DB_PORT || 3306,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -1918,8 +1920,8 @@ async function residentLogin(req, res) {
 }
 
 /**
- * Simplified Login - Direct MySQL authentication for staff (temporary fix)
- * This bypasses the complex Firebase routing and uses direct database auth
+ * Simplified Login - Direct MySQL authentication for all users
+ * This provides consistent authentication using database credentials
  */
 async function hybridLogin(req, res) {
   try {
@@ -1927,20 +1929,109 @@ async function hybridLogin(req, res) {
 
     console.log('🔐 Login attempt for:', username);
 
-    // For staff users, always use MySQL authentication
+    // Determine user type and route to appropriate auth method
     const staffUsernames = ['superadmin', 'captain', 'secretary', 'clerk'];
-    if (staffUsernames.includes(username)) {
-      console.log('👔 Detected staff user, using MySQL auth');
-      return staffLogin(req, res);
-    }
 
-    // For now, use Firebase auth for non-staff users (can be expanded later)
-    console.log('🏠 Detected resident user, using Firebase auth');
-    return residentLogin(req, res);
+    if (staffUsernames.includes(username)) {
+      console.log('👔 Detected staff user, using staff auth');
+      return staffLogin(req, res);
+    } else {
+      console.log('🏠 Detected resident user, using database auth');
+
+      // For residents, use database authentication (simplified approach)
+      const { password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({
+          error: 'Username and password are required'
+        });
+      }
+
+      // Find user in database
+      const user = await knex('users')
+        .where('username', username)
+        .where('is_active', true)
+        .first();
+
+      if (!user) {
+        return res.status(401).json({
+          error: 'Invalid credentials'
+        });
+      }
+
+      // Verify password (support both bcrypt and plain text)
+      let isValidPassword = false;
+
+      try {
+        // Try bcrypt first (for properly hashed passwords)
+        isValidPassword = await bcrypt.compare(password, user.password_hash);
+      } catch (bcryptError) {
+        // Fallback: check plain text (for existing users)
+        isValidPassword = (user.password_hash === password);
+      }
+
+      if (!isValidPassword) {
+        return res.status(401).json({
+          error: 'Invalid credentials'
+        });
+      }
+
+      // Update last login
+      await knex('users')
+        .where('id', user.id)
+        .update({ last_login: knex.fn.now() });
+
+      // Get role information
+      const roleInfo = ROLE_HIERARCHY[user.role] || ROLE_HIERARCHY['resident'];
+
+      // Create user object with hierarchy information
+      const userWithHierarchy = {
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role,
+        role_name: roleInfo.display_name,
+        hierarchy_level: roleInfo.level,
+        permissions: roleInfo.permissions,
+        resident_id: user.resident_id,
+        residency_status: user.residency_status,
+        firebase_uid: user.firebase_uid,
+        auth_type: 'database'
+      };
+
+      // Generate JWT token
+      const token = generateToken(userWithHierarchy);
+
+      console.log('✅ Resident login successful for:', username);
+
+      // Return user info
+      const userResponse = {
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role,
+        role_name: roleInfo.display_name,
+        hierarchy_level: roleInfo.level,
+        permissions: roleInfo.permissions,
+        resident_id: user.resident_id,
+        residency_status: user.residency_status,
+        firebase_uid: user.firebase_uid,
+        auth_type: 'database'
+      };
+
+      res.json({
+        message: 'Login successful',
+        token,
+        user: userResponse
+      });
+    }
 
   } catch (error) {
     console.error('Login error:', error);
-    return residentLogin(req, res); // Default fallback
+    res.status(500).json({
+      error: 'Internal server error'
+    });
   }
 }
 
