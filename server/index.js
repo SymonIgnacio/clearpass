@@ -1107,12 +1107,14 @@ app.get('/api/residents', verifyToken, checkRole(['admin', 'captain', 'secretary
     const { page = 1, limit = 50, search, sitio_id, residency_status, show_vulnerable } = req.query;
     const offset = (page - 1) * limit;
 
+    // Build the query safely step by step
     let whereConditions = [];
     let values = [];
 
-    if (search) {
-      whereConditions.push('(r.First_Name LIKE ? OR r.Last_Name LIKE ? OR r.Mobile_Number LIKE ?)');
-      values.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    if (search && search.trim()) {
+      whereConditions.push('r.First_Name LIKE ? OR r.Last_Name LIKE ? OR r.Mobile_Number LIKE ?');
+      const searchTerm = `%${search.trim()}%`;
+      values.push(searchTerm, searchTerm, searchTerm);
     }
 
     if (sitio_id) {
@@ -1131,7 +1133,19 @@ app.get('/api/residents', verifyToken, checkRole(['admin', 'captain', 'secretary
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    const [rows] = await db.execute(`
+    console.log('🚀 RESIDENTS QUERY DEBUG:', {
+      search,
+      sitio_id,
+      residency_status,
+      show_vulnerable,
+      whereConditions,
+      values,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    // Execute the main query with proper parameter binding
+    const mainQuery = `
       SELECT
         r.*,
         h.Household_Number,
@@ -1150,16 +1164,29 @@ app.get('/api/residents', verifyToken, checkRole(['admin', 'captain', 'secretary
       LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
       ${whereClause}
       ORDER BY r.Last_Name, r.First_Name
-      LIMIT ? OFFSET ?
-    `, [...values, parseInt(limit), offset]);
+      LIMIT ?
+      OFFSET ?
+    `;
 
-    const [totalRows] = await db.execute(`
+    // Parameter order: WHERE conditions + LIMIT + OFFSET
+    const mainParams = [...values, parseInt(limit), parseInt(offset)];
+    console.log('🚀 MAIN QUERY:', { sql: mainQuery, params: mainParams });
+
+    const [rows] = await db.execute(mainQuery, mainParams);
+
+    // Count query without LIMIT/OFFSET
+    const countQuery = `
       SELECT COUNT(*) as total
       FROM residents r
       LEFT JOIN households h ON r.Household_ID = h.Household_ID
       LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
       ${whereClause}
-    `, values);
+    `;
+
+    const countParams = values;
+    console.log('🚀 COUNT QUERY:', { sql: countQuery, params: countParams });
+
+    const [totalRows] = await db.execute(countQuery, countParams);
 
     res.json({
       data: rows,
