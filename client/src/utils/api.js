@@ -75,6 +75,12 @@ export const apiRequest = async (endpoint, options = {}) => {
   if (response.status === 401) {
     console.log('🔐 [API Error] 401 Unauthorized - clearing all authentication data')
 
+    // Determine user type BEFORE clearing localStorage
+    const officerUser = localStorage.getItem('user')
+    const officerToken = localStorage.getItem('authToken')
+    const residentUser = localStorage.getItem('residentUser')
+    const residentToken = localStorage.getItem('residentAuthToken')
+
     // Clear officer authentication data
     localStorage.removeItem('authToken')
     localStorage.removeItem('user')
@@ -88,17 +94,30 @@ export const apiRequest = async (endpoint, options = {}) => {
     localStorage.removeItem('currentUser')
     localStorage.removeItem('userRole')
 
-    // Determine appropriate login page based on available data or redirect to generic login
-    const officerUser = localStorage.getItem('user')
-    const residentUser = localStorage.getItem('residentUser')
+    // Determine appropriate login page based on the stored user data
+    let redirectPath = '/login'; // Default to resident login
 
-    if (!officerUser && !residentUser) {
-      // No auth data found, go to resident login (most common)
-      window.location.href = '/login'
-    } else {
-      window.location.href = '/'
+    if (officerUser && officerToken) {
+      try {
+        const parsedUser = JSON.parse(officerUser)
+        // Check if this was a staff user (admin, captain, secretary, clerk)
+        const staffRoles = ['admin', 'captain', 'secretary', 'clerk']
+        if (parsedUser.role && staffRoles.includes(parsedUser.role)) {
+          redirectPath = '/officerlogin'
+          console.log('🔐 [API Error] Redirecting staff user to officer login')
+        } else {
+          console.log('🔐 [API Error] Redirecting non-staff user to resident login')
+        }
+      } catch (parseError) {
+        console.error('❌ [API Error] Failed to parse officer user data:', parseError)
+      }
+    } else if (residentUser && residentToken) {
+      // Resident user - redirect to resident login
+      redirectPath = '/login'
+      console.log('🔐 [API Error] Redirecting resident user to resident login')
     }
 
+    window.location.href = redirectPath
     throw new Error('Authentication required')
   }
 
@@ -137,6 +156,29 @@ export const getCurrentUser = () => {
 
 // Logout function - clears all authentication data for both user types
 export const logout = () => {
+  // Determine user type before clearing data
+  const officerUser = localStorage.getItem('user')
+  let redirectPath = '/' // Default
+
+  if (officerUser) {
+    try {
+      const parsedUser = JSON.parse(officerUser)
+      const staffRoles = ['admin', 'captain', 'secretary', 'clerk']
+      if (parsedUser.role && staffRoles.includes(parsedUser.role)) {
+        redirectPath = '/officerlogin'
+      } else {
+        redirectPath = '/login'
+      }
+    } catch (error) {
+      console.error('Error parsing user data during logout:', error)
+      redirectPath = '/login'
+    }
+  } else {
+    // Check for resident user
+    const residentUser = localStorage.getItem('residentUser')
+    redirectPath = residentUser ? '/login' : '/'
+  }
+
   // Clear officer authentication
   localStorage.removeItem('authToken');
   localStorage.removeItem('user');
@@ -144,6 +186,11 @@ export const logout = () => {
   // Clear resident authentication
   localStorage.removeItem('residentAuthToken');
   localStorage.removeItem('residentUser');
+  localStorage.removeItem('residentAuthTimestamp');
 
-  window.location.href = '/';
+  // Clear any other auth-related data
+  localStorage.removeItem('currentUser')
+  localStorage.removeItem('userRole')
+
+  window.location.href = redirectPath;
 };

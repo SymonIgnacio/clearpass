@@ -108,9 +108,25 @@ const ProtectedRoute = ({ children, requiredRoles = [] }) => {
     )
   }
 
-  // Redirect to login if not authenticated
+  // Redirect to appropriate login page if not authenticated
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    // Check if user was a staff member by examining stored user data before cleanup
+    const storedUser = localStorage.getItem('user')
+    let loginPath = '/login' // Default to resident login
+
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser)
+        const staffRoles = ['admin', 'captain', 'secretary', 'clerk']
+        if (parsedUser.role && staffRoles.includes(parsedUser.role)) {
+          loginPath = '/officerlogin'
+        }
+      } catch (error) {
+        console.error('Error parsing stored user data for login redirect:', error)
+      }
+    }
+
+    return <Navigate to={loginPath} replace />
   }
 
     // Check role-based access if required roles are specified
