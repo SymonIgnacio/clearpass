@@ -112,17 +112,16 @@ const corsOrigins = process.env.NODE_ENV === 'production'
       process.env.CORS_ORIGIN,
       'https://stalwart-sorbet-d70d32.netlify.app',
       'https://agent-693f2dd0af115f4fdd--stalwart-sorbet-d70d32.netlify.app',
-      'https://courageous-cupcake-987b2b.netlify.app', // Add your current URL
+      'https://courageous-cupcake-987b2b.netlify.app',
+      'https://glistening-lamington-a9e2b7.netlify.app', // NEW Netlify frontend
       // Add any future URLs here
-      '*' // Temporarily allow all origins for testing
     ].filter(Boolean)
   : [
       'http://localhost:5173',
       'http://localhost:5174',
       'http://localhost:3000',
       'http://127.0.0.1:5173',
-      'http://127.0.0.1:5174',
-      '*' // Also allow all origins in development
+      'http://127.0.0.1:5174'
     ];
 
 console.log('🔧 CORS Configuration:');
