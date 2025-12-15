@@ -119,7 +119,9 @@ const corsOrigins = process.env.NODE_ENV === 'production'
 
 console.log('🔧 CORS Configuration:');
 console.log('   NODE_ENV:', process.env.NODE_ENV);
-console.log('   Allowed origins:', corsOrigins);
+console.log('   CLIENT_URL:', process.env.CLIENT_URL);
+console.log('   CORS_ORIGIN:', process.env.CORS_ORIGIN);
+console.log('   Filtered origins:', corsOrigins);
 
 app.use(cors({
   origin: corsOrigins,
@@ -182,21 +184,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// Test route to verify CORS without auth (for debugging)
-app.get('/cors-test', (req, res) => {
-  console.log('🧪 CORS Test Hit:', {
-    origin: req.headers.origin,
-    method: req.method,
-    url: req.url
-  });
-
-  res.json({
-    message: 'CORS test successful!',
-    timestamp: new Date().toISOString(),
-    origin: req.headers.origin,
-    allowed: true
-  });
-});
+// CORS diagnostics (temporary)
+console.log('CORS Diagnostics - Debug Information:');
+console.log('  - CLIENT_URL env:', process.env.CLIENT_URL);
+console.log('  - CORS_ORIGIN env:', process.env.CORS_ORIGIN);
+console.log('  - NODE_ENV:', process.env.NODE_ENV);
+console.log('  - In production mode:', process.env.NODE_ENV === 'production');
+// End CORS diagnostics
 
 // Apply rate limiting
 // Temporarily disabled for development/testing
@@ -3477,7 +3471,15 @@ app.get('/api/notifications/poll', verifyToken, async (req, res) => {
 // ==========================================
 const startServer = async () => {
   // Determine if HTTPS should be enabled
-  const enableHTTPS = process.env.NODE_ENV === 'production' || process.env.ENABLE_HTTPS === 'true';
+  // NOTE: Railway only supports HTTP - disable HTTPS for Railway deployments
+  const isRailway = process.env.RAILWAY_STATIC_URL !== undefined;
+  const enableHTTPS = !isRailway && (process.env.NODE_ENV === 'production' || process.env.ENABLE_HTTPS === 'true');
+
+  console.log('🔧 Server Configuration:');
+  console.log('   NODE_ENV:', process.env.NODE_ENV);
+  console.log('   ENABLE_HTTPS:', process.env.ENABLE_HTTPS);
+  console.log('   isRailway:', isRailway);
+  console.log('   HTTPS enabled:', enableHTTPS);
 
   // Start server (HTTP or HTTPS based on configuration)
   let server;
