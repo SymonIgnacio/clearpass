@@ -130,38 +130,35 @@ console.log('   CLIENT_URL:', process.env.CLIENT_URL);
 console.log('   CORS_ORIGIN:', process.env.CORS_ORIGIN);
 console.log('   Filtered origins:', corsOrigins);
 
-// Production-ready CORS configuration for Railway + Netlify deployment
+// SIMPLIFIED CORS CONFIGURATION - Force deploy with minimal config
+console.log(`🌐 DEPLOYMENT_CORS_CHECK: ${new Date().toISOString()}`);
+
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    // Allow all configured origins
+    // Allow ALL Netlify domains in production
+    if (process.env.NODE_ENV === 'production' && origin && origin.includes('netlify.app')) {
+      console.log(`✅ DEPLOYMENT_CORS_ALLOW: ${origin} - ${new Date().toISOString()}`);
+      return callback(null, true);
+    }
+
+    // Allow localhost in development
+    if (process.env.NODE_ENV !== 'production' && origin && (
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      corsOrigins.includes(origin)
+    )) {
+      return callback(null, true);
+    }
+
+    // Production-specific domains
     if (corsOrigins.includes(origin)) {
       return callback(null, true);
     }
 
-    // Additional production origins check
-    if (process.env.NODE_ENV === 'production') {
-      // Allow Netlify domains
-      if (origin.includes('netlify.app') ||
-          origin.includes('glistening-lamington') ||
-          origin === 'https://glistening-lamington-a9e2b7.netlify.app') {
-        console.log(`🔧 ALLOWING CORS for Netlify domain: ${origin}`);
-        return callback(null, true);
-      }
-    }
-
-    // For development, allow localhost
-    if (process.env.NODE_ENV !== 'production') {
-      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-        console.log(`🔧 ALLOWING CORS for localhost: ${origin}`);
-        return callback(null, true);
-      }
-    }
-
-    console.warn(`🚫 CORS BLOCKED for origin: ${origin}`);
-    console.warn(`   Allowed origins: ${corsOrigins.join(', ')}`);
+    console.log(`❌ DEPLOYMENT_CORS_DENY: ${origin} - ${new Date().toISOString()}`);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -169,42 +166,11 @@ app.use(cors({
   allowedHeaders: [
     'Content-Type',
     'Authorization',
-    'X-Requested-With',
-    'Accept',
-    'Origin',
-    'Access-Control-Request-Method',
-    'Access-Control-Request-Headers',
-    'Access-Control-Allow-Origin'
+    'X-Requested-With'
   ],
-  maxAge: 86400,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 }));
-
-// Critical: Explicit preflight handling for all routes
-app.options('*', cors(), (req, res) => {
-  console.log(`🔧 Preflight request handled for: ${req.method} ${req.originalUrl}`);
-  res.status(200).header({
-    'Access-Control-Allow-Origin': req.headers.origin || '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers, Access-Control-Allow-Origin',
-    'Access-Control-Max-Age': '86400'
-  }).end();
-});
-
-// Additional CORS headers middleware
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (corsOrigins.includes(origin) ||
-      (process.env.NODE_ENV === 'production' &&
-       (origin && origin.includes('netlify.app')))) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
-  next();
-});
 
 // Add debug middleware to log all incoming requests
 app.use((req, res, next) => {
