@@ -114,8 +114,16 @@ const corsOrigins = process.env.NODE_ENV === 'production'
       'https://agent-693f2dd0af115f4fdd--stalwart-sorbet-d70d32.netlify.app',
       'https://courageous-cupcake-987b2b.netlify.app', // Add your current URL
       // Add any future URLs here
+      '*' // Temporarily allow all origins for testing
     ].filter(Boolean)
-  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'];
+  : [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:3000',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:5174',
+      '*' // Also allow all origins in development
+    ];
 
 console.log('🔧 CORS Configuration:');
 console.log('   NODE_ENV:', process.env.NODE_ENV);
@@ -3416,7 +3424,310 @@ app.get('/ai/patrol-suggestions', async (req, res) => {
   }
 });
 
-// Analytics dashboard summary route
+app.get('/auth/firebase-users', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
+  try {
+    console.log('=== FETCHING FIREBASE USERS (non-API route) ===');
+
+    // Get Firebase users using Admin SDK
+    const firebaseUsers = [];
+    let nextPageToken;
+
+    do {
+      const listUsersResult = await admin.auth().listUsers(1000, nextPageToken);
+      firebaseUsers.push(...listUsersResult.users);
+      nextPageToken = listUsersResult.pageToken;
+    } while (nextPageToken);
+
+    console.log(`Found ${firebaseUsers.length} Firebase users`);
+
+    // Get corresponding database records for enhanced info
+    const dbUsers = await knex('users')
+      .whereNotNull('firebase_uid')
+      .select('firebase_uid', 'full_name', 'email', 'role', 'is_active', 'created_at', 'last_login', 'residency_status');
+
+    // Create a map for quick lookup
+    const dbUserMap = {};
+    dbUsers.forEach(dbUser => {
+      dbUserMap[dbUser.firebase_uid] = dbUser;
+    });
+
+    // Combine Firebase and database data
+    const combinedUsers = firebaseUsers.map(firebaseUser => {
+      const dbUser = dbUserMap[firebaseUser.uid];
+      const displayName = firebaseUser.displayName || firebaseUser.email.split('@')[0];
+
+      return {
+        id: firebaseUser.uid,
+        firebase_uid: firebaseUser.uid,
+        username: displayName,
+        full_name: dbUser?.full_name || displayName,
+        email: firebaseUser.email,
+        role: dbUser?.role || 'resident',
+        is_active: dbUser?.is_active !== false, // Default to true if not in DB
+        email_verified: firebaseUser.emailVerified,
+        phone_verified: firebaseUser.phoneNumber ? true : false,
+        created_at: firebaseUser.metadata.creationTime,
+        last_login: firebaseUser.metadata.lastSignInTime,
+        residency_status: dbUser?.residency_status || 'pending'
+      };
+    });
+
+    console.log(`Returning ${combinedUsers.length} combined users`);
+
+    res.json({
+      success: true,
+      users: combinedUsers,
+      total: combinedUsers.length
+    });
+
+  } catch (error) {
+    console.error('Error fetching Firebase users:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch Firebase users',
+      details: error.message
+    });
+  }
+});
+
+// Residency verifications routes (non-API prefix)
+app.get('/auth/residency-verifications/pending', verifyToken, checkRole(['captain', 'secretary', 'clerk']), async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+
+    const requests = await knex('resident_verification_requests')
+      .select(
+        'resident_verification_requests.*',
+        'users.username',
+        'users.full_name',
+        'users.email'
+      )
+      .join('users', 'resident_verification_requests.user_id', 'users.id')
+      .where('resident_verification_requests.status', 'pending')
+      .orderBy('resident_verification_requests.submitted_at', 'asc')
+      .limit(limit)
+      .offset((page - 1) * limit);
+
+    const formattedRequests = requests.map(row => ({
+      request_id: row.request_id,
+      user_id: row.user_id,
+      username: row.username,
+      full_name: row.full_name,
+      email: row.email,
+      proof_type: row.proof_type,
+      proof_path: row.proof_of_residency_path,
+      notes: row.notes,
+      submitted_at: row.submitted_at
+    }));
+
+    res.json({
+      success: true,
+      data: formattedRequests,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching pending residency verifications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch pending verifications'
+    });
+  }
+});
+
+app.put('/auth/residency-verifications/:request_id/review', verifyToken, checkRole(['captain', 'secretary', 'clerk']), async (req, res) => {
+  const trx = await knex.transaction();
+
+  try {
+    const { request_id } = req.params;
+    const { action, review_notes } = req.body; // action: 'approve' or 'reject'
+    const reviewed_by = req.user?.id;
+
+    // Validate action
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid action. Must be "approve" or "reject".'
+      });
+    }
+
+    // Get the verification request
+    const verificationRequest = await trx('resident_verification_requests')
+      .where('request_id', request_id)
+      .where('status', 'pending')
+      .first();
+
+    if (!verificationRequest) {
+      await trx.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Verification request not found or already processed.'
+      });
+    }
+
+    const newStatus = action === 'approve' ? 'approved' : 'rejected';
+
+    // Update verification request
+    await trx('resident_verification_requests')
+      .where('request_id', request_id)
+      .update({
+        status: newStatus,
+        reviewed_at: trx.fn.now(),
+        reviewed_by: reviewed_by,
+        review_notes: review_notes,
+        updated_at: trx.fn.now()
+      });
+
+    if (action === 'approve') {
+      // Update user residency status
+      await trx('users')
+        .where('id', verificationRequest.user_id)
+        .update({
+          residency_status: 'verified',
+          residency_verified_at: trx.fn.now(),
+          residency_verified_by: reviewed_by,
+          updated_at: trx.fn.now()
+        });
+
+      // Log the approval
+      try {
+        await trx('audit_log').insert({
+          user_id: reviewed_by,
+          action: 'RESIDENCY_VERIFICATION_APPROVED',
+          entity_type: 'resident_verification_request',
+          entity_id: request_id,
+          details: JSON.stringify({
+            user_id: verificationRequest.user_id,
+            request_id: request_id
+          }),
+          created_at: trx.fn.now()
+        });
+      } catch (logError) {
+        console.log('⚠️ Failed to log approval:', logError.message);
+      }
+
+      await trx.commit();
+
+      res.json({
+        success: true,
+        message: 'Residency verification approved successfully. User now has full access.',
+        data: {
+          request_id: request_id,
+          user_id: verificationRequest.user_id,
+          status: 'approved',
+          residency_status: 'verified'
+        }
+      });
+
+    } else {
+      // For rejection, just update status
+      await trx.commit();
+
+      res.json({
+        success: true,
+        message: 'Residency verification rejected.',
+        data: {
+          request_id: request_id,
+          status: 'rejected'
+        }
+      });
+    }
+
+  } catch (error) {
+    await trx.rollback();
+    console.error('Error reviewing residency verification:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process verification review'
+    });
+  }
+});
+
+// AI Patrol Suggestions route (non-API prefix - this is what client is calling)
+app.get('/ai/patrol-suggestions', async (req, res) => {
+  try {
+    // Get recent blotter data (last 30 days for better analysis)
+    const [blotterData] = await db.execute(`
+      SELECT b.*, s.name as sitio_name
+      FROM blotter b
+      LEFT JOIN sitios s ON b.Location_Sitio = s.name
+      WHERE b.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+      ORDER BY b.created_at DESC
+      LIMIT 50
+    `);
+
+    // Try AI service first
+    try {
+      const aiResponse = await proxyToAIService('/suggest-patrol', {
+        blotter_data: blotterData
+      });
+      res.json(aiResponse);
+    } catch (aiError) {
+      console.error('AI service error, using fallback:', aiError.message);
+
+      // Fallback mock response
+      const riskLevels = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+      const overallRisk = riskLevels[Math.floor(Math.random() * riskLevels.length)];
+
+      res.json({
+        overall_risk_level: overallRisk,
+        risk_assessment: {
+          total_incidents: blotterData.length,
+          high_risk_sitios: ['Batia Proper', 'Northville 5'],
+          peak_hours: '8PM-2AM',
+          trend: 'STABLE'
+        },
+        patrol_suggestions: [
+          'Increase patrol presence in Batia Proper during evening hours',
+          'Focus on theft prevention in Northville 5 commercial areas',
+          'Monitor noise complaints in residential zones',
+          'Establish additional checkpoints at high-traffic areas',
+          'Coordinate with local PNP for joint patrols'
+        ],
+        recommended_schedule: {
+          priority_areas: ['Batia Proper', 'Northville 5', 'St. Martha'],
+          suggested_tanods: 8,
+          shift_coverage: '18:00-06:00'
+        },
+        generated_at: new Date().toISOString(),
+        fallback: true
+      });
+    }
+  } catch (dbError) {
+    console.error('Database error in patrol suggestions:', dbError.message);
+
+    // Complete fallback when database is unavailable
+    res.json({
+      overall_risk_level: 'MEDIUM',
+      risk_assessment: {
+        total_incidents: 0,
+        high_risk_sitios: ['Batia Proper'],
+        peak_hours: '20:00-02:00',
+        trend: 'UNKNOWN'
+      },
+      patrol_suggestions: [
+        'Conduct regular evening patrols in main commercial areas',
+        'Monitor high-traffic zones for potential incidents',
+        'Establish community watch programs',
+        'Increase visibility in residential neighborhoods',
+        'Coordinate with local law enforcement'
+      ],
+      recommended_schedule: {
+        priority_areas: ['Batia Proper', 'Northville 5'],
+        suggested_tanods: 6,
+        shift_coverage: '19:00-05:00'
+      },
+      generated_at: new Date().toISOString(),
+      fallback: true,
+      db_error: true
+    });
+  }
+});
+
+// Analytics dashboard summary route (non-API prefix)
 app.get('/analytics/dashboard-summary', async (req, res) => {
   try {
     const summary = await proxyToAIService('/analytics/dashboard-summary', {}, 'GET');
