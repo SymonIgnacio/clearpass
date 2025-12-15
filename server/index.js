@@ -128,6 +128,24 @@ app.use(cors({
   credentials: true
 }));
 
+// Add debug middleware to log all incoming requests
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  const method = req.method;
+  const url = req.originalUrl;
+
+  console.log(`[${timestamp}] ${method} ${url} - Incoming Request`);
+
+  // Override res.json to log responses
+  const originalJson = res.json;
+  res.json = function(data) {
+    console.log(`[${timestamp}] ${method} ${url} - Response: ${res.statusCode} ${typeof data === 'object' ? 'JSON' : 'HTML'}`);
+    return originalJson.call(this, data);
+  };
+
+  next();
+});
+
 // Note: Static file serving removed for separate frontend deployment
 
 // Security middleware - applied before body parsing
