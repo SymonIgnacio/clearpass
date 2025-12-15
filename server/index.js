@@ -133,6 +133,7 @@ console.log('   Filtered origins:', corsOrigins);
 // SIMPLIFIED CORS CONFIGURATION - Force deploy with minimal config
 console.log(`🌐 DEPLOYMENT_CORS_CHECK: ${new Date().toISOString()}`);
 
+// CRITICAL FIX: GLOBAL CORS BEFORE ANY ROUTES
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
@@ -140,7 +141,7 @@ app.use(cors({
 
     // Allow ALL Netlify domains in production
     if (process.env.NODE_ENV === 'production' && origin && origin.includes('netlify.app')) {
-      console.log(`✅ DEPLOYMENT_CORS_ALLOW: ${origin} - ${new Date().toISOString()}`);
+      console.log(`✅ GLOBAL_CORS_ALLOW: ${origin} - ${new Date().toISOString()}`);
       return callback(null, true);
     }
 
@@ -158,7 +159,7 @@ app.use(cors({
       return callback(null, true);
     }
 
-    console.log(`❌ DEPLOYMENT_CORS_DENY: ${origin} - ${new Date().toISOString()}`);
+    console.log(`❌ GLOBAL_CORS_DENY: ${origin} - ${new Date().toISOString()}`);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -172,6 +173,67 @@ app.use(cors({
   preflightContinue: false
 }));
 
+// SECOND CORs LAYER: SPECIFIC API ROUTE HANDLING
+app.use('/api/*', cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Allow ALL Netlify domains in production for API routes
+    if (process.env.NODE_ENV === 'production' && origin && origin.includes('netlify.app')) {
+      console.log(`✅ API_CORS_ALLOW: ${origin} - ${new Date().toISOString()}`);
+      return callback(null, true);
+    }
+
+    // Allow localhost in development
+    if (process.env.NODE_ENV !== 'production' && origin && (
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      corsOrigins.includes(origin)
+    )) {
+      return callback(null, true);
+    }
+
+    // Production-specific domains
+    if (corsOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    console.log(`❌ API_CORS_DENY: ${origin} - ${new Date().toISOString()}`);
+    return callback(new Error('API access denied by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With'
+  ],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
+}));
+
+// Handle OPTIONS preflight for ALL routes
+app.options('*', cors({
+  origin: function (origin, callback) {
+    // Allow all preflight requests for Netlify
+    if (process.env.NODE_ENV === 'production' && (!origin || origin.includes('netlify.app'))) {
+      return callback(null, true);
+    }
+    // Allow localhost in development
+    if (process.env.NODE_ENV !== 'production' && (!origin ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      corsOrigins.includes(origin)
+    )) {
+      return callback(null, true);
+    }
+    return callback(new Error('Preflight request denied'));
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
 // Add debug middleware to log all incoming requests
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
@@ -183,7 +245,7 @@ app.use((req, res, next) => {
   // Override res.json to log responses
   const originalJson = res.json;
   res.json = function(data) {
-    console.log(`[${timestamp}] ${method} ${url} - Response: ${res.statusCode} ${typeof data === 'object' ? 'JSON' : 'HTML'}`);
+    console.log(`[${timestamp}] ${method} ${url} - Response: ${res.statusCode} JSON`);
     return originalJson.call(this, data);
   };
 
@@ -230,66 +292,6 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '10mb' })); // Limit payload size
 app.use(requestLogger);
-
-// Apply CORS middleware to ALL routes (including /api/*) with OPTIONS handling
-app.use('/api', cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    // Allow ALL Netlify domains in production
-    if (process.env.NODE_ENV === 'production' && origin && origin.includes('netlify.app')) {
-      console.log(`✅ API CORS ALLOW: ${origin} - ${new Date().toISOString()}`);
-      return callback(null, true);
-    }
-
-    // Allow localhost in development
-    if (process.env.NODE_ENV !== 'production' && origin && (
-      origin.includes('localhost') ||
-      origin.includes('127.0.0.1') ||
-      corsOrigins.includes(origin)
-    )) {
-      return callback(null, true);
-    }
-
-    // Production-specific domains
-    if (corsOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    console.log(`❌ API CORS DENY: ${origin} - ${new Date().toISOString()}`);
-    return callback(new Error('API access denied by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With'
-  ],
-  optionsSuccessStatus: 200,
-  preflightContinue: false
-}));
-
-// Handle preflight OPTIONS requests for all /api routes
-app.options('/api/*', cors({
-  origin: function (origin, callback) {
-    // Allow all Netlify origins for preflight
-    if (process.env.NODE_ENV === 'production' && (!origin || origin.includes('netlify.app'))) {
-      return callback(null, true);
-    }
-    // Allow localhost in development
-    if (process.env.NODE_ENV !== 'production' && (!origin ||
-      origin.includes('localhost') ||
-      origin.includes('127.0.0.1') ||
-      corsOrigins.includes(origin)
-    )) {
-      return callback(null, true);
-    }
-    return callback(null, true); // Allow for other cases
-  },
-  credentials: true
-}));
 
 // CSRF Protection completely disabled (moved to production-ready implementation)
 // TODO: Implement proper CSRF handling with React CSRF tokens
