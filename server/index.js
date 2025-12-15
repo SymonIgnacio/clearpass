@@ -130,10 +130,52 @@ console.log('   CLIENT_URL:', process.env.CLIENT_URL);
 console.log('   CORS_ORIGIN:', process.env.CORS_ORIGIN);
 console.log('   Filtered origins:', corsOrigins);
 
+// Enhanced CORS configuration for production deployment
 app.use(cors({
-  origin: corsOrigins,
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Allow specific origins
+    if (corsOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // In production, be more restrictive but allow the known frontend domain
+    if (process.env.NODE_ENV === 'production') {
+      if (origin.includes('netlify.app') || origin.includes('glistening-lamington')) {
+        console.log(`🔧 Allowing CORS for Netlify domain: ${origin}`);
+        return callback(null, true);
+      }
+    }
+
+    // For development, be more permissive
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+
+    console.warn(`🚫 CORS blocked for origin: ${origin}`);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
+  ],
+  maxAge: 86400, // 24 hours
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
+
+// Explicit preflight handling for all routes
+app.options('*', cors(), (req, res) => {
+  res.status(200).end();
+});
 
 // Add debug middleware to log all incoming requests
 app.use((req, res, next) => {
