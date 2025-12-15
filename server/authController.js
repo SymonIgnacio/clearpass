@@ -3,18 +3,37 @@ const jwt = require('jsonwebtoken');
 const mysql = require('mysql2/promise');
 const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
 
-// Initialize database connection (same as server)
-// Use the same database config as server/index.js
-const dbConfig = {
-  host: process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost',
-  user: process.env.MYSQL_USERNAME || process.env.DB_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || '',
-  database: process.env.MYSQL_DATABASE || process.env.DB_NAME || 'barangay_management',
-  port: process.env.MYSQL_PORT || process.env.DB_PORT || 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-};
+// Import the same database configuration function as server/index.js
+function getDatabaseConfig() {
+  // Prefer Railway's DATABASE_URL if available
+  if (process.env.DATABASE_URL) {
+    const url = new URL(process.env.DATABASE_URL);
+    return {
+      host: url.hostname,
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+      database: url.pathname.slice(1), // Remove leading slash
+      port: parseInt(url.port) || 3306,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
+    };
+  }
+
+  // Fallback to individual environment variables (legacy support)
+  return {
+    host: process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost',
+    user: process.env.MYSQL_USERNAME || process.env.DB_USER || 'root',
+    password: process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || '',
+    database: process.env.MYSQL_DATABASE || process.env.DB_NAME || 'barangay_management',
+    port: process.env.MYSQL_PORT || process.env.DB_PORT || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+  };
+}
+
+const dbConfig = getDatabaseConfig();
 
 let db;
 try {
