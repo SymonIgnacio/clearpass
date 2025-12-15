@@ -700,12 +700,9 @@ async function getSubordinates(req, res) {
         'users.full_name',
         'users.email',
         'users.role',
-        'roles.role_name',
-        'roles.hierarchy_level',
         'users.parent_user_id',
         'users.created_at'
       )
-      .leftJoin('roles', 'users.role_id', 'roles.id')
       .where('users.is_active', true)
       .where(function() {
         this.where('users.parent_user_id', req.user.id)
@@ -715,7 +712,6 @@ async function getSubordinates(req, res) {
                 .where('parent_user_id', req.user.id)
             );
       })
-      .orderBy('roles.hierarchy_level', 'desc')
       .orderBy('users.created_at', 'desc');
 
     res.json({

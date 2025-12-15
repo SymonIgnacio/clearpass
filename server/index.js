@@ -184,13 +184,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS diagnostics (temporary)
-console.log('CORS Diagnostics - Debug Information:');
-console.log('  - CLIENT_URL env:', process.env.CLIENT_URL);
-console.log('  - CORS_ORIGIN env:', process.env.CORS_ORIGIN);
-console.log('  - NODE_ENV:', process.env.NODE_ENV);
-console.log('  - In production mode:', process.env.NODE_ENV === 'production');
-// End CORS diagnostics
+
 
 // Apply rate limiting
 // Temporarily disabled for development/testing
@@ -272,14 +266,29 @@ const uploadBlob = multer({
 // Legacy configuration for file system storage (if needed)
 const uploadDisk = multer({ dest: 'uploads/' });
 
+console.log('🔧 [Route Registration] Registering authentication routes...');
+
 // ==========================================
 // AUTHENTICATION & ACCOUNT HIERARCHY MODULE
 // ==========================================
 
 // Public authentication routes (no middleware needed)
+console.log('🔧 [Route Registration] Setting up /api/auth/login');
 app.post('/api/auth/login', authController.residentLogin); // Residents - Firebase only
-app.post('/api/auth/officer-login', authController.staffLogin); // Staff - Database only
+
+console.log('🔧 [Route Registration] Setting up /api/auth/officer-login');
+app.post('/api/auth/officer-login', (req, res) => {
+  console.log('🚀 [Route Hit] /api/auth/officer-login called with body:', {
+    username: req.body?.username,
+    hasPassword: !!req.body?.password
+  });
+  return authController.staffLogin(req, res);
+}); // Staff - Database only
+
+console.log('🔧 [Route Registration] Setting up /api/auth/register');
 app.post('/api/auth/register', verifyToken, checkRole(['Super Admin']), authController.register);
+
+console.log('🔧 [Route Registration] Authentication routes registered successfully');
 
 // Public resident signup (no authentication required)
 app.post('/api/auth/resident-signup', uploadBlob.single('proof_document'), authController.residentSignup);
@@ -3484,7 +3493,16 @@ const startServer = async () => {
   // Start server (HTTP or HTTPS based on configuration)
   let server;
 
-  if (enableHTTPS) {
+  // For Railway deployments, always use HTTP only
+  if (isRailway) {
+    server = app.listen(port, () => {
+      console.log(`🚢 Railway HTTP Server started on port ${port}`);
+      console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
+      console.log(`🤖 AI Service: ${process.env.AI_SERVICE_URL || 'http://localhost:5000'}`);
+      console.log(`🔍 QR Verification: http://localhost:${port}/verify-qr/{hash}`);
+      console.log(`🔔 Real-time Notifications: WebSocket enabled`);
+    });
+  } else if (enableHTTPS) {
     // HTTPS server with SSL certificates
     const httpsOptions = sslConfig.getHttpsOptions();
 
