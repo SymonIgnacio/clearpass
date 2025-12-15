@@ -211,17 +211,37 @@ app.use((req, res, next) => {
 // app.use('/api/blotter', apiLimiter);
 // app.use('/api/', apiLimiter);
 
-// Database connection - Support both Railway and custom configuration
-const dbConfig = {
-  host: process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost',
-  user: process.env.MYSQL_USERNAME || process.env.DB_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || '',
-  database: process.env.MYSQL_DATABASE || process.env.DB_NAME || 'barangay_management',
-  port: process.env.MYSQL_PORT || process.env.DB_PORT || 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-};
+// Database connection - Support Railway DATABASE_URL and legacy configuration
+function getDatabaseConfig() {
+  // Prefer Railway's DATABASE_URL if available
+  if (process.env.DATABASE_URL) {
+    const url = new URL(process.env.DATABASE_URL);
+    return {
+      host: url.hostname,
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+      database: url.pathname.slice(1), // Remove leading slash
+      port: parseInt(url.port) || 3306,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
+    };
+  }
+
+  // Fallback to individual environment variables (legacy support)
+  return {
+    host: process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost',
+    user: process.env.MYSQL_USERNAME || process.env.DB_USER || 'root',
+    password: process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || '',
+    database: process.env.MYSQL_DATABASE || process.env.DB_NAME || 'barangay_management',
+    port: process.env.MYSQL_PORT || process.env.DB_PORT || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+  };
+}
+
+const dbConfig = getDatabaseConfig();
 
 // Add detailed logging for database configuration
 console.log('🔧 Database Configuration:');
