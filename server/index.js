@@ -827,9 +827,12 @@ app.get('/api/auth/firebase-users', verifyToken, checkRole(['admin', 'captain', 
     console.log(`Found ${firebaseUsers.length} Firebase users`);
 
     // Get corresponding database records for enhanced info
-    const dbUsers = await knex('users')
-      .whereNotNull('firebase_uid')
-      .select('firebase_uid', 'full_name', 'email', 'role', 'is_active', 'created_at', 'last_login', 'residency_status');
+    const [dbUsersRows] = await db.execute(`
+      SELECT firebase_uid, full_name, email, role, is_active, created_at, last_login, residency_status
+      FROM users
+      WHERE firebase_uid IS NOT NULL
+    `);
+    const dbUsers = dbUsersRows;
 
     // Create a map for quick lookup
     const dbUserMap = {};
