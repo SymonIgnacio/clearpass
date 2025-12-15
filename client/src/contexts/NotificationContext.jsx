@@ -79,7 +79,7 @@ export const NotificationProvider = ({ children }) => {
       }
 
       const wsUrl = process.env.NODE_ENV === 'production'
-        ? `wss://${window.location.host}/ws/notifications?token=${encodeURIComponent(token)}`
+        ? `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/ws/notifications?token=${encodeURIComponent(token)}`
         : `ws://localhost:3001/ws/notifications?token=${encodeURIComponent(token)}`;
 
       const ws = new WebSocket(wsUrl);
@@ -134,7 +134,7 @@ export const NotificationProvider = ({ children }) => {
     // Fallback polling mechanism every 30 seconds
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/notifications/poll`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/notifications/poll`, {
           headers: {
             'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json'

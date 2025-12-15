@@ -2169,31 +2169,9 @@ app.get('/api/templates/:id/download', verifyToken, checkRole(['admin', 'captain
 // Template utilities (stats endpoint doesn't require authentication since it's just statistics)
 app.get('/api/templates/active/:document_type', templateController.getActiveTemplate);
 app.post('/api/templates/:id/duplicate', verifyToken, checkRole(['admin', 'captain']), templateController.duplicateTemplate);
-app.get('/api/templates/stats', async (req, res) => {
-  console.log('=== TEMPLATE STATS ROUTE CALLED ===');
-  console.log('Template controller exists:', typeof templateController !== 'undefined');
-  console.log('getTemplateStats exists:', typeof templateController?.getTemplateStats === 'function');
-
-  try {
-    if (typeof templateController?.getTemplateStats === 'function') {
-      console.log('Calling getTemplateStats method...');
-      await templateController.getTemplateStats(req, res);
-    } else {
-      console.log('ERROR: getTemplateStats method not found!');
-      res.status(500).json({
-        error: 'Template stats method not available',
-        controller_loaded: typeof templateController !== 'undefined',
-        method_exists: typeof templateController?.getTemplateStats === 'function'
-      });
-    }
-  } catch (error) {
-    console.log('ERROR in template stats route:', error);
-    res.status(500).json({
-      error: error.message,
-      stack: error.stack
-    });
-  }
-});
+// Template stats endpoint (public access for statistics)
+app.get('/api/templates/stats', templateController.getTemplateStats);
+app.get('/templates/stats', templateController.getTemplateStats);
 
 // Debug routes removed - using browser console now
 
@@ -3449,9 +3427,12 @@ app.get('/auth/firebase-users', verifyToken, checkRole(['admin', 'captain', 'sec
     console.log(`Found ${firebaseUsers.length} Firebase users`);
 
     // Get corresponding database records for enhanced info
-    const dbUsers = await knex('users')
-      .whereNotNull('firebase_uid')
-      .select('firebase_uid', 'full_name', 'email', 'role', 'is_active', 'created_at', 'last_login', 'residency_status');
+    const [dbUsersRows] = await db.execute(`
+      SELECT firebase_uid, full_name, email, role, is_active, created_at, last_login, residency_status
+      FROM users
+      WHERE firebase_uid IS NOT NULL
+    `);
+    const dbUsers = dbUsersRows;
 
     // Create a map for quick lookup
     const dbUserMap = {};
@@ -3502,28 +3483,29 @@ app.get('/auth/firebase-users', verifyToken, checkRole(['admin', 'captain', 'sec
 app.get('/auth/residency-verifications/pending', verifyToken, checkRole(['captain', 'secretary', 'clerk']), async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
 
-    const requests = await knex('resident_verification_requests')
-      .select(
-        'resident_verification_requests.*',
-        'users.username',
-        'users.full_name',
-        'users.email'
-      )
-      .join('users', 'resident_verification_requests.user_id', 'users.id')
-      .where('resident_verification_requests.status', 'pending')
-      .orderBy('resident_verification_requests.submitted_at', 'asc')
-      .limit(limit)
-      .offset((page - 1) * limit);
+    const [rows] = await db.execute(`
+      SELECT
+        rvr.*,
+        users.username,
+        users.full_name,
+        users.email
+      FROM resident_verification_requests rvr
+      JOIN users ON rvr.user_id = users.id
+      WHERE rvr.status = 'pending'
+      ORDER BY rvr.submitted_at ASC
+      LIMIT ? OFFSET ?
+    `, [parseInt(limit), offset]);
 
-    const formattedRequests = requests.map(row => ({
+    const formattedRequests = rows.map(row => ({
       request_id: row.request_id,
       user_id: row.user_id,
       username: row.username,
       full_name: row.full_name,
       email: row.email,
       proof_type: row.proof_type,
-      proof_path: row.proof_of_residency_path,
+      proof_path: row.proof_path, // Use correct column name
       notes: row.notes,
       submitted_at: row.submitted_at
     }));
@@ -3547,9 +3529,11 @@ app.get('/auth/residency-verifications/pending', verifyToken, checkRole(['captai
 });
 
 app.put('/auth/residency-verifications/:request_id/review', verifyToken, checkRole(['captain', 'secretary', 'clerk']), async (req, res) => {
-  const trx = await knex.transaction();
+  // Use connection instead of knex transaction
+  const connection = await db.getConnection();
 
   try {
+    await connection.beginTransaction();
     const { request_id } = req.params;
     const { action, review_notes } = req.body; // action: 'approve' or 'reject'
     const reviewed_by = req.user?.id;
@@ -3563,61 +3547,57 @@ app.put('/auth/residency-verifications/:request_id/review', verifyToken, checkRo
     }
 
     // Get the verification request
-    const verificationRequest = await trx('resident_verification_requests')
-      .where('request_id', request_id)
-      .where('status', 'pending')
-      .first();
+    const [rows] = await connection.execute(
+      'SELECT * FROM resident_verification_requests WHERE request_id = ? AND status = ?',
+      [request_id, 'pending']
+    );
 
-    if (!verificationRequest) {
-      await trx.rollback();
+    if (rows.length === 0) {
+      await connection.rollback();
       return res.status(404).json({
         success: false,
         message: 'Verification request not found or already processed.'
       });
     }
 
+    const verificationRequest = rows[0];
     const newStatus = action === 'approve' ? 'approved' : 'rejected';
 
     // Update verification request
-    await trx('resident_verification_requests')
-      .where('request_id', request_id)
-      .update({
-        status: newStatus,
-        reviewed_at: trx.fn.now(),
-        reviewed_by: reviewed_by,
-        review_notes: review_notes,
-        updated_at: trx.fn.now()
-      });
+    await connection.execute(`
+      UPDATE resident_verification_requests
+      SET status = ?, reviewed_at = NOW(), reviewed_by = ?, review_notes = ?, updated_at = NOW()
+      WHERE request_id = ?
+    `, [newStatus, reviewed_by, review_notes, request_id]);
 
     if (action === 'approve') {
       // Update user residency status
-      await trx('users')
-        .where('id', verificationRequest.user_id)
-        .update({
-          residency_status: 'verified',
-          residency_verified_at: trx.fn.now(),
-          residency_verified_by: reviewed_by,
-          updated_at: trx.fn.now()
-        });
+      await connection.execute(`
+        UPDATE users
+        SET residency_status = ?, residency_verified_at = NOW(), residency_verified_by = ?, updated_at = NOW()
+        WHERE id = ?
+      `, ['verified', reviewed_by, verificationRequest.user_id]);
 
       // Log the approval
       try {
-        await trx('audit_log').insert({
-          user_id: reviewed_by,
-          action: 'RESIDENCY_VERIFICATION_APPROVED',
-          entity_type: 'resident_verification_request',
-          entity_id: request_id,
-          details: JSON.stringify({
+        await connection.execute(`
+          INSERT INTO audit_log (user_id, action, entity_type, entity_id, details, created_at)
+          VALUES (?, ?, ?, ?, ?, NOW())
+        `, [
+          reviewed_by,
+          'RESIDENCY_VERIFICATION_APPROVED',
+          'resident_verification_request',
+          request_id,
+          JSON.stringify({
             user_id: verificationRequest.user_id,
             request_id: request_id
-          }),
-          created_at: trx.fn.now()
-        });
+          })
+        ]);
       } catch (logError) {
         console.log('⚠️ Failed to log approval:', logError.message);
       }
 
-      await trx.commit();
+      await connection.commit();
 
       res.json({
         success: true,
@@ -3632,7 +3612,7 @@ app.put('/auth/residency-verifications/:request_id/review', verifyToken, checkRo
 
     } else {
       // For rejection, just update status
-      await trx.commit();
+      await connection.commit();
 
       res.json({
         success: true,
@@ -3645,12 +3625,14 @@ app.put('/auth/residency-verifications/:request_id/review', verifyToken, checkRo
     }
 
   } catch (error) {
-    await trx.rollback();
+    await connection.rollback();
     console.error('Error reviewing residency verification:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to process verification review'
     });
+  } finally {
+    connection.release();
   }
 });
 
