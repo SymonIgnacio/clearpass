@@ -130,31 +130,38 @@ console.log('   CLIENT_URL:', process.env.CLIENT_URL);
 console.log('   CORS_ORIGIN:', process.env.CORS_ORIGIN);
 console.log('   Filtered origins:', corsOrigins);
 
-// Enhanced CORS configuration for production deployment
+// Production-ready CORS configuration for Railway + Netlify deployment
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
 
-    // Allow specific origins
+    // Allow all configured origins
     if (corsOrigins.includes(origin)) {
       return callback(null, true);
     }
 
-    // In production, be more restrictive but allow the known frontend domain
+    // Additional production origins check
     if (process.env.NODE_ENV === 'production') {
-      if (origin.includes('netlify.app') || origin.includes('glistening-lamington')) {
-        console.log(`🔧 Allowing CORS for Netlify domain: ${origin}`);
+      // Allow Netlify domains
+      if (origin.includes('netlify.app') ||
+          origin.includes('glistening-lamington') ||
+          origin === 'https://glistening-lamington-a9e2b7.netlify.app') {
+        console.log(`🔧 ALLOWING CORS for Netlify domain: ${origin}`);
         return callback(null, true);
       }
     }
 
-    // For development, be more permissive
+    // For development, allow localhost
     if (process.env.NODE_ENV !== 'production') {
-      return callback(null, true);
+      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        console.log(`🔧 ALLOWING CORS for localhost: ${origin}`);
+        return callback(null, true);
+      }
     }
 
-    console.warn(`🚫 CORS blocked for origin: ${origin}`);
+    console.warn(`🚫 CORS BLOCKED for origin: ${origin}`);
+    console.warn(`   Allowed origins: ${corsOrigins.join(', ')}`);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -166,15 +173,37 @@ app.use(cors({
     'Accept',
     'Origin',
     'Access-Control-Request-Method',
-    'Access-Control-Request-Headers'
+    'Access-Control-Request-Headers',
+    'Access-Control-Allow-Origin'
   ],
-  maxAge: 86400, // 24 hours
-  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+  maxAge: 86400,
+  optionsSuccessStatus: 200
 }));
 
-// Explicit preflight handling for all routes
+// Critical: Explicit preflight handling for all routes
 app.options('*', cors(), (req, res) => {
-  res.status(200).end();
+  console.log(`🔧 Preflight request handled for: ${req.method} ${req.originalUrl}`);
+  res.status(200).header({
+    'Access-Control-Allow-Origin': req.headers.origin || '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers, Access-Control-Allow-Origin',
+    'Access-Control-Max-Age': '86400'
+  }).end();
+});
+
+// Additional CORS headers middleware
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (corsOrigins.includes(origin) ||
+      (process.env.NODE_ENV === 'production' &&
+       (origin && origin.includes('netlify.app')))) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers',
+    'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+  next();
 });
 
 // Add debug middleware to log all incoming requests
@@ -2337,10 +2366,20 @@ app.get('/api/certificates', (req, res, next) => {
     }
 
     const [rows] = await db.execute(query, values);
-    res.json(rows);
+
+    // Ensure we always return valid JSON array, never empty/null
+    const certificates = rows || [];
+    console.log(`Certificates API: Returning ${certificates.length} certificates for ${isResident ? 'resident' : 'staff'}`);
+
+    res.json(certificates);
   } catch (error) {
     console.error('Error fetching certificates:', error);
-    res.status(500).json({ error: 'Failed to fetch certificates' });
+    // Return valid JSON error response
+    res.status(500).json({
+      error: 'Failed to fetch certificates',
+      message: 'Database query failed',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
