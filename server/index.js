@@ -182,6 +182,22 @@ app.use((req, res, next) => {
   next();
 });
 
+// Test route to verify CORS without auth (for debugging)
+app.get('/cors-test', (req, res) => {
+  console.log('🧪 CORS Test Hit:', {
+    origin: req.headers.origin,
+    method: req.method,
+    url: req.url
+  });
+
+  res.json({
+    message: 'CORS test successful!',
+    timestamp: new Date().toISOString(),
+    origin: req.headers.origin,
+    allowed: true
+  });
+});
+
 // Apply rate limiting
 // Temporarily disabled for development/testing
 // app.use('/api/certificates', strictLimiter); // Certificate operations are sensitive
