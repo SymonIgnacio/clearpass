@@ -3236,6 +3236,11 @@ app.get('/residents', verifyToken, checkRole(['admin', 'captain', 'secretary', '
       values = [searchTerm, searchTerm, searchTerm];
     }
 
+    // Build the final parameter array
+    const params = [...values, parseInt(limit), offset];
+
+    console.log(`Residents query - search: ${search}, params length: ${params.length}, whereClause: ${whereClause}`); // Debug log
+
     const [rows] = await db.execute(`
       SELECT
         r.*,
@@ -3255,7 +3260,7 @@ app.get('/residents', verifyToken, checkRole(['admin', 'captain', 'secretary', '
       ${whereClause}
       ORDER BY r.Last_Name, r.First_Name
       LIMIT ? OFFSET ?
-    `, [...values, parseInt(limit), offset]);
+    `, params);
 
     res.json({
       data: rows,
