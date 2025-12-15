@@ -211,16 +211,31 @@ app.use((req, res, next) => {
 // app.use('/api/blotter', apiLimiter);
 // app.use('/api/', apiLimiter);
 
-// Database connection
+// Database connection - Support both Railway and custom configuration
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'barangay_management',
+  host: process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost',
+  user: process.env.MYSQL_USERNAME || process.env.DB_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || '',
+  database: process.env.MYSQL_DATABASE || process.env.DB_NAME || 'barangay_management',
+  port: process.env.MYSQL_PORT || process.env.DB_PORT || 3306,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
 };
+
+// Add detailed logging for database configuration
+console.log('🔧 Database Configuration:');
+console.log('   DB_HOST:', process.env.DB_HOST);
+console.log('   MYSQL_HOST:', process.env.MYSQL_HOST);
+console.log('   DB_USER:', process.env.DB_USER);
+console.log('   MYSQL_USERNAME:', process.env.MYSQL_USERNAME);
+console.log('   DB_NAME:', process.env.DB_NAME);
+console.log('   MYSQL_DATABASE:', process.env.MYSQL_DATABASE);
+console.log('   Resolved host:', dbConfig.host);
+console.log('   Resolved user:', dbConfig.user);
+console.log('   Resolved database:', dbConfig.database);
+console.log('   Resolved port:', dbConfig.port);
+console.log('   Has password:', !!dbConfig.password);
 
 let db;
 async function initializeDatabase() {
@@ -316,6 +331,204 @@ app.post('/auth/officer-login', (req, res) => {
 console.log('🔧 [Route Registration] Setting up /api/auth/register');
 app.post('/api/auth/register', verifyToken, checkRole(['Super Admin']), authController.register);
 app.post('/auth/register', verifyToken, checkRole(['Super Admin']), authController.register);
+
+// Add dual routing for commonly used endpoints
+console.log('🔧 [Route Registration] Setting up dual routes for backward compatibility');
+
+// Analytics/Census routes
+app.get('/api/census', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), async (req, res) => {
+  try {
+    const [stats] = await db.execute(`
+      SELECT
+        s.name as sitio_name,
+        COUNT(r.Resident_ID) as total_residents,
+        SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as seniors,
+        SUM(CASE WHEN v.Is_PWD = 1 THEN 1 ELSE 0 END) as pwd,
+        SUM(CASE WHEN v.Is_Solo_Parent = 1 THEN 1 ELSE 0 END) as single_parents
+      FROM sitios s
+      LEFT JOIN households h ON s.id = h.Sitio_ID
+      LEFT JOIN residents r ON h.Household_ID = r.Household_ID
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
+      GROUP BY s.id, s.name
+      ORDER BY s.name
+    `);
+
+    const [overall] = await db.execute(`
+      SELECT
+        COUNT(*) as total_residents,
+        SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as total_seniors,
+        SUM(CASE WHEN v.Is_PWD = 1 THEN 1 ELSE 0 END) as total_pwd,
+        SUM(CASE WHEN v.Is_Solo_Parent = 1 THEN 1 ELSE 0 END) as total_single_parents
+      FROM residents r
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
+    `);
+
+    res.json({
+      bySitio: stats,
+      overall: overall[0]
+    });
+  } catch (error) {
+    console.error('Error fetching census:', error);
+    res.status(500).json({ error: 'Failed to fetch census data' });
+  }
+});
+app.get('/census', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), async (req, res) => {
+  const [stats] = await db.execute(`
+    SELECT
+      s.name as sitio_name,
+      COUNT(r.Resident_ID) as total_residents,
+      SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as seniors,
+      SUM(CASE WHEN v.Is_PWD = 1 THEN 1 ELSE 0 END) as pwd,
+      SUM(CASE WHEN v.Is_Solo_Parent = 1 THEN 1 ELSE 0 END) as single_parents
+    FROM sitios s
+    LEFT JOIN households h ON s.id = h.Sitio_ID
+    LEFT JOIN residents r ON h.Household_ID = r.Household_ID
+    LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
+    GROUP BY s.id, s.name
+    ORDER BY s.name
+  `);
+
+  const [overall] = await db.execute(`
+    SELECT
+      COUNT(*) as total_residents,
+      SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as total_seniors,
+      SUM(CASE WHEN v.Is_PWD = 1 THEN 1 ELSE 0 END) as total_pwd,
+      SUM(CASE WHEN v.Is_Solo_Parent = 1 THEN 1 ELSE 0 END) as total_single_parents
+    FROM residents r
+    LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
+  `);
+
+  res.json({
+    bySitio: stats,
+    overall: overall[0]
+  });
+});
+
+// Blotter routes
+app.get('/api/blotter', async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT b.*,
+             s.name as sitio_name
+      FROM blotter b
+      LEFT JOIN sitios s ON b.Location_Sitio = s.name
+      ORDER BY b.created_at DESC
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching blotter:', error);
+    res.status(500).json({ error: 'Failed to fetch blotter records' });
+  }
+});
+app.get('/blotter', async (req, res) => {
+  const [rows] = await db.execute(`
+    SELECT b.*,
+           s.name as sitio_name
+    FROM blotter b
+    LEFT JOIN sitios s ON b.Location_Sitio = s.name
+    ORDER BY b.created_at DESC
+  `);
+  res.json(rows);
+});
+
+// Certificate routes
+app.get('/api/certificates', (req, res, next) => {
+  // Check for resident Firebase token first
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split('Bearer ')[1];
+    // Check if it looks like a Firebase ID token (longer than typical JWT)
+    if (token && token.length > 500) {
+      return verifyFirebaseToken(req, res, next); // Resident path
+    }
+  }
+  // Default to JWT verification for staff (unrestricted access)
+  return verifyToken(req, res, next);
+}, async (req, res) => {
+  try {
+    // Check if user is a resident (Firebase authenticated)
+    const isResident = req.firebaseUser ? true : false;
+
+    let query, values;
+
+    if (isResident && req.firebaseUser) {
+      // Resident can only see their own certificates
+      query = `
+        SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
+        FROM certificates_log c
+        JOIN residents r ON c.resident_id = r.Resident_ID
+        WHERE EXISTS (
+          SELECT 1 FROM users u
+          WHERE u.resident_id = r.Resident_ID
+          AND u.firebase_uid = ?
+        )
+        ORDER BY c.created_at DESC
+      `;
+      values = [req.firebaseUser.uid];
+    } else {
+      // Staff can see all certificates
+      query = `
+        SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
+        FROM certificates_log c
+        JOIN residents r ON c.resident_id = r.Resident_ID
+        ORDER BY c.created_at DESC
+      `;
+      values = [];
+    }
+
+    const [rows] = await db.execute(query, values);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching certificates:', error);
+    res.status(500).json({ error: 'Failed to fetch certificates' });
+  }
+});
+app.get('/certificates', (req, res, next) => {
+  // Check for resident Firebase token first
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split('Bearer ')[1];
+    // Check if it looks like a Firebase ID token (longer than typical JWT)
+    if (token && token.length > 500) {
+      return verifyFirebaseToken(req, res, next); // Resident path
+    }
+  }
+  // Default to JWT verification for staff (unrestricted access)
+  return verifyToken(req, res, next);
+}, async (req, res) => {
+  // Check if user is a resident (Firebase authenticated)
+  const isResident = req.firebaseUser ? true : false;
+
+  let query, values;
+
+  if (isResident && req.firebaseUser) {
+    // Resident can only see their own certificates
+    query = `
+      SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
+      FROM certificates_log c
+      JOIN residents r ON c.resident_id = r.Resident_ID
+      WHERE EXISTS (
+        SELECT 1 FROM users u
+        WHERE u.resident_id = r.Resident_ID
+        AND u.firebase_uid = ?
+      )
+      ORDER BY c.created_at DESC
+    `;
+    values = [req.firebaseUser.uid];
+  } else {
+    // Staff can see all certificates
+    query = `
+      SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
+      FROM certificates_log c
+      JOIN residents r ON c.resident_id = r.Resident_ID
+      ORDER BY c.created_at DESC
+    `;
+    values = [];
+  }
+
+  const [rows] = await db.execute(query, values);
+  res.json(rows);
+});
 
 console.log('🔧 [Route Registration] Authentication routes registered successfully');
 
