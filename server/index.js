@@ -3185,6 +3185,289 @@ app.get('/api/sitios', async (req, res) => {
   }
 });
 
+app.get('/sitios', async (req, res) => {
+  try {
+    const [rows] = await db.execute('SELECT * FROM sitios ORDER BY name');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching sitios:', error);
+    res.status(500).json({ error: 'Failed to fetch sitios' });
+  }
+});
+
+// Households routes
+app.get('/households', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT h.*, s.name as sitio_name
+      FROM households h
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
+      ORDER BY h.Household_Number
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching households:', error);
+    res.status(500).json({ error: 'Failed to fetch households' });
+  }
+});
+
+// Residents routes
+app.get('/residents', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk']), async (req, res) => {
+  try {
+    const { page = 1, limit = 50, search } = req.query;
+    const offset = (page - 1) * limit;
+
+    let whereClause = '';
+    let values = [];
+
+    if (search) {
+      whereClause = 'WHERE r.First_Name LIKE ? OR r.Last_Name LIKE ? OR r.Mobile_Number LIKE ?';
+      values = [`%${search}%`, `%${search}%`, `%${search}%`];
+    }
+
+    const [rows] = await db.execute(`
+      SELECT
+        r.*,
+        h.Household_Number,
+        h.Street_Address,
+        s.name as sitio_name,
+        v.Is_4Ps,
+        v.Is_PWD,
+        v.Is_Senior,
+        v.Is_Solo_Parent,
+        v.Is_Out_of_School_Youth,
+        v.Vulnerability_Score
+      FROM residents r
+      LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
+      ${whereClause}
+      ORDER BY r.Last_Name, r.First_Name
+      LIMIT ? OFFSET ?
+    `, [...values, parseInt(limit), offset]);
+
+    res.json({
+      data: rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching residents:', error);
+    res.status(500).json({ error: 'Failed to fetch residents' });
+  }
+});
+
+// Templates routes
+app.get('/templates', verifyToken, checkRole(['admin', 'captain', 'secretary']), templateController.getAllTemplates);
+
+// Certificate types route (duplicate for non-API prefix)
+app.get('/certificate-types', async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT
+        id,
+        name,
+        fee,
+        validity_days,
+        description,
+        purpose,
+        when_needed,
+        required_data
+      FROM certificate_types
+      WHERE is_active = TRUE
+      ORDER BY name
+    `);
+
+    console.log('Certificate types API called, found:', rows.length, 'types');
+
+    const certificateTypes = rows.map(type => ({
+      id: type.id,
+      label: type.name,
+      name: type.name,
+      fee: type.fee,
+      validity_days: type.validity_days,
+      description: type.description,
+      purpose: type.purpose,
+      when_needed: type.when_needed,
+      required_data: type.required_data ? JSON.parse(type.required_data) : [],
+      is_active: true
+    }));
+
+    res.json({
+      success: true,
+      data: certificateTypes
+    });
+  } catch (error) {
+    console.error('Error fetching certificate types:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch certificate types'
+    });
+  }
+});
+
+// Template stats route (duplicate for non-API prefix)
+app.get('/templates/stats', async (req, res) => {
+  console.log('=== TEMPLATE STATS ROUTE (non-API) CALLED ===');
+  console.log('Template controller exists:', typeof templateController !== 'undefined');
+  console.log('getTemplateStats exists:', typeof templateController?.getTemplateStats === 'function');
+
+  try {
+    if (typeof templateController?.getTemplateStats === 'function') {
+      console.log('Calling getTemplateStats method...');
+      await templateController.getTemplateStats(req, res);
+    } else {
+      console.log('ERROR: getTemplateStats method not found!');
+      res.status(500).json({
+        error: 'Template stats method not available',
+        controller_loaded: typeof templateController !== 'undefined',
+        method_exists: typeof templateController?.getTemplateStats === 'function'
+      });
+    }
+  } catch (error) {
+    console.log('ERROR in template stats route:', error);
+    res.status(500).json({
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// AI Patrol Suggestions route
+app.get('/ai/patrol-suggestions', async (req, res) => {
+  try {
+    // Get recent blotter data (last 30 days for better analysis)
+    const [blotterData] = await db.execute(`
+      SELECT b.*, s.name as sitio_name
+      FROM blotter b
+      LEFT JOIN sitios s ON b.Location_Sitio = s.name
+      WHERE b.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+      ORDER BY b.created_at DESC
+      LIMIT 50
+    `);
+
+    // Try AI service first
+    try {
+      const aiResponse = await proxyToAIService('/suggest-patrol', {
+        blotter_data: blotterData
+      });
+      res.json(aiResponse);
+    } catch (aiError) {
+      console.error('AI service error, using fallback:', aiError.message);
+
+      // Fallback mock response
+      const riskLevels = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+      const overallRisk = riskLevels[Math.floor(Math.random() * riskLevels.length)];
+
+      res.json({
+        overall_risk_level: overallRisk,
+        risk_assessment: {
+          total_incidents: blotterData.length,
+          high_risk_sitios: ['Batia Proper', 'Northville 5'],
+          peak_hours: '8PM-2AM',
+          trend: 'STABLE'
+        },
+        patrol_suggestions: [
+          'Increase patrol presence in Batia Proper during evening hours',
+          'Focus on theft prevention in Northville 5 commercial areas',
+          'Monitor noise complaints in residential zones',
+          'Establish additional checkpoints at high-traffic areas',
+          'Coordinate with local PNP for joint patrols'
+        ],
+        recommended_schedule: {
+          priority_areas: ['Batia Proper', 'Northville 5', 'St. Martha'],
+          suggested_tanods: 8,
+          shift_coverage: '18:00-06:00'
+        },
+        generated_at: new Date().toISOString(),
+        fallback: true
+      });
+    }
+  } catch (dbError) {
+    console.error('Database error in patrol suggestions:', dbError.message);
+
+    // Complete fallback when database is unavailable
+    res.json({
+      overall_risk_level: 'MEDIUM',
+      risk_assessment: {
+        total_incidents: 0,
+        high_risk_sitios: ['Batia Proper'],
+        peak_hours: '20:00-02:00',
+        trend: 'UNKNOWN'
+      },
+      patrol_suggestions: [
+        'Conduct regular evening patrols in main commercial areas',
+        'Monitor high-traffic zones for potential incidents',
+        'Establish community watch programs',
+        'Increase visibility in residential neighborhoods',
+        'Coordinate with local law enforcement'
+      ],
+      recommended_schedule: {
+        priority_areas: ['Batia Proper', 'Northville 5'],
+        suggested_tanods: 6,
+        shift_coverage: '19:00-05:00'
+      },
+      generated_at: new Date().toISOString(),
+      fallback: true,
+      db_error: true
+    });
+  }
+});
+
+// Analytics dashboard summary route
+app.get('/analytics/dashboard-summary', async (req, res) => {
+  try {
+    const summary = await proxyToAIService('/analytics/dashboard-summary', {}, 'GET');
+    res.json(summary);
+  } catch (error) {
+    console.error('Analytics dashboard error, using fallback:', error.message);
+    // Fallback mock data
+    res.json({
+      total_incidents_30d: 28,
+      active_cases: 5,
+      high_risk_areas: ["Batia Proper", "Northville 5"],
+      trend_direction: "STABLE",
+      forecast_next_week: 8,
+      response_time_avg: "12 minutes",
+      coverage_percentage: 78,
+      generated_at: new Date().toISOString()
+    });
+  }
+});
+
+// Programs route (community events)
+app.get('/programs', (req, res, next) => {
+  // Check for resident Firebase token first
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split('Bearer ')[1];
+    // Check if it looks like a Firebase ID token (longer than typical JWT)
+    if (token && token.length > 500) {
+      return verifyFirebaseToken(req, res, next); // Resident path - programs are public
+    }
+  }
+  // Default to JWT verification for staff (required for access)
+  return verifyToken(req, res, next);
+}, async (req, res) => {
+  try {
+    // Programs are public information for residents - no filtering needed
+    const [rows] = await db.execute(`
+      SELECT p.*,
+             s.name as sitio_name,
+             JSON_LENGTH(p.target_beneficiaries) as target_count
+      FROM community_programs p
+      LEFT JOIN sitios s ON p.sitio_id = s.id
+      ORDER BY p.program_date DESC, p.created_at DESC
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching programs:', error);
+    res.status(500).json({ error: 'Failed to fetch programs' });
+  }
+});
+
 // ==========================================
 // QR CODE & ID SYSTEM
 // ==========================================
