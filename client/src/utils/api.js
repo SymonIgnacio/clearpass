@@ -57,7 +57,7 @@ const getAuthHeaders = () => {
 
 // Generic authenticated fetch function
 export const apiRequest = async (endpoint, options = {}) => {
-  const url = `${API_BASE_URL}/${endpoint}`;
+  const url = `${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
   console.log('🔗 API Request URL:', url); // Debug log
   const config = {
     headers: getAuthHeaders(),

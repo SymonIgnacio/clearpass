@@ -1,70 +1,133 @@
-# 🚀 BMWs Barangay Management System - Complete Setup Guide
+# 🚀 THEMIS Barangay Management System - Complete Setup Guide
 
-**Version:** v2.7.0 (Docker + Account Hierarchy)
-**Last Updated:** December 13, 2025
-**Completion:** Production Ready (95% Complete)
-**Test Coverage:** 95%+
-**Security Audit:** LOW-MEDIUM Risk
+**Version:** 3.0.0 (THEMIS CLEARPASS Protocol)
+**Last Updated:** December 18, 2025
+**Status:** ✅ Production Ready
+**Setup Time:** ~15-20 minutes
 
 ---
 
-## ⚡ Quick Start (10 Minutes)
+## 🎯 WHAT'S NEW IN VERSION 3.0.0
 
-### Prerequisites
-- ✅ **XAMPP** (MySQL 8.0+ + Apache)
-- ✅ **Node.js 18+** (LTS recommended)
-- ✅ **Python 3.9+** (for AI services)
-- ✅ **Git** (for version control)
-- ✅ **VS Code** (recommended IDE)
+### ✅ **THEMIS CLEARPASS Protocol**
+- **🔒 6-Tier RBAC System**: IT Admin → Clerk → Blotter Officer → Resident → Captain → Secretary
+- **🛡️ Clearance Validation**: Automatic blocking for residents with active blotter cases
+- **📊 Hearing Tracking**: Missed hearings (3+) block certificate issuance
+- **🔗 Resident Linking**: Users linked to resident profiles for validation
+
+### ✅ **Modernized Architecture**
+- **🔄 Knex.js Migrations**: Version-controlled database schema management
+- **🌱 Automated Seeding**: Initial data population with proper relationships
+- **📋 Clearance Requests**: Structured workflow for certificate issuance
+- **🔐 Hybrid Authentication**: Firebase + MySQL with account hierarchy
+
+### ✅ **Production Security**
+- **🛡️ JWT Authentication**: Secure token-based auth with middleware
+- **👑 Role-Based Access Control**: Strict hierarchy enforcement
+- **📊 Audit Logging**: Complete activity tracking
+- **🚫 Input Validation**: XSS/SQL injection prevention
+
+---
+
+## 📋 Prerequisites Check
+
+### Required Software:
+- ✅ **XAMPP** (MySQL 8.0+ + Apache) - Download from https://apachefriends.org/
+- ✅ **Node.js 18+** (Current: v23.3.0) - Download from https://nodejs.org/
+- ✅ **Python 3.11+** (for AI services) - Download from https://python.org/
+- ✅ **Git** - For version control
+- ✅ **VS Code** (recommended) - Your current editor
+
+### Quick Verification:
+```bash
+# Check versions
+node --version     # Should show v18.x.x or higher
+python --version   # Should show Python 3.11.x or higher
+mysql --version    # Should show MySQL 8.0.x or higher (via XAMPP)
+```
+
+---
+
+## 🚀 QUICK START (15 Minutes)
 
 ### Step 1: Clone & Setup (3 min)
 ```bash
 # Clone repository
-git clone https://github.com/your-org/bmw-barangay-system.git
-cd bmw-barangay-system
+git clone <your-repo-url>
+cd barangay-management-system
 
 # Install all dependencies
-npm run setup:all
+npm run install:all
 ```
 
-### Step 2: Database Setup (2 min)
+### Step 2: Database Setup (3 min)
 ```bash
-# Start XAMPP services
-# Open phpMyAdmin: http://localhost/phpmyadmin
+# Start XAMPP MySQL service from XAMPP Control Panel
 
 # Create database
-CREATE DATABASE barangay_management;
+mysql -u root -p -e "CREATE DATABASE barangay_management;"
 
-# Import schema
-mysql -u root barangay_management < database/schema.sql
+# Run migrations (creates all tables)
+cd server
+npx knex migrate:latest
+
+# Run seeds (populates initial data + hierarchy)
+npx knex seed:run
+cd ..
 ```
 
 ### Step 3: Environment Configuration (2 min)
 ```bash
-# Copy environment template
-cp .env.example .env
+# Copy environment templates
+cp server/.env.example server/.env
+cp client/.env.example client/.env
 
-# Edit .env with your settings
+# Edit server/.env with your settings
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_mysql_password
 DB_NAME=barangay_management
-JWT_SECRET=your-secure-jwt-secret-here
-NODE_ENV=development
+JWT_SECRET=your-super-secure-jwt-secret-here-min-32-chars
+
+# Edit client/.env with your Firebase config
+VITE_API_BASE_URL=http://localhost:3001/api
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+# ... other Firebase settings
 ```
 
-### Step 4: Start Services (3 min)
+### Step 4: Firebase Setup (2 min)
+```bash
+# Set up Firebase service account (optional for development)
+# Place firebase-service-account.json in root directory
+
+# Create default Firebase accounts
+npm run firebase:create-accounts
+
+# Verify accounts
+npm run firebase:list-accounts
+```
+
+### Step 5: Start Services (5 min)
 ```bash
 # Option A: Automated startup (Windows)
-.\start-all.bat
+start-all.bat
 
 # Option B: Manual startup
-npm run dev:all
+# Terminal 1: AI Service
+cd ai_service && python smart_suggestions.py
+
+# Terminal 2: Backend Server
+cd server && npm start
+
+# Terminal 3: Frontend Client
+cd client && npm run dev
 ```
 
-### Step 5: Verify Installation (30 sec)
-- **Frontend:** http://localhost:5174
-- **Backend API:** http://localhost:3001/health
-- **API Docs:** http://localhost:3001/api-docs
-- **Metrics:** http://localhost:3001/metrics
-- **AI Service:** http://localhost:5000/health
+### Step 6: Verify Installation (30 sec)
+- **Frontend:** http://localhost:5174 ✅
+- **Backend API:** http://localhost:3001/health ✅
+- **AI Service:** http://localhost:5000/health ✅
+- **API Docs:** http://localhost:3001/api-docs ✅
 
 ---
 
@@ -76,9 +139,9 @@ npm run dev:all
 │   React Frontend │    │  Node.js API    │    │ Python AI Engine│
 │   (Port 5174)    │◄──►│   (Port 3001)   │◄──►│   (Port 5000)   │
 │                 │    │                 │    │                 │
-│ • Dashboard      │    │ • RESTful API   │    │ • ML Algorithms │
-│ • Certificate Mgmt│    │ • Rate Limiting │    │ • Decision Supp │
-│ • QR Verification│    │ • Monitoring     │    │ • Chatbot       │
+│ • Dashboard      │    │ • JWT Auth      │    │ • ML Algorithms │
+│ • Certificate Mgmt│    │ • Knex Migrations│    │ • Decision Supp │
+│ • THEMIS CLEARPASS│   │ • Role Hierarchy │    │ • Chatbot       │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
@@ -87,6 +150,7 @@ npm run dev:all
                     │   MySQL Database │
                     │   (Port 3306)    │
                     │                  │
+                    │ • Users + Roles  │
                     │ • Residents      │
                     │ • Certificates   │
                     │ • Blotter Cases  │
@@ -94,24 +158,27 @@ npm run dev:all
                     └─────────────────┘
 ```
 
-### **Services Overview**
-- **Frontend:** React 18 + Vite + Tailwind CSS + React Testing Library
-- **Backend:** Node.js + Express + MySQL2 + Winston + Prometheus
-- **AI Engine:** Python Flask + scikit-learn + pandas
-- **Database:** MySQL 8.0+ with transaction support
-- **Monitoring:** Prometheus + Grafana (optional)
+### **THEMIS CLEARPASS Hierarchy**
+```
+IT Admin (Role 1)
+├── Clerk (Role 2) [Certificate Issuance]
+├── Blotter Officer (Role 3) [Case Management]
+├── Resident (Role 4) [Limited Access]
+├── Captain (Role 5) [Full Approval]
+└── Secretary (Role 6) [Operations]
+```
 
-### **Database Schema (9 Tables)**
+### **Database Schema (15+ Tables)**
 ```sql
-├── residents (resident profiles & demographics)
-├── certificates_log (document issuance tracking)
-├── blotter (incident reports & case management)
-├── sitios (barangay geographical areas)
-├── community_programs (events & activities)
-├── tanod_schedule (patrol assignments)
-├── officials (staff management)
-├── users (authentication - future)
-└── audit_log (activity tracking)
+├── users (authentication + THEMIS roles)
+├── residents (profiles + demographics)
+├── clearance_requests (certificate workflow)
+├── certificates (issued documents)
+├── blotter (cases + hearing tracking)
+├── document_requests (online submissions)
+├── resident_verification_requests (proof uploads)
+├── audit_log (activity tracking)
+└── ... (additional supporting tables)
 ```
 
 ---
@@ -121,15 +188,16 @@ npm run dev:all
 ### **Option 1: Automated Setup (Recommended)**
 ```bash
 # One-command setup
-npm run setup:all
+npm run install:all
 
-# This installs:
-# - Frontend dependencies (client/)
-# - Backend dependencies (server/)
-# - AI service dependencies (ai_service/)
-# - Test dependencies (tests/)
-# - Runs database setup
-# - Configures environment
+# Database setup
+cd server
+npx knex migrate:latest
+npx knex seed:run
+cd ..
+
+# Start services
+npm run dev:all
 ```
 
 ### **Option 2: Manual Setup**
@@ -141,14 +209,8 @@ cd ../server && npm install   # Backend API
 cd ../ai_service && pip install -r requirements.txt  # AI
 cd ../tests && npm install    # Testing
 
-# Setup database
-mysql -u root -p < database/schema.sql
-```
-
-### **Option 3: Docker Setup (Future)**
-```bash
-# When Docker setup is complete
-docker-compose up -d
+# Setup database manually
+mysql -u root -p < database/barangay_management.sql
 ```
 
 ---
@@ -156,8 +218,8 @@ docker-compose up -d
 ## ⚙️ Environment Configuration
 
 ### **Required Environment Variables**
-Create `.env` file in project root:
 
+#### **Server (.env)**
 ```bash
 # Database Configuration
 DB_HOST=localhost
@@ -169,37 +231,76 @@ DB_PORT=3306
 # Server Configuration
 SERVER_PORT=3001
 CLIENT_URL=http://localhost:5174
-NODE_ENV=development
-LOG_LEVEL=info
-
-# AI Service Configuration
 AI_SERVICE_URL=http://localhost:5000
-BASELINE_INCOME=15000
-WEIGHT_SENIOR=0.4
-WEIGHT_PWD=0.35
-WEIGHT_SINGLE_PARENT=0.25
 
-# Security Configuration (IMPORTANT)
-JWT_SECRET=your-super-secure-jwt-secret-key-min-32-chars
+# JWT Configuration (CRITICAL)
+JWT_SECRET=your-super-secure-jwt-secret-key-min-32-chars-long
 JWT_EXPIRES_IN=24h
 BCRYPT_ROUNDS=12
 
-# Email Configuration (Optional)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
+# Hybrid Authentication
+ENABLE_MYSQL_AUTH_STAFF=true
+FIREBASE_SERVICE_ACCOUNT_KEY=path/to/service-account.json
 
-# Monitoring (Optional)
-PROMETHEUS_PORT=9090
-GRAFANA_PORT=3000
+# CORS
+CORS_ORIGIN=http://localhost:5174
+```
+
+#### **Client (.env)**
+```bash
+# API Configuration
+VITE_API_BASE_URL=http://localhost:3001/api
+
+# Firebase Configuration
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+VITE_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
 ### **Security Checklist**
 - [ ] `JWT_SECRET` is at least 32 characters long
 - [ ] Database password is strong
-- [ ] `NODE_ENV=production` for production deployment
-- [ ] No sensitive data committed to Git
+- [ ] `ENABLE_MYSQL_AUTH_STAFF=true` for staff authentication
+- [ ] Firebase service account configured (optional for dev)
+
+---
+
+## 🔐 THEMIS CLEARPASS Authentication System
+
+### **Role Hierarchy (1-6)**
+| Role ID | Role Name | Permissions | Access Level |
+|---------|-----------|-------------|--------------|
+| 1 | IT Admin | System Administration | Full |
+| 2 | Clerk | Certificate Issuance | Operational |
+| 3 | Blotter Officer | Case Management | Operational |
+| 4 | Resident | Limited Portal Access | Restricted |
+| 5 | Captain | Approvals + Reports | Management |
+| 6 | Secretary | Operations + Approvals | Management |
+
+### **Default Accounts**
+| Role | Username/Email | Password | THEMIS Level |
+|------|----------------|----------|--------------|
+| IT Admin | `superadmin` | `superadmin123` | 1 |
+| Captain | `captain` | `captain` | 5 |
+| Secretary | `secretary` | `secretary` | 6 |
+| Clerk | `clerk` | `clerk` | 2 |
+| Blotter Officer | `blotter_officer` | `blotter123` | 3 |
+
+### **Authentication Flow**
+1. **Login** → JWT token with role + hierarchy info
+2. **API Access** → Token validation + role checking
+3. **Data Access** → THEMIS CLEARPASS validation
+4. **Actions** → Permission-based authorization
+
+### **ClearPass Validation Rules**
+- **Certificate Blocking**: Active blotter cases block clearance issuance
+- **Hearing Limits**: 3+ missed hearings block certificates
+- **Resident Linking**: Users must be linked to resident profiles
+- **Hierarchy Access**: Higher roles can access lower role data
 
 ---
 
@@ -223,17 +324,17 @@ npm run dev:all
 npm run build
 
 # Start production servers
-npm run start:prod
+cd server && npm start
 
 # Or use PM2 for process management
 npm install -g pm2
-pm2 start ecosystem.config.js
+pm2 start server/index.js --name "barangay-api"
 ```
 
 ### **Individual Services**
 ```bash
 # Frontend only
-npm run dev
+cd client && npm run dev
 
 # Backend only
 cd server && npm start
@@ -251,35 +352,39 @@ cd ai_service && python smart_suggestions.py
 
 ### **Run Complete Test Suite**
 ```bash
-# Run all tests with coverage
+# Run all tests
 npm test
 
-# Individual test suites
-npm run test:frontend    # React component tests
-npm run test:backend     # API endpoint tests
-npm run test:ai          # Python algorithm tests
-npm run test:integration # End-to-end tests
+# Run backend tests only
+cd server && npm test
+
+# Run frontend tests only
+cd client && npm test
 ```
 
-### **Test Results Summary**
-- **Total Tests:** 100+ individual test cases
-- **Coverage:** 95%+ code coverage
-- **Performance:** <500ms P95 response time
-- **Security:** All major vulnerabilities addressed
+### **Test Coverage**
+- **Backend API Tests**: Authentication, RBAC, business logic
+- **Frontend Component Tests**: React components, routing
+- **Integration Tests**: API endpoints, database operations
+- **THEMIS CLEARPASS Tests**: Role validation, hierarchy enforcement
 
 ### **Manual Testing Checklist**
 ```bash
 # Health Checks
 curl http://localhost:3001/health
 curl http://localhost:5000/health
-curl http://localhost:3001/metrics
 
 # API Documentation
 open http://localhost:3001/api-docs
 
+# Authentication Test
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"captain","password":"captain"}'
+
 # Frontend Functionality
 open http://localhost:5174
-# Test: Resident CRUD, Certificate Issuance, QR Verification
+# Test: Login, resident management, certificate requests
 ```
 
 ---
@@ -287,92 +392,120 @@ open http://localhost:5174
 ## 🔒 Security Features
 
 ### **Implemented Security Measures**
-- ✅ **JWT Authentication:** Fully implemented with account hierarchy
-- ✅ **Account Hierarchy:** 6-tier role-based access control
-- ✅ **Rate Limiting:** Multi-tier API protection
-- ✅ **Input Validation:** Comprehensive sanitization
-- ✅ **SQL Injection Prevention:** Parameterized queries
-- ✅ **XSS Protection:** Content Security Policy
-- ✅ **Transaction Safety:** Database rollback on failures
-- ✅ **Audit Logging:** Complete activity tracking
-- ✅ **Error Handling:** No sensitive data leakage
+- ✅ **THEMIS CLEARPASS RBAC**: 6-tier role-based access control
+- ✅ **JWT Authentication**: Secure token-based authentication
+- ✅ **Input Validation**: Comprehensive sanitization and validation
+- ✅ **SQL Injection Prevention**: Parameterized queries
+- ✅ **XSS Protection**: Content Security Policy
+- ✅ **Rate Limiting**: API abuse prevention (future enhancement)
+- ✅ **Audit Logging**: Complete activity tracking
+- ✅ **Hybrid Authentication**: Firebase + MySQL support
 
 ### **Critical Security Notes**
 ⚠️ **HIGH PRIORITY - Complete Before Production:**
 1. **Configure HTTPS/SSL** certificates
-2. **Enable Database Encryption** (MySQL 8.0+)
-3. **Set up proper firewall rules**
-4. **Change default JWT secret in production**
+2. **Set strong JWT_SECRET** (64+ characters)
+3. **Change default passwords** for all accounts
+4. **Enable database encryption** (MySQL 8.0+)
+5. **Set up proper firewall rules**
+6. **Configure Firebase security rules**
 
-### **Security Audit Results**
-- **Overall Risk:** LOW-MEDIUM
-- **Critical Issues:** 3 (all documented with fixes)
-- **Compliance:** GDPR-ready with proper controls
-- **Monitoring:** Real-time security event tracking
+### **THEMIS CLEARPASS Security**
+- **Role Validation**: Every API call validates user role
+- **Data Ownership**: Users can only access authorized data
+- **Certificate Blocking**: Automatic blocking based on blotter status
+- **Audit Trails**: All actions logged for compliance
 
 ---
 
-## 📊 Monitoring & Observability
+## 📊 Database Management
 
-### **Built-in Monitoring**
-- **Health Checks:** `/health` endpoint with detailed status
-- **Metrics:** Prometheus-compatible metrics at `/metrics`
-- **Logging:** Structured logging with Winston
-- **Performance:** Request duration and error rate tracking
-
-### **Optional: Grafana Dashboard Setup**
+### **Knex.js Migration System**
 ```bash
-# Install Grafana and Prometheus (optional)
-docker run -d -p 3000:3000 grafana/grafana
-docker run -d -p 9090:9090 prom/prometheus
+# Run all migrations
+cd server
+npx knex migrate:latest
 
-# Import dashboard configuration from:
-# monitoring/grafana-dashboard.json
+# Create new migration
+npx knex migrate:make migration_name
+
+# Rollback last migration
+npx knex migrate:rollback
+
+# Check migration status
+npx knex migrate:status
 ```
 
-### **Key Metrics to Monitor**
-- API Response Times (<500ms P95)
-- Error Rates (<1%)
-- Database Connection Pool Usage
-- AI Service Availability
-- Certificate Issuance Success Rate
+### **Database Seeding**
+```bash
+# Run all seeds
+npx knex seed:run
+
+# Create new seed
+npx knex seed:make seed_name
+```
+
+### **THEMIS CLEARPASS Migration**
+```bash
+# Run the THEMIS migration script
+node run_clearpass_migration.js
+```
+
+### **Database Backup/Restore**
+```bash
+# Backup database
+mysqldump -u root -p barangay_management > backup.sql
+
+# Restore database
+mysql -u root -p barangay_management < backup.sql
+```
 
 ---
 
-## 📚 Documentation & API
+## 📚 API Documentation & Endpoints
 
 ### **API Documentation**
 - **Interactive Docs:** http://localhost:3001/api-docs (Swagger UI)
-- **Complete API Reference:** `API_DOCUMENTATION.md`
-- **Postman Collection:** `postman_collection.json`
+- **Health Check:** http://localhost:3001/health
+- **Metrics:** http://localhost:3001/metrics (future enhancement)
 
 ### **Key API Endpoints**
 ```bash
-# Core Operations
-GET    /api/residents           # List residents
-POST   /api/residents           # Create resident
-POST   /api/certificates        # Issue certificate (with business rules)
-GET    /api/blotter             # List incidents
-POST   /api/blotter             # Report incident
+# Authentication
+POST   /api/auth/login                    # User login
+POST   /api/auth/logout                   # User logout
+GET    /api/auth/me                       # Current user info
+
+# Residents
+GET    /api/residents                     # List residents
+POST   /api/residents                     # Create resident
+GET    /api/residents/:id                 # Get resident details
+PUT    /api/residents/:id                 # Update resident
+
+# Certificates
+GET    /api/certificates                  # List certificates
+POST   /api/certificates                  # Issue certificate
+GET    /api/certificates/:id              # Get certificate
+
+# Clearance Requests
+GET    /api/clearance-requests            # List requests
+POST   /api/clearance-requests            # Create request
+PUT    /api/clearance-requests/:id        # Update status
+
+# Blotter
+GET    /api/blotter                       # List cases
+POST   /api/blotter                       # Report incident
+PUT    /api/blotter/:id                   # Update case
 
 # AI Features
-POST   /api/ai/priority         # Social aid prioritization
-GET    /api/ai/patrol-suggestions # Patrol deployment
-
-# Verification
-GET    /verify-qr/:hash         # QR code verification
-
-# Monitoring
-GET    /health                  # System health
-GET    /metrics                 # Prometheus metrics
-GET    /api-docs               # API documentation
+POST   /api/ai/calculate-priority         # Social aid priority
 ```
 
-### **Business Rules Enforced**
-1. **Certificate Blocking:** Clearance certificates blocked for residents with active blotter cases
-2. **Input Validation:** All user inputs validated and sanitized
-3. **Transaction Safety:** Critical operations wrapped in database transactions
-4. **Rate Limiting:** API abuse prevention
+### **THEMIS CLEARPASS Enforced Endpoints**
+- All endpoints require authentication
+- Role-based access control on all resources
+- Hierarchy validation for data access
+- Audit logging on all operations
 
 ---
 
@@ -384,38 +517,35 @@ GET    /api-docs               # API documentation
 ```bash
 # Check XAMPP MySQL is running
 # Verify database exists: barangay_management
-# Check .env DB_* variables
+# Check server/.env DB_* variables
 # Test connection: mysql -u root -p barangay_management
 ```
 
-#### **Port Already in Use**
+#### **Migration Errors**
 ```bash
-# Find process using port
-netstat -ano | findstr :3001
+# Check migration status
+cd server
+npx knex migrate:status
 
-# Kill process (replace PID)
-taskkill /PID <PID> /F
-
-# Or change port in .env
+# Rollback and retry
+npx knex migrate:rollback
+npx knex migrate:latest
 ```
 
-#### **Module Not Found Errors**
+#### **Authentication Issues**
 ```bash
-# Clean reinstall
-rm -rf node_modules package-lock.json
-npm install
-
-# For Python dependencies
-cd ai_service && pip install --upgrade -r requirements.txt
+# Check JWT secret in server/.env
+# Verify user exists in database
+# Check THEMIS role assignments
+# Test login endpoint manually
 ```
 
-#### **AI Service Unavailable**
+#### **THEMIS CLEARPASS Access Denied**
 ```bash
-# Start AI service separately
-cd ai_service && python smart_suggestions.py
-
-# Check AI_SERVICE_URL in .env
-# Verify Python 3.9+ installed
+# Verify user role (1-6)
+# Check if user is linked to resident profile
+# Ensure proper hierarchy relationships
+# Check blotter status for certificate requests
 ```
 
 #### **Frontend Build Errors**
@@ -427,15 +557,22 @@ npm install
 npm run build
 ```
 
-#### **Test Failures**
+#### **AI Service Unavailable**
 ```bash
-# Run tests individually to debug
-npm run test:backend
-npm run test:frontend
-npm run test:ai
+# Start AI service separately
+cd ai_service && python smart_suggestions.py
 
-# Check database test data
-mysql -u root barangay_management < database/insert_mock_data.sql
+# Check AI_SERVICE_URL in server/.env
+# Verify Python dependencies installed
+```
+
+#### **Port Already in Use**
+```bash
+# Find process using port
+netstat -ano | findstr :3001
+
+# Kill process (replace PID)
+taskkill /PID <PID> /F
 ```
 
 ---
@@ -445,89 +582,101 @@ mysql -u root barangay_management < database/insert_mock_data.sql
 ### **Development Deployment**
 ```bash
 # Quick local setup
-npm run setup:all
+npm run install:all
+cd server && npx knex migrate:latest && npx knex seed:run
+cd ..
 npm run dev:all
-```
-
-### **Staging Deployment**
-```bash
-# Build and test
-npm run build
-npm test
-
-# Deploy to staging server
-scp -r . user@staging-server:/var/www/barangay
 ```
 
 ### **Production Deployment**
 ```bash
 # Pre-deployment checklist
-npm run security-check
-npm run test
+npm test
+cd server && npm run lint
+cd client && npm run build
 
-# Production build
-NODE_ENV=production npm run build
+# Environment setup
+cp server/.env.example server/.env.production
+# Configure production environment variables
 
-# Start with PM2
+# Database migration
+cd server
+NODE_ENV=production npx knex migrate:latest
+NODE_ENV=production npx knex seed:run
+
+# Start production services
+npm install -g pm2
 pm2 start ecosystem.config.js --env production
 ```
 
 ### **Docker Deployment (Future)**
 ```bash
-# When Docker setup is complete
-docker build -t barangay-system .
+# When Docker setup is implemented
+docker-compose build
 docker-compose up -d
 ```
 
 ---
 
-## 📈 CI/CD Pipeline
+## 📈 Available Scripts
 
-### **GitHub Actions Setup**
-The system includes a complete CI/CD pipeline (`.github/workflows/ci-cd.yml`) that:
-- Runs automated tests on every push/PR
-- Performs security scanning
-- Generates coverage reports
-- Handles staging/production deployments
+### **Root Level Scripts**
+```bash
+npm run install:all        # Install all dependencies
+npm run dev:all           # Start all services (dev)
+npm run build             # Build frontend
+npm run test              # Run all tests
 
-### **Pipeline Stages**
-1. **Test:** Multi-environment testing (Node 18, 20)
-2. **Lint:** Code quality checks with ESLint
-3. **Security:** Dependency vulnerability scanning
-4. **Deploy:** Automated deployment with environment-specific configs
+npm run firebase:create-accounts  # Create Firebase accounts
+npm run firebase:list-accounts    # List Firebase accounts
+npm run firebase:delete-accounts  # Delete default accounts
+```
+
+### **Server Scripts**
+```bash
+cd server
+npm start                 # Production start
+npm run dev              # Development with nodemon
+npm test                 # Run tests
+npm run lint            # Code linting
+npm run format          # Code formatting
+```
+
+### **Client Scripts**
+```bash
+cd client
+npm run dev             # Development server
+npm run build           # Production build
+npm run lint           # Code linting
+npm run format         # Code formatting
+```
+
+### **Database Scripts**
+```bash
+cd server
+npx knex migrate:latest    # Run migrations
+npx knex migrate:rollback  # Rollback migration
+npx knex seed:run         # Run seeds
+npx knex migrate:status   # Check status
+```
 
 ---
 
-## 🎯 System Features Summary
+## 🎯 Success Indicators
 
-### **✅ Fully Implemented (95%)**
+**System is working when:**
+- ✅ **All services running:** Frontend (5174), Backend (3001), AI (5000)
+- ✅ **Database migrated:** All Knex migrations completed
+- ✅ **Authentication working:** Can login with default accounts
+- ✅ **THEMIS CLEARPASS active:** Role-based access enforced
+- ✅ **API responding:** Health checks return success
+- ✅ **Frontend accessible:** React dashboard loads
+- ✅ **Certificate workflow:** Clearance requests process correctly
+- ✅ **Blotter integration:** Cases block certificates appropriately
 
-#### **Core Functionality**
-- ✅ **Resident Management:** Complete CRUD with validation
-- ✅ **Certificate Issuance:** Business rules, QR codes, blocking logic
-- ✅ **Blotter System:** Incident reporting and case management
-- ✅ **AI Decision Support:** Priority scoring, patrol suggestions
-- ✅ **QR Verification:** Secure document authentication
-- ✅ **Audit Logging:** Complete activity tracking
-
-#### **Quality Assurance**
-- ✅ **Comprehensive Testing:** 100+ tests, 95%+ coverage
-- ✅ **Security Audit:** Complete assessment with remediation plan
-- ✅ **API Documentation:** Interactive Swagger documentation
-- ✅ **Monitoring:** Prometheus metrics and health checks
-- ✅ **CI/CD Pipeline:** Automated testing and deployment
-
-#### **Production Readiness**
-- ✅ **Error Handling:** Comprehensive exception management
-- ✅ **Transaction Safety:** Database consistency guaranteed
-- ✅ **Rate Limiting:** API abuse protection
-- ✅ **Input Validation:** XSS/SQL injection prevention
-- ✅ **Logging:** Structured logging with Winston
-
-### **🔄 Ready for Implementation (5%)**
-- 🔄 **JWT Authentication:** Code examples provided
-- 🔄 **HTTPS Configuration:** SSL setup guide available
-- 🔄 **Database Encryption:** MySQL 8.0+ commands documented
+**Setup Time:** ~15-20 minutes
+**Status:** ✅ THEMIS CLEARPASS Protocol Active
+**Security:** 🔒 6-Tier RBAC + Audit Logging
 
 ---
 
@@ -536,65 +685,77 @@ The system includes a complete CI/CD pipeline (`.github/workflows/ci-cd.yml`) th
 ### **Documentation**
 - **API Docs:** http://localhost:3001/api-docs
 - **Setup Guide:** `SETUP.md` (this file)
-- **API Reference:** `API_DOCUMENTATION.md`
+- **Database Schema:** `database/README.md`
+- **Firebase Setup:** `FIREBASE_SETUP_GUIDE.md`
 - **Security Audit:** `SECURITY_AUDIT.md`
 
-### **Key Contacts**
-- **Technical Support:** dev@barangay.gov.ph
-- **Security Issues:** security@barangay.gov.ph
-- **System Administration:** admin@barangay.gov.ph
+### **Key Files to Know**
+- `server/index.js` - Express server entry point
+- `server/knexfile.js` - Database configuration
+- `server/authController.js` - Authentication logic
+- `server/authMiddleware.js` - THEMIS RBAC middleware
+- `client/src/App.jsx` - React application root
+- `ai_service/smart_suggestions.py` - AI priority engine
 
 ### **Quick Health Checks**
 ```bash
 # System status
 curl http://localhost:3001/health
 
-# Test certificate blocking
-curl -X POST http://localhost:3001/api/certificates \
+# Authentication test
+curl -X POST http://localhost:3001/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"resident_id": 1, "certificate_type_id": 4, "purpose": "test"}'
+  -d '{"username":"captain","password":"captain"}'
 
-# AI service test
-curl http://localhost:5000/health
+# Database migration status
+cd server && npx knex migrate:status
+
+# THEMIS role verification
+mysql -u root -p -e "USE barangay_management; SELECT username, role FROM users LIMIT 5;"
 ```
 
 ---
 
-## 🎉 Success Metrics
+## 🎉 System Features Summary
 
-### **Minimum Viable Product (95% Complete)**
-- [x] Database fully functional with 9 tables
-- [x] Backend API operational (20+ endpoints)
-- [x] AI service running with advanced algorithms
-- [x] Critical business rules enforced
-- [x] Comprehensive test suite (100+ tests)
-- [x] Security audit completed
-- [x] Monitoring and alerting implemented
-- [x] CI/CD pipeline configured
-- [x] Complete API documentation
+### **✅ Fully Implemented (Version 3.0.0)**
 
-### **Production Deployment Ready**
-- [x] Transaction safety for critical operations
-- [x] Rate limiting and input validation
-- [x] Comprehensive error handling
-- [x] Security headers and CORS protection
-- [x] Audit logging and monitoring
-- [x] Automated testing pipeline
+#### **Core Functionality**
+- ✅ **THEMIS CLEARPASS RBAC**: 6-tier role hierarchy with strict enforcement
+- ✅ **Resident Management**: Complete CRUD with demographics and validation
+- ✅ **Certificate System**: Automated issuance with ClearPass blocking logic
+- ✅ **Blotter Integration**: Case management with hearing tracking
+- ✅ **Clearance Requests**: Structured workflow for certificate processing
+- ✅ **AI Decision Support**: Priority calculation for social aid distribution
+- ✅ **Audit Logging**: Complete activity tracking for compliance
 
-### **Next Steps (Optional Enhancements)**
-- [ ] Configure HTTPS/SSL certificates
-- [ ] Enable database encryption
-- [ ] Add PDF certificate generation
-- [ ] Implement file upload functionality (OCR scanning ready)
-- [ ] Add SMS notification integration
-- [ ] Implement advanced analytics dashboard
+#### **Security & Quality**
+- ✅ **Hybrid Authentication**: Firebase + MySQL with account hierarchy
+- ✅ **JWT Security**: Secure token-based authentication
+- ✅ **Input Validation**: XSS/SQL injection prevention
+- ✅ **Database Migrations**: Version-controlled schema management
+- ✅ **Automated Testing**: Comprehensive test suite
+- ✅ **Code Quality**: ESLint + Prettier integration
+
+#### **Production Readiness**
+- ✅ **Error Handling**: Comprehensive exception management
+- ✅ **Transaction Safety**: Database consistency guaranteed
+- ✅ **Logging**: Structured logging with Winston
+- ✅ **Health Checks**: System monitoring endpoints
+- ✅ **Environment Config**: Production-ready configuration
+
+### **🔄 Future Enhancements**
+- 🔄 **Docker Containerization**: Multi-stage builds with security
+- 🔄 **Rate Limiting**: API abuse prevention
+- 🔄 **File Upload**: Document storage and OCR integration
+- 🔄 **Real-time Notifications**: WebSocket-based updates
+- 🔄 **Advanced Analytics**: Dashboard with data visualization
 
 ---
 
-**🎯 System Status:** **PRODUCTION READY** (95%)
-**Setup Time:** ~10 minutes
-**Test Coverage:** 95%+
-**Security Risk:** LOW-MEDIUM (with recommended fixes)
-**Performance:** <500ms P95 response time
+**🎯 THEMIS CLEARPASS Protocol is now ACTIVE**
+**Setup Time:** ~15-20 minutes
+**Security Level:** 🔒 Enterprise-grade RBAC
+**Production Status:** ✅ Ready for deployment
 
-**Ready for immediate deployment with the three critical security fixes recommended in the security audit.**
+**The system implements a comprehensive barangay management solution with strict security controls and automated business rule enforcement.**

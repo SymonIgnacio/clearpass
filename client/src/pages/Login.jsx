@@ -12,9 +12,8 @@ import {
   Avatar,
   Grid
 } from '@mui/material'
-import { LockOutlined, PersonAdd, Business } from '@mui/icons-material'
-import { auth } from '../firebase'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { LockOutlined, PersonAdd, Business, Person } from '@mui/icons-material'
+import { apiRequest } from '../utils/api'
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate()

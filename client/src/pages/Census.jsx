@@ -26,11 +26,25 @@ const Census = () => {
 
   const fetchCensusData = async () => {
     try {
+      console.log('🚀 Census: Fetching census data...')
       const response = await apiRequest('census')
+      console.log('🚀 Census: API response status:', response.status)
+
+      if (response.status === 403) {
+        console.error('🚫 Census: Access forbidden - RBAC issue')
+        return
+      }
+
+      if (!response.ok) {
+        console.error('🚫 Census: API error:', response.status, response.statusText)
+        return
+      }
+
       const data = await response.json()
+      console.log('✅ Census: Data received:', data)
       setCensusData(data)
     } catch (error) {
-      console.error('Error fetching census data:', error)
+      console.error('❌ Census: Error fetching census data:', error)
     }
   }
 

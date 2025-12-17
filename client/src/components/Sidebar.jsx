@@ -101,6 +101,7 @@ const Sidebar = ({ user, onLogout }) => {
       description: 'Community Programs',
       roles: ['admin', 'captain', 'secretary', 'clerk'] // Staff roles only (RESIDENTS SHOULD NOT SEE INTERNAL EVENTS MANAGEMENT)
     },
+
     {
       text: 'Settings',
       icon: <Settings />,
@@ -110,12 +111,25 @@ const Sidebar = ({ user, onLogout }) => {
     }
   ]
 
-  // Filter menu items based on user role
+  // Filter menu items based on user role - THEMIS ClearPass compatibility
   const menuItems = allMenuItems.filter(item => {
     if (!user || !user.role) return false
 
+    // THEMIS ClearPass: Handle both numeric THEMIS roles and legacy string roles
+    const THEMIS_ROLE_MAP = {
+      1: 'admin',           // IT Admin
+      2: 'clerk',           // Clerk
+      3: 'blotter_officer', // Blotter Officer
+      4: 'resident',        // Resident
+      5: 'captain',         // Captain
+      6: 'secretary'        // Secretary
+    }
+
+    // Convert numeric THEMIS role to string for compatibility, or use as-is if already string
+    const userRole = typeof user.role === 'number' ? THEMIS_ROLE_MAP[user.role] || user.role : user.role
+
     // Check if user role is in item's allowed roles
-    return item.roles.includes(user.role)
+    return item.roles.includes(userRole)
   })
 
   return (

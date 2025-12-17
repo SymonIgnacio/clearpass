@@ -1,20 +1,19 @@
-# BMWs Barangay Management System
+# THEMIS Barangay Management System
 
-A modern web application for Barangay Batia administration with AI-powered decision support. Built with React, Node.js, MySQL, and Python.
+A secure web application for Barangay Batia administration with strict Role-Based Access Control (RBAC). Built with React, Node.js, and MySQL.
 
 ## 🏗️ System Overview
 
-**Current Status:** Production Ready (95% Complete)
-**Latest Version:** v2.7 (Docker + Account Hierarchy)
-**Tech Stack:** React 18 + Node.js + MySQL 8.0 + Python Flask
+**Current Status:** Production Ready (THEMIS RBAC Implementation)
+**Latest Version:** v3.0 (THEMIS RBAC + Segregation of Duties)
+**Tech Stack:** React 18 + Node.js + MySQL 8.0
 **Database:** barangay_management (10+ tables with migrations)
 
 ### Architecture
 ```
-BMW System
+THEMIS System
 ├── client/          # React Frontend (Port 80/5174)
 ├── server/          # Node.js API (Port 3001)
-├── ai_service/      # Python AI (Port 5000)
 ├── database/        # MySQL Schema + Migrations
 ├── tests/           # Test Suite (95%+ coverage)
 └── docs/           # Comprehensive Documentation
@@ -31,18 +30,13 @@ BMW System
 ### Backend
 - **Node.js + Express** for RESTful API
 - **MySQL** with connection pooling
-- **JWT** for authentication (ready for implementation)
+- **JWT** for authentication
 - **CORS** enabled for cross-origin requests
-
-### AI Service
-- **Python Flask** with REST API
-- **Data analysis** with Pandas & Scikit-learn
-- **Real-time decision support**
 
 ### Testing
 - **Jest** for comprehensive test suite
 - **Business rule validation**
-- **AI algorithm accuracy testing**
+- **RBAC permission testing**
 - **Integration testing**
 
 ## 📊 Database Schema
@@ -64,16 +58,15 @@ Comprehensive test coverage including:
 - Status update impact verification
 - Error message accuracy testing
 
-### AI Algorithm Tests
-- Priority scoring accuracy (±5 point variance allowed)
-- Patrol recommendation logic validation
-- Integration endpoint testing
+### RBAC Security Tests
+- Role-based access control validation
+- Segregation of duties enforcement
+- Permission matrix testing
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+
-- Python 3.8+
 - MySQL 8.0+
 - npm/yarn package managers
 
@@ -107,7 +100,6 @@ npm run dev:all
 Services will start on:
 - Frontend: http://localhost:5174
 - Backend API: http://localhost:3001
-- AI Service: http://localhost:5000
 
 ### Testing
 ```bash
@@ -139,26 +131,35 @@ if (certificate_type.includes('clearance')) {
 }
 ```
 
-### AI Priority Algorithm
-```python
-# Social Aid Priority Logic
-if monthly_income < 10000 or is_senior or is_pwd:
-    priority = "HIGH"
-elif monthly_income > 20000 and is_employed:
-    priority = "LOW"
-else:
-    priority = "MEDIUM"
-```
-
-### Patrol Deployment Logic
-```python
-# Predictive Policing Algorithm
-if incidents >= 5:
-    suggestion = "Deploy 4 Tanods + Roving Patrol"
-elif incidents >= 2:
-    suggestion = "Deploy 2 Tanods"
-else:
-    suggestion = "Standard Patrol (1 Tanod)"
+### THEMIS RBAC Permissions
+```javascript
+// STRICT: Role-based access control enforcement
+const PERMISSIONS = {
+  0: { // IT Admin - Tech/Infra only
+    canCreateUsers: true,
+    canManageSystem: true
+  },
+  1: { // Captain - Read-Only Analytics
+    canViewAnalytics: true,
+    canViewReports: true
+  },
+  2: { // Secretary - Ops/Approver
+    canApproveRequests: true,
+    canManageOperations: true
+  },
+  3: { // Clerk - Fulfillment/Issuer
+    canIssueCertificates: true,
+    canProcessRequests: true
+  },
+  4: { // Blotter Officer - Case Manager
+    canManageBlotter: true,
+    canEditCases: true
+  },
+  5: { // Resident - End User
+    canViewProfile: true,
+    canRequestServices: true
+  }
+};
 ```
 
 ## 📈 Performance & Scalability
@@ -180,9 +181,8 @@ else:
 ├── server/
 │   ├── index.js       # Express server
 │   ├── database.js    # Database operations
-│   └── aiService.js   # AI service integration
-├── ai_service/
-│   └── smart_suggestions.py  # AI algorithms
+│   ├── authMiddleware.js # RBAC middleware
+│   └── permissions.js # Role permissions
 └── tests/             # Test suite
 ```
 
@@ -191,8 +191,7 @@ else:
 - `GET/POST /api/blotter` - Incident reporting
 - `POST /api/certificates` - Certificate issuance
 - `GET /api/census` - Population statistics
-- `POST /api/ai/priority` - Social aid prioritization
-- `GET /api/ai/patrol-suggestions` - Patrol recommendations
+- `GET/POST /api/users` - User account management
 
 ## 🤝 Contributing
 

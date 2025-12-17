@@ -7,7 +7,11 @@ echo Starting services...
 echo.
 
 echo [1/4] Starting AI Service...
-start "AI Service" cmd /k "cd ai_service && python smart_suggestions.py"
+if exist "ai_service" (
+    start "AI Service" cmd /k "cd ai_service && python smart_suggestions.py"
+) else (
+    echo AI service directory not found - skipping...
+)
 
 timeout /t 3 /nobreak >nul
 

@@ -66,13 +66,76 @@ function generateToken(user) {
   );
 }
 
-// Role hierarchy mapping (based on existing ENUM values)
+// THEMIS CLEARPASS 6-tier Role-Based Access Control System
+const THEMIS_ROLES = {
+  1: { // IT Admin (System Guardian)
+    level: 1,
+    role_name: 'it_admin',
+    permissions: [
+      'tech_support', 'system_monitoring', 'user_provisioning',
+      'bulk_import', 'system_config', 'security_mgmt'
+    ],
+    display_name: 'IT Admin',
+    description: 'System Guardian - Tech/Infra only - System maintenance and user creation'
+  },
+  2: { // Clerk (The ClearPass Operator - Issuance)
+    level: 2,
+    role_name: 'clerk',
+    permissions: [
+      'issue_certificates', 'process_clearances', 'data_entry',
+      'basic_support', 'create_records', 'clearpass_gate'
+    ],
+    display_name: 'Clerk',
+    description: 'ClearPass Engine - Certificate issuance and processing with ClearPass validation'
+  },
+  3: { // Blotter Officer (The Encoder)
+    level: 3,
+    role_name: 'blotter_officer',
+    permissions: [
+      'manage_blotter', 'create_cases', 'update_cases', 'close_cases'
+    ],
+    display_name: 'Blotter Officer',
+    description: 'The Encoder - Full CRUD for blotter cases (triggers ClearPass blocks)'
+  },
+  4: { // Resident (The End User)
+    level: 4,
+    role_name: 'resident',
+    permissions: [
+      'view_own_profile', 'request_clearance', 'update_profile',
+      'view_certificates', 'submit_verification'
+    ],
+    display_name: 'Resident',
+    description: 'End User - Login with ResidentID + PIN'
+  },
+  5: { // Captain (Executive Viewer)
+    level: 5,
+    role_name: 'captain',
+    permissions: [
+      'read_analytics', 'view_reports', 'supervise_operations'
+    ],
+    display_name: 'Captain',
+    description: 'Executive Viewer - Read-Only Analytics - Leadership oversight'
+  },
+  6: { // Secretary (The Overseer)
+    level: 6,
+    role_name: 'secretary',
+    permissions: [
+      'manage_documents', 'approve_clearances', 'process_requests',
+      'generate_reports', 'manage_events', 'supervise_clerks',
+      'view_all_records', 'administrative_approval'
+    ],
+    display_name: 'Secretary',
+    description: 'The Overseer - Document processing, approvals, and supervision'
+  }
+};
+
+// Legacy ROLE_HIERARCHY for backward compatibility (maps strings to THEMIS roles)
 const ROLE_HIERARCHY = {
-  'admin': { level: 1, permissions: ['read', 'write', 'delete', 'manage_users'], display_name: 'Super Admin' },
-  'captain': { level: 2, permissions: ['read', 'write', 'manage_certificates'], display_name: 'Barangay Captain' },
-  'secretary': { level: 3, permissions: ['read', 'write', 'manage_documents'], display_name: 'Barangay Secretary' },
-  'clerk': { level: 4, permissions: ['read', 'write'], display_name: 'Barangay Clerk' },
-  'resident': { level: 5, permissions: ['read'], display_name: 'Resident' }
+  'admin': THEMIS_ROLES[1],
+  'captain': THEMIS_ROLES[5],
+  'secretary': THEMIS_ROLES[6],
+  'clerk': THEMIS_ROLES[2],
+  'resident': THEMIS_ROLES[4]
 };
 
 // Firebase Admin SDK
@@ -527,27 +590,27 @@ async function getProfile(req, res) {
       });
     }
 
-    // Get role information - support both staff and resident hierarchies
+    // Get role information using THEMIS roles (supports both numeric and string roles)
     let roleInfo;
     let isStaffUser = false;
 
-    // Check if this is a staff user (not a resident)
-    const staffRoles = ['admin', 'captain', 'secretary', 'clerk'];
-    if (staffRoles.includes(user.role)) {
-      // Use STAFF_ROLE_HIERARCHY for staff users - critical for consistent permissions
-      roleInfo = STAFF_ROLE_HIERARCHY[user.role] || STAFF_ROLE_HIERARCHY['clerk'];
-      isStaffUser = true;
-      console.log('🔍 [Profile Debug] Staff user detected, using STAFF_ROLE_HIERARCHY:', roleInfo);
+    // Handle both numeric THEMIS roles and legacy string roles
+    if (typeof user.role === 'number') {
+      // Numeric THEMIS role
+      roleInfo = THEMIS_ROLES[user.role];
+      isStaffUser = user.role >= 1 && user.role <= 6; // All THEMIS roles are staff-like
+      console.log('🔍 [Profile Debug] THEMIS numeric role detected:', user.role, roleInfo);
     } else {
-      // Use standard ROLE_HIERARCHY for residents and others
+      // Legacy string role - map to THEMIS
       roleInfo = ROLE_HIERARCHY[user.role] || ROLE_HIERARCHY['resident'];
-      console.log('🔍 [Profile Debug] Resident/user detected, using ROLE_HIERARCHY:', roleInfo);
+      isStaffUser = ['admin', 'captain', 'secretary', 'clerk'].includes(user.role);
+      console.log('🔍 [Profile Debug] Legacy string role detected:', user.role, roleInfo);
     }
 
-    // Ensure admin users always get 'all' permissions for consistent access control
-    if (user.role === 'admin') {
-      roleInfo = STAFF_ROLE_HIERARCHY['admin'];
-      console.log('🔍 [Profile Debug] Superadmin user - forcing STAFF_ROLE_HIERARCHY admin permissions:', roleInfo);
+    // Ensure roleInfo exists
+    if (!roleInfo) {
+      roleInfo = THEMIS_ROLES[4]; // Default to resident
+      console.log('🔍 [Profile Debug] Using default resident role');
     }
 
     console.log('🔍 [Profile Debug] Final role info:', { userRole: user.role, roleInfo, isStaffUser });
@@ -748,383 +811,104 @@ async function getSubordinates(req, res) {
   }
 }
 
-/**
- * Resident Signup (Public - No Authentication Required)
- * Allows residents to request account creation with proof of residency
- */
-async function residentSignup(req, res) {
-  const trx = await knex.transaction();
 
+
+/**
+ * THEMIS Resident Login: ResidentID + PIN Authentication
+ * Residents login using their ResidentID and 6-digit PIN (THEMIS requirement)
+ */
+async function residentLogin(req, res) {
   try {
-    const {
-      resident_id,
-      username,
-      password,
-      full_name,
-      email,
-      mobile_number,
-      proof_type,
-      notes
-    } = req.body;
+    const { resident_id, pin } = req.body;
+
+    console.log('🔐 THEMIS Resident Login - ResidentID + PIN authentication');
+    console.log('Resident ID:', resident_id);
 
     // Validate required fields
-    if (!resident_id || !username || !password || !full_name || !proof_type) {
+    if (!resident_id || !pin) {
       return res.status(400).json({
-        error: 'Resident ID, username, password, full name, and proof type are required'
+        error: 'Resident ID and PIN are required'
       });
     }
 
-    // Validate username format
-    if (username.length < 3) {
+    // Validate PIN format (6 digits)
+    if (!/^\d{6}$/.test(pin)) {
       return res.status(400).json({
-        error: 'Username must be at least 3 characters long'
+        error: 'PIN must be exactly 6 digits'
       });
     }
 
-    // Validate password complexity
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!passwordRegex.test(password)) {
-      console.log('Validation failed: weak password');
-      return res.status(400).json({
-        error: 'Password must meet complexity requirements',
-        requirements: {
-          minLength: 8,
-          requireUppercase: true,
-          requireLowercase: true,
-          requireNumber: true,
-          requireSpecialChar: true,
-          allowedSpecialChars: '@$!%*?&'
-        }
-      });
-    }
-
-    // Check if resident exists in database
-    const resident = await trx('residents')
-      .where('Resident_ID', resident_id)
-      .where('Residency_Status', 'Active')
-      .first();
-
-    if (!resident) {
-      return res.status(404).json({
-        error: 'Resident not found or not active. Please ensure you are registered as a resident of Barangay Batia.'
-      });
-    }
-
-    // Check if resident already has an active account
-    const existingUser = await trx('users')
-      .where('username', username)
+    // Find user by resident_id and validate PIN
+    const user = await knex('users')
+      .where('resident_id', resident_id)
+      .where('role', 4) // THEMIS: Must be resident role (4 = Resident)
       .where('is_active', true)
       .first();
 
-    if (existingUser) {
-      return res.status(409).json({
-        error: 'Username already exists'
+    if (!user) {
+      return res.status(401).json({
+        error: 'Invalid Resident ID or account not found'
       });
     }
 
-    // Check if resident already has a pending or approved signup request
-    const existingRequest = await trx('resident_signup_requests')
-      .where('resident_id', resident_id)
-      .whereIn('status', ['pending', 'approved'])
-      .first();
-
-    if (existingRequest) {
-      if (existingRequest.status === 'approved') {
-        return res.status(409).json({
-          error: 'You already have an approved account. Please login instead.'
-        });
-      } else {
-        return res.status(409).json({
-          error: 'You already have a pending signup request. Please wait for approval.'
-        });
-      }
-    }
-
-    // Handle file upload
-    if (!req.file) {
-      return res.status(400).json({
-        error: 'Proof of residency document is required (electric bill, water bill, cedula, etc.)'
+    // Verify PIN
+    if (!user.pin || user.pin !== pin) {
+      return res.status(401).json({
+        error: 'Invalid PIN'
       });
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
-    if (!allowedTypes.includes(req.file.mimetype)) {
-      return res.status(400).json({
-        error: 'Invalid file type. Please upload JPEG, PNG, GIF, or PDF files only.'
-      });
-    }
+    // Update last login
+    await knex('users')
+      .where('id', user.id)
+      .update({ last_login: knex.fn.now() });
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (req.file.size > maxSize) {
-      return res.status(400).json({
-        error: 'File size too large. Maximum size is 5MB.'
-      });
-    }
+    // Get role information
+    const roleInfo = ROLE_HIERARCHY['resident'];
 
-    // Hash password
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
+    // Create user object for JWT token
+    const userWithHierarchy = {
+      id: user.id,
+      username: user.username,
+      full_name: user.full_name,
+      email: user.email,
+      resident_id: user.resident_id,
+      role: user.role,
+      role_name: roleInfo.display_name,
+      hierarchy_level: roleInfo.level,
+      permissions: roleInfo.permissions,
+      auth_type: 'themis_resident' // THEMIS compliance flag
+    };
 
-    // Generate request ID
-    const requestId = `RES-SIGNUP-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    // Generate JWT token
+    const token = generateToken(userWithHierarchy);
 
-    // Create file path for proof document
-    const fileExtension = req.file.originalname.split('.').pop();
-    const proofFileName = `${requestId}.${fileExtension}`;
-    const proofFilePath = `uploads/resident_signup/${proofFileName}`;
+    console.log('✅ THEMIS Resident Login successful for:', resident_id);
 
-    // Move uploaded file to permanent location
-    const fs = require('fs').promises;
-    const path = require('path');
-
-    // Ensure directory exists
-    const uploadDir = path.dirname(proofFilePath);
-    await fs.mkdir(uploadDir, { recursive: true });
-
-    // Move file
-    await fs.rename(req.file.path, proofFilePath);
-
-    // Create signup request
-    await trx('resident_signup_requests').insert({
-      request_id: requestId,
-      resident_id: resident_id,
-      email: email,
-      mobile_number: mobile_number,
-      username: username,
-      password_hash: passwordHash,
-      full_name: full_name.trim(),
-      proof_of_residency_path: proofFilePath,
-      proof_type: proof_type,
-      notes: notes?.trim(),
-      status: 'pending',
-      submitted_at: trx.fn.now()
-    });
-
-    await trx.commit();
-
-    res.status(201).json({
-      message: 'Resident signup request submitted successfully. Your account will be activated after verification of your proof of residency.',
-      request_id: requestId,
-      estimated_approval_time: '2-3 business days',
-      next_steps: [
-        'Wait for barangay officer review',
-        'You will receive an email/SMS notification once approved',
-        'Login with your credentials after approval'
-      ]
-    });
-
-  } catch (error) {
-    await trx.rollback();
-    console.error('Resident signup error:', error);
-    res.status(500).json({
-      error: 'Internal server error during signup'
-    });
-  }
-}
-
-/**
- * Get Pending Resident Signup Requests (Officer Only)
- */
-async function getPendingResidentSignups(req, res) {
-  try {
-    const { page = 1, limit = 20 } = req.query;
-
-    const requests = await knex('resident_signup_requests')
-      .select(
-        'resident_signup_requests.*',
-        'residents.First_Name',
-        'residents.Last_Name',
-        'residents.Mobile_Number as resident_mobile',
-        'households.Street_Address',
-        'sitios.name as sitio_name'
-      )
-      .join('residents', 'resident_signup_requests.resident_id', 'residents.Resident_ID')
-      .leftJoin('households', 'residents.Household_ID', 'households.Household_ID')
-      .leftJoin('sitios', 'households.Sitio_ID', 'sitios.id')
-      .where('resident_signup_requests.status', 'pending')
-      .orderBy('resident_signup_requests.submitted_at', 'asc')
-      .limit(limit)
-      .offset((page - 1) * limit);
-
-    const formattedRequests = requests.map(row => ({
-      request_id: row.request_id,
-      resident_id: row.resident_id,
-      resident_name: `${row.First_Name} ${row.Last_Name}`,
-      username: row.username,
-      email: row.email,
-      mobile_number: row.mobile_number || row.resident_mobile,
-      full_name: row.full_name,
-      address: `${row.Street_Address}, ${row.sitio_name}, Batia, Bocaue, Bulacan`,
-      proof_type: row.proof_type,
-      proof_path: row.proof_of_residency_path,
-      notes: row.notes,
-      submitted_at: row.submitted_at
-    }));
+    // Return user info (excluding sensitive data)
+    const userResponse = {
+      id: user.id,
+      username: user.username,
+      full_name: user.full_name,
+      email: user.email,
+      resident_id: user.resident_id,
+      role: user.role,
+      role_name: roleInfo.display_name,
+      hierarchy_level: roleInfo.level,
+      permissions: roleInfo.permissions,
+      auth_type: 'themis_resident'
+    };
 
     res.json({
-      success: true,
-      data: formattedRequests,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit)
-      }
+      message: 'THEMIS Resident login successful',
+      token,
+      user: userResponse
     });
 
   } catch (error) {
-    console.error('Error fetching pending resident signups:', error);
+    console.error('❌ THEMIS Resident login error:', error);
     res.status(500).json({
-      success: false,
-      message: 'Failed to fetch pending resident signups'
-    });
-  }
-}
-
-/**
- * Approve/Reject Resident Signup Request (Officer Only)
- */
-async function reviewResidentSignup(req, res) {
-  const trx = await knex.transaction();
-
-  try {
-    const { request_id } = req.params;
-    const { action, review_notes } = req.body; // action: 'approve' or 'reject'
-    const reviewed_by = req.user?.id || req.body.reviewed_by;
-
-    // Validate action
-    if (!['approve', 'reject'].includes(action)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid action. Must be "approve" or "reject".'
-      });
-    }
-
-    // Get the signup request
-    const signupRequest = await trx('resident_signup_requests')
-      .where('request_id', request_id)
-      .where('status', 'pending')
-      .first();
-
-    if (!signupRequest) {
-      return res.status(404).json({
-        success: false,
-        message: 'Signup request not found or already processed.'
-      });
-    }
-
-    const newStatus = action === 'approve' ? 'approved' : 'rejected';
-
-    // Update signup request
-    await trx('resident_signup_requests')
-      .where('request_id', request_id)
-      .update({
-        status: newStatus,
-        reviewed_at: trx.fn.now(),
-        reviewed_by: reviewed_by,
-        review_notes: review_notes,
-        approved_at: action === 'approve' ? trx.fn.now() : null
-      });
-
-    if (action === 'approve') {
-      // Create user account
-      const [userId] = await trx('users').insert({
-        username: signupRequest.username,
-        password_hash: signupRequest.password_hash,
-        full_name: signupRequest.full_name,
-        email: signupRequest.email,
-        role: 'resident',
-        is_active: true
-      });
-
-      // Update signup request with created user ID
-      await trx('resident_signup_requests')
-        .where('request_id', request_id)
-        .update({
-          created_user_id: userId
-        });
-
-      // Log the approval
-      await trx('audit_log').insert({
-        user_id: reviewed_by,
-        action: 'RESIDENT_SIGNUP_APPROVED',
-        entity_type: 'resident_signup_request',
-        entity_id: request_id,
-        details: JSON.stringify({
-          resident_id: signupRequest.resident_id,
-          username: signupRequest.username,
-          created_user_id: userId
-        }),
-        created_at: trx.fn.now()
-      });
-
-      await trx.commit();
-
-      res.json({
-        success: true,
-        message: 'Resident signup approved successfully. User account created.',
-        data: {
-          request_id: request_id,
-          username: signupRequest.username,
-          user_id: userId,
-          status: 'approved'
-        }
-      });
-
-    } else {
-      // For rejection, just update status
-      await trx.commit();
-
-      res.json({
-        success: true,
-        message: 'Resident signup rejected.',
-        data: {
-          request_id: request_id,
-          status: 'rejected'
-        }
-      });
-    }
-
-  } catch (error) {
-    await trx.rollback();
-    console.error('Error reviewing resident signup:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to process resident signup review'
-    });
-  }
-}
-
-/**
- * Get Resident Signup Statistics (Officer Dashboard)
- */
-async function getResidentSignupStats(req, res) {
-  try {
-    const [stats] = await knex('resident_signup_requests')
-      .select(
-        knex.raw('COUNT(CASE WHEN status = "pending" THEN 1 END) as pending'),
-        knex.raw('COUNT(CASE WHEN status = "approved" THEN 1 END) as approved'),
-        knex.raw('COUNT(CASE WHEN status = "rejected" THEN 1 END) as rejected'),
-        knex.raw('COUNT(*) as total')
-      );
-
-    // Get recent signups
-    const recentSignups = await knex('resident_signup_requests')
-      .select('request_id', 'full_name', 'submitted_at', 'status')
-      .orderBy('submitted_at', 'desc')
-      .limit(5);
-
-    res.json({
-      success: true,
-      stats: stats[0],
-      recent_signups: recentSignups
-    });
-
-  } catch (error) {
-    console.error('Error fetching resident signup stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch signup statistics'
+      error: 'Internal server error during THEMIS authentication'
     });
   }
 }
@@ -1620,10 +1404,10 @@ async function staffLogin(req, res) {
       });
     }
 
-    // Verify if this is actually a staff user (based on role)
-    const staffRoles = ['admin', 'captain', 'secretary', 'clerk'];
-    if (!staffRoles.includes(user.role)) {
-      console.log('❌ Staff login failed: not a staff account');
+    // Verify if this is actually a staff user (based on THEMIS numeric roles)
+    const staffRoleNumbers = [1, 2, 3, 5, 6]; // IT Admin, Clerk, Blotter Officer, Captain, Secretary
+    if (!staffRoleNumbers.includes(parseInt(user.role))) {
+      console.log('❌ Staff login failed: not a staff account - role:', user.role);
       return res.status(401).json({
         error: 'Invalid credentials'
       });
@@ -1632,12 +1416,24 @@ async function staffLogin(req, res) {
     // Check password (support both bcrypt and plain text for migration compatibility)
     let isValidPassword = false;
 
-    try {
-      // Try bcrypt first (for properly hashed passwords)
-      isValidPassword = await bcrypt.compare(password, user.password_hash);
-    } catch (bcryptError) {
-      // Fallback: check plain text (for existing admin123 users)
+    console.log('🔐 Password check - user:', user.username, 'hash length:', user.password_hash?.length, 'password provided:', !!password);
+
+    // Check if password_hash looks like a bcrypt hash (starts with $2b$ or $2a$)
+    if (user.password_hash && (user.password_hash.startsWith('$2b$') || user.password_hash.startsWith('$2a$'))) {
+      // Try bcrypt comparison for properly hashed passwords
+      console.log('🔐 Using bcrypt comparison for hashed password');
+      try {
+        isValidPassword = await bcrypt.compare(password, user.password_hash);
+        console.log('🔐 Bcrypt comparison result:', isValidPassword);
+      } catch (bcryptError) {
+        console.log('❌ Bcrypt comparison failed:', bcryptError.message);
+        isValidPassword = false;
+      }
+    } else {
+      // Fallback: plain text comparison for backward compatibility
+      console.log('🔓 Using plain text password comparison');
       isValidPassword = (user.password_hash === password);
+      console.log('🔐 Plain text comparison result:', isValidPassword, 'hash:', user.password_hash, 'password:', password);
     }
 
     if (!isValidPassword) {
@@ -1661,11 +1457,11 @@ async function staffLogin(req, res) {
       .where('id', user.id)
       .update({ last_login: knex.fn.now() });
 
-    // Get role information from staff hierarchy
-    const staffRoleInfo = STAFF_ROLE_HIERARCHY[user.role];
+    // Get role information from THEMIS roles
+    const staffRoleInfo = THEMIS_ROLES[user.role];
 
     if (!staffRoleInfo) {
-      console.log('❌ Staff login failed: invalid role');
+      console.log('❌ Staff login failed: invalid role -', user.role);
       return res.status(401).json({
         error: 'Account configuration error'
       });
@@ -1975,42 +1771,40 @@ async function hybridLogin(req, res) {
       console.log('👔 Detected staff user, using staff auth');
       return staffLogin(req, res);
     } else {
-      console.log('🏠 Detected resident user, using database auth');
+      console.log('🏠 Detected resident user, using THEMIS pin_code authentication');
 
-      // For residents, use database authentication (simplified approach)
-      const { password } = req.body;
-      if (!username || !password) {
+      // For residents, use THEMIS ResidentID + PIN authentication
+      const { pin } = req.body;
+      if (!username || !pin) {
         return res.status(400).json({
-          error: 'Username and password are required'
+          error: 'Username and PIN are required'
         });
       }
 
-      // Find user in database
+      // Validate PIN format (6 digits)
+      if (!/^\d{6}$/.test(pin)) {
+        return res.status(400).json({
+          error: 'PIN must be exactly 6 digits'
+        });
+      }
+
+      // Find user by resident_id and validate PIN
       const user = await knex('users')
-        .where('username', username)
+        .where('resident_id', username) // THEMIS: username is ResidentID
+        .where('role', 4) // THEMIS: Must be resident role
         .where('is_active', true)
         .first();
 
       if (!user) {
         return res.status(401).json({
-          error: 'Invalid credentials'
+          error: 'Invalid Resident ID or account not found'
         });
       }
 
-      // Verify password (support both bcrypt and plain text)
-      let isValidPassword = false;
-
-      try {
-        // Try bcrypt first (for properly hashed passwords)
-        isValidPassword = await bcrypt.compare(password, user.password_hash);
-      } catch (bcryptError) {
-        // Fallback: check plain text (for existing users)
-        isValidPassword = (user.password_hash === password);
-      }
-
-      if (!isValidPassword) {
+      // Verify PIN (THEMIS requirement)
+      if (!user.pin || user.pin !== pin) {
         return res.status(401).json({
-          error: 'Invalid credentials'
+          error: 'Invalid PIN'
         });
       }
 
@@ -2640,10 +2434,6 @@ module.exports = {
   getProfile,
   updateProfile,
   getSubordinates,
-  residentSignup,
-  getPendingResidentSignups,
-  reviewResidentSignup,
-  getResidentSignupStats,
   instantResidentSignup,
   completeSignup,
   // Hybrid approach residency verification endpoints

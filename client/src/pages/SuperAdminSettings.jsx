@@ -257,7 +257,7 @@ const SuperAdminSettings = ({ user }) => {
 
       <Grid container spacing={4}>
         {/* Profile Section */}
-        <Grid xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -270,13 +270,13 @@ const SuperAdminSettings = ({ user }) => {
               <Divider sx={{ mb: 3 }} />
 
                 <Grid container spacing={3}>
-                <Grid xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Full Name"
                     value={profile.full_name}
                     onChange={handleProfileChange('full_name')}
-                    error={errors.full_name ? true : false}
+                    error={!!errors.full_name}
                     helperText={errors.full_name}
                     InputProps={{
                       startAdornment: <Person sx={{ mr: 1, color: 'action.active' }} />
@@ -284,7 +284,7 @@ const SuperAdminSettings = ({ user }) => {
                   />
                 </Grid>
 
-                <Grid xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Username"
@@ -297,7 +297,7 @@ const SuperAdminSettings = ({ user }) => {
                   />
                 </Grid>
 
-                <Grid xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Email Address"
@@ -312,13 +312,13 @@ const SuperAdminSettings = ({ user }) => {
                   />
                 </Grid>
 
-                <Grid xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Contact Number"
                     value={profile.contact_number}
                     onChange={handleProfileChange('contact_number')}
-                    error={errors.contact_number ? true : false}
+                    error={!!errors.contact_number}
                     helperText={errors.contact_number}
                     InputProps={{
                       startAdornment: <Phone sx={{ mr: 1, color: 'action.active' }} />
@@ -373,7 +373,7 @@ const SuperAdminSettings = ({ user }) => {
         </Grid>
 
         {/* Profile Summary Sidebar */}
-        <Grid xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card sx={{ mb: 3 }}>
             <CardContent sx={{ textAlign: 'center' }}>
               <Avatar

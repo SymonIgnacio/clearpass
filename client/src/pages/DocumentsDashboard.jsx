@@ -210,10 +210,11 @@ const DocumentsDashboard = ({ user }) => {
         console.error('Failed to parse templates JSON:', err);
         return { data: [] };
       });
-      const certTypesData = await certTypesRes.json().catch((err) => {
+      const certTypesResponse = await certTypesRes.json().catch((err) => {
         console.error('Failed to parse cert types JSON:', err);
-        return [];
+        return { data: [] };
       });
+      const certTypesData = certTypesResponse.data || [];
       const residentsData = await residentsRes.json().catch((err) => {
         console.error('Failed to parse residents JSON:', err);
         return { data: [] };
@@ -590,7 +591,7 @@ const DocumentsDashboard = ({ user }) => {
 
       {/* Stats Overview */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{
             background: 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)',
             border: '1px solid #e8eaed'

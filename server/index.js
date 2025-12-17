@@ -49,6 +49,7 @@ validateEnvironmentVariables();
 
 // Import authentication system
 const authController = require('./authController');
+const clerkController = require('./clerkController');
 const {
   verifyToken,
   checkRole,
@@ -308,6 +309,22 @@ app.use((req, res, next) => {
   next();
 });
 
+// ==========================================
+// THEMIS CLEARPASS ORGANIZED ROUTES
+// ==========================================
+
+// Import organized routes
+const themisRoutes = require('./routes');
+
+// Mount THEMIS ClearPass role-based routes at /api
+app.use('/api', themisRoutes);
+
+// DEBUG: Direct admin route test
+app.get('/api/admin/test', (req, res) => {
+  console.log('🎯 ADMIN TEST ROUTE HIT');
+  res.json({ message: 'Admin routes are working', timestamp: new Date().toISOString() });
+});
+
 
 
 // Apply rate limiting
@@ -428,6 +445,30 @@ const uploadDisk = multer({ dest: 'uploads/' });
 console.log('🔧 [Route Registration] Registering authentication routes...');
 
 // ==========================================
+// THEMIS CLEARPASS CLERK MODULE (/clerk routes)
+// ==========================================
+
+console.log('🔧 [Route Registration] Registering Clerk routes...');
+
+// Clerk Dashboard - Get clearance statistics and recent activity
+app.get('/api/clerk/dashboard', verifyToken, checkRole([2]), clerkController.getClerkDashboard);
+app.get('/clerk/dashboard', verifyToken, checkRole([2]), clerkController.getClerkDashboard);
+
+// Issue Clearance - MAIN CLEARPASS FUNCTION with Logic Gate
+app.post('/api/clerk/issue-clearance', verifyToken, checkRole([2]), clerkController.issueClearance);
+app.post('/clerk/issue-clearance', verifyToken, checkRole([2]), clerkController.issueClearance);
+
+// Validate resident for clearance (pre-check ClearPass)
+app.post('/api/clerk/validate-resident', verifyToken, checkRole([2]), clerkController.validateForClearance);
+app.post('/clerk/validate-resident', verifyToken, checkRole([2]), clerkController.validateForClearance);
+
+// Get clearance history for a resident
+app.get('/api/clerk/clearance-history/:residentId', verifyToken, checkRole([2]), clerkController.getClearanceHistory);
+app.get('/clerk/clearance-history/:residentId', verifyToken, checkRole([2]), clerkController.getClearanceHistory);
+
+console.log('🔧 [Route Registration] Clerk routes registered successfully');
+
+// ==========================================
 // AUTHENTICATION & ACCOUNT HIERARCHY MODULE
 // ==========================================
 
@@ -436,6 +477,10 @@ console.log('🔧 [Route Registration] Registering authentication routes...');
 console.log('🔧 [Route Registration] Setting up /api/auth/login');
 app.post('/api/auth/login', authController.residentLogin); // Primary /api route
 app.post('/auth/login', authController.residentLogin); // Legacy /auth route
+
+console.log('🔧 [Route Registration] Setting up THEMIS ResidentID + PIN login');
+app.post('/api/auth/themis-resident-login', authController.residentLogin); // THEMIS ResidentID + PIN login
+app.post('/auth/themis-resident-login', authController.residentLogin); // Legacy THEMIS route
 
 console.log('🔧 [Route Registration] Setting up /api/auth/officer-login');
 app.post('/api/auth/officer-login', (req, res) => {
@@ -658,12 +703,9 @@ app.get('/certificates', (req, res, next) => {
 
 console.log('🔧 [Route Registration] Authentication routes registered successfully');
 
-// Public resident signup (no authentication required)
-app.post('/api/auth/resident-signup', uploadBlob.single('proof_document'), authController.residentSignup);
 
-// Instant signup with Firebase verification
-app.post('/api/auth/instant-resident-signup', authController.instantResidentSignup);
-app.post('/api/auth/complete-signup', verifyFirebaseToken, authController.completeSignup);
+
+
 
 // Email verification for residency graduation
 app.post('/api/auth/verify-email-for-residency', verifyFirebaseToken, authController.verifyEmailForResidency);
@@ -978,10 +1020,7 @@ app.get('/api/auth/firebase-users', verifyToken, checkRole(['admin', 'captain', 
   }
 });
 
-// Protected resident signup management (officer only)
-app.get('/api/auth/resident-signups/pending', verifyToken, checkRole(['captain', 'secretary', 'clerk']), authController.getPendingResidentSignups);
-app.put('/api/auth/resident-signups/:request_id/review', verifyToken, checkRole(['captain', 'secretary', 'clerk']), authController.reviewResidentSignup);
-app.get('/api/auth/resident-signups/stats', verifyToken, checkRole(['captain', 'secretary', 'clerk']), authController.getResidentSignupStats);
+
 
 // Protected residency verification management
 app.get('/api/auth/residency-verifications/pending', verifyToken, checkRole(['captain', 'secretary', 'clerk']), authController.getPendingResidencyVerifications);
@@ -1118,7 +1157,6 @@ app.get('/api/certificate-types', async (req, res) => {
       SELECT
         id,
         name,
-        fee,
         validity_days,
         description,
         purpose,
@@ -1136,7 +1174,6 @@ app.get('/api/certificate-types', async (req, res) => {
       id: type.id,
       label: type.name, // Frontend expects 'label' property
       name: type.name,  // Keep both for compatibility
-      fee: type.fee,
       validity_days: type.validity_days,
       description: type.description,
       purpose: type.purpose,
@@ -2112,6 +2149,7 @@ app.post('/api/blotter', async (req, res) => {
       Case_Number,
       Complainant_Details,
       Respondent_Details,
+      respondent_id, // THEMIS: Must include respondent_id for ClearPass
       Incident_Type,
       Narrative,
       DateTime_Incident,
@@ -2122,6 +2160,17 @@ app.post('/api/blotter', async (req, res) => {
     // Validation
     if (!Complainant_Details || !Incident_Type || !Narrative || !Location_Sitio) {
       return res.status(400).json({ error: 'Required fields missing' });
+    }
+
+    // THEMIS: Validate respondent_id exists if provided
+    if (respondent_id) {
+      const [residentCheck] = await db.execute(
+        'SELECT Resident_ID FROM residents WHERE Resident_ID = ?',
+        [respondent_id]
+      );
+      if (residentCheck.length === 0) {
+        return res.status(400).json({ error: 'Invalid respondent_id - resident not found' });
+      }
     }
 
     // Generate case number if not provided
@@ -2136,13 +2185,14 @@ app.post('/api/blotter', async (req, res) => {
 
     const [result] = await db.execute(`
       INSERT INTO blotter (
-        Case_Number, Complainant_Details, Respondent_Details, Incident_Type,
-        Narrative, DateTime_Incident, Location_Sitio, Status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        Case_Number, Complainant_Details, Respondent_Details, respondent_id,
+        Incident_Type, Narrative, DateTime_Incident, Location_Sitio, Status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       caseNumber,
       JSON.stringify(Complainant_Details),
       Respondent_Details ? JSON.stringify(Respondent_Details) : null,
+      respondent_id || null, // THEMIS: Save respondent_id for ClearPass validation
       Incident_Type,
       Narrative,
       DateTime_Incident,
@@ -2327,53 +2377,7 @@ app.get('/api/templates/stats', async (req, res) => {
 // CERTIFICATE ISSUANCE MODULE
 // ==========================================
 
-// Get certificate types (from database - removed hardcoded data)
-app.get('/api/certificate-types', async (req, res) => {
-  try {
-    const [rows] = await db.execute(`
-      SELECT
-        id,
-        name,
-        fee,
-        validity_days,
-        description,
-        purpose,
-        when_needed,
-        required_data
-      FROM certificate_types
-      WHERE is_active = TRUE
-      ORDER BY name
-    `);
 
-    console.log('Certificate types API called, found:', rows.length, 'types');
-
-    // Parse JSON required_data for each certificate type
-    const certificateTypes = rows.map(type => ({
-      id: type.id,
-      label: type.name, // Frontend expects 'label' property
-      name: type.name,  // Keep both for compatibility
-      fee: type.fee,
-      validity_days: type.validity_days,
-      description: type.description,
-      purpose: type.purpose,
-      when_needed: type.when_needed,
-      required_data: type.required_data ? JSON.parse(type.required_data) : [],
-      is_active: true
-    }));
-
-    // Return in the format expected by frontend
-    res.json({
-      success: true,
-      data: certificateTypes
-    });
-  } catch (error) {
-    console.error('Error fetching certificate types:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch certificate types'
-    });
-  }
-});
 
 // Get all certificates (supports both resident and staff with dynamic auth)
 app.get('/api/certificates', (req, res, next) => {

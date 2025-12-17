@@ -6,54 +6,66 @@ const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'deve
  * Handles JWT verification and hierarchy-based access control
  */
 
-// Enhanced Role hierarchy mapping with distinct permissions
-const ROLE_HIERARCHY = {
-  'admin': {
+// THEMIS CLEARPASS: 6-tier Role-Based Access Control System
+const THEMIS_ROLES = {
+  1: { // IT Admin (System Guardian)
     level: 1,
+    role_name: 'it_admin',
     permissions: [
-      'read', 'write', 'delete', 'manage_users',
-      'manage_system', 'audit_logs', 'bulk_operations',
-      'security_mgmt', 'financial', 'system_config'
+      'tech_support', 'system_monitoring', 'user_provisioning',
+      'bulk_import', 'system_config', 'security_mgmt'
     ],
-    display_name: 'Super Admin',
-    description: 'Complete system administration and configuration'
+    display_name: 'IT Admin',
+    description: 'System Guardian - Tech/Infra only - System maintenance and user creation'
   },
-  'captain': {
+  2: { // Clerk (The ClearPass Operator - Issuance)
     level: 2,
+    role_name: 'clerk',
     permissions: [
-      'read', 'write', 'manage_staff', 'manage_certificates',
-      'manage_budget', 'approve_requests', 'generate_reports',
-      'supervise_clerks'
+      'issue_certificates', 'process_clearances', 'data_entry',
+      'basic_support', 'create_records', 'clearpass_gate'
     ],
-    display_name: 'Barangay Captain',
-    description: 'Leadership, budget authority, and staff supervision'
+    display_name: 'Clerk',
+    description: 'ClearPass Engine - Certificate issuance and processing with ClearPass validation'
   },
-  'secretary': {
+  3: { // Blotter Officer (The Encoder)
     level: 3,
+    role_name: 'blotter_officer',
     permissions: [
-      'read', 'write', 'manage_documents', 'manage_events',
-      'manage_residents', 'process_requests', 'create_templates',
-      'issue_certificates'
+      'manage_blotter', 'create_cases', 'update_cases', 'close_cases'
     ],
-    display_name: 'Barangay Secretary',
-    description: 'Administrative documentation and resident services'
+    display_name: 'Blotter Officer',
+    description: 'The Encoder - Full CRUD for blotter cases (triggers ClearPass blocks)'
   },
-  'clerk': {
+  4: { // Resident (The End User)
     level: 4,
+    role_name: 'resident',
     permissions: [
-      'read', 'write', 'process_requests', 'create_reports',
-      'data_entry', 'basic_support'
-    ],
-    display_name: 'Barangay Clerk',
-    description: 'Frontline processing and basic administrative support'
-  },
-  'resident': {
-    level: 5,
-    permissions: [
-      'read', 'submit_requests', 'view_own_data'
+      'view_own_profile', 'request_clearance', 'update_profile',
+      'view_certificates', 'submit_verification'
     ],
     display_name: 'Resident',
-    description: 'Basic access to services and own records'
+    description: 'End User - Login with ResidentID + PIN'
+  },
+  5: { // Captain (Executive Viewer)
+    level: 5,
+    role_name: 'captain',
+    permissions: [
+      'read_analytics', 'view_reports', 'supervise_operations'
+    ],
+    display_name: 'Captain',
+    description: 'Executive Viewer - Read-Only Analytics - Leadership oversight'
+  },
+  6: { // Secretary (The Overseer)
+    level: 6,
+    role_name: 'secretary',
+    permissions: [
+      'manage_documents', 'approve_clearances', 'process_requests',
+      'generate_reports', 'manage_events', 'supervise_clerks',
+      'view_all_records', 'administrative_approval'
+    ],
+    display_name: 'Secretary',
+    description: 'The Overseer - Document processing, approvals, and supervision'
   }
 };
 
@@ -84,8 +96,8 @@ async function verifyToken(req, res, next) {
       });
     }
 
-    // Get role information from hierarchy mapping
-    const roleInfo = ROLE_HIERARCHY[user.role] || ROLE_HIERARCHY['resident'];
+    // Get role information from THEMIS roles mapping
+    const roleInfo = THEMIS_ROLES[user.role] || THEMIS_ROLES[5];
 
     // Attach user to request object with hierarchy information
     req.user = {
@@ -120,7 +132,7 @@ async function verifyToken(req, res, next) {
   }
 }
 
-// Check if user has required role permissions
+// Check if user has required role permissions (THEMIS RBAC)
 function checkRole(allowedRoles = []) {
   return (req, res, next) => {
     if (!req.user) {
@@ -129,26 +141,69 @@ function checkRole(allowedRoles = []) {
       });
     }
 
-    // Super Admin has access to everything
-    if (req.user.role === 'admin' || req.user.role_name === 'Super Admin') {
+    // THEMIS: Handle string 'admin' role conversion
+    const userRole = req.user.role;
+    console.log(`🔐 RBAC Debug: User role from JWT: ${userRole} (type: ${typeof userRole})`);
+    console.log(`🔐 RBAC Debug: Allowed roles: ${JSON.stringify(allowedRoles)}`);
+
+    // Super Admin (string 'admin') has all access - bypass all checks
+    if (userRole === 'admin') {
+      console.log('✅ RBAC Debug: Super Admin (string admin) granted access to all endpoints');
       return next();
     }
 
-    // Check if user's role is in allowed roles
-    const hasRoleAccess = allowedRoles.some(role =>
-      req.user.role === role ||
-      req.user.role_name === role ||
-      req.user.role_id === role
-    );
+    // Convert string roles to THEMIS numeric roles
+    let numericRole = userRole;
+    if (typeof userRole === 'string') {
+      const roleMap = {
+        'admin': 1,      // IT Admin
+        'clerk': 2,      // Clerk
+        'blotter_officer': 3, // Blotter Officer
+        'resident': 4,   // Resident
+        'captain': 5,    // Captain
+        'secretary': 6   // Secretary
+      };
+      numericRole = roleMap[userRole] !== undefined ? roleMap[userRole] : 4;
+      console.log(`🔐 RBAC Debug: Converted '${userRole}' to numeric role: ${numericRole}`);
+    }
+
+    // IT Admin (Role 1) has all access like Super Admin
+    if (numericRole === 1) {
+      console.log('✅ RBAC Debug: IT Admin (Role 1) granted access to all endpoints');
+      return next();
+    }
+
+    // Check if user's numeric role is in allowed roles
+    const hasRoleAccess = allowedRoles.some(role => {
+      if (typeof role === 'number') {
+        // THEMIS numeric role check
+        const access = numericRole === role;
+        console.log(`🔐 RBAC Debug: Checking numeric role ${numericRole} against ${role}: ${access}`);
+        return access;
+      } else if (typeof role === 'string') {
+        // Legacy string role support
+        const roleMap = {
+          'admin': 1, 'clerk': 2, 'blotter_officer': 3,
+          'resident': 4, 'captain': 5, 'secretary': 6
+        };
+        const access = numericRole === roleMap[role] || req.user.role_name === role;
+        console.log(`🔐 RBAC Debug: Checking string role '${role}' against numeric ${numericRole}: ${access}`);
+        return access;
+      }
+      return false;
+    });
 
     if (!hasRoleAccess) {
+      console.log(`❌ RBAC Debug: Access DENIED - Role ${numericRole} not in allowed roles ${JSON.stringify(allowedRoles)}`);
       return res.status(403).json({
         error: 'Insufficient permissions',
         required: allowedRoles,
-        current: req.user.role_name
+        current_role: numericRole,
+        current_role_name: req.user.role_name
       });
     }
 
+    console.log(`✅ RBAC Debug: Access GRANTED - Role ${numericRole} allowed`);
     next();
   };
 }
@@ -240,8 +295,8 @@ async function checkHierarchyAccess(req, res, next) {
       });
     }
 
-    // Get hierarchy level from mapping
-    const targetRoleInfo = ROLE_HIERARCHY[targetUser.role] || ROLE_HIERARCHY['resident'];
+    // Get hierarchy level from THEMIS roles mapping
+    const targetRoleInfo = THEMIS_ROLES[targetUser.role] || THEMIS_ROLES[5];
     targetUser.hierarchy_level = targetRoleInfo.level;
 
     // Check hierarchy chain

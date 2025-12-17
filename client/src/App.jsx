@@ -10,15 +10,17 @@ import Users from './pages/Users'
 import Blotter from './pages/Blotter'
 import DocumentsDashboard from './pages/DocumentsDashboard'
 import Census from './pages/Census'
-import AIDashboard from './pages/AIDashboard'
 import QRVerification from './pages/QRVerification'
 import CommunityEvents from './pages/CommunityEvents'
 import Settings from './pages/Settings'
 import SuperAdminSettings from './pages/SuperAdminSettings'
 import ResidentSettings from './pages/ResidentSettings'
+import AdminReports from './pages/AdminReports'
 import Login from './pages/Login'
 import OfficerLogin from './pages/OfficerLogin'
-import ResidentSignup from './pages/ResidentSignup'
+import AIPatrol from './pages/AIPatrol'
+import RondaAnalytics from './pages/RondaAnalytics'
+
 import AccountVerification from './components/AccountVerification'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
@@ -326,8 +328,19 @@ function App() {
   }
 
   const handleLogout = () => {
-    // Determine appropriate login page based on user type
-    const isStaffUser = user?.role && ['admin', 'captain', 'secretary', 'clerk'].includes(user.role);
+    // Determine appropriate login page based on user type - THEMIS ClearPass compatibility
+    const THEMIS_ROLE_MAP = {
+      1: 'admin',           // IT Admin
+      2: 'clerk',           // Clerk
+      3: 'blotter_officer', // Blotter Officer
+      4: 'resident',        // Resident
+      5: 'captain',         // Captain
+      6: 'secretary'        // Secretary
+    }
+
+    // Convert numeric THEMIS role to string for compatibility, or use as-is if already string
+    const userRole = typeof user?.role === 'number' ? THEMIS_ROLE_MAP[user.role] || user.role : user?.role
+    const isStaffUser = userRole && ['admin', 'captain', 'secretary', 'clerk'].includes(userRole);
     const loginPage = isStaffUser ? '/officerlogin' : '/login';
 
     // Clear all authentication data for both user types
@@ -375,16 +388,7 @@ function App() {
             }
           />
 
-          <Route
-            path="/signup"
-            element={
-              isAuthenticated ? (
-                <Navigate to="/" replace />
-              ) : (
-                <ResidentSignup />
-              )
-            }
-          />
+
 
           <Route
             path="/verify-account"
@@ -435,7 +439,7 @@ function App() {
           >
             {/* Nested protected routes */}
             <Route index element={
-              user?.role === 'resident' ?
+              user?.role === 4 || user?.role === 'resident' ?
                 <ResidentDashboard user={user} /> :
                 <Dashboard user={user} />
             } />
@@ -459,10 +463,10 @@ function App() {
             />
 
             <Route path="census" element={<Census user={user} />} />
-            <Route path="ai-dashboard" element={<AIDashboard user={user} />} />
             <Route path="events" element={<CommunityEvents user={user} />} />
+
             <Route path="settings" element={
-              user?.role === 'resident' ?
+              user?.role === 4 || user?.role === 'resident' ?
                 <ResidentSettings user={user} /> :
                 <SuperAdminSettings user={user} />
             } />
@@ -471,11 +475,36 @@ function App() {
             <Route path="qr-verify" element={<Navigate to="/" replace />} />
             <Route path="qr-verification" element={<Navigate to="/" replace />} />
 
+            {/* AI Routes */}
+            <Route
+              path="ai-dashboard"
+              element={
+                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary', 'clerk']}>
+                  <AIPatrol user={user} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="ai-patrol"
+              element={
+                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary', 'clerk']}>
+                  <AIPatrol user={user} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="ronda-analytics"
+              element={
+                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary', 'clerk']}>
+                  <RondaAnalytics user={user} />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Backward compatibility redirects */}
             <Route path="certificates" element={<Navigate to="documents" replace />} />
             <Route path="document-templates" element={<Navigate to="documents" replace />} />
-            <Route path="ai-patrol" element={<Navigate to="ai-dashboard" replace />} />
-            <Route path="ronda-analytics" element={<Navigate to="ai-dashboard" replace />} />
+            <Route path="reports" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
       </Router>
