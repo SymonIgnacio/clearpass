@@ -40,7 +40,9 @@ import {
   Schedule,
   CheckCircle,
   Cancel,
-  PlayArrow
+  PlayArrow,
+  Download,
+  Refresh
 } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
 
@@ -100,6 +102,8 @@ const Blotter = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [sitioFilter, setSitioFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   // Resolution form
   const [resolutionData, setResolutionData] = useState({
@@ -116,39 +120,26 @@ const Blotter = () => {
 
   const fetchBlotterCases = async () => {
     try {
-      console.log('🔍 Fetching blotter cases...')
       const response = await apiRequest('blotter')
-      console.log('🔍 Blotter API response status:', response.status)
-      console.log('🔍 Blotter API response ok:', response.ok)
 
       if (!response.ok) {
-        console.error('❌ Blotter API error:', response.status, response.statusText)
-        // Show user-friendly error message
-        alert(`Error loading blotter data: ${response.status} ${response.statusText}. Please check console for details.`)
+        console.error('Blotter API error:', response.status, response.statusText)
+        alert(`Error loading blotter data: ${response.status} ${response.statusText}`)
         return
       }
 
       const data = await response.json()
-      console.log('🔍 Blotter API response data:', data)
-      console.log('🔍 Blotter data length:', Array.isArray(data) ? data.length : 'not an array')
 
       if (!Array.isArray(data)) {
-        console.error('❌ Blotter API returned non-array data:', typeof data, data)
-        alert('Error: API returned unexpected data format. Please check console for details.')
+        console.error('Blotter API returned non-array data:', typeof data)
+        alert('Error: API returned unexpected data format')
         return
       }
 
       setBlotterCases(data)
-
-      if (data.length === 0) {
-        console.log('⚠️ No blotter cases found in database')
-        alert('No blotter cases found in the database. This may be expected for a new installation.')
-      } else {
-        console.log(`✅ Loaded ${data.length} blotter cases successfully`)
-      }
     } catch (error) {
-      console.error('❌ Error fetching blotter cases:', error)
-      alert(`Error loading blotter cases: ${error.message}. Please check console for details.`)
+      console.error('Error fetching blotter cases:', error)
+      alert(`Error loading blotter cases: ${error.message}`)
     }
   }
 
@@ -311,15 +302,71 @@ const Blotter = () => {
     )
   }
 
+  const generateBlotterPDF = async () => {
+    try {
+      // Create URL with current filters
+      const params = new URLSearchParams()
+
+      // Add filters
+      if (searchTerm) params.append('search', searchTerm)
+      if (statusFilter) params.append('status', statusFilter)
+      if (sitioFilter) params.append('sitio', sitioFilter)
+      if (dateFrom) params.append('dateFrom', dateFrom)
+      if (dateTo) params.append('dateTo', dateTo)
+
+      // Call the PDF export endpoint
+      const response = await fetch(`/api/admin/reports/pdf/blotter?${params}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate PDF: ${response.statusText}`)
+      }
+
+      // Download the PDF
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `blotter_report_${new Date().toISOString().split('T')[0]}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      alert('Blotter PDF report downloaded successfully!')
+    } catch (error) {
+      console.error('PDF generation error:', error)
+      alert(`Failed to generate PDF: ${error.message}`)
+    }
+  }
+
   // Filtered and searched blotter cases
   const filteredBlotterCases = useMemo(() => {
     return blotterCases.filter((case_) => {
+      // Helper function to safely get name from complainant/respondent details
+      const getName = (details) => {
+        try {
+          if (typeof details === 'string') {
+            return JSON.parse(details || '{}').name || ''
+          } else if (typeof details === 'object') {
+            return details?.name || ''
+          }
+          return ''
+        } catch (e) {
+          return ''
+        }
+      }
+
       // Search term filter
       const searchMatch = !searchTerm ||
         case_.Case_Number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         case_.Incident_Type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        JSON.parse(case_.Complainant_Details || '{}').name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        JSON.parse(case_.Respondent_Details || '{}').name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getName(case_.Complainant_Details).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getName(case_.Respondent_Details).toLowerCase().includes(searchTerm.toLowerCase()) ||
         case_.Location_Sitio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         case_.Narrative?.toLowerCase().includes(searchTerm.toLowerCase())
 
@@ -342,9 +389,17 @@ const Blotter = () => {
           <Gavel sx={{ mr: 1, verticalAlign: 'middle' }} />
           Blotter & Incident Reporting
         </Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => setOpenWizard(true)}>
-          File a Complaint
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" startIcon={<Download />} onClick={generateBlotterPDF}>
+            Export PDF
+          </Button>
+          <Button variant="outlined" startIcon={<Refresh />} onClick={fetchBlotterCases}>
+            Refresh
+          </Button>
+          <Button variant="contained" startIcon={<Add />} onClick={() => setOpenWizard(true)}>
+            File a Complaint
+          </Button>
+        </Box>
       </Box>
 
       {/* Search and Filter Controls */}
@@ -355,7 +410,7 @@ const Blotter = () => {
         </Typography>
 
         <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             <TextField
               fullWidth
               label="Search"
@@ -372,7 +427,29 @@ const Blotter = () => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
+            <TextField
+              fullWidth
+              label="Date From"
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={2}>
+            <TextField
+              fullWidth
+              label="Date To"
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Status</InputLabel>
               <Select
@@ -380,7 +457,7 @@ const Blotter = () => {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 label="Status"
                 sx={{
-                  minWidth: 200,
+                  minWidth: 160,
                   '& .MuiSelect-select': {
                     fontSize: '0.875rem',
                     padding: '8px 14px',
@@ -394,13 +471,13 @@ const Blotter = () => {
                   <Box sx={{ fontSize: '0.875rem' }}>Pending</Box>
                 </MenuItem>
                 <MenuItem value="Scheduled for Mediation">
-                  <Box sx={{ fontSize: '0.875rem', whiteSpace: 'normal' }}>Scheduled for Mediation</Box>
+                  <Box sx={{ fontSize: '0.875rem', whiteSpace: 'normal' }}>Scheduled</Box>
                 </MenuItem>
                 <MenuItem value="Amicably Settled">
-                  <Box sx={{ fontSize: '0.875rem', whiteSpace: 'normal' }}>Amicably Settled</Box>
+                  <Box sx={{ fontSize: '0.875rem', whiteSpace: 'normal' }}>Settled</Box>
                 </MenuItem>
                 <MenuItem value="Certificate to File Action Issued">
-                  <Box sx={{ fontSize: '0.875rem', whiteSpace: 'normal' }}>Certificate to File Action Issued</Box>
+                  <Box sx={{ fontSize: '0.875rem', whiteSpace: 'normal' }}>CFA Issued</Box>
                 </MenuItem>
                 <MenuItem value="Dismissed">
                   <Box sx={{ fontSize: '0.875rem' }}>Dismissed</Box>
@@ -412,7 +489,7 @@ const Blotter = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Sitio</InputLabel>
               <Select
@@ -420,7 +497,7 @@ const Blotter = () => {
                 onChange={(e) => setSitioFilter(e.target.value)}
                 label="Sitio"
                 sx={{
-                  minWidth: 160,
+                  minWidth: 140,
                   '& .MuiSelect-select': {
                     fontSize: '0.875rem',
                     padding: '8px 14px',
@@ -439,18 +516,20 @@ const Blotter = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid item xs={12} sm={6} md={1}>
             <Button
               fullWidth
               variant="outlined"
               onClick={() => {
                 setSearchTerm('')
+                setDateFrom('')
+                setDateTo('')
                 setStatusFilter('')
                 setSitioFilter('')
               }}
-              disabled={!searchTerm && !statusFilter && !sitioFilter}
+              disabled={!searchTerm && !dateFrom && !dateTo && !statusFilter && !sitioFilter}
             >
-              Clear Filters
+              Clear
             </Button>
           </Grid>
         </Grid>
@@ -478,14 +557,51 @@ const Blotter = () => {
           </TableHead>
           <TableBody>
             {filteredBlotterCases.map((case_, index) => {
-              const complainant = JSON.parse(case_.Complainant_Details || '{}')
-              const respondent = JSON.parse(case_.Respondent_Details || '{}')
+              let complainant = { name: 'N/A' }
+              let respondent = { name: 'N/A' }
+
+              try {
+                if (case_.Complainant_Details) {
+                  if (typeof case_.Complainant_Details === 'string') {
+                    complainant = JSON.parse(case_.Complainant_Details)
+                  } else if (typeof case_.Complainant_Details === 'object') {
+                    complainant = case_.Complainant_Details
+                  }
+                }
+                // Ensure we have a name field
+                if (!complainant || typeof complainant !== 'object') {
+                  complainant = { name: 'N/A' }
+                } else if (!complainant.name) {
+                  complainant.name = 'N/A'
+                }
+              } catch (e) {
+                complainant = { name: 'Invalid Data' }
+              }
+
+              try {
+                if (case_.Respondent_Details) {
+                  if (typeof case_.Respondent_Details === 'string') {
+                    respondent = JSON.parse(case_.Respondent_Details)
+                  } else if (typeof case_.Respondent_Details === 'object') {
+                    respondent = case_.Respondent_Details
+                  }
+                }
+                // Ensure we have a name field
+                if (!respondent || typeof respondent !== 'object') {
+                  respondent = { name: 'N/A' }
+                } else if (!respondent.name) {
+                  respondent.name = 'N/A'
+                }
+              } catch (e) {
+                respondent = { name: 'Invalid Data' }
+              }
+
               return (
                 <TableRow key={`${case_.Case_Number}-${index}`}>
                   <TableCell>{case_.Case_Number}</TableCell>
                   <TableCell>{case_.Incident_Type}</TableCell>
                   <TableCell>{complainant.name}</TableCell>
-                  <TableCell>{respondent.name || 'N/A'}</TableCell>
+                  <TableCell>{respondent.name}</TableCell>
                   <TableCell>{case_.Location_Sitio}</TableCell>
                   <TableCell>
                     <Chip

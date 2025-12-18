@@ -19,7 +19,13 @@ import {
   CircularProgress,
   Alert,
   Button,
-  LinearProgress
+  LinearProgress,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Pagination
 } from '@mui/material'
 import {
   People,
@@ -46,6 +52,15 @@ const AdminReports = () => {
     system: null,
     security: null
   })
+  const [detailedFilters, setDetailedFilters] = useState({
+    dateFrom: '',
+    dateTo: '',
+    status: '',
+    role: '',
+    search: '',
+    page: 1,
+    limit: 50
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -69,6 +84,67 @@ const AdminReports = () => {
       }))
     } catch (err) {
       setError(`Failed to load ${reportKey} report: ${err.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const generatePDF = async (reportType) => {
+    try {
+      setLoading(true)
+
+      // Create URL with current filters
+      const params = new URLSearchParams()
+
+      // Add common filters
+      if (detailedFilters.dateFrom) params.append('dateFrom', detailedFilters.dateFrom)
+      if (detailedFilters.dateTo) params.append('dateTo', detailedFilters.dateTo)
+      if (detailedFilters.status) params.append('status', detailedFilters.status)
+      if (detailedFilters.search) params.append('search', detailedFilters.search)
+
+      // Add report-specific filters
+      switch (reportType) {
+        case 'users':
+          if (detailedFilters.role) params.append('role', detailedFilters.role)
+          break
+        case 'residents':
+          // Residents might have additional filters
+          break
+        case 'certificates':
+          // Certificates might have additional filters
+          break
+        case 'blotter':
+          // Blotter might have additional filters
+          break
+      }
+
+      // Call the PDF export endpoint
+      const response = await fetch(`/api/admin/reports/pdf/${reportType}?${params}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate PDF: ${response.statusText}`)
+      }
+
+      // Download the PDF
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${reportType}_report_${new Date().toISOString().split('T')[0]}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      alert(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)} PDF report downloaded successfully!`)
+    } catch (error) {
+      console.error('PDF generation error:', error)
+      alert(`Failed to generate PDF: ${error.message}`)
     } finally {
       setLoading(false)
     }
@@ -221,9 +297,29 @@ const AdminReports = () => {
                         <TableCell>{formatDate(user.created_at)}</TableCell>
                       </TableRow>
                     ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </CardContent>
+  </Card>
+</Grid>
+
+        {/* PDF Export */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Export User Reports</Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                Generate filtered PDF reports of user data
+              </Typography>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => generatePDF('users')}
+                disabled={loading}
+              >
+                Export Users PDF
+              </Button>
             </CardContent>
           </Card>
         </Grid>
@@ -328,6 +424,26 @@ const AdminReports = () => {
             </CardContent>
           </Card>
         </Grid>
+
+        {/* PDF Export */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Export Blotter Reports</Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                Generate filtered PDF reports of blotter case data
+              </Typography>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => generatePDF('blotter')}
+                disabled={loading}
+              >
+                Export Blotter PDF
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
     )
   }
@@ -422,6 +538,26 @@ const AdminReports = () => {
                   </TableBody>
                 </Table>
               </TableContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* PDF Export */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Export Certificate Reports</Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                Generate filtered PDF reports of certificate data
+              </Typography>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => generatePDF('certificates')}
+                disabled={loading}
+              >
+                Export Certificates PDF
+              </Button>
             </CardContent>
           </Card>
         </Grid>
@@ -520,6 +656,26 @@ const AdminReports = () => {
                   <Chip label={sitio.resident_count} size="small" color="primary" />
                 </Box>
               ))}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* PDF Export */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Export Resident Reports</Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                Generate filtered PDF reports of resident data
+              </Typography>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => generatePDF('residents')}
+                disabled={loading}
+              >
+                Export Residents PDF
+              </Button>
             </CardContent>
           </Card>
         </Grid>
@@ -793,10 +949,10 @@ const AdminReports = () => {
             <Button
               variant="outlined"
               startIcon={<Download />}
-              onClick={() => {/* TODO: Implement export functionality */}}
-              disabled
+              onClick={() => generatePDF(tabs[activeTab]?.key)}
+              disabled={loading}
             >
-              Export Reports
+              Export Current Tab PDF
             </Button>
             <Button
               variant="contained"

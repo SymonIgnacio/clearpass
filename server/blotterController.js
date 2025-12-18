@@ -61,10 +61,11 @@ async function createCase(req, res) {
     }
 
     // Insert blotter case with respondent_id - THIS ENABLES CLEARPASS LOCK
+    // Note: Frontend already stringifies, so we store as-is
     const [result] = await trx('blotter').insert({
       Case_Number: finalCaseNumber,
-      Complainant_Details: complainant_details ? JSON.stringify(complainant_details) : null,
-      Respondent_Details: respondent_details ? JSON.stringify(respondent_details) : null,
+      Complainant_Details: complainant_details, // Already stringified by frontend
+      Respondent_Details: respondent_details, // Already stringified by frontend
       respondent_id: resident_id, // THEMIS CRITICAL: This links to resident for ClearPass validation
       Incident_Type: incident_type,
       Narrative: narrative,

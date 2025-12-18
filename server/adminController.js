@@ -189,10 +189,427 @@ async function createUser(req, res) {
   }
 }
 
+const puppeteer = require('puppeteer');
+
+// Generate PDF report for blotter cases
+async function generateBlotterPDF(req, res) {
+  try {
+    const { search, status, sitio, dateFrom, dateTo } = req.query;
+
+    // Build query with filters
+    let query = knex('blotter')
+      .select(
+        'Case_Number',
+        'Incident_Type',
+        knex.raw('JSON_UNQUOTE(JSON_EXTRACT(Complainant_Details, "$.name")) as complainant_name'),
+        knex.raw('JSON_UNQUOTE(JSON_EXTRACT(Respondent_Details, "$.name")) as respondent_name'),
+        'Location_Sitio',
+        'Status',
+        'DateTime_Incident',
+        'Narrative'
+      )
+      .orderBy('DateTime_Incident', 'desc');
+
+    if (search) {
+      query = query.where(function() {
+        this.where('Case_Number', 'like', `%${search}%`)
+          .orWhere('Incident_Type', 'like', `%${search}%`)
+          .orWhereRaw('JSON_UNQUOTE(JSON_EXTRACT(Complainant_Details, "$.name")) LIKE ?', [`%${search}%`])
+          .orWhereRaw('JSON_UNQUOTE(JSON_EXTRACT(Respondent_Details, "$.name")) LIKE ?', [`%${search}%`])
+          .orWhere('Location_Sitio', 'like', `%${search}%`)
+          .orWhere('Narrative', 'like', `%${search}%`);
+      });
+    }
+
+    if (status) {
+      query = query.where('Status', status);
+    }
+
+    if (sitio) {
+      query = query.where('Location_Sitio', sitio);
+    }
+
+    if (dateFrom) {
+      query = query.where('DateTime_Incident', '>=', dateFrom);
+    }
+
+    if (dateTo) {
+      query = query.where('DateTime_Incident', '<=', dateTo + ' 23:59:59');
+    }
+
+    const blotterCases = await query;
+
+    // Generate HTML content with actual blotter data
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Blotter Cases Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { color: #d32f2f; text-align: center; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; }
+          .header-info { margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; }
+          th { background-color: #f5f5f5; font-weight: bold; }
+          tr:nth-child(even) { background-color: #f9f9f9; }
+          .footer { margin-top: 30px; font-size: 12px; color: #666; text-align: center; }
+          .filters { margin-bottom: 20px; padding: 10px; background-color: #f5f5f5; border-radius: 5px; }
+          .status-resolved { color: #2e7d32; font-weight: bold; }
+          .status-pending { color: #f57c00; font-weight: bold; }
+          .status-investigating { color: #1976d2; font-weight: bold; }
+          .case-number { font-weight: bold; color: #d32f2f; }
+        </style>
+      </head>
+      <body>
+        <h1>Barangay Blotter Cases Report</h1>
+
+        <div class="header-info">
+          <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+          <p><strong>Total Cases:</strong> ${blotterCases.length}</p>
+        </div>
+
+        ${search || status || sitio || dateFrom || dateTo ? `
+        <div class="filters">
+          <h3>Applied Filters:</h3>
+          ${search ? `<p><strong>Search:</strong> ${search}</p>` : ''}
+          ${status ? `<p><strong>Status:</strong> ${status}</p>` : ''}
+          ${sitio ? `<p><strong>Sitio:</strong> ${sitio}</p>` : ''}
+          ${dateFrom ? `<p><strong>Date From:</strong> ${dateFrom}</p>` : ''}
+          ${dateTo ? `<p><strong>Date To:</strong> ${dateTo}</p>` : ''}
+        </div>
+        ` : ''}
+
+        <table>
+          <thead>
+            <tr>
+              <th>Case Number</th>
+              <th>Incident Type</th>
+              <th>Complainant</th>
+              <th>Respondent</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Date & Time</th>
+              <th>Narrative</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${blotterCases.map(caseItem => {
+              const statusClass = caseItem.Status.toLowerCase().replace(/\s+/g, '-');
+              return `
+              <tr>
+                <td><span class="case-number">${caseItem.Case_Number}</span></td>
+                <td>${caseItem.Incident_Type}</td>
+                <td>${caseItem.complainant_name || 'N/A'}</td>
+                <td>${caseItem.respondent_name || 'N/A'}</td>
+                <td>${caseItem.Location_Sitio}</td>
+                <td><span class="status-${statusClass}">${caseItem.Status}</span></td>
+                <td>${new Date(caseItem.DateTime_Incident).toLocaleString()}</td>
+                <td>${caseItem.Narrative || 'N/A'}</td>
+              </tr>
+            `;}).join('')}
+          </tbody>
+        </table>
+
+        ${blotterCases.length === 0 ? `
+        <div style="text-align: center; margin: 40px 0; padding: 20px; background-color: #fff3e0; border: 1px solid #ffcc02; border-radius: 5px;">
+          <p style="margin: 0; color: #f57c00; font-weight: bold;">No blotter cases found matching the specified criteria.</p>
+        </div>
+        ` : ''}
+
+        <div class="footer">
+          <p>Generated by THEMIS ClearPass System</p>
+          <p>Barangay Batia, Bocaue, Bulacan</p>
+          <p>${new Date().toLocaleDateString()}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    console.log('Generating blotter PDF with', blotterCases.length, 'cases');
+
+    // Generate PDF using Puppeteer
+    let browser;
+    try {
+      browser = await puppeteer.launch({
+        headless: 'new',
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+      });
+      const page = await browser.newPage();
+
+      // Set basic content
+      await page.setContent(htmlContent, {
+        waitUntil: 'domcontentloaded',
+        timeout: 30000
+      });
+
+      // Wait a bit for content to load
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: false,
+        margin: { top: '1cm', right: '1cm', bottom: '1cm', left: '1cm' }
+      });
+
+      console.log('PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+
+      // Send PDF as response
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=blotter_cases_report_${new Date().toISOString().split('T')[0]}.pdf`);
+      res.send(pdfBuffer);
+
+    } catch (pdfError) {
+      console.error('PDF generation error:', pdfError);
+      res.status(500).json({ error: 'Failed to generate PDF', details: pdfError.message });
+    } finally {
+      if (browser) {
+        try {
+          await browser.close();
+        } catch (closeError) {
+          console.error('Error closing browser:', closeError);
+        }
+      }
+    }
+
+  } catch (error) {
+    console.error('Blotter PDF generation error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF', details: error.message });
+  }
+}
+
+// Generate PDF report for residents
+async function generateResidentsPDF(req, res) {
+  try {
+    const { search, gender, sitio, vulnerability, residencyFilter, dateFrom, dateTo } = req.query;
+
+    // Build query with filters
+    let query = knex('residents as r')
+      .leftJoin('households as h', 'r.Household_ID', 'h.Household_ID')
+      .leftJoin('sitios as s', 'h.Sitio_ID', 's.id')
+      .select(
+        'r.Resident_ID',
+        'r.First_Name',
+        'r.Last_Name',
+        'r.Middle_Name',
+        'r.Suffix',
+        'r.Gender',
+        'r.Age',
+        'r.Mobile_Number',
+        'r.Residency_Status',
+        'r.Date_Arrival',
+        'r.Occupation',
+        'h.Household_Number',
+        's.name as sitio_name',
+        'r.Is_4Ps',
+        'r.Is_PWD',
+        'r.Is_Senior',
+        'r.Is_Solo_Parent',
+        'r.Is_Out_of_School_Youth'
+      )
+      .orderBy('r.Last_Name');
+
+    if (search) {
+      query = query.where(function() {
+        this.where('r.First_Name', 'like', `%${search}%`)
+          .orWhere('r.Last_Name', 'like', `%${search}%`)
+          .orWhere('r.Middle_Name', 'like', `%${search}%`)
+          .orWhere('h.Household_Number', 'like', `%${search}%`)
+          .orWhere('s.name', 'like', `%${search}%`)
+          .orWhere('r.Occupation', 'like', `%${search}%`);
+      });
+    }
+
+    if (gender) {
+      query = query.where('r.Gender', gender);
+    }
+
+    if (sitio) {
+      query = query.where('s.name', sitio);
+    }
+
+    if (residencyFilter) {
+      query = query.where('r.Residency_Status', residencyFilter);
+    }
+
+    if (vulnerability === 'vulnerable') {
+      query = query.where(function() {
+        this.where('r.Is_4Ps', true)
+          .orWhere('r.Is_PWD', true)
+          .orWhere('r.Is_Senior', true)
+          .orWhere('r.Is_Solo_Parent', true)
+          .orWhere('r.Is_Out_of_School_Youth', true);
+      });
+    } else if (vulnerability) {
+      switch (vulnerability) {
+        case 'senior':
+          query = query.where('r.Is_Senior', true);
+          break;
+        case 'pwd':
+          query = query.where('r.Is_PWD', true);
+          break;
+        case '4ps':
+          query = query.where('r.Is_4Ps', true);
+          break;
+        case 'solo_parent':
+          query = query.where('r.Is_Solo_Parent', true);
+          break;
+        case 'osy':
+          query = query.where('r.Is_Out_of_School_Youth', true);
+          break;
+      }
+    }
+
+    if (dateFrom) {
+      query = query.where('r.Date_Arrival', '>=', dateFrom);
+    }
+
+    if (dateTo) {
+      query = query.where('r.Date_Arrival', '<=', dateTo + ' 23:59:59');
+    }
+
+    const residents = await query;
+
+    // Generate HTML content for PDF
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Residents Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { color: #1976d2; text-align: center; border-bottom: 2px solid #1976d2; padding-bottom: 10px; }
+          .header-info { margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 6px; text-align: left; font-size: 11px; }
+          th { background-color: #f5f5f5; font-weight: bold; }
+          tr:nth-child(even) { background-color: #f9f9f9; }
+          .footer { margin-top: 30px; font-size: 12px; color: #666; text-align: center; }
+          .filters { margin-bottom: 20px; padding: 10px; background-color: #f5f5f5; border-radius: 5px; }
+          .vulnerability-chips { display: flex; gap: 2px; flex-wrap: wrap; }
+          .chip { background-color: #e0e0e0; padding: 2px 6px; border-radius: 10px; font-size: 9px; }
+        </style>
+      </head>
+      <body>
+        <h1>Barangay Residents Report</h1>
+
+        <div class="header-info">
+          <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+          <p><strong>Total Residents:</strong> ${residents.length}</p>
+        </div>
+
+        ${search || gender || sitio || vulnerability || residencyFilter || dateFrom || dateTo ? `
+        <div class="filters">
+          <h3>Applied Filters:</h3>
+          ${search ? `<p><strong>Search:</strong> ${search}</p>` : ''}
+          ${gender ? `<p><strong>Gender:</strong> ${gender}</p>` : ''}
+          ${sitio ? `<p><strong>Sitio:</strong> ${sitio}</p>` : ''}
+          ${vulnerability ? `<p><strong>Vulnerability:</strong> ${vulnerability}</p>` : ''}
+          ${residencyFilter ? `<p><strong>Status:</strong> ${residencyFilter}</p>` : ''}
+          ${dateFrom ? `<p><strong>Date From:</strong> ${dateFrom}</p>` : ''}
+          ${dateTo ? `<p><strong>Date To:</strong> ${dateTo}</p>` : ''}
+        </div>
+        ` : ''}
+
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Gender</th>
+              <th>Age</th>
+              <th>Contact</th>
+              <th>Status</th>
+              <th>Household</th>
+              <th>Sitio</th>
+              <th>Vulnerabilities</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${residents.map(resident => {
+              const vulnerabilities = [];
+              if (resident.Is_4Ps) vulnerabilities.push('4Ps');
+              if (resident.Is_PWD) vulnerabilities.push('PWD');
+              if (resident.Is_Senior) vulnerabilities.push('Senior');
+              if (resident.Is_Solo_Parent) vulnerabilities.push('Solo Parent');
+              if (resident.Is_Out_of_School_Youth) vulnerabilities.push('OSY');
+
+              return `
+              <tr>
+                <td>${resident.Resident_ID}</td>
+                <td>${resident.First_Name} ${resident.Middle_Name || ''} ${resident.Last_Name} ${resident.Suffix || ''}</td>
+                <td>${resident.Gender}</td>
+                <td>${resident.Age || 'N/A'}</td>
+                <td>${resident.Mobile_Number || 'N/A'}</td>
+                <td>${resident.Residency_Status}</td>
+                <td>${resident.Household_Number || 'N/A'}</td>
+                <td>${resident.sitio_name || 'N/A'}</td>
+                <td>
+                  <div class="vulnerability-chips">
+                    ${vulnerabilities.map(v => `<span class="chip">${v}</span>`).join('')}
+                  </div>
+                </td>
+              </tr>
+            `;}).join('')}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <p>Generated by THEMIS ClearPass System</p>
+          <p>${new Date().toLocaleDateString()}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    console.log('Generating residents PDF with', residents.length, 'records');
+
+    // Generate PDF using Puppeteer
+    let browser;
+    try {
+      browser = await puppeteer.launch({
+        headless: 'new',
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: false,
+        margin: { top: '0.5cm', right: '0.5cm', bottom: '0.5cm', left: '0.5cm' },
+        landscape: true,
+        preferCSSPageSize: true
+      });
+      console.log('Residents PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+
+      // Send PDF as response
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=residents_report_${new Date().toISOString().split('T')[0]}.pdf`);
+      res.send(pdfBuffer);
+
+    } catch (pdfError) {
+      console.error('Residents PDF generation error:', pdfError);
+      res.status(500).json({ error: 'Failed to generate PDF', details: pdfError.message });
+    } finally {
+      if (browser) {
+        await browser.close();
+      }
+    }
+
+  } catch (error) {
+    console.error('Residents PDF generation error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF', details: error.message });
+  }
+}
+
 module.exports = {
   getDashboardStats,
   bulkImportResidents,
   getAiTechnicalView,
   getAllUsers,
-  createUser
+  createUser,
+  generateBlotterPDF,
+  generateResidentsPDF
 };

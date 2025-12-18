@@ -276,7 +276,7 @@ const SuperAdminSettings = ({ user }) => {
                     label="Full Name"
                     value={profile.full_name}
                     onChange={handleProfileChange('full_name')}
-                    error={!!errors.full_name}
+                    error={Boolean(errors.full_name)}
                     helperText={errors.full_name}
                     InputProps={{
                       startAdornment: <Person sx={{ mr: 1, color: 'action.active' }} />
@@ -304,7 +304,7 @@ const SuperAdminSettings = ({ user }) => {
                     type="email"
                     value={profile.email}
                     onChange={handleProfileChange('email')}
-                    error={!!errors.email}
+                    error={Boolean(errors.email)}
                     helperText={errors.email || 'Used for system notifications'}
                     InputProps={{
                       startAdornment: <Email sx={{ mr: 1, color: 'action.active' }} />
@@ -318,7 +318,7 @@ const SuperAdminSettings = ({ user }) => {
                     label="Contact Number"
                     value={profile.contact_number}
                     onChange={handleProfileChange('contact_number')}
-                    error={!!errors.contact_number}
+                    error={Boolean(errors.contact_number)}
                     helperText={errors.contact_number}
                     InputProps={{
                       startAdornment: <Phone sx={{ mr: 1, color: 'action.active' }} />

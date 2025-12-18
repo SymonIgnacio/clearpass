@@ -47,7 +47,9 @@ import {
   CloudUpload,
   CheckCircle,
   Error,
-  Warning
+  Warning,
+  Download,
+  Refresh
 } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
 
@@ -99,6 +101,8 @@ const Residents = () => {
   const [sitioFilter, setSitioFilter] = useState('')
   const [vulnerabilityFilter, setVulnerabilityFilter] = useState('')
   const [residencyFilter, setResidencyFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   useEffect(() => {
     fetchResidents()
@@ -106,13 +110,21 @@ const Residents = () => {
     fetchSitios()
   }, [])
 
+  // Trigger fetch when filters change
+  useEffect(() => {
+    fetchResidents()
+  }, [searchTerm, genderFilter, sitioFilter, vulnerabilityFilter, dateFrom, dateTo])
+
   const fetchResidents = async () => {
     try {
       const params = new URLSearchParams()
       if (searchTerm) params.append('search', searchTerm)
+      if (genderFilter) params.append('gender', genderFilter)
       if (sitioFilter) params.append('sitio_id', sitioFilter)
       if (residencyFilter) params.append('residency_status', residencyFilter)
       if (vulnerabilityFilter === 'vulnerable') params.append('show_vulnerable', 'true')
+      if (dateFrom) params.append('dateFrom', dateFrom)
+      if (dateTo) params.append('dateTo', dateTo)
 
       const response = await apiRequest(`residents?${params}`)
       if (response.ok) {
@@ -389,6 +401,51 @@ const Residents = () => {
     })
   }, [residents, searchTerm, genderFilter, sitioFilter, vulnerabilityFilter])
 
+  const generateResidentsPDF = async () => {
+    try {
+      // Create URL with current filters
+      const params = new URLSearchParams()
+
+      // Add filters
+      if (searchTerm) params.append('search', searchTerm)
+      if (genderFilter) params.append('gender', genderFilter)
+      if (sitioFilter) params.append('sitio', sitioFilter)
+      if (vulnerabilityFilter === 'vulnerable') params.append('vulnerability', vulnerabilityFilter)
+      if (vulnerabilityFilter && vulnerabilityFilter !== 'vulnerable') params.append('vulnerability', vulnerabilityFilter)
+      if (residencyFilter) params.append('residencyFilter', residencyFilter)
+      if (dateFrom) params.append('dateFrom', dateFrom)
+      if (dateTo) params.append('dateTo', dateTo)
+
+      // Call the PDF export endpoint
+      const response = await fetch(`/api/admin/reports/pdf/residents?${params}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate PDF: ${response.statusText}`)
+      }
+
+      // Download the PDF
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `residents_report_${new Date().toISOString().split('T')[0]}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      alert('Residents PDF report downloaded successfully!')
+    } catch (error) {
+      console.error('PDF generation error:', error)
+      alert(`Failed to generate PDF: ${error.message}`)
+    }
+  }
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -397,6 +454,12 @@ const Residents = () => {
           Resident Profiling & RBIM
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" startIcon={<Download />} onClick={generateResidentsPDF}>
+            Export PDF
+          </Button>
+          <Button variant="outlined" startIcon={<Refresh />} onClick={() => fetchResidents()}>
+            Refresh
+          </Button>
           <Button variant="outlined" startIcon={<CloudUpload />} onClick={() => setOpenBulkImport(true)}>
             Bulk Import
           </Button>
@@ -424,7 +487,7 @@ const Residents = () => {
             </Typography>
 
             <Grid container spacing={2}>
-              <Grid xs={12} md={4}>
+              <Grid xs={12} md={3}>
                 <TextField
                   fullWidth
                   label="Search"
@@ -438,6 +501,28 @@ const Residents = () => {
                     ),
                   }}
                   placeholder="Search by name, household, sitio..."
+                />
+              </Grid>
+
+              <Grid xs={12} sm={6} md={2}>
+                <TextField
+                  fullWidth
+                  label="Date From"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+
+              <Grid xs={12} sm={6} md={2}>
+                <TextField
+                  fullWidth
+                  label="Date To"
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
                 />
               </Grid>
 
@@ -472,7 +557,7 @@ const Residents = () => {
                 </FormControl>
               </Grid>
 
-              <Grid xs={12} sm={6} md={3}>
+              <Grid xs={12} sm={6} md={2}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Sitio</InputLabel>
                   <Select
@@ -480,7 +565,7 @@ const Residents = () => {
                     onChange={(e) => setSitioFilter(e.target.value)}
                     label="Sitio"
                     sx={{
-                      minWidth: 160,
+                      minWidth: 140,
                       '& .MuiSelect-select': {
                         fontSize: '0.875rem',
                         padding: '8px 14px',
@@ -499,7 +584,7 @@ const Residents = () => {
                 </FormControl>
               </Grid>
 
-              <Grid xs={12} sm={6} md={3}>
+              <Grid xs={12} sm={6} md={1}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Vulnerabilities</InputLabel>
                   <Select
@@ -507,7 +592,7 @@ const Residents = () => {
                     onChange={(e) => setVulnerabilityFilter(e.target.value)}
                     label="Vulnerabilities"
                     sx={{
-                      minWidth: 180,
+                      minWidth: 120,
                       '& .MuiSelect-select': {
                         fontSize: '0.875rem',
                         padding: '8px 14px',
@@ -518,22 +603,22 @@ const Residents = () => {
                       <Box sx={{ fontSize: '0.875rem' }}>All</Box>
                     </MenuItem>
                     <MenuItem value="vulnerable">
-                      <Box sx={{ fontSize: '0.875rem' }}>Any Vulnerability</Box>
+                      <Box sx={{ fontSize: '0.875rem' }}>Any</Box>
                     </MenuItem>
                     <MenuItem value="senior">
-                      <Box sx={{ fontSize: '0.875rem' }}>Senior Citizens</Box>
+                      <Box sx={{ fontSize: '0.875rem' }}>Senior</Box>
                     </MenuItem>
                     <MenuItem value="pwd">
                       <Box sx={{ fontSize: '0.875rem' }}>PWD</Box>
                     </MenuItem>
                     <MenuItem value="4ps">
-                      <Box sx={{ fontSize: '0.875rem' }}>4Ps Members</Box>
+                      <Box sx={{ fontSize: '0.875rem' }}>4Ps</Box>
                     </MenuItem>
                     <MenuItem value="solo_parent">
-                      <Box sx={{ fontSize: '0.875rem' }}>Solo Parents</Box>
+                      <Box sx={{ fontSize: '0.875rem' }}>Solo</Box>
                     </MenuItem>
                     <MenuItem value="osy">
-                      <Box sx={{ fontSize: '0.875rem' }}>Out of School Youth</Box>
+                      <Box sx={{ fontSize: '0.875rem' }}>OSY</Box>
                     </MenuItem>
                   </Select>
                 </FormControl>
@@ -548,12 +633,14 @@ const Residents = () => {
                 size="small"
                 onClick={() => {
                   setSearchTerm('')
+                  setDateFrom('')
+                  setDateTo('')
                   setGenderFilter('')
                   setSitioFilter('')
                   setVulnerabilityFilter('')
                   fetchResidents()
                 }}
-                disabled={!searchTerm && !genderFilter && !sitioFilter && !vulnerabilityFilter}
+                disabled={!searchTerm && !dateFrom && !dateTo && !genderFilter && !sitioFilter && !vulnerabilityFilter}
               >
                 Clear Filters
               </Button>

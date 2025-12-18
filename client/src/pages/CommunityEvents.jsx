@@ -31,6 +31,8 @@ import {
 } from '@mui/material'
 import { Add, Event, People, Edit, PersonAdd, Sms } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
+import { canManageEvents } from '../utils/roles'
+import { safeJsonParseArray } from '../utils/apiHelpers'
 
 const CommunityEvents = ({ user }) => {
   const [events, setEvents] = useState([])
@@ -59,31 +61,58 @@ const CommunityEvents = ({ user }) => {
 
   const fetchEvents = async () => {
     try {
-      const response = await apiRequest('programs')
-      const data = await response.json()
-      setEvents(data)
+      const response = await apiRequest('programs').catch((err) => {
+        console.error('Programs API failed:', err);
+        return { data: [] };
+      });
+      const data = response.json
+        ? await response.json().catch((err) => {
+            console.error('Failed to parse programs JSON:', err);
+            return [];
+          })
+        : response.data || response || [];
+      setEvents(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching events:', error)
+      console.error('Error fetching events:', error);
+      setEvents([]);
     }
   }
 
   const fetchResidents = async () => {
     try {
-      const response = await apiRequest('residents?limit=50') // Limit for performance
-      const data = await response.json()
-      setResidents(data.data || []) // Handle paginated response
+      const response = await apiRequest('residents?limit=50').catch((err) => {
+        console.error('Residents API failed:', err);
+        return { data: { data: [] } };
+      });
+      const data = response.json
+        ? await response.json().catch((err) => {
+            console.error('Failed to parse residents JSON:', err);
+            return { data: [] };
+          })
+        : response.data || response || { data: [] };
+      setResidents(Array.isArray(data.data) ? data.data : []);
     } catch (error) {
-      console.error('Error fetching residents:', error)
+      console.error('Error fetching residents:', error);
+      setResidents([]);
     }
   }
 
   const fetchSitios = async () => {
     try {
-      const response = await apiRequest('sitios')
-      const data = await response.json()
-      setSitios(data)
+      const response = await apiRequest('sitios').catch((err) => {
+        console.error('Sitios API failed:', err);
+        return [];
+      });
+      const data = response.json
+        ? await response.json().catch((err) => {
+            console.error('Failed to parse sitios JSON:', err);
+            return [];
+          })
+        : response || [];
+      setSitios(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching sitios:', error)
+      console.error('Error fetching sitios:', error);
+      setSitios([]);
     }
   }
 
@@ -214,8 +243,8 @@ const CommunityEvents = ({ user }) => {
     return 'Upcoming'
   }
 
-  // Check if user can manage events (Secretary and above)
-  const canManageEvents = user && ['admin', 'captain', 'secretary'].includes(user.role)
+  // Check if user can manage events (Secretary and above) - using utility function
+  const userCanManageEvents = canManageEvents(user)
 
   return (
     <Box>
@@ -239,7 +268,7 @@ const CommunityEvents = ({ user }) => {
           <Event sx={{ mr: 1, verticalAlign: 'middle' }} />
           Community Events & Programs
         </Typography>
-        {canManageEvents && (
+        {userCanManageEvents && (
           <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()}>
             Create Event
           </Button>
@@ -358,14 +387,14 @@ const CommunityEvents = ({ user }) => {
                 <TableCell>₱{event.budget_allocated || 0}</TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1 }}>
-                    {canManageEvents && (
+                    {userCanManageEvents && (
                       <Tooltip title="Edit Event">
                         <IconButton size="small" onClick={() => handleOpenDialog(event)}>
                           <Edit />
                         </IconButton>
                       </Tooltip>
                     )}
-                    {canManageEvents && (
+                    {userCanManageEvents && (
                       <Tooltip title="Add Participants">
                         <IconButton size="small" onClick={() => setParticipantsDialog(event)}>
                           <PersonAdd />

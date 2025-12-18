@@ -13,156 +13,212 @@ import {
   Chip,
   IconButton,
   Tooltip,
-  LinearProgress,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Divider
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  TextField,
+  FormControl,
+  FormLabel,
+  Divider,
+  Paper
 } from '@mui/material'
 import {
   Person,
   Description,
-  Event,
-  Chat,
+  CheckCircle,
+  Warning,
   AccountCircle,
   Refresh,
   Assignment,
-  Gavel,
-  LocationOn,
   Phone,
   Email,
-  Home,
-  Business
+  PhotoCamera
 } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
 
 const ResidentDashboard = ({ user }) => {
   const navigate = useNavigate()
-  const [profile, setProfile] = useState(null)
-  const [documents, setDocuments] = useState([])
-  const [events, setEvents] = useState([])
+  const [dashboardData, setDashboardData] = useState(null)
+  const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  // Modal states
+  const [clearanceModal, setClearanceModal] = useState(false)
+  const [qrModal, setQrModal] = useState(false)
+  const [profileModal, setProfileModal] = useState(false)
+
+  // Form states
+  const [clearanceForm, setClearanceForm] = useState({
+    clearanceType: '',
+    purpose: ''
+  })
+  const [qrCode, setQrCode] = useState('')
+  const [photoFile, setPhotoFile] = useState(null)
+
   useEffect(() => {
-    fetchResidentData()
+    fetchDashboardData()
+    fetchMyRequests()
   }, [])
 
-  const fetchResidentData = async () => {
+  const fetchDashboardData = async () => {
     try {
-      setLoading(true)
-      setError('')
-
-      // Fetch resident profile
-      const profileResponse = await apiRequest('auth/profile')
-      const profileData = await profileResponse.json()
-      setProfile(profileData)
-
-      // Fetch resident documents (certificates)
-      const documentsResponse = await apiRequest('certificates')
-      const documentsData = await documentsResponse.json()
-      setDocuments(documentsData || [])
-
-      // Fetch community events
-      const eventsResponse = await apiRequest('programs')
-      const eventsData = await eventsResponse.json()
-      setEvents(eventsData || [])
-
+      const response = await apiRequest('resident/dashboard')
+      const data = await response.json()
+      setDashboardData(data)
     } catch (error) {
-      console.error('Error fetching resident data:', error)
-      setError('Failed to load dashboard data. Please try again.')
+      console.error('Error fetching dashboard data:', error)
+      setError('Failed to load dashboard data.')
+    }
+  }
+
+  const fetchMyRequests = async () => {
+    try {
+      const response = await apiRequest('resident/requests')
+      const data = await response.json()
+      setRequests(data || [])
+    } catch (error) {
+      console.error('Error fetching requests:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleQuickAction = (action) => {
-    switch (action) {
-      case 'Request Document':
-        navigate('/documents')
-        break
-      case 'Report Incident':
-        navigate('/blotter')
-        break
-      case 'View Events':
-        navigate('/events')
-        break
-      case 'Contact Barangay':
-        // Could open a contact modal or navigate to contact page
-        break
-      default:
-        break
+  const handleRequestClearance = async () => {
+    if (!clearanceForm.clearanceType || !clearanceForm.purpose) {
+      setError('Please fill in all required fields.')
+      return
+    }
+
+    try {
+      const response = await apiRequest('resident/request-clearance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(clearanceForm)
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setQrCode(data.qr_code)
+        setClearanceModal(false)
+        setQrModal(true)
+        fetchMyRequests() // Refresh requests
+      } else {
+        setError(data.error || 'Failed to submit request.')
+      }
+    } catch (error) {
+      console.error('Error requesting clearance:', error)
+      setError('Failed to submit clearance request.')
     }
   }
 
-  const residentStats = [
-    {
-      title: 'My Documents',
-      value: documents.length,
-      subtitle: 'Certificates & Clearances',
-      icon: <Description sx={{ fontSize: 32 }} />,
-      color: '#1a73e8',
-      bgColor: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
-      action: 'View Documents'
-    },
-    {
-      title: 'Community Events',
-      value: events.filter(event => event.status === 'Planned' || event.status === 'Ongoing').length,
-      subtitle: 'Upcoming Activities',
-      icon: <Event sx={{ fontSize: 32 }} />,
-      color: '#34a853',
-      bgColor: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)',
-      action: 'View Events'
-    },
-    {
-      title: 'Active Cases',
-      value: 0, // Residents shouldn't see blotter statistics
-      subtitle: 'No active reports',
-      icon: <Gavel sx={{ fontSize: 32 }} />,
-      color: '#fbbc04',
-      bgColor: 'linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%)',
-      action: 'Report Incident'
-    },
-    {
-      title: 'Account Status',
-      value: user?.is_active ? 'Active' : 'Pending',
-      subtitle: 'Verified Resident',
-      icon: <AccountCircle sx={{ fontSize: 32 }} />,
-      color: '#34a853',
-      bgColor: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)',
-      action: 'View Profile'
+  const handlePhotoUpload = async () => {
+    if (!photoFile) {
+      setError('Please select a photo file.')
+      return
     }
-  ]
+
+    const formData = new FormData()
+    formData.append('photo', photoFile)
+
+    try {
+      const response = await apiRequest('resident/profile/update-photo', {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setProfileModal(false)
+        setPhotoFile(null)
+        fetchDashboardData() // Refresh profile data
+        alert('Profile photo updated successfully!')
+      } else {
+        setError(data.error || 'Failed to update photo.')
+      }
+    } catch (error) {
+      console.error('Error updating photo:', error)
+      setError('Failed to update profile photo.')
+    }
+  }
+
+  const getStatusCard = () => {
+    if (!dashboardData) return null
+
+    const { status, blocking_case } = dashboardData
+
+    if (status === 'CLEARED') {
+      return (
+        <Card sx={{
+          background: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)',
+          border: '2px solid #4caf50',
+          mb: 3
+        }}>
+          <CardContent sx={{ p: 4, textAlign: 'center' }}>
+            <CheckCircle sx={{ fontSize: 64, color: '#4caf50', mb: 2 }} />
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, color: '#2e7d32' }}>
+              You are Cleared
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Your barangay record is clean. You can proceed with clearance requests.
+            </Typography>
+          </CardContent>
+        </Card>
+      )
+    } else {
+      return (
+        <Card sx={{
+          background: 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)',
+          border: '2px solid #f44336',
+          mb: 3
+        }}>
+          <CardContent sx={{ p: 4, textAlign: 'center' }}>
+            <Warning sx={{ fontSize: 64, color: '#f44336', mb: 2 }} />
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, color: '#c62828' }}>
+              Accountability Detected
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+              {blocking_case || 'You have active cases that prevent clearance requests.'}
+            </Typography>
+            <Typography variant="body2" color="error">
+              Please visit the Barangay Hall to resolve this matter.
+            </Typography>
+          </CardContent>
+        </Card>
+      )
+    }
+  }
 
   const quickActions = [
     {
       icon: <Description />,
-      title: 'Request Document',
+      title: 'Request Clearance',
       description: 'Apply for barangay certificates and clearances',
       color: '#1a73e8',
-      action: 'Request Document'
+      action: 'request_clearance',
+      disabled: dashboardData?.status === 'BLOCKED'
     },
     {
-      icon: <Gavel />,
-      title: 'Report Incident',
-      description: 'File a blotter report for community incidents',
-      color: '#ea4335',
-      action: 'Report Incident'
-    },
-    {
-      icon: <Event />,
-      title: 'Community Events',
-      description: 'View upcoming barangay programs and activities',
+      icon: <Person />,
+      title: 'My Profile',
+      description: 'View and update your personal information',
       color: '#34a853',
-      action: 'View Events'
+      action: 'my_profile'
     },
     {
-      icon: <Chat />,
-      title: 'Contact Barangay',
-      description: 'Get help from barangay officials',
+      icon: <Assignment />,
+      title: 'Track Requests',
+      description: 'Check status of your document requests',
       color: '#fbbc04',
-      action: 'Contact Barangay'
+      action: 'track_requests'
     }
   ]
 
@@ -185,76 +241,16 @@ const ResidentDashboard = ({ user }) => {
   }
 
   return (
-    <Box>
-      {/* Welcome Header */}
-      <Box sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        mb: 4
-      }}>
-        <Box>
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 400,
-              mb: 1,
-              background: 'linear-gradient(45deg, #1a73e8, #34a853)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}
-          >
-            Welcome back, {profile?.full_name || user?.full_name || 'Resident'}!
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Your personal barangay resident portal
-          </Typography>
-        </Box>
-
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <Chip
-            icon={<Person />}
-            label="Resident Account"
-            color="success"
-            variant="outlined"
-            sx={{ borderRadius: 2 }}
-          />
-          <Tooltip title="Refresh Data">
-            <IconButton
-              onClick={fetchResidentData}
-              sx={{
-                borderRadius: 2,
-                border: '1px solid #e8eaed',
-                '&:hover': { backgroundColor: '#f8f9fa' }
-              }}
-            >
-              <Refresh />
-            </IconButton>
-          </Tooltip>
-        </Box>
+    <Box sx={{ maxWidth: '1200px', mx: 'auto', p: 2 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h3" sx={{ fontWeight: 600, mb: 1 }}>
+          Resident Portal
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Manage your barangay services and track your requests
+        </Typography>
       </Box>
-
-      {user?.residency_status === 'pending' && (
-        <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
-          <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-            ⚠️ Residency Verification Required
-          </Typography>
-          <Typography variant="body2">
-            To access document and certificate requests, please verify your barangay residency. Visit Settings to submit your proof of residency.
-          </Typography>
-          <Box sx={{ mt: 2 }}>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => navigate('/settings')}
-              sx={{ mr: 1 }}
-            >
-              Complete Verification
-            </Button>
-          </Box>
-        </Alert>
-      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
@@ -262,279 +258,281 @@ const ResidentDashboard = ({ user }) => {
         </Alert>
       )}
 
-      {/* Resident Profile Card */}
+      {/* Status Card */}
+      {getStatusCard()}
+
+      {/* Quick Actions Grid */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Card sx={{
-            height: '100%',
-            background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
-            border: '1px solid #e8eaed'
-          }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Avatar
-                  sx={{
-                    width: 80,
-                    height: 80,
-                    mx: 'auto',
-                    mb: 2,
-                    bgcolor: 'primary.main',
-                    fontSize: '2rem'
-                  }}
-                >
-                  {profile?.full_name?.charAt(0) || user?.full_name?.charAt(0) || 'R'}
+        {quickActions.map((action, index) => (
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
+            <Card
+              sx={{
+                height: '100%',
+                cursor: action.disabled ? 'not-allowed' : 'pointer',
+                opacity: action.disabled ? 0.6 : 1,
+                transition: 'all 0.2s ease',
+                '&:hover': action.disabled ? {} : {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
+                }
+              }}
+              onClick={() => {
+                if (action.disabled) return
+
+                switch (action.action) {
+                  case 'request_clearance':
+                    setClearanceModal(true)
+                    break
+                  case 'my_profile':
+                    setProfileModal(true)
+                    break
+                  case 'track_requests':
+                    // Scroll to requests section
+                    document.getElementById('requests-section')?.scrollIntoView({ behavior: 'smooth' })
+                    break
+                  default:
+                    break
+                }
+              }}
+            >
+              <CardContent sx={{ p: 3, textAlign: 'center' }}>
+                <Avatar sx={{
+                  bgcolor: action.color,
+                  width: 64,
+                  height: 64,
+                  mx: 'auto',
+                  mb: 2,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                }}>
+                  {action.icon}
                 </Avatar>
-                <Typography variant="h6" sx={{ fontWeight: 500, mb: 1 }}>
-                  {profile?.full_name || user?.full_name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Barangay Resident
-                </Typography>
-                <Chip
-                  label={user?.is_active ? 'Verified Account' : 'Account Pending'}
-                  color={user?.is_active ? 'success' : 'warning'}
-                  size="small"
-                  sx={{ borderRadius: 2 }}
-                />
-              </Box>
-
-              <Divider sx={{ my: 2 }} />
-
-              <Typography variant="subtitle2" sx={{ fontWeight: 500, mb: 2 }}>
-                Contact Information
-              </Typography>
-
-              <List dense>
-                {profile?.email && (
-                  <ListItem sx={{ px: 0 }}>
-                    <ListItemIcon sx={{ minWidth: 36 }}>
-                      <Email color="action" fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={profile.email}
-                      primaryTypographyProps={{ variant: 'body2' }}
-                    />
-                  </ListItem>
-                )}
-
-                {profile?.mobile_number && (
-                  <ListItem sx={{ px: 0 }}>
-                    <ListItemIcon sx={{ minWidth: 36 }}>
-                      <Phone color="action" fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={profile.mobile_number}
-                      primaryTypographyProps={{ variant: 'body2' }}
-                    />
-                  </ListItem>
-                )}
-
-                <ListItem sx={{ px: 0 }}>
-                  <ListItemIcon sx={{ minWidth: 36 }}>
-                    <Home color="action" fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Barangay Batia, Bocaue, Bulacan"
-                    primaryTypographyProps={{ variant: 'body2' }}
-                  />
-                </ListItem>
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <Grid container spacing={3}>
-            {residentStats.map((stat, index) => (
-              <Grid size={{ xs: 12, sm: 6 }} key={index}>
-                <Card
-                  sx={{
-                    height: '100%',
-                    background: stat.bgColor,
-                    border: '1px solid #e8eaed',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
-                    }
-                  }}
-                >
-                  <CardContent sx={{ p: 3 }}>
-                    <Box sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      mb: 2
-                    }}>
-                      <Avatar
-                        sx={{
-                          bgcolor: stat.color,
-                          width: 56,
-                          height: 56,
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                        }}
-                      >
-                        {stat.icon}
-                      </Avatar>
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: stat.color,
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                            textTransform: 'uppercase',
-                            letterSpacing: 0.5
-                          }}
-                        >
-                          {stat.title}
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Typography
-                      variant="h3"
-                      sx={{
-                        fontWeight: 600,
-                        color: '#202124',
-                        mb: 1,
-                        fontSize: '2rem'
-                      }}
-                    >
-                      {typeof stat.value === 'string' ? stat.value : stat.value}
-                    </Typography>
-
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 500,
-                        color: '#5f6368',
-                        mb: 2
-                      }}
-                    >
-                      {stat.subtitle}
-                    </Typography>
-
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => handleQuickAction(stat.action)}
-                      sx={{
-                        borderColor: stat.color,
-                        color: stat.color,
-                        '&:hover': {
-                          borderColor: stat.color,
-                          backgroundColor: `${stat.color}08`
-                        }
-                      }}
-                    >
-                      {stat.action}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Grid>
-      </Grid>
-
-      {/* Quick Actions */}
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <Card sx={{
-            height: '100%',
-            background: 'linear-gradient(135deg, #fff3e0 0%, #ffffff 100%)',
-            border: '1px solid #e8eaed'
-          }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 500, mb: 3 }}>
-                Quick Actions
-              </Typography>
-
-              <Grid container spacing={2}>
-                {quickActions.map((action, index) => (
-                  <Grid size={{ xs: 12, sm: 6 }} key={index}>
-                    <Card
-                      variant="outlined"
-                      sx={{
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        borderColor: '#e8eaed',
-                        '&:hover': {
-                          borderColor: action.color,
-                          transform: 'translateY(-2px)',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                        }
-                      }}
-                      onClick={() => handleQuickAction(action.action)}
-                    >
-                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <Avatar sx={{
-                            bgcolor: action.color,
-                            width: 40,
-                            height: 40,
-                            mr: 2
-                          }}>
-                            {action.icon}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
-                              {action.title}
-                            </Typography>
-                          </Box>
-                        </Box>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                          {action.description}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <Card sx={{
-            height: '100%',
-            background: 'linear-gradient(135deg, #f3e5f5 0%, #ffffff 100%)',
-            border: '1px solid #e8eaed'
-          }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 500, mb: 3 }}>
-                Recent Activity
-              </Typography>
-
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Assignment sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="body1" color="text.secondary">
-                  No recent activity
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                  {action.title}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Your document requests and community interactions will appear here
+                  {action.description}
                 </Typography>
-              </Box>
-
-              <Box sx={{
-                mt: 3,
-                p: 2,
-                borderRadius: 2,
-                backgroundColor: 'rgba(26, 115, 232, 0.04)',
-                border: '1px solid rgba(26, 115, 232, 0.12)'
-              }}>
-                <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-                  💡 Need Help?
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Use the BANTAY AI chatbot in the bottom right corner for assistance with barangay services and information.
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
+
+      {/* Profile Summary */}
+      {dashboardData?.profile && (
+        <Card sx={{ mb: 4 }}>
+          <CardContent sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <Avatar
+                src={dashboardData.profile.photo_url}
+                sx={{ width: 60, height: 60, mr: 3 }}
+              >
+                {dashboardData.profile.name?.charAt(0) || 'R'}
+              </Avatar>
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                  {dashboardData.profile.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Resident ID: {dashboardData.profile.resident_id}
+                </Typography>
+              </Box>
+            </Box>
+
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Phone sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />
+                  <Typography variant="body2">
+                    {dashboardData.profile.contact_number || 'Not provided'}
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Email sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />
+                  <Typography variant="body2">
+                    {dashboardData.profile.email || 'Not provided'}
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent Requests */}
+      <Card id="requests-section">
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+            Recent Requests
+          </Typography>
+
+          {requests.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Assignment sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="body1" color="text.secondary">
+                No requests yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Your document requests will appear here
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {requests.slice(0, 5).map((request, index) => (
+                <Paper key={index} sx={{ p: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                        {request.certificate_type} Clearance
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Request ID: {request.control_no}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={request.status}
+                      color={
+                        request.status === 'Approved' ? 'success' :
+                        request.status === 'Pending' ? 'warning' :
+                        request.status === 'Released' ? 'info' : 'default'
+                      }
+                      size="small"
+                    />
+                  </Box>
+                </Paper>
+              ))}
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Clearance Request Modal */}
+      <Dialog open={clearanceModal} onClose={() => setClearanceModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Request Clearance</DialogTitle>
+        <DialogContent>
+          <FormControl component="fieldset" sx={{ mt: 2 }}>
+            <FormLabel component="legend">Clearance Type</FormLabel>
+            <RadioGroup
+              value={clearanceForm.clearanceType}
+              onChange={(e) => setClearanceForm({ ...clearanceForm, clearanceType: e.target.value })}
+            >
+              <FormControlLabel value="Barangay" control={<Radio />} label="Barangay Clearance" />
+              <FormControlLabel value="Indigency" control={<Radio />} label="Certificate of Indigency" />
+              <FormControlLabel value="Residency" control={<Radio />} label="Certificate of Residency" />
+            </RadioGroup>
+          </FormControl>
+
+          <TextField
+            fullWidth
+            label="Purpose"
+            multiline
+            rows={3}
+            value={clearanceForm.purpose}
+            onChange={(e) => setClearanceForm({ ...clearanceForm, purpose: e.target.value })}
+            sx={{ mt: 3 }}
+            placeholder="Please specify the purpose of this clearance request..."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setClearanceModal(false)}>Cancel</Button>
+          <Button
+            onClick={handleRequestClearance}
+            variant="contained"
+            disabled={!clearanceForm.clearanceType || !clearanceForm.purpose}
+          >
+            Submit Request
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* QR Code Modal */}
+      <Dialog open={qrModal} onClose={() => setQrModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ textAlign: 'center' }}>Request Submitted Successfully!</DialogTitle>
+        <DialogContent sx={{ textAlign: 'center' }}>
+          <Typography variant="body1" sx={{ mb: 3 }}>
+            Show this QR code to the barangay clerk to process your request.
+          </Typography>
+
+          {qrCode && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              <img
+                src={qrCode}
+                alt="QR Code"
+                style={{ maxWidth: '200px', maxHeight: '200px' }}
+              />
+            </Box>
+          )}
+
+          <Typography variant="body2" color="text.secondary">
+            Your request has been recorded and is now pending approval.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setQrModal(false)} variant="contained">
+            Done
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Profile Update Modal */}
+      <Dialog open={profileModal} onClose={() => setProfileModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Update Profile Photo</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            You can update your profile photo once every 6 months.
+          </Typography>
+
+          <Box sx={{ textAlign: 'center' }}>
+            <input
+              accept="image/*"
+              style={{ display: 'none' }}
+              id="photo-upload"
+              type="file"
+              onChange={(e) => setPhotoFile(e.target.files[0])}
+            />
+            <label htmlFor="photo-upload">
+              <Button
+                variant="outlined"
+                component="span"
+                startIcon={<PhotoCamera />}
+                sx={{ mb: 2 }}
+              >
+                Choose Photo
+              </Button>
+            </label>
+
+            {photoFile && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  Selected: {photoFile.name}
+                </Typography>
+                <img
+                  src={URL.createObjectURL(photoFile)}
+                  alt="Preview"
+                  style={{
+                    maxWidth: '200px',
+                    maxHeight: '200px',
+                    borderRadius: '8px',
+                    border: '1px solid #e0e0e0'
+                  }}
+                />
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setProfileModal(false)}>Cancel</Button>
+          <Button
+            onClick={handlePhotoUpload}
+            variant="contained"
+            disabled={!photoFile}
+          >
+            Upload Photo
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

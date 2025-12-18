@@ -1,7 +1,21 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const { verifyToken, checkRole } = require('./authMiddleware');
 const { enforcePermissions, BUSINESS_RULES } = require('./permissions');
+
+// Configure multer for photo uploads
+const upload = multer({
+  dest: 'uploads/temp/',
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
 
 // Controllers
 const authController = require('./authController');
@@ -44,6 +58,10 @@ router.get('/admin/settings',
         }
     });
 });
+router.get('/admin/reports/pdf/blotter',
+    verifyToken, checkRole([1, 2, 3, 5, 6]), enforcePermissions('/api/admin/reports/pdf/blotter'), adminController.generateBlotterPDF);
+router.get('/admin/reports/pdf/residents',
+    verifyToken, checkRole([1, 2, 3, 5, 6]), enforcePermissions('/api/admin/reports/pdf/residents'), adminController.generateResidentsPDF);
 
 // =========================================================================
 // ROLE 2: CLERK ROUTES (ClearPass Operator)
@@ -72,12 +90,16 @@ router.get('/officer/reports',
 // =========================================================================
 // ROLE 4: RESIDENT ROUTES (Self-Service)
 // =========================================================================
+router.get('/resident/dashboard',
+    verifyToken, checkRole([4]), enforcePermissions('/api/resident/dashboard'), residentController.getDashboardStats);
 router.post('/resident/request-clearance',
     verifyToken, checkRole([4]), enforcePermissions('/api/resident/request-clearance'), residentController.requestClearance);
 router.get('/resident/requests',
     verifyToken, checkRole([4]), enforcePermissions('/api/resident/requests'), residentController.getMyRequests);
 router.get('/resident/profile',
     verifyToken, checkRole([4]), enforcePermissions('/api/auth/profile'), residentController.getProfile);
+router.post('/resident/profile/update-photo',
+    verifyToken, checkRole([4]), enforcePermissions('/api/resident/profile/update-photo'), upload.single('photo'), residentController.updateProfilePhoto);
 
 // =========================================================================
 // ROLE 5: CAPTAIN ROUTES (Read-Only Executive)
@@ -190,6 +212,155 @@ router.get('/certificate-types',
         res.json({ success: true, data: types });
     } catch (error) {
         res.json({ success: true, data: [] });
+    }
+});
+
+// Blotter Cases - Read access for staff roles (Admin, Clerk, Blotter Officer, Captain, Secretary)
+router.get('/blotter',
+    verifyToken, checkRole([1, 2, 3, 5, 6]), enforcePermissions('/api/blotter'), async (req, res) => {
+    try {
+        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+        const blotterCases = await knex('blotter')
+            .select('*')
+            .orderBy('DateTime_Incident', 'desc');
+        res.json(blotterCases);
+    } catch (error) {
+        console.error('Error fetching blotter cases:', error);
+        res.status(500).json({ error: 'Failed to fetch blotter cases' });
+    }
+});
+
+// Blotter Cases - Create access for authorized staff (Admin, Clerk, Blotter Officer)
+router.post('/blotter',
+    verifyToken, checkRole([1, 2, 3]), enforcePermissions('/api/blotter'), blotterController.createCase);
+
+// Residents - Read access for staff roles (Admin, Clerk, Captain, Secretary)
+router.get('/residents',
+    verifyToken, checkRole([1, 2, 3, 5, 6]), enforcePermissions('/api/residents'), async (req, res) => {
+    try {
+        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+        const { search, sitio_id, residency_status, show_vulnerable, dateFrom, dateTo, gender } = req.query;
+
+        let query = knex('residents as r')
+            .leftJoin('households as h', 'r.Household_ID', 'h.Household_ID')
+            .leftJoin('sitios as s', 'h.Sitio_ID', 's.id')
+            .select(
+                'r.*',
+                'h.Household_Number',
+                's.name as sitio_name'
+            );
+
+        if (search) {
+            query = query.where(function() {
+                this.where('r.First_Name', 'like', `%${search}%`)
+                    .orWhere('r.Last_Name', 'like', `%${search}%`)
+                    .orWhere('r.Middle_Name', 'like', `%${search}%`)
+                    .orWhere('h.Household_Number', 'like', `%${search}%`)
+                    .orWhere('s.name', 'like', `%${search}%`)
+                    .orWhere('r.Occupation', 'like', `%${search}%`);
+            });
+        }
+
+        if (sitio_id) {
+            query = query.where('s.name', sitio_id);
+        }
+
+        if (residency_status) {
+            query = query.where('r.Residency_Status', residency_status);
+        }
+
+        if (gender) {
+            query = query.where('r.Gender', gender);
+        }
+
+        if (show_vulnerable === 'true') {
+            query = query.where(function() {
+                this.where('r.Is_4Ps', true)
+                    .orWhere('r.Is_PWD', true)
+                    .orWhere('r.Is_Senior', true)
+                    .orWhere('r.Is_Solo_Parent', true)
+                    .orWhere('r.Is_Out_of_School_Youth', true);
+            });
+        }
+
+        if (dateFrom) {
+            query = query.where('r.Date_Arrival', '>=', dateFrom);
+        }
+
+        if (dateTo) {
+            query = query.where('r.Date_Arrival', '<=', dateTo + ' 23:59:59');
+        }
+
+        const residents = await query.orderBy('r.Last_Name');
+        res.json(residents);
+    } catch (error) {
+        console.error('Error fetching residents:', error);
+        res.status(500).json({ error: 'Failed to fetch residents' });
+    }
+});
+
+// Residents CRUD operations
+router.post('/residents',
+    verifyToken, checkRole([1, 2]), enforcePermissions('/api/residents'), async (req, res) => {
+    try {
+        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+        const residentData = req.body;
+
+        const [residentId] = await knex('residents').insert({
+            ...residentData,
+            Resident_ID: `RES-${Date.now()}`,
+            created_at: knex.fn.now(),
+            updated_at: knex.fn.now()
+        });
+
+        res.status(201).json({ resident_id: residentId });
+    } catch (error) {
+        console.error('Error creating resident:', error);
+        res.status(500).json({ error: 'Failed to create resident' });
+    }
+});
+
+router.put('/residents/:id',
+    verifyToken, checkRole([1, 2]), enforcePermissions('/api/residents/:id'), async (req, res) => {
+    try {
+        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+        const { id } = req.params;
+        const updateData = req.body;
+
+        await knex('residents')
+            .where('Resident_ID', id)
+            .update({
+                ...updateData,
+                updated_at: knex.fn.now()
+            });
+
+        res.json({ message: 'Resident updated successfully' });
+    } catch (error) {
+        console.error('Error updating resident:', error);
+        res.status(500).json({ error: 'Failed to update resident' });
+    }
+});
+
+router.put('/residents/:id/archive',
+    verifyToken, checkRole([1, 2]), enforcePermissions('/api/residents/:id/archive'), async (req, res) => {
+    try {
+        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+        const { id } = req.params;
+        const { departure_reason, departure_date } = req.body;
+
+        await knex('residents')
+            .where('Resident_ID', id)
+            .update({
+                Residency_Status: 'Transferred Out',
+                departure_reason,
+                departure_date,
+                updated_at: knex.fn.now()
+            });
+
+        res.json({ message: 'Resident archived successfully' });
+    } catch (error) {
+        console.error('Error archiving resident:', error);
+        res.status(500).json({ error: 'Failed to archive resident' });
     }
 });
 

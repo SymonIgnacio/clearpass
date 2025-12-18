@@ -29,7 +29,10 @@ let wss = null;
  * Initialize WebSocket server
  * @param {http.Server} server - HTTP server instance
  */
-function initializeWebSocket(server) {
+async function initializeWebSocket(server) {
+  // Initialize database pool first
+  await initializeDatabasePool();
+
   wss = new WebSocket.Server({
     server,
     path: '/ws/notifications',

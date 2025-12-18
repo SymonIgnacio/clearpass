@@ -202,23 +202,31 @@ const DocumentsDashboard = ({ user }) => {
       console.log('Cert types response status:', certTypesRes.status || 'OK');
       console.log('Stats response status:', statsRes.status || 'N/A');
 
-      const certData = await certificatesRes.json().catch((err) => {
-        console.error('Failed to parse certificates JSON:', err);
-        return [];
-      });
-      const templateData = await templatesRes.json().catch((err) => {
-        console.error('Failed to parse templates JSON:', err);
-        return { data: [] };
-      });
-      const certTypesResponse = await certTypesRes.json().catch((err) => {
-        console.error('Failed to parse cert types JSON:', err);
-        return { data: [] };
-      });
+      const certData = certificatesRes.json
+        ? await certificatesRes.json().catch((err) => {
+            console.error('Failed to parse certificates JSON:', err);
+            return [];
+          })
+        : certificatesRes;
+      const templateData = templatesRes.json
+        ? await templatesRes.json().catch((err) => {
+            console.error('Failed to parse templates JSON:', err);
+            return { data: [] };
+          })
+        : templatesRes;
+      const certTypesResponse = certTypesRes.json
+        ? await certTypesRes.json().catch((err) => {
+            console.error('Failed to parse cert types JSON:', err);
+            return { data: [] };
+          })
+        : certTypesRes;
       const certTypesData = certTypesResponse.data || [];
-      const residentsData = await residentsRes.json().catch((err) => {
-        console.error('Failed to parse residents JSON:', err);
-        return { data: [] };
-      });
+      const residentsData = residentsRes.json
+        ? await residentsRes.json().catch((err) => {
+            console.error('Failed to parse residents JSON:', err);
+            return { data: [] };
+          })
+        : residentsRes;
       // Check if stats request was successful (only for admin/captain)
       const statsData = shouldFetchStats && statsRes.ok ?
         await statsRes.json().catch((err) => {
@@ -1009,10 +1017,11 @@ const DocumentsDashboard = ({ user }) => {
                         </TableCell>
                         <TableCell>{new Date(cert.date_issued || cert.issued_date).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <IconButton size="small" color="primary">
-                            <Print fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" color="primary">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => window.open(`/api/documents/requests/${cert.request_id || cert.id}/download`, '_blank')}
+                          >
                             <Download fontSize="small" />
                           </IconButton>
                         </TableCell>

@@ -303,6 +303,92 @@ const Dashboard = ({ user }) => {
     })
   }
 
+  // Helper functions for transforming API responses to match expected format
+  const getColumnsForReportType = (reportType) => {
+    switch (reportType) {
+      case 'blotter':
+        return ['Case #', 'Incident Type', 'Complainant', 'Respondent', 'Sitio', 'Status', 'Date']
+      case 'certificates':
+        return ['Control No', 'Type', 'Resident', 'Purpose', 'Status', 'Date Issued', 'Issued By']
+      case 'users':
+        return ['ID', 'Username', 'Full Name', 'Email', 'Role', 'Status', 'Created']
+      case 'residents':
+        return ['ID', 'Name', 'Gender', 'Age', 'Contact', 'Status', 'Household', 'Sitio']
+      default:
+        return []
+    }
+  }
+
+  const transformItemForReportType = (reportType, item) => {
+    switch (reportType) {
+      case 'blotter':
+        const complainant = JSON.parse(item.Complainant_Details || '{}')
+        const respondent = JSON.parse(item.Respondent_Details || '{}')
+        return [
+          item.Case_Number || 'N/A',
+          item.Incident_Type || 'N/A',
+          complainant.name || 'N/A',
+          respondent.name || 'N/A',
+          item.Location_Sitio || 'N/A',
+          item.Status || 'N/A',
+          item.DateTime_Incident ? new Date(item.DateTime_Incident).toLocaleDateString() : 'N/A'
+        ]
+      case 'certificates':
+        return [
+          item.control_no || 'N/A',
+          item.certificate_type || 'N/A',
+          item.resident_name || 'N/A',
+          item.purpose || 'N/A',
+          item.status || 'N/A',
+          item.date_issued ? new Date(item.date_issued).toLocaleDateString() : 'N/A',
+          item.issued_by || 'N/A'
+        ]
+      case 'users':
+        return [
+          item.id || 'N/A',
+          item.username || 'N/A',
+          item.full_name || 'N/A',
+          item.email || 'N/A',
+          item.role === 1 ? 'IT Admin' :
+          item.role === 2 ? 'Clerk' :
+          item.role === 3 ? 'Blotter Officer' :
+          item.role === 4 ? 'Resident' :
+          item.role === 5 ? 'Captain' :
+          item.role === 6 ? 'Secretary' : `Role ${item.role}`,
+          item.is_active ? 'Active' : 'Inactive',
+          item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'
+        ]
+      case 'residents':
+        const birthDate = item.Birthdate ? new Date(item.Birthdate) : null
+        const age = birthDate ? new Date().getFullYear() - birthDate.getFullYear() : 'N/A'
+        return [
+          item.Resident_ID || 'N/A',
+          `${item.First_Name || ''} ${item.Last_Name || ''}`.trim() || 'N/A',
+          item.Gender || 'N/A',
+          age,
+          item.Mobile_Number || 'N/A',
+          item.Residency_Status || 'N/A',
+          item.Household_ID || 'N/A',
+          'N/A' // Sitio not available in simplified query
+        ]
+      default:
+        return []
+    }
+  }
+
+  const transformArrayResponse = (reportType, dataArray) => {
+    return {
+      columns: getColumnsForReportType(reportType),
+      data: dataArray.map(item => transformItemForReportType(reportType, item)),
+      pagination: {
+        page: 1,
+        limit: 50,
+        total: dataArray.length,
+        pages: Math.ceil(dataArray.length / 50)
+      }
+    }
+  }
+
   const reportTypes = [
     { value: 'users', label: 'User Management', icon: <People /> },
     { value: 'blotter', label: 'Blotter Cases', icon: <Gavel /> },
@@ -313,9 +399,55 @@ const Dashboard = ({ user }) => {
 
   const loadDetailedReport = async (type) => {
     try {
-      const response = await apiRequest(`admin/reports/detailed/${type}?${new URLSearchParams(filters)}`)
-      const data = await response.json() // ✅ Parse JSON from Response
-      setDetailedReport(data)
+      let endpoint = ''
+      let params = ''
+
+      // Use the same endpoints as the working modules
+      switch (type) {
+        case 'blotter':
+          endpoint = '/blotter'
+          break
+        case 'certificates':
+          endpoint = '/certificates'
+          break
+        case 'users':
+          endpoint = '/users'
+          break
+        case 'residents':
+          endpoint = '/residents'
+          // Add query parameters for residents
+          const residentParams = new URLSearchParams()
+          if (filters.search) residentParams.append('search', filters.search)
+          params = `?${residentParams}`
+          break
+        default:
+          throw new Error(`Unknown report type: ${type}`)
+      }
+
+      const response = await apiRequest(`${endpoint}${params}`)
+      const data = await response.json()
+
+      // Transform the response to match the expected format
+      let transformedData = null
+
+      if (Array.isArray(data)) {
+        // Handle array responses (blotter, certificates, users, residents)
+        transformedData = transformArrayResponse(type, data)
+      } else if (data.data && Array.isArray(data.data)) {
+        // Handle paginated responses
+        transformedData = {
+          columns: getColumnsForReportType(type),
+          data: data.data.map(item => transformItemForReportType(type, item)),
+          pagination: data.pagination || {
+            page: 1,
+            limit: 50,
+            total: data.data.length,
+            pages: 1
+          }
+        }
+      }
+
+      setDetailedReport(transformedData)
     } catch (error) {
       console.error(`Failed to load detailed ${type} report:`, error)
       setDetailedReport(null)

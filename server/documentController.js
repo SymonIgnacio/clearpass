@@ -1,9 +1,11 @@
 const knex = require('./database');
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * Document Controller
  * Handles document request creation, approval, and generation
- * NOTE: Document generation is currently stubbed out - Python module integration needed
  */
 
 class DocumentController {
@@ -338,10 +340,22 @@ class DocumentController {
     try {
       const { request_id } = req.params;
 
-      // Get the approved request
+      // Get the approved request with resident data
       const requestData = await knex('document_requests')
-        .where('request_id', request_id)
-        .where('status', 'approved')
+        .select(
+          'document_requests.*',
+          'residents.First_Name',
+          'residents.Middle_Name',
+          'residents.Last_Name',
+          'residents.Address',
+          'residents.Date_of_Birth',
+          'residents.Place_of_Birth',
+          'residents.Civil_Status',
+          'residents.Gender'
+        )
+        .join('residents', 'document_requests.resident_id', 'residents.Resident_ID')
+        .where('document_requests.request_id', request_id)
+        .where('document_requests.status', 'approved')
         .first();
 
       if (!requestData) {
@@ -351,11 +365,31 @@ class DocumentController {
         });
       }
 
-      // TODO: Integrate with Python document generator for actual PDF generation
-      // For now, return a stubbed response
-      const stubbedPdfContent = `Document: ${requestData.document_type}\nControl Number: ${requestData.control_number}\nGenerated: ${new Date().toISOString()}`;
+      // Parse request data
+      const requestDetails = JSON.parse(requestData.request_data || '{}');
 
-      // Update status to completed
+      // Create PDF document
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 50,
+        bufferPages: true
+      });
+
+      // Set response headers for PDF download
+      const filename = `${requestData.document_type.replace(/_/g, '_')}_${requestData.control_number}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+      // Pipe the PDF to the response
+      doc.pipe(res);
+
+      // Generate PDF content based on document type
+      await this._generatePDFContent(doc, requestData, requestDetails);
+
+      // Finalize the PDF
+      doc.end();
+
+      // Update status to completed after successful generation
       await knex('document_requests')
         .where('request_id', request_id)
         .update({
@@ -369,15 +403,6 @@ class DocumentController {
         document_type: requestData.document_type,
         control_number: requestData.control_number
       });
-
-      // Set response headers for PDF download (stubbed as plain text for now)
-      const filename = `${requestData.document_type.replace('_', '_')}_${requestData.control_number}.txt`;
-
-      res.setHeader('Content-Type', 'text/plain');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-
-      // Send the stubbed content
-      res.send(stubbedPdfContent);
 
     } catch (error) {
       console.error('Error downloading document:', error);
@@ -515,6 +540,338 @@ class DocumentController {
     };
 
     return docTypes[documentType] || { name: documentType, estimated_time: 'TBD' };
+  }
+
+  /**
+   * Generate PDF content based on document type
+   */
+  async _generatePDFContent(doc, requestData, requestDetails) {
+    const { document_type, control_number, approved_at, valid_until } = requestData;
+    const residentName = `${requestData.First_Name} ${requestData.Middle_Name || ''} ${requestData.Last_Name}`.trim();
+
+    // Document title and styling
+    const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
+
+    // Header - Barangay Information
+    doc.fontSize(14).font('Helvetica-Bold');
+    doc.text('REPUBLIC OF THE PHILIPPINES', 0, 50, { align: 'center', width: pageWidth });
+    doc.text('PROVINCE OF BULACAN', 0, 70, { align: 'center', width: pageWidth });
+    doc.text('MUNICIPALITY OF BOCAUE', 0, 90, { align: 'center', width: pageWidth });
+    doc.text('BARANGAY BATIA', 0, 110, { align: 'center', width: pageWidth });
+
+    // Document title based on type
+    const docTitle = this._getDocumentTitle(document_type);
+    doc.moveDown(2);
+    doc.fontSize(18).font('Helvetica-Bold');
+    doc.text(docTitle, 0, 140, { align: 'center', width: pageWidth });
+    doc.moveDown(1);
+
+    // Control Number
+    doc.fontSize(12).font('Helvetica');
+    doc.text(`Control No: ${control_number}`, 50, 180);
+
+    // Main content based on document type
+    let yPosition = 220;
+
+    switch (document_type) {
+      case 'barangay_clearance':
+        yPosition = await this._generateClearanceContent(doc, requestData, requestDetails, yPosition);
+        break;
+      case 'indigency_certificate':
+        yPosition = await this._generateIndigencyContent(doc, requestData, requestDetails, yPosition);
+        break;
+      case 'good_moral_certificate':
+        yPosition = await this._generateGoodMoralContent(doc, requestData, requestDetails, yPosition);
+        break;
+      case 'bonafide_certificate':
+        yPosition = await this._generateBonafideContent(doc, requestData, requestDetails, yPosition);
+        break;
+      default:
+        yPosition = await this._generateGenericContent(doc, requestData, requestDetails, yPosition);
+    }
+
+    // Footer - Validity and Signatures
+    yPosition += 40;
+    doc.fontSize(10).font('Helvetica');
+
+    // Validity period
+    if (valid_until) {
+      const validDate = new Date(valid_until).toLocaleDateString('en-PH');
+      doc.text(`This document is valid until: ${validDate}`, 50, yPosition);
+      yPosition += 20;
+    }
+
+    // Issue date
+    const issueDate = new Date(approved_at || new Date()).toLocaleDateString('en-PH');
+    doc.text(`Issued on: ${issueDate}`, 50, yPosition);
+    yPosition += 30;
+
+    // Signatures section
+    const signatureY = yPosition;
+    const leftX = 80;
+    const rightX = pageWidth - 200;
+
+    // Left signature
+    doc.text('Prepared by:', leftX, signatureY);
+    doc.text('Barangay Secretary', leftX, signatureY + 40);
+    doc.moveTo(leftX, signatureY + 60).lineTo(leftX + 120, signatureY + 60).stroke();
+
+    // Right signature
+    doc.text('Approved by:', rightX, signatureY);
+    doc.text('Punong Barangay', rightX, signatureY + 40);
+    doc.moveTo(rightX, signatureY + 60).lineTo(rightX + 120, signatureY + 60).stroke();
+
+    // QR Code placeholder (for future implementation)
+    doc.text('QR Code for Verification', pageWidth - 150, pageHeight - 100);
+    doc.rect(pageWidth - 120, pageHeight - 90, 60, 60).stroke();
+  }
+
+  /**
+   * Generate clearance certificate content
+   */
+  async _generateClearanceContent(doc, requestData, requestDetails, yPosition) {
+    const residentName = `${requestData.First_Name} ${requestData.Middle_Name || ''} ${requestData.Last_Name}`.trim();
+
+    doc.fontSize(12).font('Helvetica');
+    doc.text('TO WHOM IT MAY CONCERN:', 50, yPosition);
+    yPosition += 30;
+
+    doc.text('This is to certify that:', 50, yPosition);
+    yPosition += 20;
+
+    doc.font('Helvetica-Bold');
+    doc.text(residentName.toUpperCase(), 80, yPosition);
+    yPosition += 20;
+
+    doc.font('Helvetica');
+    doc.text(`${requestData.Address || 'Address not specified'}`, 80, yPosition);
+    yPosition += 20;
+
+    const age = requestData.Date_of_Birth ?
+      new Date().getFullYear() - new Date(requestData.Date_of_Birth).getFullYear() : 'N/A';
+    doc.text(`Age: ${age}`, 80, yPosition);
+    yPosition += 20;
+
+    doc.text(`Civil Status: ${requestData.Civil_Status || 'Not specified'}`, 80, yPosition);
+    yPosition += 30;
+
+    doc.text('is a bonafide resident of Barangay Batia, Bocaue, Bulacan and is known to be a person of good moral', 50, yPosition);
+    yPosition += 20;
+    doc.text('character and has no derogatory record on file.', 50, yPosition);
+    yPosition += 30;
+
+    if (requestDetails.purpose) {
+      doc.text(`Purpose: ${requestDetails.purpose}`, 50, yPosition);
+      yPosition += 30;
+    }
+
+    doc.text('This certification is issued upon request of the above-named person for whatever legal purpose', 50, yPosition);
+    yPosition += 20;
+    doc.text('it may serve.', 50, yPosition);
+    yPosition += 30;
+
+    return yPosition;
+  }
+
+  /**
+   * Generate indigency certificate content
+   */
+  async _generateIndigencyContent(doc, requestData, requestDetails, yPosition) {
+    const residentName = `${requestData.First_Name} ${requestData.Middle_Name || ''} ${requestData.Last_Name}`.trim();
+
+    doc.fontSize(12).font('Helvetica');
+    doc.text('TO WHOM IT MAY CONCERN:', 50, yPosition);
+    yPosition += 30;
+
+    doc.text('This is to certify that:', 50, yPosition);
+    yPosition += 20;
+
+    doc.font('Helvetica-Bold');
+    doc.text(residentName.toUpperCase(), 80, yPosition);
+    yPosition += 20;
+
+    doc.font('Helvetica');
+    doc.text(`${requestData.Address || 'Address not specified'}`, 80, yPosition);
+    yPosition += 20;
+
+    doc.text(`Civil Status: ${requestData.Civil_Status || 'Not specified'}`, 80, yPosition);
+    yPosition += 30;
+
+    doc.text('is a resident of Barangay Batia, Bocaue, Bulacan and belongs to the indigent sector of our', 50, yPosition);
+    yPosition += 20;
+    doc.text('community. This certification is issued to attest to his/her indigency status.', 50, yPosition);
+    yPosition += 30;
+
+    if (requestDetails.purpose || requestDetails.specific_purpose) {
+      const purpose = requestDetails.specific_purpose || requestDetails.purpose;
+      doc.text(`Purpose: ${purpose}`, 50, yPosition);
+      yPosition += 30;
+    }
+
+    if (requestDetails.monthly_income) {
+      doc.text(`Monthly Income: ₱${requestDetails.monthly_income}`, 50, yPosition);
+      yPosition += 30;
+    }
+
+    return yPosition;
+  }
+
+  /**
+   * Generate good moral certificate content
+   */
+  async _generateGoodMoralContent(doc, requestData, requestDetails, yPosition) {
+    const residentName = `${requestData.First_Name} ${requestData.Middle_Name || ''} ${requestData.Last_Name}`.trim();
+
+    doc.fontSize(12).font('Helvetica');
+    doc.text('TO WHOM IT MAY CONCERN:', 50, yPosition);
+    yPosition += 30;
+
+    doc.text('This is to certify that:', 50, yPosition);
+    yPosition += 20;
+
+    doc.font('Helvetica-Bold');
+    doc.text(residentName.toUpperCase(), 80, yPosition);
+    yPosition += 20;
+
+    doc.font('Helvetica');
+    doc.text(`${requestData.Address || 'Address not specified'}`, 80, yPosition);
+    yPosition += 20;
+
+    doc.text(`Civil Status: ${requestData.Civil_Status || 'Not specified'}`, 80, yPosition);
+    yPosition += 30;
+
+    doc.text('is a resident of Barangay Batia, Bocaue, Bulacan and is known to be a person of good moral', 50, yPosition);
+    yPosition += 20;
+    doc.text('character and has no derogatory record or complaint filed against him/her in this barangay.', 50, yPosition);
+    yPosition += 30;
+
+    if (requestDetails.purpose) {
+      doc.text(`Purpose: ${requestDetails.purpose}`, 50, yPosition);
+      yPosition += 20;
+    }
+
+    if (requestDetails.school_year) {
+      doc.text(`School Year: ${requestDetails.school_year}`, 50, yPosition);
+      yPosition += 30;
+    }
+
+    return yPosition;
+  }
+
+  /**
+   * Generate bonafide certificate content
+   */
+  async _generateBonafideContent(doc, requestData, requestDetails, yPosition) {
+    const residentName = `${requestData.First_Name} ${requestData.Middle_Name || ''} ${requestData.Last_Name}`.trim();
+
+    doc.fontSize(12).font('Helvetica');
+    doc.text('TO WHOM IT MAY CONCERN:', 50, yPosition);
+    yPosition += 30;
+
+    doc.text('This is to certify that:', 50, yPosition);
+    yPosition += 20;
+
+    doc.font('Helvetica-Bold');
+    doc.text(residentName.toUpperCase(), 80, yPosition);
+    yPosition += 20;
+
+    doc.font('Helvetica');
+    doc.text(`${requestData.Address || 'Address not specified'}`, 80, yPosition);
+    yPosition += 20;
+
+    doc.text(`Civil Status: ${requestData.Civil_Status || 'Not specified'}`, 80, yPosition);
+    yPosition += 30;
+
+    doc.text('is a bonafide resident of Barangay Batia, Bocaue, Bulacan and has been residing in this', 50, yPosition);
+    yPosition += 20;
+    doc.text('barangay for a considerable length of time.', 50, yPosition);
+    yPosition += 30;
+
+    if (requestDetails.purpose) {
+      doc.text(`Purpose: ${requestDetails.purpose}`, 50, yPosition);
+      yPosition += 30;
+    }
+
+    doc.text('This certification is issued upon the request of the above-named person for whatever legal', 50, yPosition);
+    yPosition += 20;
+    doc.text('purpose it may serve.', 50, yPosition);
+    yPosition += 30;
+
+    return yPosition;
+  }
+
+  /**
+   * Generate generic certificate content for other document types
+   */
+  async _generateGenericContent(doc, requestData, requestDetails, yPosition) {
+    const residentName = `${requestData.First_Name} ${requestData.Middle_Name || ''} ${requestData.Last_Name}`.trim();
+    const docTypeInfo = this._getDocumentTypeInfo(requestData.document_type);
+
+    doc.fontSize(12).font('Helvetica');
+    doc.text('TO WHOM IT MAY CONCERN:', 50, yPosition);
+    yPosition += 30;
+
+    doc.text('This is to certify that:', 50, yPosition);
+    yPosition += 20;
+
+    doc.font('Helvetica-Bold');
+    doc.text(residentName.toUpperCase(), 80, yPosition);
+    yPosition += 20;
+
+    doc.font('Helvetica');
+    doc.text(`${requestData.Address || 'Address not specified'}`, 80, yPosition);
+    yPosition += 20;
+
+    doc.text(`Civil Status: ${requestData.Civil_Status || 'Not specified'}`, 80, yPosition);
+    yPosition += 30;
+
+    // Add document-specific content
+    const content = this._getDocumentSpecificContent(requestData.document_type, requestDetails);
+    doc.text(content, 50, yPosition, { width: doc.page.width - 100 });
+    yPosition += content.split('\n').length * 20 + 20;
+
+    return yPosition;
+  }
+
+  /**
+   * Get document title based on type
+   */
+  _getDocumentTitle(documentType) {
+    const titles = {
+      'barangay_clearance': 'BARANGAY CLEARANCE',
+      'bonafide_certificate': 'CERTIFICATE OF RESIDENCY',
+      'indigency_certificate': 'CERTIFICATE OF INDIGENCY',
+      'good_moral_certificate': 'CERTIFICATE OF GOOD MORAL CHARACTER',
+      'building_permit': 'BUILDING PERMIT',
+      'business_closure': 'CERTIFICATE OF BUSINESS CLOSURE',
+      'cohabitation_certificate': 'CERTIFICATE OF COHABITATION',
+      'excavation_permit': 'EXCAVATION PERMIT',
+      'fencing_permit': 'FENCING PERMIT',
+      'late_registration': 'CERTIFICATE OF LATE REGISTRATION',
+      'ojt_certification': 'OJT CERTIFICATION',
+      'low_income_housing': 'CERTIFICATE FOR LOW INCOME HOUSING',
+      'medico_legal': 'MEDICO-LEGAL CERTIFICATE'
+    };
+    return titles[documentType] || 'CERTIFICATE';
+  }
+
+  /**
+   * Get document-specific content for generic certificates
+   */
+  _getDocumentSpecificContent(documentType, requestDetails) {
+    const contents = {
+      'building_permit': 'is hereby granted permission to conduct building construction activities in Barangay Batia, Bocaue, Bulacan, subject to compliance with all applicable building codes and regulations.',
+      'business_closure': `has officially closed their business operations located at ${requestDetails.business_address || 'address not specified'}. The business closure was recorded on ${requestDetails.closure_date || 'date not specified'}.`,
+      'cohabitation_certificate': `is cohabiting with ${requestDetails.partner1_name || 'Partner 1'} and ${requestDetails.partner2_name || 'Partner 2'} as common-law partners since ${requestDetails.cohabitation_date || 'date not specified'}. They have ${requestDetails.children_count || 0} children. Reference: Blotter ${requestDetails.blotter_number || 'N/A'} dated ${requestDetails.blotter_date || 'N/A'}.`,
+      'excavation_permit': 'is hereby granted permission to conduct excavation work in Barangay Batia, Bocaue, Bulacan, subject to compliance with all safety regulations.',
+      'fencing_permit': 'is hereby granted permission to construct fencing in Barangay Batia, Bocaue, Bulacan, subject to compliance with all zoning regulations.',
+      'late_registration': `was born to ${requestDetails.father_name || 'Father'} and ${requestDetails.mother_name || 'Mother'} in ${requestDetails.place_of_birth || requestDetails.place_of_birth || 'place not specified'}. This certificate is issued for late birth registration purposes.`,
+      'ojt_certification': 'has completed the required On-the-Job Training hours and is certified to have gained the necessary work experience.',
+      'low_income_housing': `qualifies for low-income housing assistance with a monthly income of ₱${requestDetails.monthly_income || 'not specified'}.`,
+      'medico_legal': `requires medico-legal documentation. Requestor: ${requestDetails.requestor_name || 'Not specified'}. Blotter Reference: ${requestDetails.blotter_reference || 'Not specified'}.`
+    };
+    return contents[documentType] || 'This certificate is issued for the purposes stated in the request.';
   }
 
   /**

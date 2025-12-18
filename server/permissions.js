@@ -221,6 +221,13 @@ function enforcePermissions(endpoint, method = 'GET') {
     // Convert string role to number if needed
     const roleId = typeof userRole === 'string' ? parseInt(userRole) : userRole;
 
+    // IT Admin (Role 1) has universal access like Super Admin
+    if (roleId === 1) {
+      console.log('✅ Permissions: IT Admin (Role 1) granted universal access');
+      req.themis_restrictions = getRoleRestrictions(roleId);
+      return next();
+    }
+
     if (!checkEndpointPermission(roleId, method, endpoint)) {
       return res.status(403).json({
         error: 'Access denied',
