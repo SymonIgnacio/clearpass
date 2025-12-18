@@ -2,12 +2,40 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
+import json
+import random
+from datetime import datetime, timedelta
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+
+# Mock data for patrol suggestions when AI service is not available
+MOCK_PATROL_DATA = {
+    "overall_risk_level": "MEDIUM",
+    "risk_assessment": {
+        "total_incidents": 12,
+        "high_risk_sitios": ["Batia Proper", "Northville 5"],
+        "peak_hours": "8PM-2AM",
+        "trend": "STABLE"
+    },
+    "patrol_suggestions": [
+        "Increase patrol presence in Batia Proper during evening hours",
+        "Focus on theft prevention in Northville 5 commercial areas",
+        "Monitor noise complaints in residential zones",
+        "Establish additional checkpoints at high-traffic areas",
+        "Coordinate with local PNP for joint patrols"
+    ],
+    "recommended_schedule": {
+        "priority_areas": ["Batia Proper", "Northville 5", "St. Martha"],
+        "suggested_tanods": 6,
+        "shift_coverage": "18:00-06:00"
+    },
+    "generated_at": None,
+    "fallback": True
+}
 
 @app.route('/api/calculate-priority', methods=['POST'])
 def calculate_priority():
@@ -86,6 +114,41 @@ def calculate_priority():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/suggest-patrol', methods=['POST'])
+def suggest_patrol():
+    """
+    AI-powered patrol deployment suggestions based on blotter data.
+
+    Returns patrol recommendations and risk assessment.
+    """
+    try:
+        data = request.get_json()
+        blotter_data = data.get('blotter_data', [])
+
+        # For now, return mock data based on blotter data length
+        response_data = MOCK_PATROL_DATA.copy()
+        response_data["generated_at"] = datetime.now().isoformat()
+        response_data["risk_assessment"]["total_incidents"] = len(blotter_data)
+
+        # Adjust risk level based on incident count
+        if len(blotter_data) > 20:
+            response_data["overall_risk_level"] = "HIGH"
+            response_data["patrol_suggestions"].insert(0, "URGENT: Deploy maximum patrol resources immediately")
+        elif len(blotter_data) > 10:
+            response_data["overall_risk_level"] = "MEDIUM"
+        else:
+            response_data["overall_risk_level"] = "LOW"
+            response_data["patrol_suggestions"] = [
+                "Maintain regular patrol schedule",
+                "Monitor community reports",
+                "Conduct routine security checks"
+            ]
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        return jsonify({"error": str(e), "fallback": True, **MOCK_PATROL_DATA}), 500
 
 @app.route('/health', methods=['GET'])
 def health_check():
