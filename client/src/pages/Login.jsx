@@ -140,14 +140,7 @@ const Login = ({ onLogin }) => {
             </Alert>
           )}
 
-          <Alert severity="info" sx={{ width: '100%', mb: 2 }}>
-            <Typography variant="body2">
-              This login is for residents and the general public who have created accounts through our signup process.
-              Barangay staff should use the Officer Login.
-              <br />
-              <strong>Note:</strong> Complete your residency verification in Settings after login.
-            </Typography>
-          </Alert>
+
 
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
             <TextField

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -16,8 +16,8 @@ import {
   TableHead,
   TableRow,
   Paper
-} from '@mui/material'
-import { SmartToy, Security, Warning } from '@mui/icons-material'
+} from '@mui/material';
+import { SmartToy, Security, Warning } from '@mui/icons-material';
 
 const AIPatrol = () => {
   const [patrolSuggestions, setPatrolSuggestions] = useState(null)
@@ -51,6 +51,7 @@ const AIPatrol = () => {
 
       <Typography paragraph sx={{ mb: 4 }}>
         Advanced AI analysis of blotter data to optimize tanod patrol deployment and enhance community safety.
+        The system analyzes incident patterns, risk levels, and historical data to provide intelligent patrol recommendations.
       </Typography>
 
       <Button

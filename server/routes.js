@@ -128,6 +128,116 @@ router.get('/secretary/clearances',
 // router.get('/secretary/settings', verifyToken, checkRole([6]), clerkController.getSettingsManagement);
 
 // =========================================================================
+// AI CHATBOT ROUTES (Available to all authenticated users)
+// =========================================================================
+router.post('/ai/chatbot/log',
+    verifyToken, async (req, res) => {
+    try {
+        const {
+            session_id,
+            user_message,
+            bot_response,
+            intent_detected,
+            confidence_score,
+            user_id,
+            resident_id
+        } = req.body;
+
+        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+
+        await knex('ai_chatbot_conversations').insert({
+            session_id,
+            user_message,
+            bot_response,
+            intent_detected,
+            confidence_score,
+            user_id,
+            resident_id,
+            created_at: knex.fn.now()
+        });
+
+        res.json({ success: true, message: 'Conversation logged successfully' });
+
+    } catch (error) {
+        console.error('Chatbot logging error:', error);
+        res.status(500).json({
+            error: 'Failed to log conversation',
+            details: error.message
+        });
+    }
+});
+
+// =========================================================================
+// SHARED/LEGACY ROUTES (Maintained for Frontend Compatibility)
+// =========================================================================
+router.post('/ai/chatbot/message',
+    verifyToken, async (req, res) => {
+    try {
+        const { message, session_id, context } = req.body;
+
+        // Simple chatbot responses based on keywords
+        const lowerMessage = message.toLowerCase();
+
+        let response = '';
+        let intent = 'general_inquiry';
+        let confidence = 0.8;
+
+        // Certificate-related queries
+        if (lowerMessage.includes('certificate') || lowerMessage.includes('clearance') || lowerMessage.includes('document')) {
+            intent = 'certificate_inquiry';
+            response = "For certificate requests, you can:\n\n• Visit the Document Center to request certificates online\n• Required documents: Valid ID, Proof of Residency\n• Processing time: 1-3 business days\n• Fees vary by certificate type\n\nWould you like me to guide you to the request form?";
+        }
+        // Appointment queries
+        else if (lowerMessage.includes('appointment') || lowerMessage.includes('schedule') || lowerMessage.includes('meeting')) {
+            intent = 'appointment_request';
+            response = "To schedule an appointment:\n\n• Barangay Office Hours: Mon-Fri, 8AM-5PM\n• Contact: (02) 123-4567 or visit the office\n• Online scheduling coming soon!\n\nWhat type of appointment do you need?";
+        }
+        // Blotter queries
+        else if (lowerMessage.includes('blotter') || lowerMessage.includes('complaint') || lowerMessage.includes('report')) {
+            intent = 'blotter_inquiry';
+            response = "For blotter reports:\n\n• File complaints at the Barangay Office\n• Required: Valid ID, Witness statements if applicable\n• Emergency: Call 911 or Barangay Hotline\n• Processing: 24-48 hours\n\nWhat type of incident would you like to report?";
+        }
+        // Residency queries
+        else if (lowerMessage.includes('residency') || lowerMessage.includes('resident') || lowerMessage.includes('registration')) {
+            intent = 'residency_inquiry';
+            response = "For residency matters:\n\n• New residents: Register at Barangay Office\n• Required: Valid ID, Proof of address\n• Processing time: 3-5 business days\n• Update your profile in Settings\n\nDo you need help with registration?";
+        }
+        // Greeting responses
+        else if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('good')) {
+            intent = 'greeting';
+            response = "Hello! I'm BANTAY, your barangay assistant. How can I help you today?\n\nI can assist with:\n• Certificate requests and requirements\n• Appointment scheduling\n• Filing blotter reports\n• General barangay information";
+        }
+        // Help requests
+        else if (lowerMessage.includes('help') || lowerMessage.includes('what can you do')) {
+            intent = 'help_request';
+            response = "I can help you with:\n\n📋 Certificate Requests\n• Barangay Clearance, Indigency, Residency certificates\n• Requirements and processing times\n\n📅 Appointments\n• Schedule meetings with barangay officials\n• Office hours and contact information\n\n🚨 Blotter Reports\n• File complaints and incident reports\n• Emergency contact numbers\n\n🏠 Residency Services\n• Registration for new residents\n• Profile updates and verification\n\nWhat would you like to know more about?";
+        }
+        // Default response
+        else {
+            intent = 'general_inquiry';
+            response = "I'm here to help with barangay services! I can assist you with:\n\n• Certificate requests and requirements\n• Appointment scheduling\n• Filing blotter reports\n• Residency registration\n• General barangay information\n\nPlease let me know what you need help with!";
+        }
+
+        res.json({
+            response: response,
+            intent: intent,
+            confidence: confidence,
+            session_id: session_id,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Chatbot error:', error);
+        res.status(500).json({
+            error: 'Chatbot service temporarily unavailable',
+            response: "Sorry, I'm having trouble responding right now. Please try again later or contact the barangay office directly.",
+            intent: 'error',
+            confidence: 0
+        });
+    }
+});
+
+// =========================================================================
 // SHARED/LEGACY ROUTES (Maintained for Frontend Compatibility)
 // =========================================================================
 
@@ -306,14 +416,132 @@ router.post('/residents',
         const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
         const residentData = req.body;
 
-        const [residentId] = await knex('residents').insert({
-            ...residentData,
-            Resident_ID: `RES-${Date.now()}`,
+        console.log('🔍 Resident creation request data:', residentData);
+
+        // Generate unique Resident ID (6-digit format like RES-123456)
+        const residentIdNumber = Math.floor(100000 + Math.random() * 900000);
+        const residentId = `RES-${residentIdNumber}`;
+
+        // Generate temporary 6-digit password
+        const tempPassword = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Prepare data for residents table - using correct PascalCase field names
+        const residentDataFormatted = {
+            Resident_ID: residentId,
+            Household_ID: residentData.household_id,
+            Relation_to_Head: residentData.relation_to_head || 'Head',
+            First_Name: residentData.first_name,
+            Middle_Name: residentData.middle_name || '',
+            Last_Name: residentData.last_name,
+            Suffix: residentData.suffix || '',
+            Birthdate: residentData.birthdate,
+            Gender: residentData.gender,
+            Civil_Status: residentData.civil_status,
+            Occupation: residentData.occupation || '',
+            Income_Estimate: parseFloat(residentData.income_estimate) || 0,
+            Mobile_Number: residentData.mobile_number || '',
+            Voter_Status: residentData.voter_status || 'Non-Registered',
+            Date_Arrival: residentData.date_arrival,
+            Residency_Status: 'Active',
             created_at: knex.fn.now(),
             updated_at: knex.fn.now()
+        };
+
+        console.log('💾 Prepared residents table data:', residentDataFormatted);
+
+        // Create resident record in database
+        await knex('residents').insert(residentDataFormatted);
+
+        // Prepare vulnerabilities data for separate table
+        const vulnerabilitiesData = {
+            Resident_ID: residentId,
+            Is_4Ps: residentData.is_4ps === 'true' || residentData.is_4ps === true,
+            Is_PWD: residentData.is_pwd === 'true' || residentData.is_pwd === true,
+            Is_Senior: false, // Will be calculated based on birthdate
+            Is_Solo_Parent: residentData.is_solo_parent === 'true' || residentData.is_solo_parent === true,
+            Is_Out_of_School_Youth: residentData.is_out_of_school_youth === 'true' || residentData.is_out_of_school_youth === true,
+            Disability_Type: residentData.disability_type || '',
+            Vulnerability_Score: 0, // Will be calculated
+            created_at: knex.fn.now(),
+            updated_at: knex.fn.now()
+        };
+
+        // Calculate if senior citizen (65+ years old) and vulnerability score
+        if (residentData.birthdate) {
+            const birthDate = new Date(residentData.birthdate);
+            const today = new Date();
+            const age = today.getFullYear() - birthDate.getFullYear();
+            vulnerabilitiesData.Is_Senior = age >= 65;
+        }
+
+        // Calculate vulnerability score
+        vulnerabilitiesData.Vulnerability_Score =
+            (vulnerabilitiesData.Is_4Ps ? 1 : 0) +
+            (vulnerabilitiesData.Is_PWD ? 2 : 0) +
+            (vulnerabilitiesData.Is_Senior ? 1 : 0) +
+            (vulnerabilitiesData.Is_Solo_Parent ? 1 : 0) +
+            (vulnerabilitiesData.Is_Out_of_School_Youth ? 1 : 0);
+
+        console.log('💾 Prepared vulnerabilities table data:', vulnerabilitiesData);
+
+        // Insert vulnerabilities record
+        await knex('vulnerabilities').insert(vulnerabilitiesData);
+
+        // Auto-create Firebase account for resident
+        let firebaseAccount = null;
+        try {
+            const admin = require('firebase-admin');
+
+            // Check if Firebase is initialized
+            if (admin.apps.length > 0) {
+                // Create Firebase account with email and temporary password
+                const firebaseUser = await admin.auth().createUser({
+                    email: residentData.email || `${residentId.toLowerCase()}@barangay.local`, // Fallback email if none provided
+                    password: tempPassword,
+                    displayName: `${residentData.First_Name} ${residentData.Last_Name}`,
+                    emailVerified: false
+                });
+
+                // Set custom claims for resident role
+                await admin.auth().setCustomUserClaims(firebaseUser.uid, {
+                    role: 'resident',
+                    resident_id: residentId,
+                    barangay_user: true
+                });
+
+                firebaseAccount = {
+                    uid: firebaseUser.uid,
+                    email: firebaseUser.email,
+                    displayName: firebaseUser.displayName,
+                    resident_id: residentId
+                };
+
+                console.log('✅ Firebase account created for resident:', residentId);
+            } else {
+                console.warn('⚠️ Firebase not initialized - resident account creation skipped');
+            }
+        } catch (firebaseError) {
+            console.error('❌ Failed to create Firebase account:', firebaseError.message);
+            // Continue without Firebase account - don't fail the entire operation
+        }
+
+        // Return response with generated credentials
+        const response = {
+            resident_id: residentId,
+            resident_code: residentId,
+            temp_password: tempPassword,
+            firebase_created: !!firebaseAccount,
+            login_instructions: firebaseAccount ?
+                `Resident can login with email: ${firebaseAccount.email} and password: ${tempPassword}` :
+                `Resident ID: ${residentId} - Firebase account creation failed, manual setup required`
+        };
+
+        console.log('✅ Resident created with auto-generated credentials:', {
+            resident_id: residentId,
+            firebase_created: !!firebaseAccount
         });
 
-        res.status(201).json({ resident_id: residentId });
+        res.status(201).json(response);
     } catch (error) {
         console.error('Error creating resident:', error);
         res.status(500).json({ error: 'Failed to create resident' });

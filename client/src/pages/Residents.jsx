@@ -263,7 +263,26 @@ const Residents = () => {
         const result = await response.json()
         fetchResidents()
         handleCloseDialog()
-        alert(`${editing ? 'Updated' : 'Created'} resident: ${result.resident_id || 'Success'}`)
+
+        // Show different messages for create vs update
+        if (editing) {
+          alert('Resident updated successfully!')
+        } else {
+          // Show generated credentials for new resident
+          const credentialsMessage = `✅ Resident Created Successfully!
+
+🆔 Resident ID: ${result.resident_code}
+🔐 Temporary Password: ${result.temp_password}
+📧 Login Email: ${result.firebase_created ? result.login_instructions.split('email: ')[1]?.split(' and')[0] : 'Manual setup required'}
+
+${result.firebase_created ?
+  '📝 Instructions: Provide these credentials to the resident for their first login.' :
+  '⚠️ Warning: Firebase account creation failed. Manual account setup required.'}
+
+Keep these credentials secure and provide them to the resident privately.`
+
+          alert(credentialsMessage)
+        }
       } else {
         const error = await response.json()
         alert('Error: ' + (error.error || 'Unknown error'))
@@ -1159,12 +1178,29 @@ const Residents = () => {
 
       {/* Bulk Import Dialog */}
       <Dialog open={openBulkImport} onClose={() => setOpenBulkImport(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Bulk Import Residents</DialogTitle>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CloudUpload />
+            Bulk Import Residents
+          </Box>
+        </DialogTitle>
         <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <Typography variant="body2" sx={{ mb: 3 }}>
-              Upload an Excel file (.xlsx) with resident data. The file should have columns matching the RBIM format.
+          <Box sx={{ pt: 1 }}>
+            <Typography variant="body1" sx={{ mb: 2, fontWeight: 500 }}>
+              Upload Resident Data
             </Typography>
+
+            <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
+              Upload an Excel file (.xlsx or .xls) with resident data. The file should contain columns for:
+              First Name, Last Name, Birthdate, Gender, Mobile Number, and other resident details.
+            </Typography>
+
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                <strong>Supported formats:</strong> .xlsx, .xls<br />
+                <strong>Maximum file size:</strong> 10MB
+              </Typography>
+            </Alert>
 
             <input
               accept=".xlsx,.xls"
@@ -1174,23 +1210,40 @@ const Residents = () => {
               onChange={handleBulkImport}
             />
             <label htmlFor="bulk-import-file">
-              <Button variant="outlined" component="span" startIcon={<CloudUpload />} fullWidth>
+              <Button
+                variant="contained"
+                component="span"
+                startIcon={<CloudUpload />}
+                fullWidth
+                size="large"
+                sx={{ py: 2 }}
+              >
                 Choose Excel File
               </Button>
             </label>
 
+            <Typography variant="caption" sx={{ mt: 1, display: 'block', color: 'text.secondary' }}>
+              Click to browse and select your Excel file
+            </Typography>
+
             {bulkImportResult && (
               <Box sx={{ mt: 3 }}>
                 {bulkImportResult.error ? (
-                  <Alert severity="error">
-                    <Typography variant="body2">{bulkImportResult.error}</Typography>
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    <Typography variant="body2">
+                      <strong>Import Failed:</strong> {bulkImportResult.error}
+                    </Typography>
                   </Alert>
                 ) : (
-                  <Alert severity="success">
+                  <Alert severity="success" sx={{ mb: 2 }}>
                     <Typography variant="body2">
-                      Import completed: {bulkImportResult.results?.imported || 0} imported,
-                      {bulkImportResult.results?.skipped || 0} skipped,
-                      {bulkImportResult.results?.errors?.length || 0} errors
+                      <strong>Import Completed Successfully!</strong>
+                      <br />
+                      • {bulkImportResult.results?.imported || 0} residents imported
+                      <br />
+                      • {bulkImportResult.results?.skipped || 0} records skipped
+                      <br />
+                      • {bulkImportResult.results?.errors?.length || 0} errors encountered
                     </Typography>
                   </Alert>
                 )}
@@ -1198,8 +1251,16 @@ const Residents = () => {
             )}
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenBulkImport(false)}>Close</Button>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => {
+              setOpenBulkImport(false)
+              setBulkImportResult(null)
+            }}
+            variant="outlined"
+          >
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

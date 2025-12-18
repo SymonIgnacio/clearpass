@@ -119,12 +119,7 @@ const OfficerLogin = ({ onLogin }) => {
             </Alert>
           )}
 
-          <Alert severity="info" sx={{ width: '100%', mb: 2 }}>
-            <Typography variant="body2">
-              This login is for authorized barangay staff only (Captain, Secretary, Clerk, Admin).
-              Residents should use the main login page.
-            </Typography>
-          </Alert>
+
 
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
             <TextField

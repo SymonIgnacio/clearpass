@@ -15,7 +15,7 @@ import CommunityEvents from './pages/CommunityEvents'
 import Settings from './pages/Settings'
 import SuperAdminSettings from './pages/SuperAdminSettings'
 import ResidentSettings from './pages/ResidentSettings'
-import AdminReports from './pages/AdminReports'
+
 import Login from './pages/Login'
 import OfficerLogin from './pages/OfficerLogin'
 import AIPatrol from './pages/AIPatrol'
@@ -25,7 +25,7 @@ import AccountVerification from './components/AccountVerification'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import ProtectedRoute from './components/ProtectedRoute'
-import BantayChatbot from './components/BantayChatbot'
+
 import ErrorBoundary from './components/ErrorBoundary'
 import { NotificationProvider } from './contexts/NotificationContext'
 
@@ -332,7 +332,7 @@ function App() {
     const THEMIS_ROLE_MAP = {
       1: 'admin',           // IT Admin
       2: 'clerk',           // Clerk
-      3: 'blotter_officer', // Blotter Officer
+      3: 'officer',         // Blotter Officer
       4: 'resident',        // Resident
       5: 'captain',         // Captain
       6: 'secretary'        // Secretary
@@ -427,8 +427,6 @@ function App() {
                       backgroundColor: 'background.default'
                     }}>
                       <Outlet />
-                      {/* BANTAY AI Chatbot - Available on all authenticated pages */}
-                      <BantayChatbot />
                     </Box>
                   </Box>
                 </Box>
@@ -447,7 +445,7 @@ function App() {
             <Route
               path="users"
               element={
-                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary']}>
+                <ProtectedRoute requiredRoles={[1, 'admin']}>
                   <Users user={user} />
                 </ProtectedRoute>
               }
@@ -456,7 +454,7 @@ function App() {
             <Route
               path="documents"
               element={
-                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary', 'clerk']}>
+                <ProtectedRoute requiredRoles={[1, 'admin']}>
                   <DocumentsDashboard />
                 </ProtectedRoute>
               }
@@ -475,11 +473,11 @@ function App() {
             <Route path="qr-verify" element={<Navigate to="/" replace />} />
             <Route path="qr-verification" element={<Navigate to="/" replace />} />
 
-            {/* AI Routes */}
+            {/* AI Routes - Available to all authenticated users */}
             <Route
               path="ai-dashboard"
               element={
-                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary', 'clerk']}>
+                <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6, 'admin', 'captain', 'secretary', 'clerk', 'officer', 'resident']}>
                   <AIPatrol user={user} />
                 </ProtectedRoute>
               }
@@ -487,7 +485,7 @@ function App() {
             <Route
               path="ai-patrol"
               element={
-                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary', 'clerk']}>
+                <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6, 'admin', 'captain', 'secretary', 'clerk', 'officer', 'resident']}>
                   <AIPatrol user={user} />
                 </ProtectedRoute>
               }
@@ -495,7 +493,7 @@ function App() {
             <Route
               path="ronda-analytics"
               element={
-                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary', 'clerk']}>
+                <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6, 'admin', 'captain', 'secretary', 'clerk', 'officer', 'resident']}>
                   <RondaAnalytics user={user} />
                 </ProtectedRoute>
               }
@@ -504,7 +502,6 @@ function App() {
             {/* Backward compatibility redirects */}
             <Route path="certificates" element={<Navigate to="documents" replace />} />
             <Route path="document-templates" element={<Navigate to="documents" replace />} />
-            <Route path="reports" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
       </Router>
