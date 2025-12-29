@@ -257,66 +257,39 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState(null)
 
-  // Authentication check - supports staff and resident authentication
+  // Authentication check - unified authentication for both staff and residents
   useEffect(() => {
     const checkAuthentication = async () => {
-      // Check for officer authentication (database + JWT)
-      const officerToken = localStorage.getItem('authToken')
-      const officerUser = localStorage.getItem('user')
-
-      // Check for resident authentication (Firebase-based)
-      const residentUser = localStorage.getItem('residentUser')
-      const residentToken = localStorage.getItem('residentAuthToken')
+      // Check for authentication (unified for both staff and residents)
+      const authToken = localStorage.getItem('authToken')
+      const userData = localStorage.getItem('user')
 
       // No authentication found - set logged out
-      if ((!officerToken || !officerUser) && (!residentUser || !residentToken)) {
+      if (!authToken || !userData) {
         setIsAuthenticated(false)
         setUser(null)
         return
       }
 
-      // Handle officer authentication
-      if (officerToken && officerUser) {
-        try {
-          const parsedUser = JSON.parse(officerUser)
-          console.log('🔐 Initializing with officer auth data:', { userId: parsedUser.id, role: parsedUser.role })
+      // Parse and validate user data
+      try {
+        const parsedUser = JSON.parse(userData)
+        console.log('🔐 Initializing with auth data:', { userId: parsedUser.id, role: parsedUser.role, auth_type: parsedUser.auth_type })
 
+        // Validate user data structure
+        if (parsedUser && parsedUser.id && parsedUser.role) {
           setUser(parsedUser)
           setIsAuthenticated(true)
-        } catch (error) {
-          console.error('❌ Failed to parse stored officer user data:', error)
-          localStorage.removeItem('authToken')
-          localStorage.removeItem('user')
-          setIsAuthenticated(false)
+          console.log('✅ Authentication successful via localStorage')
+        } else {
+          throw new Error('Invalid user data structure')
         }
-        return
+      } catch (error) {
+        console.error('❌ Failed to parse user data:', error)
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('user')
+        setIsAuthenticated(false)
       }
-
-      // Handle resident authentication
-      if (residentUser && residentToken) {
-        try {
-          const parsedUser = JSON.parse(residentUser)
-          console.log('🔐 Initializing with resident auth data:', { uid: parsedUser.uid, role: parsedUser.role })
-
-          // Validate the localStorage data structure
-          if (parsedUser && parsedUser.uid && parsedUser.email && parsedUser.role === 'resident') {
-            setUser(parsedUser)
-            setIsAuthenticated(true)
-            console.log('✅ Resident authentication successful via localStorage')
-          } else {
-            throw new Error('Invalid resident user data structure')
-          }
-        } catch (error) {
-          console.error('❌ Failed to parse resident user data:', error)
-          localStorage.removeItem('residentUser')
-          localStorage.removeItem('residentAuthToken')
-          setIsAuthenticated(false)
-        }
-        return
-      }
-
-      // No valid authentication found
-      setIsAuthenticated(false)
     }
 
     checkAuthentication()

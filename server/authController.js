@@ -1771,40 +1771,67 @@ async function hybridLogin(req, res) {
       console.log('👔 Detected staff user, using staff auth');
       return staffLogin(req, res);
     } else {
-      console.log('🏠 Detected resident user, using THEMIS pin_code authentication');
+      console.log('🏠 Detected resident user, checking email or Resident ID authentication');
 
-      // For residents, use THEMIS ResidentID + PIN authentication
-      const { pin } = req.body;
-      if (!username || !pin) {
+      const { password } = req.body; // Use password instead of pin for email login
+      if (!username || !password) {
         return res.status(400).json({
-          error: 'Username and PIN are required'
+          error: 'Username and password are required'
         });
       }
 
-      // Validate PIN format (6 digits)
-      if (!/^\d{6}$/.test(pin)) {
-        return res.status(400).json({
-          error: 'PIN must be exactly 6 digits'
-        });
-      }
+      let user;
 
-      // Find user by resident_id and validate PIN
-      const user = await knex('users')
-        .where('resident_id', username) // THEMIS: username is ResidentID
-        .where('role', 4) // THEMIS: Must be resident role
+      // First, try to find user by email (for email-based login)
+      console.log('🔍 Checking if username is an email...');
+      user = await knex('users')
+        .where('email', username)
+        .where('role', 'resident')
         .where('is_active', true)
         .first();
 
+      // If not found by email, try to find by Resident_ID
       if (!user) {
+        console.log('🔍 Email not found, checking if username is a Resident ID...');
+        // Look for resident with this Resident_ID, then get their user account
+        const resident = await knex('residents')
+          .where('Resident_ID', username)
+          .first();
+
+        if (resident) {
+          // Found resident, now get their user account
+          user = await knex('users')
+            .where('email', resident.Email) // Link by email
+            .where('role', 'resident')
+            .where('is_active', true)
+            .first();
+        }
+      }
+
+      if (!user) {
+        console.log('❌ No user found with this email or Resident ID');
         return res.status(401).json({
-          error: 'Invalid Resident ID or account not found'
+          error: 'Invalid email, Resident ID, or account not found'
         });
       }
 
-      // Verify PIN (THEMIS requirement)
-      if (!user.pin || user.pin !== pin) {
+      // Verify password (bcrypt hashed)
+      console.log('🔐 Verifying password for user:', user.username);
+      let isValidPassword = false;
+
+      try {
+        // Try bcrypt comparison for properly hashed passwords
+        isValidPassword = await bcrypt.compare(password, user.password_hash);
+        console.log('🔐 Bcrypt comparison result:', isValidPassword);
+      } catch (bcryptError) {
+        console.log('❌ Bcrypt comparison failed:', bcryptError.message);
+        isValidPassword = false;
+      }
+
+      if (!isValidPassword) {
+        console.log('❌ Invalid password');
         return res.status(401).json({
-          error: 'Invalid PIN'
+          error: 'Invalid password'
         });
       }
 

@@ -40,38 +40,37 @@ const Login = ({ onLogin }) => {
     try {
       console.log('🔐 Attempting resident login...')
 
-      // Authenticate with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password)
-      const user = userCredential.user
+      // Authenticate with API (supports both email and Resident ID)
+      const response = await apiRequest('auth/login', {
+        method: 'POST',
+        body: {
+          username: formData.email, // Can be email or Resident ID
+          password: formData.password
+        }
+      })
 
-      console.log('✅ Firebase authentication successful:', { uid: user.uid, email: user.email })
-
-      // Get additional user data from the Firebase User object
-      const userInfo = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || user.email.split('@')[0],
-        emailVerified: user.emailVerified,
-        role: 'resident',
-        auth_type: 'firebase',
-        created_at: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Login failed')
       }
 
-      // Store resident authentication data in localStorage
-      localStorage.setItem('residentUser', JSON.stringify(userInfo))
-      localStorage.setItem('residentAuthToken', await user.getIdToken())
-      localStorage.setItem('residentAuthTimestamp', Date.now().toString())
+      const data = await response.json()
+      console.log('✅ API authentication successful:', { role: data.user.role, email: data.user.email })
 
-      // Clear any officer auth data to avoid conflicts
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('user')
+      // Store authentication data in localStorage (compatible with existing app structure)
+      localStorage.setItem('authToken', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+
+      // Clear any conflicting resident-specific data
+      localStorage.removeItem('residentUser')
+      localStorage.removeItem('residentAuthToken')
+      localStorage.removeItem('residentAuthTimestamp')
 
       console.log('✅ Resident login successful - proceeding to dashboard')
 
       // Call onLogin callback to update app state
       if (onLogin) {
-        onLogin(userInfo)
+        onLogin(data.user)
       }
 
       // Navigate to dashboard
@@ -82,15 +81,17 @@ const Login = ({ onLogin }) => {
 
       let errorMessage = 'Login failed. Please try again.'
 
-      // Handle specific Firebase errors
-      if (err.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email address.'
+      // Handle API error messages
+      if (err.message) {
+        errorMessage = err.message
+      } else if (err.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email or Resident ID.'
       } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        errorMessage = 'Invalid email or password.'
+        errorMessage = 'Invalid email/Resident ID or password.'
       } else if (err.code === 'auth/user-disabled') {
         errorMessage = 'This account has been disabled.'
       } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address format.'
+        errorMessage = 'Invalid email address or Resident ID format.'
       } else if (err.code === 'auth/too-many-requests') {
         errorMessage = 'Too many failed login attempts. Please try again later.'
       }
@@ -148,9 +149,9 @@ const Login = ({ onLogin }) => {
               required
               fullWidth
               id="email"
-              label="Email or Username"
+              label="Email or Resident ID"
               name="email"
-              autoComplete="email"
+              autoComplete="username"
               autoFocus
               value={formData.email}
               onChange={handleChange}

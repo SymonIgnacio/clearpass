@@ -80,9 +80,10 @@ const ResidentDashboard = ({ user }) => {
     try {
       const response = await apiRequest('resident/requests')
       const data = await response.json()
-      setRequests(data || [])
+      setRequests(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error fetching requests:', error)
+      setRequests([]) // Ensure it's always an array
     } finally {
       setLoading(false)
     }

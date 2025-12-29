@@ -308,6 +308,50 @@ async function generateMonthlyReport(req, res) {
   }
 }
 
+// Delete blotter case - SECURE: Only authorized blotter officers can delete
+async function deleteCase(req, res) {
+  try {
+    const officerId = req.user.id;
+    const { id } = req.params; // This should be caseNumber based on route
+
+    console.log(`🗑️ BLOTTER OFFICER: Deleting case ${id} by officer ${officerId}`);
+
+    // Find the case by Case_Number (since id param is caseNumber)
+    const caseToDelete = await knex('blotter')
+      .where('Case_Number', id)
+      .first();
+
+    if (!caseToDelete) {
+      return res.status(404).json({ error: 'Blotter case not found' });
+    }
+
+    // Log the deletion for audit trail
+    console.log(`⚠️ CASE DELETION: ${caseToDelete.Case_Number} - Respondent: ${caseToDelete.respondent_id}`);
+
+    // Delete the case
+    await knex('blotter')
+      .where('Case_Number', id)
+      .del();
+
+    console.log(`✅ CASE DELETED: ${id} - Respondent ${caseToDelete.respondent_id} unblocked for clearances`);
+
+    res.json({
+      success: true,
+      case_number: id,
+      respondent_id: caseToDelete.respondent_id,
+      message: 'Blotter case deleted successfully',
+      clearpass_impact: 'Resident is now eligible for clearance issuance'
+    });
+
+  } catch (error) {
+    console.error('Case deletion error:', error);
+    res.status(500).json({
+      error: 'Failed to delete blotter case',
+      details: error.message
+    });
+  }
+}
+
 // Get incident hotspot analytics for AI forecasting
 async function getHotspotAnalytics(req, res) {
   try {
@@ -370,5 +414,6 @@ module.exports = {
   updateCaseStatus,
   getOfficerCases,
   generateMonthlyReport,
+  deleteCase,
   getHotspotAnalytics
 };

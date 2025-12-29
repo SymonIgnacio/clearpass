@@ -212,3 +212,42 @@ exports.getProfile = async (req, res) => {
         res.status(500).json({ error: "Database error" });
     }
 };
+
+exports.getCensusData = async (req, res) => {
+    try {
+        // Get census statistics by sitio
+        const statsBySitio = await knex('sitios as s')
+            .leftJoin('households as h', 's.id', 'h.Sitio_ID')
+            .leftJoin('residents as r', 'h.Household_ID', 'r.Household_ID')
+            .leftJoin('vulnerabilities as v', 'r.Resident_ID', 'v.Resident_ID')
+            .select(
+                's.name as sitio_name',
+                knex.raw('COUNT(r.Resident_ID) as total_residents'),
+                knex.raw('SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as seniors'),
+                knex.raw('SUM(CASE WHEN v.Is_PWD = 1 THEN 1 ELSE 0 END) as pwd'),
+                knex.raw('SUM(CASE WHEN v.Is_Solo_Parent = 1 THEN 1 ELSE 0 END) as single_parents')
+            )
+            .groupBy('s.id', 's.name')
+            .orderBy('s.name');
+
+        // Get overall statistics
+        const overallStats = await knex('residents as r')
+            .leftJoin('vulnerabilities as v', 'r.Resident_ID', 'v.Resident_ID')
+            .select(
+                knex.raw('COUNT(*) as total_residents'),
+                knex.raw('SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as total_seniors'),
+                knex.raw('SUM(CASE WHEN v.Is_PWD = 1 THEN 1 ELSE 0 END) as total_pwd'),
+                knex.raw('SUM(CASE WHEN v.Is_Solo_Parent = 1 THEN 1 ELSE 0 END) as total_single_parents')
+            )
+            .first();
+
+        res.json({
+            bySitio: statsBySitio,
+            overall: overallStats
+        });
+
+    } catch (error) {
+        console.error('Census data error:', error);
+        res.status(500).json({ error: "Failed to fetch census data" });
+    }
+};

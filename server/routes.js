@@ -44,7 +44,9 @@ router.get('/admin/ai-analytics',
 router.get('/admin/users',
     verifyToken, checkRole([1]), enforcePermissions('/api/users'), adminController.getAllUsers);
 router.post('/admin/users',
-    verifyToken, checkRole([1]), enforcePermissions('/api/users'), BUSINESS_RULES.restrictUserCreation, adminController.createUser);
+    verifyToken, checkRole([1]), enforcePermissions('/api/users'), adminController.createUser);
+router.put('/admin/users/:id',
+    verifyToken, checkRole([1]), enforcePermissions('/api/users/:id'), adminController.updateUser);
 router.get('/admin/settings',
     verifyToken, checkRole([1]), enforcePermissions('/api/admin/settings'), async (req, res) => {
     res.json({
@@ -282,9 +284,9 @@ router.get('/templates',
     }
 });
 
-// Households - Read access for Captain and above
+// Households - Read access for Clerk, Captain and above
 router.get('/households',
-    verifyToken, checkRole([1, 5, 6]), enforcePermissions('/api/households'), async (req, res) => {
+    verifyToken, checkRole([1, 2, 5, 6]), enforcePermissions('/api/households'), async (req, res) => {
     try {
         const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
         const households = await knex('households')
@@ -325,9 +327,9 @@ router.get('/certificate-types',
     }
 });
 
-// Blotter Cases - Read access for staff roles (Admin, Clerk, Blotter Officer, Captain, Secretary)
+// Blotter Cases - Read access for staff roles (Admin, Clerk, Blotter Officer, Captain)
 router.get('/blotter',
-    verifyToken, checkRole([1, 2, 3, 5, 6]), enforcePermissions('/api/blotter'), async (req, res) => {
+    verifyToken, checkRole([1, 2, 3, 5]), enforcePermissions('/api/blotter'), async (req, res) => {
     try {
         const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
         const blotterCases = await knex('blotter')
@@ -343,6 +345,14 @@ router.get('/blotter',
 // Blotter Cases - Create access for authorized staff (Admin, Clerk, Blotter Officer)
 router.post('/blotter',
     verifyToken, checkRole([1, 2, 3]), enforcePermissions('/api/blotter'), blotterController.createCase);
+
+// Blotter Cases - Delete access for authorized blotter officers only
+router.delete('/blotter/:id',
+    verifyToken, checkRole([3]), enforcePermissions('DELETE /api/blotter/:id'), blotterController.deleteCase);
+
+// Census data - Read access for authorized staff (Captain, Secretary, Clerk, Admin)
+router.get('/census',
+    verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), residentController.getCensusData);
 
 // Residents - Read access for staff roles (Admin, Clerk, Captain, Secretary)
 router.get('/residents',
@@ -487,42 +497,39 @@ router.post('/residents',
         // Insert vulnerabilities record
         await knex('vulnerabilities').insert(vulnerabilitiesData);
 
-        // Auto-create Firebase account for resident
-        let firebaseAccount = null;
+        // Auto-create user account for resident
+        let userAccount = null;
         try {
-            const admin = require('firebase-admin');
+            // Hash the temporary password
+            const bcrypt = require('bcryptjs');
+            const saltRounds = 10;
+            const hashedPassword = await bcrypt.hash(tempPassword, saltRounds);
 
-            // Check if Firebase is initialized
-            if (admin.apps.length > 0) {
-                // Create Firebase account with email and temporary password
-                const firebaseUser = await admin.auth().createUser({
-                    email: residentData.email || `${residentId.toLowerCase()}@barangay.local`, // Fallback email if none provided
-                    password: tempPassword,
-                    displayName: `${residentData.First_Name} ${residentData.Last_Name}`,
-                    emailVerified: false
-                });
+            // Create user account in users table
+            const [userResult] = await knex('users').insert({
+                username: residentData.email, // Use email as username
+                password_hash: hashedPassword,
+                role: 'resident',
+                email: residentData.email,
+                full_name: `${residentData.First_Name} ${residentData.Last_Name}`,
+                contact_number: residentData.Mobile_Number || '',
+                is_active: true,
+                created_at: knex.fn.now(),
+                updated_at: knex.fn.now()
+            }).returning('id');
 
-                // Set custom claims for resident role
-                await admin.auth().setCustomUserClaims(firebaseUser.uid, {
-                    role: 'resident',
-                    resident_id: residentId,
-                    barangay_user: true
-                });
+            userAccount = {
+                user_id: userResult.id || userResult,
+                username: residentData.email,
+                email: residentData.email,
+                full_name: `${residentData.First_Name} ${residentData.Last_Name}`,
+                role: 'resident'
+            };
 
-                firebaseAccount = {
-                    uid: firebaseUser.uid,
-                    email: firebaseUser.email,
-                    displayName: firebaseUser.displayName,
-                    resident_id: residentId
-                };
-
-                console.log('✅ Firebase account created for resident:', residentId);
-            } else {
-                console.warn('⚠️ Firebase not initialized - resident account creation skipped');
-            }
-        } catch (firebaseError) {
-            console.error('❌ Failed to create Firebase account:', firebaseError.message);
-            // Continue without Firebase account - don't fail the entire operation
+            console.log('✅ User account created for resident:', residentId);
+        } catch (userError) {
+            console.error('❌ Failed to create user account:', userError.message);
+            // Continue without user account - don't fail the entire operation
         }
 
         // Return response with generated credentials
@@ -530,15 +537,16 @@ router.post('/residents',
             resident_id: residentId,
             resident_code: residentId,
             temp_password: tempPassword,
-            firebase_created: !!firebaseAccount,
-            login_instructions: firebaseAccount ?
-                `Resident can login with email: ${firebaseAccount.email} and password: ${tempPassword}` :
-                `Resident ID: ${residentId} - Firebase account creation failed, manual setup required`
+            user_email: userAccount ? userAccount.email : null,
+            user_created: !!userAccount,
+            login_instructions: userAccount ?
+                `Resident can login with email: ${userAccount.email} and password: ${tempPassword}` :
+                `Resident ID: ${residentId} - User account creation failed, manual setup required`
         };
 
         console.log('✅ Resident created with auto-generated credentials:', {
             resident_id: residentId,
-            firebase_created: !!firebaseAccount
+            user_created: !!userAccount
         });
 
         res.status(201).json(response);

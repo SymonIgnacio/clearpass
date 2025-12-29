@@ -71,7 +71,7 @@ const Sidebar = ({ user, onLogout }) => {
       icon: <Gavel />,
       path: '/blotter',
       description: 'Incident Reports & Case Management',
-      roles: ['admin', 'captain', 'secretary', 'officer'] // Admin, Captain, Secretary, Officer (NOT Clerk)
+      roles: ['admin', 'captain', 'officer'] // Admin, Captain, Officer (NOT Clerk, NOT Secretary)
     },
     {
       text: 'Document Center',

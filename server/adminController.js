@@ -189,6 +189,64 @@ async function createUser(req, res) {
   }
 }
 
+// Update user - SECURE: Prevent hierarchy privilege escalation
+async function updateUser(req, res) {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const requestingUser = req.user;
+
+    console.log(`🔐 User update request: User ${id} being updated by ${requestingUser.id} (Role: ${requestingUser.role})`);
+
+    // SECURITY CHECK: Prevent hierarchy privilege escalation
+    // Only Super Admin (Role 1) can modify parent_user_id field
+    if (updateData.parent_user_id !== undefined) {
+      if (requestingUser.role !== 1) {
+        console.log(`🚫 HIERARCHY ESCALATION BLOCKED: User ${requestingUser.id} (Role ${requestingUser.role}) attempted to modify parent_user_id`);
+        return res.status(403).json({
+          error: 'Forbidden: Insufficient privileges to modify hierarchy',
+          message: 'Only Super Admin can change user hierarchy assignments'
+        });
+      }
+      console.log(`✅ HIERARCHY MODIFICATION ALLOWED: Super Admin ${requestingUser.id} modifying parent_user_id for user ${id}`);
+    }
+
+    // Build update object, excluding sensitive fields that shouldn't be updated directly
+    const allowedUpdates = {};
+    const updatableFields = ['full_name', 'email', 'contact_number', 'role', 'is_active', 'parent_user_id'];
+
+    for (const field of updatableFields) {
+      if (updateData[field] !== undefined) {
+        allowedUpdates[field] = updateData[field];
+      }
+    }
+
+    // Add updated_at timestamp
+    allowedUpdates.updated_at = knex.fn.now();
+
+    // Perform the update
+    const updateResult = await knex('users')
+      .where('id', id)
+      .update(allowedUpdates);
+
+    if (updateResult === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    console.log(`✅ User ${id} updated successfully by ${requestingUser.id}`);
+
+    res.json({
+      success: true,
+      message: 'User updated successfully',
+      updated_fields: Object.keys(allowedUpdates)
+    });
+
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+}
+
 const puppeteer = require('puppeteer');
 
 // Generate PDF report for blotter cases
@@ -610,6 +668,7 @@ module.exports = {
   getAiTechnicalView,
   getAllUsers,
   createUser,
+  updateUser,
   generateBlotterPDF,
   generateResidentsPDF
 };

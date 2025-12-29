@@ -78,6 +78,7 @@ const Residents = () => {
     civil_status: 'Single',
     occupation: '',
     income_estimate: 0,
+    email: '',
     mobile_number: '',
     voter_status: 'Non-Registered',
     date_arrival: new Date().toISOString().split('T')[0],
@@ -206,6 +207,7 @@ const Residents = () => {
         civil_status: resident.Civil_Status || 'Single',
         occupation: resident.Occupation || '',
         income_estimate: resident.Income_Estimate || 0,
+        email: resident.Email || '',
         mobile_number: resident.Mobile_Number || '',
         voter_status: resident.Voter_Status || 'Non-Registered',
         date_arrival: resident.Date_Arrival ? resident.Date_Arrival.split('T')[0] : new Date().toISOString().split('T')[0],
@@ -250,6 +252,39 @@ const Residents = () => {
   }
 
   const handleSave = async () => {
+    // Form validation
+    if (!formData.household_id || formData.household_id === '') {
+      alert('Please select a household for the resident.')
+      return
+    }
+
+    if (!formData.first_name || !formData.first_name.trim()) {
+      alert('First name is required.')
+      return
+    }
+
+    if (!formData.last_name || !formData.last_name.trim()) {
+      alert('Last name is required.')
+      return
+    }
+
+    if (!formData.birthdate) {
+      alert('Birthdate is required.')
+      return
+    }
+
+    if (!formData.email || !formData.email.trim()) {
+      alert('Email address is required.')
+      return
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      alert('Please enter a valid email address.')
+      return
+    }
+
     try {
       const endpoint = editing ? `residents/${editing.Resident_ID}` : 'residents'
       const method = editing ? 'put' : 'post'
@@ -272,12 +307,11 @@ const Residents = () => {
           const credentialsMessage = `✅ Resident Created Successfully!
 
 🆔 Resident ID: ${result.resident_code}
+👤 User Account: ${result.user_email}
 🔐 Temporary Password: ${result.temp_password}
-📧 Login Email: ${result.firebase_created ? result.login_instructions.split('email: ')[1]?.split(' and')[0] : 'Manual setup required'}
 
-${result.firebase_created ?
-  '📝 Instructions: Provide these credentials to the resident for their first login.' :
-  '⚠️ Warning: Firebase account creation failed. Manual account setup required.'}
+📝 Instructions: Provide these credentials to the resident for their first login.
+The resident can now login with their email and this temporary password.
 
 Keep these credentials secure and provide them to the resident privately.`
 
@@ -1000,12 +1034,24 @@ Keep these credentials secure and provide them to the resident privately.`
               <Grid xs={12} sm={6}>
                 <TextField
                   fullWidth
+                  label="Email Address"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  required
+                  placeholder="resident@example.com"
+                />
+              </Grid>
+              <Grid xs={12} sm={6}>
+                <TextField
+                  fullWidth
                   label="Mobile Number"
                   value={formData.mobile_number}
                   onChange={(e) => setFormData({...formData, mobile_number: e.target.value})}
                 />
               </Grid>
-              <Grid xs={12} sm={6}>
+
+              <Grid xs={12}>
                 <TextField
                   fullWidth
                   label="Date of Arrival"
