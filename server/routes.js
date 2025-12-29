@@ -170,6 +170,13 @@ router.post('/ai/chatbot/log',
 });
 
 // =========================================================================
+// DOCUMENT VERIFICATION ROUTES
+// =========================================================================
+
+// QR Code verification for documents and IDs
+router.post('/documents/verify-qr', documentController.verifyQRCode);
+
+// =========================================================================
 // SHARED/LEGACY ROUTES (Maintained for Frontend Compatibility)
 // =========================================================================
 router.post('/ai/chatbot/message',

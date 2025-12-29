@@ -33,7 +33,15 @@ const QRVerification = () => {
     setVerificationResult(null)
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/verify-qr/${qrHash.trim()}`)
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/documents/verify-qr`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          qr_code_data: qrHash.trim()
+        })
+      })
       const data = await response.json()
       setVerificationResult(data)
     } catch (error) {
