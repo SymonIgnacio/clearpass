@@ -24,6 +24,7 @@ const clerkController = require('./clerkController');
 const blotterController = require('./blotterController');
 const residentController = require('./residentController');
 const captainController = require('./captainController');
+const documentController = require('./documentController');
 
 // =========================================================================
 // PUBLIC ROUTES (Restricted: No Signup, Login Only)
