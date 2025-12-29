@@ -533,8 +533,6 @@ class DocumentController {
         });
       }
 
-      console.log('Verifying QR code:', qr_code_data);
-
       // First, check certificates_log table for QR validation strings
       const certificate = await knex('certificates_log')
         .select(
@@ -554,8 +552,6 @@ class DocumentController {
 
       if (certificate) {
         // Found a certificate
-        console.log('Certificate found:', certificate.control_no);
-
         const residentName = `${certificate.First_Name || 'Unknown'} ${certificate.Last_Name || ''}`.trim();
         const address = certificate.Street_Address || 'Not specified';
         const sitio = certificate.sitio_name || 'Not specified';
@@ -591,8 +587,6 @@ class DocumentController {
 
       if (resident) {
         // Found a resident ID
-        console.log('Resident ID found:', resident.Resident_ID);
-
         const age = resident.Birthdate ?
           new Date().getFullYear() - new Date(resident.Birthdate).getFullYear() : 'N/A';
 
@@ -611,8 +605,6 @@ class DocumentController {
       }
 
       // QR code not found in any table
-      console.log('QR code not found:', qr_code_data);
-
       return res.json({
         status: 'INVALID',
         message: 'QR code not found or invalid. This document may be counterfeit or expired.'

@@ -433,7 +433,7 @@ router.post('/residents',
         const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
         const residentData = req.body;
 
-        console.log('🔍 Resident creation request data:', residentData);
+
 
         // Generate unique Resident ID (6-digit format like RES-123456)
         const residentIdNumber = Math.floor(100000 + Math.random() * 900000);
@@ -463,8 +463,6 @@ router.post('/residents',
             created_at: knex.fn.now(),
             updated_at: knex.fn.now()
         };
-
-        console.log('💾 Prepared residents table data:', residentDataFormatted);
 
         // Create resident record in database
         await knex('residents').insert(residentDataFormatted);
@@ -499,8 +497,6 @@ router.post('/residents',
             (vulnerabilitiesData.Is_Solo_Parent ? 1 : 0) +
             (vulnerabilitiesData.Is_Out_of_School_Youth ? 1 : 0);
 
-        console.log('💾 Prepared vulnerabilities table data:', vulnerabilitiesData);
-
         // Insert vulnerabilities record
         await knex('vulnerabilities').insert(vulnerabilitiesData);
 
@@ -532,8 +528,6 @@ router.post('/residents',
                 full_name: `${residentData.First_Name} ${residentData.Last_Name}`,
                 role: 'resident'
             };
-
-            console.log('✅ User account created for resident:', residentId);
         } catch (userError) {
             console.error('❌ Failed to create user account:', userError.message);
             // Continue without user account - don't fail the entire operation
@@ -550,11 +544,6 @@ router.post('/residents',
                 `Resident can login with email: ${userAccount.email} and password: ${tempPassword}` :
                 `Resident ID: ${residentId} - User account creation failed, manual setup required`
         };
-
-        console.log('✅ Resident created with auto-generated credentials:', {
-            resident_id: residentId,
-            user_created: !!userAccount
-        });
 
         res.status(201).json(response);
     } catch (error) {
