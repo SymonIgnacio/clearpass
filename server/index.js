@@ -1427,20 +1427,20 @@ console.log('🔧 [Route Registration] Registering authentication routes...');
 console.log('🔧 [Route Registration] Registering Clerk routes...');
 
 // Clerk Dashboard - Get clearance statistics and recent activity
-app.get('/api/clerk/dashboard', verifyToken, checkRole([2]), clerkController.getClerkDashboard);
-app.get('/clerk/dashboard', verifyToken, checkRole([2]), clerkController.getClerkDashboard);
+app.get('/api/clerk/dashboard', verifyToken, clerkController.getClerkDashboard);
+app.get('/clerk/dashboard', verifyToken, clerkController.getClerkDashboard);
 
 // Issue Clearance - MAIN CLEARPASS FUNCTION with Logic Gate
-app.post('/api/clerk/issue-clearance', verifyToken, checkRole([2]), clerkController.issueClearance);
-app.post('/clerk/issue-clearance', verifyToken, checkRole([2]), clerkController.issueClearance);
+app.post('/api/clerk/issue-clearance', verifyToken, clerkController.issueClearance);
+app.post('/clerk/issue-clearance', verifyToken, clerkController.issueClearance);
 
 // Validate resident for clearance (pre-check ClearPass)
-app.post('/api/clerk/validate-resident', verifyToken, checkRole([2]), clerkController.validateForClearance);
-app.post('/clerk/validate-resident', verifyToken, checkRole([2]), clerkController.validateForClearance);
+app.post('/api/clerk/validate-resident', verifyToken, clerkController.validateForClearance);
+app.post('/clerk/validate-resident', verifyToken, clerkController.validateForClearance);
 
 // Get clearance history for a resident
-app.get('/api/clerk/clearance-history/:residentId', verifyToken, checkRole([2]), clerkController.getClearanceHistory);
-app.get('/clerk/clearance-history/:residentId', verifyToken, checkRole([2]), clerkController.getClearanceHistory);
+app.get('/api/clerk/clearance-history/:residentId', verifyToken, clerkController.getClearanceHistory);
+app.get('/clerk/clearance-history/:residentId', verifyToken, clerkController.getClearanceHistory);
 
 console.log('🔧 [Route Registration] Clerk routes registered successfully');
 

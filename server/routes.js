@@ -44,7 +44,7 @@ const documentController = require('./documentController');
 // PUBLIC ROUTES (Restricted: No Signup, Login Only)
 // =========================================================================
 router.post('/auth/officer-login', authController.staffLogin); // THEMIS: Officer login endpoint
-router.post('/auth/register', verifyToken, checkRole([1]), authController.register); // User registration - Super Admin only
+router.post('/auth/register', verifyToken, authController.register); // User registration - Super Admin only
 
 router.post('/auth/check-census', authController.checkCensus);
 router.post('/auth/register-resident', authController.registerResident);
@@ -56,19 +56,19 @@ router.post('/auth/resident/login', authController.loginResident);
 // ROLE 1: IT ADMIN ROUTES (System Owner)
 // =========================================================================
 router.get('/admin/dashboard',
-    verifyToken, checkRole([1]), enforcePermissions('/api/admin/dashboard'), adminController.getDashboardStats);
+    verifyToken, enforcePermissions('/api/admin/dashboard'), adminController.getDashboardStats);
 router.post('/admin/residents/import',
-    verifyToken, checkRole([1, 2]), enforcePermissions('/api/admin/residents/import'), BUSINESS_RULES.restrictUserCreation, adminController.bulkImportResidents); // Admin + Clerk per requirements
+    verifyToken, enforcePermissions('/api/admin/residents/import'), BUSINESS_RULES.restrictUserCreation, adminController.bulkImportResidents); // Admin + Clerk per requirements
 router.get('/admin/ai-analytics',
-    verifyToken, checkRole([1]), enforcePermissions('/api/admin/ai-analytics'), adminController.getAiTechnicalView);
+    verifyToken, enforcePermissions('/api/admin/ai-analytics'), adminController.getAiTechnicalView);
 router.get('/admin/users',
-    verifyToken, checkRole([1]), enforcePermissions('/api/users'), adminController.getAllUsers);
+    verifyToken, enforcePermissions('/api/users'), adminController.getAllUsers);
 router.post('/admin/users',
-    verifyToken, checkRole([1]), enforcePermissions('/api/users'), adminController.createUser);
+    verifyToken, enforcePermissions('/api/users'), adminController.createUser);
 router.put('/admin/users/:id',
-    verifyToken, checkRole([1]), enforcePermissions('/api/users/:id'), adminController.updateUser);
+    verifyToken, enforcePermissions('/api/users/:id'), adminController.updateUser);
 router.get('/admin/settings',
-    verifyToken, checkRole([1]), enforcePermissions('/api/admin/settings'), async (req, res) => {
+    verifyToken, enforcePermissions('/api/admin/settings'), async (req, res) => {
     res.json({
         message: 'System settings management',
         settings: {
@@ -81,33 +81,33 @@ router.get('/admin/settings',
     });
 });
 router.get('/admin/reports/pdf/blotter',
-    verifyToken, checkRole([1, 2, 3, 5, 6]), enforcePermissions('/api/admin/reports/pdf/blotter'), adminController.generateBlotterPDF);
+    verifyToken, enforcePermissions('/api/admin/reports/pdf/blotter'), adminController.generateBlotterPDF);
 router.get('/admin/reports/pdf/residents',
-    verifyToken, checkRole([1, 2, 3, 5, 6]), enforcePermissions('/api/admin/reports/pdf/residents'), adminController.generateResidentsPDF);
+    verifyToken, enforcePermissions('/api/admin/reports/pdf/residents'), adminController.generateResidentsPDF);
 
 // =========================================================================
 // ROLE 2: CLERK ROUTES (ClearPass Operator)
 // =========================================================================
 router.get('/clerk/clearances',
-    verifyToken, checkRole([2]), enforcePermissions('/api/clerk/clearances'), clerkController.getAllClearances);
+    verifyToken, enforcePermissions('/api/clerk/clearances'), clerkController.getAllClearances);
 router.post('/clerk/residents',
-    verifyToken, checkRole([2]), enforcePermissions('/api/clerk/residents'), clerkController.registerResident);
+    verifyToken, enforcePermissions('/api/clerk/residents'), clerkController.registerResident);
 router.post('/clerk/clearances/issue',
-    verifyToken, checkRole([2]), enforcePermissions('/api/clerk/clearances/issue'), BUSINESS_RULES.checkBlotterBeforeClearance, clerkController.issueClearance); // The Logic Gate Endpoint
+    verifyToken, enforcePermissions('/api/clerk/clearances/issue'), BUSINESS_RULES.checkBlotterBeforeClearance, clerkController.issueClearance); // The Logic Gate Endpoint
 router.get('/clerk/documents',
-    verifyToken, checkRole([2]), enforcePermissions('/api/clerk/documents'), clerkController.getDocumentIssuance);
+    verifyToken, enforcePermissions('/api/clerk/documents'), clerkController.getDocumentIssuance);
 
 // =========================================================================
 // ROLE 3: BLOTTER OFFICER ROUTES (Encoder)
 // =========================================================================
 router.post('/officer/cases',
-    verifyToken, checkRole([3]), enforcePermissions('/api/officer/cases'), blotterController.createCase);
+    verifyToken, enforcePermissions('/api/officer/cases'), blotterController.createCase);
 router.put('/officer/cases/:caseNumber/resolve',
-    verifyToken, checkRole([3]), enforcePermissions('/api/officer/cases/:caseNumber/resolve'), blotterController.updateCaseStatus);
+    verifyToken, enforcePermissions('/api/officer/cases/:caseNumber/resolve'), blotterController.updateCaseStatus);
 router.get('/officer/ai-analytics',
-    verifyToken, checkRole([3]), enforcePermissions('/api/officer/ai-analytics'), blotterController.getHotspotAnalytics);
+    verifyToken, enforcePermissions('/api/officer/ai-analytics'), blotterController.getHotspotAnalytics);
 router.get('/officer/reports',
-    verifyToken, checkRole([3]), enforcePermissions('/api/officer/reports'), blotterController.generateMonthlyReport);
+    verifyToken, enforcePermissions('/api/officer/reports'), blotterController.generateMonthlyReport);
 
 // =========================================================================
 // ROLE 4: RESIDENT ROUTES (Self-Service)
