@@ -18,7 +18,7 @@ import {
   StepLabel
 } from '@mui/material'
 import { VerifiedUser, Email, ArrowBack, CheckCircle, Refresh } from '@mui/icons-material'
-import api from '../utils/api'
+import { api } from '../utils/api'
 
 const AccountVerification = () => {
   const navigate = useNavigate()
