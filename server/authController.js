@@ -695,7 +695,7 @@ async function getSubordinates(req, res) {
 module.exports = {
   checkCensus,
   registerResident,
-  loginResident,
+  residentLogin: loginResident,
   staffLogin,
   register,
   getProfile,
