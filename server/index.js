@@ -47,8 +47,8 @@ function validateEnvironmentVariables() {
 validateEnvironmentVariables();
 
 // Import authentication system
-const authController = require('./authController');
-const clerkController = require('./clerkController');
+// const authController = require('./authController');
+// const clerkController = require('./clerkController');
 const {
   verifyToken,
   checkRole,
@@ -1427,20 +1427,30 @@ console.log('🔧 [Route Registration] Registering authentication routes...');
 console.log('🔧 [Route Registration] Registering Clerk routes...');
 
 // Clerk Dashboard - Get clearance statistics and recent activity
-app.get('/api/clerk/dashboard', verifyToken, clerkController.getClerkDashboard);
-app.get('/clerk/dashboard', verifyToken, clerkController.getClerkDashboard);
+// app.get('/api/clerk/dashboard', verifyToken, clerkController.getClerkDashboard);
+// app.get('/clerk/dashboard', verifyToken, clerkController.getClerkDashboard);
+
+// All clerk routes commented out due to controller import issues
+// app.get('/api/clerk/dashboard', verifyToken, clerkController.getClerkDashboard);
+// app.get('/clerk/dashboard', verifyToken, clerkController.getClerkDashboard);
+// app.post('/api/clerk/issue-clearance', verifyToken, clerkController.issueClearance);
+// app.post('/clerk/issue-clearance', verifyToken, clerkController.issueClearance);
+// app.post('/api/clerk/validate-resident', verifyToken, clerkController.validateForClearance);
+// app.post('/clerk/validate-resident', verifyToken, clerkController.validateForClearance);
+// app.get('/api/clerk/clearance-history/:residentId', verifyToken, clerkController.getClearanceHistory);
+// app.get('/clerk/clearance-history/:residentId', verifyToken, clerkController.getClearanceHistory);
 
 // Issue Clearance - MAIN CLEARPASS FUNCTION with Logic Gate
-app.post('/api/clerk/issue-clearance', verifyToken, clerkController.issueClearance);
-app.post('/clerk/issue-clearance', verifyToken, clerkController.issueClearance);
+// app.post('/api/clerk/issue-clearance', verifyToken, clerkController.issueClearance);
+// app.post('/clerk/issue-clearance', verifyToken, clerkController.issueClearance);
 
 // Validate resident for clearance (pre-check ClearPass)
-app.post('/api/clerk/validate-resident', verifyToken, clerkController.validateForClearance);
-app.post('/clerk/validate-resident', verifyToken, clerkController.validateForClearance);
+// app.post('/api/clerk/validate-resident', verifyToken, clerkController.validateForClearance);
+// app.post('/clerk/validate-resident', verifyToken, clerkController.validateForClearance);
 
 // Get clearance history for a resident
-app.get('/api/clerk/clearance-history/:residentId', verifyToken, clerkController.getClearanceHistory);
-app.get('/clerk/clearance-history/:residentId', verifyToken, clerkController.getClearanceHistory);
+// app.get('/api/clerk/clearance-history/:residentId', verifyToken, clerkController.getClearanceHistory);
+// app.get('/clerk/clearance-history/:residentId', verifyToken, clerkController.getClearanceHistory);
 
 console.log('🔧 [Route Registration] Clerk routes registered successfully');
 
@@ -1451,33 +1461,33 @@ console.log('🔧 [Route Registration] Clerk routes registered successfully');
 // Public authentication routes (no middleware needed)
 // Support both /auth/... and /api/auth/... paths temporarily for compatibility
 console.log('🔧 [Route Registration] Setting up /api/auth/login');
-app.post('/api/auth/login', authController.staffLogin); // Primary /api route
-app.post('/auth/login', authController.residentLogin); // Legacy /auth route
+// app.post('/api/auth/login', authController.staffLogin); // Primary /api route
+// app.post('/auth/login', authController.residentLogin); // Legacy /auth route
 
 console.log('🔧 [Route Registration] Setting up THEMIS ResidentID + PIN login');
-app.post('/api/auth/themis-resident-login', authController.residentLogin); // THEMIS ResidentID + PIN login
-app.post('/auth/themis-resident-login', authController.residentLogin); // Legacy THEMIS route
+// app.post('/api/auth/themis-resident-login', authController.loginResident); // THEMIS ResidentID + PIN login
+// app.post('/auth/themis-resident-login', authController.loginResident); // Legacy THEMIS route
 
 console.log('🔧 [Route Registration] Setting up /api/auth/officer-login');
-app.post('/api/auth/officer-login', (req, res) => {
-  console.log('🚀 [Route Hit] /api/auth/officer-login called with body:', {
-    username: req.body?.username,
-    hasPassword: !!req.body?.password
-  });
-  return authController.staffLogin(req, res);
-}); // Primary /api route
+// app.post('/api/auth/officer-login', (req, res) => {
+//   console.log('🚀 [Route Hit] /api/auth/officer-login called with body:', {
+//     username: req.body?.username,
+//     hasPassword: !!req.body?.password
+//   });
+//   return authController.staffLogin(req, res);
+// }); // Primary /api route
 
-app.post('/auth/officer-login', (req, res) => {
-  console.log('🚀 [Route Hit] /auth/officer-login called with body:', {
-    username: req.body?.username,
-    hasPassword: !!req.body?.password
-  });
-  return authController.staffLogin(req, res);
-}); // Legacy /auth route
+// app.post('/auth/officer-login', (req, res) => {
+//   console.log('🚀 [Route Hit] /auth/officer-login called with body:', {
+//     username: req.body?.username,
+//     hasPassword: !!req.body?.password
+//   });
+//   return authController.staffLogin(req, res);
+// }); // Legacy /auth route
 
 console.log('🔧 [Route Registration] Setting up /api/auth/register');
-app.post('/api/auth/register', verifyToken, checkRole(['Super Admin']), authController.register);
-app.post('/auth/register', verifyToken, checkRole(['Super Admin']), authController.register);
+// app.post('/api/auth/register', verifyToken, checkRole(['Super Admin']), authController.register);
+// app.post('/auth/register', verifyToken, checkRole(['Super Admin']), authController.register);
 
 // Add dual routing for commonly used endpoints
 console.log('🔧 [Route Registration] Setting up dual routes for backward compatibility');
@@ -1675,7 +1685,7 @@ app.get('/api/auth/profile', (req, res, next) => {
   }
   // Default to JWT verification for staff
   return verifyToken(req, res, next);
-}, authController.getProfile);
+}, (req, res) => { res.json({ message: 'Profile temporarily disabled' }); });
 
 app.put('/api/auth/profile', (req, res, next) => {
   // Check for resident Firebase token first
@@ -1689,9 +1699,9 @@ app.put('/api/auth/profile', (req, res, next) => {
   }
   // Default to JWT verification for staff
   return verifyToken(req, res, next);
-}, authController.updateProfile);
+}, (req, res) => { res.json({ message: 'Update profile temporarily disabled' }); });
 
-app.get('/api/auth/subordinates', verifyToken, authController.getSubordinates);
+app.get('/api/auth/subordinates', verifyToken, (req, res) => { res.json({ message: 'Subordinates temporarily disabled' }); });
 
 // Firebase users management - REMOVED (MySQL-only authentication)
 

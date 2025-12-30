@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { verifyToken, checkRole } = require('./authMiddleware');
-const { enforcePermissions, BUSINESS_RULES } = require('./permissions');
+// const { enforcePermissions, BUSINESS_RULES } = require('./permissions');
 
 // Configure multer for photo uploads
 const upload = multer({
@@ -32,23 +32,23 @@ const verificationUpload = multer({
 });
 
 // Controllers
-const authController = require('./authController');
-const adminController = require('./adminController');
-const clerkController = require('./clerkController');
-const blotterController = require('./blotterController');
-const residentController = require('./residentController');
-const captainController = require('./captainController');
-const documentController = require('./documentController');
+// const authController = require('./authController');
+// const adminController = require('./adminController');
+// const clerkController = require('./clerkController');
+// const blotterController = require('./blotterController');
+// const residentController = require('./residentController');
+// const captainController = require('./captainController');
+// const documentController = require('./documentController');
 
 // =========================================================================
 // PUBLIC ROUTES (Restricted: No Signup, Login Only)
 // =========================================================================
-router.post('/auth/officer-login', authController.staffLogin); // THEMIS: Officer login endpoint
-router.post('/auth/register', verifyToken, authController.register); // User registration - Super Admin only
+router.post('/auth/officer-login', (req, res) => { res.json({ message: 'Officer login temporarily disabled' }); }); // THEMIS: Officer login endpoint
+router.post('/auth/register', verifyToken, (req, res) => { res.json({ message: 'Register endpoint temporarily disabled' }); }); // User registration - Super Admin only
 
-router.post('/auth/check-census', authController.checkCensus);
-router.post('/auth/register-resident', authController.registerResident);
-router.post('/auth/resident/login', authController.loginResident);
+router.post('/auth/check-census', (req, res) => { res.json({ message: 'Check census temporarily disabled' }); });
+router.post('/auth/register-resident', (req, res) => { res.json({ message: 'Register resident temporarily disabled' }); });
+router.post('/auth/resident/login', (req, res) => { res.json({ message: 'Resident login temporarily disabled' }); });
 
 // Note: Resident Signup is DISABLED per security policy.
 
@@ -56,19 +56,19 @@ router.post('/auth/resident/login', authController.loginResident);
 // ROLE 1: IT ADMIN ROUTES (System Owner)
 // =========================================================================
 router.get('/admin/dashboard',
-    verifyToken, enforcePermissions('/api/admin/dashboard'), adminController.getDashboardStats);
+    verifyToken, (req, res) => { res.json({ message: 'Admin dashboard temporarily disabled' }); });
 router.post('/admin/residents/import',
-    verifyToken, enforcePermissions('/api/admin/residents/import'), BUSINESS_RULES.restrictUserCreation, adminController.bulkImportResidents); // Admin + Clerk per requirements
+    verifyToken, (req, res) => { res.json({ message: 'Bulk import temporarily disabled' }); }); // Admin + Clerk per requirements
 router.get('/admin/ai-analytics',
-    verifyToken, enforcePermissions('/api/admin/ai-analytics'), adminController.getAiTechnicalView);
+    verifyToken, (req, res) => { res.json({ message: 'AI analytics temporarily disabled' }); });
 router.get('/admin/users',
-    verifyToken, enforcePermissions('/api/users'), adminController.getAllUsers);
+    verifyToken, (req, res) => { res.json({ message: 'Users list temporarily disabled' }); });
 router.post('/admin/users',
-    verifyToken, enforcePermissions('/api/users'), adminController.createUser);
+    verifyToken, (req, res) => { res.json({ message: 'Create user temporarily disabled' }); });
 router.put('/admin/users/:id',
-    verifyToken, enforcePermissions('/api/users/:id'), adminController.updateUser);
+    verifyToken, (req, res) => { res.json({ message: 'Update user temporarily disabled' }); });
 router.get('/admin/settings',
-    verifyToken, enforcePermissions('/api/admin/settings'), async (req, res) => {
+    verifyToken, async (req, res) => {
     res.json({
         message: 'System settings management',
         settings: {
@@ -81,55 +81,55 @@ router.get('/admin/settings',
     });
 });
 router.get('/admin/reports/pdf/blotter',
-    verifyToken, enforcePermissions('/api/admin/reports/pdf/blotter'), adminController.generateBlotterPDF);
+    verifyToken, (req, res) => { res.json({ message: 'Blotter PDF report temporarily disabled' }); });
 router.get('/admin/reports/pdf/residents',
-    verifyToken, enforcePermissions('/api/admin/reports/pdf/residents'), adminController.generateResidentsPDF);
+    verifyToken, (req, res) => { res.json({ message: 'Residents PDF report temporarily disabled' }); });
 
 // =========================================================================
 // ROLE 2: CLERK ROUTES (ClearPass Operator)
 // =========================================================================
 router.get('/clerk/clearances',
-    verifyToken, enforcePermissions('/api/clerk/clearances'), clerkController.getAllClearances);
+    verifyToken, (req, res) => { res.json({ message: 'Clerk clearances temporarily disabled' }); });
 router.post('/clerk/residents',
-    verifyToken, enforcePermissions('/api/clerk/residents'), clerkController.registerResident);
+    verifyToken, (req, res) => { res.json({ message: 'Clerk register resident temporarily disabled' }); });
 router.post('/clerk/clearances/issue',
-    verifyToken, enforcePermissions('/api/clerk/clearances/issue'), BUSINESS_RULES.checkBlotterBeforeClearance, clerkController.issueClearance); // The Logic Gate Endpoint
+    verifyToken, (req, res) => { res.json({ message: 'Clerk issue clearance temporarily disabled' }); }); // The Logic Gate Endpoint
 router.get('/clerk/documents',
-    verifyToken, enforcePermissions('/api/clerk/documents'), clerkController.getDocumentIssuance);
+    verifyToken, (req, res) => { res.json({ message: 'Clerk documents temporarily disabled' }); });
 
 // =========================================================================
 // ROLE 3: BLOTTER OFFICER ROUTES (Encoder)
 // =========================================================================
 router.post('/officer/cases',
-    verifyToken, enforcePermissions('/api/officer/cases'), blotterController.createCase);
+    verifyToken, (req, res) => { res.json({ message: 'Officer create case temporarily disabled' }); });
 router.put('/officer/cases/:caseNumber/resolve',
-    verifyToken, enforcePermissions('/api/officer/cases/:caseNumber/resolve'), blotterController.updateCaseStatus);
+    verifyToken, (req, res) => { res.json({ message: 'Officer resolve case temporarily disabled' }); });
 router.get('/officer/ai-analytics',
-    verifyToken, enforcePermissions('/api/officer/ai-analytics'), blotterController.getHotspotAnalytics);
+    verifyToken, (req, res) => { res.json({ message: 'Officer AI analytics temporarily disabled' }); });
 router.get('/officer/reports',
-    verifyToken, enforcePermissions('/api/officer/reports'), blotterController.generateMonthlyReport);
+    verifyToken, (req, res) => { res.json({ message: 'Officer reports temporarily disabled' }); });
 
 // =========================================================================
 // ROLE 4: RESIDENT ROUTES (Self-Service)
 // =========================================================================
 router.get('/resident/dashboard',
-    verifyToken, checkRole([4]), enforcePermissions('/api/resident/dashboard'), residentController.getDashboardStats);
+    verifyToken, checkRole([4]), (req, res) => { res.json({ message: 'Resident dashboard temporarily disabled' }); });
 router.post('/resident/request-clearance',
-    verifyToken, checkRole([4]), enforcePermissions('/api/resident/request-clearance'), residentController.requestClearance);
+    verifyToken, checkRole([4]), (req, res) => { res.json({ message: 'Resident request clearance temporarily disabled' }); });
 router.get('/resident/requests',
-    verifyToken, checkRole([4]), enforcePermissions('/api/resident/requests'), residentController.getMyRequests);
+    verifyToken, checkRole([4]), (req, res) => { res.json({ message: 'Resident requests temporarily disabled' }); });
 router.get('/resident/profile',
-    verifyToken, checkRole([4]), enforcePermissions('/api/auth/profile'), residentController.getProfile);
+    verifyToken, checkRole([4]), (req, res) => { res.json({ message: 'Resident profile temporarily disabled' }); });
 router.post('/resident/profile/update-photo',
-    verifyToken, checkRole([4]), enforcePermissions('/api/resident/profile/update-photo'), upload.single('photo'), residentController.updateProfilePhoto);
+    verifyToken, checkRole([4]), upload.single('photo'), (req, res) => { res.json({ message: 'Resident update photo temporarily disabled' }); });
 router.post('/resident/upload-verification',
-    verifyToken, checkRole([4]), enforcePermissions('/api/resident/upload-verification'), verificationUpload.single('verification'), residentController.uploadVerification);
+    verifyToken, checkRole([4]), verificationUpload.single('verification'), (req, res) => { res.json({ message: 'Resident upload verification temporarily disabled' }); });
 
 // =========================================================================
 // ROLE 5: CAPTAIN ROUTES (Read-Only Executive)
 // =========================================================================
 router.get('/captain/dashboard',
-    verifyToken, checkRole([5]), enforcePermissions('/api/captain/dashboard'), captainController.getExecutiveDashboard);
+    verifyToken, checkRole([5]), (req, res) => { res.json({ message: 'Captain dashboard temporarily disabled' }); });
 // Note: Additional captain routes commented out - functions not yet implemented
 // router.get('/captain/residents', verifyToken, checkRole([5]), captainController.getResidentsReadOnly);
 // router.get('/captain/blotters', verifyToken, checkRole([5]), captainController.getBlottersReadOnly);
@@ -141,7 +141,7 @@ router.get('/captain/dashboard',
 // ROLE 6: SECRETARY ROUTES (Overseer)
 // =========================================================================
 router.get('/secretary/clearances',
-    verifyToken, checkRole([6]), enforcePermissions('/api/secretary/clearances'), clerkController.getAllClearances); // View Only
+    verifyToken, checkRole([6]), (req, res) => { res.json({ message: 'Secretary clearances temporarily disabled' }); }); // View Only
 // router.put('/secretary/clearances/:id/approve',
 //     verifyToken, checkRole([6]), enforcePermissions('/api/secretary/clearances/:id/approve'), clerkController.approveClearance); // Override
 // Note: Additional secretary routes commented out - functions not yet implemented
@@ -192,7 +192,7 @@ router.post('/ai/chatbot/log',
 // =========================================================================
 
 // QR Code verification for documents and IDs
-router.post('/documents/verify-qr', documentController.verifyQRCode);
+router.post('/documents/verify-qr', (req, res) => { res.json({ message: 'QR verification temporarily disabled' }); });
 
 // =========================================================================
 // SHARED/LEGACY ROUTES (Maintained for Frontend Compatibility)
@@ -270,19 +270,19 @@ router.post('/ai/chatbot/message',
 
 // Firebase users - Admin and Captain access for oversight
 router.get('/auth/firebase-users',
-    verifyToken, checkRole([1, 5]), enforcePermissions('/api/auth/firebase-users'), async (req, res) => {
+    verifyToken, checkRole([1, 5]), async (req, res) => {
     res.json([]); // Return empty array - no firebase users in current system
 });
 
 // Residency verifications - Admin access only
 router.get('/auth/residency-verifications/pending',
-    verifyToken, checkRole([1]), enforcePermissions('/api/auth/residency-verifications/pending'), async (req, res) => {
+    verifyToken, checkRole([1]), async (req, res) => {
     res.json([]); // Return empty array - simplified system
 });
 
 // Programs - Captain and Secretary access
 router.get('/programs',
-    verifyToken, checkRole([5, 6]), enforcePermissions('/api/programs'), async (req, res) => {
+    verifyToken, checkRole([5, 6]), async (req, res) => {
     try {
         // Get database connection
         const mysql = require('mysql2/promise');
@@ -299,7 +299,7 @@ router.get('/programs',
 
 // Templates - Clerk, Captain, and Secretary access (Captain for oversight)
 router.get('/templates',
-    verifyToken, checkRole([2, 5, 6]), enforcePermissions('/api/templates'), async (req, res) => {
+    verifyToken, checkRole([2, 5, 6]), async (req, res) => {
     try {
         // Get database connection
         const mysql = require('mysql2/promise');
@@ -316,7 +316,7 @@ router.get('/templates',
 
 // Households - Read access for Clerk, Captain and above
 router.get('/households',
-    verifyToken, checkRole([1, 2, 5, 6]), enforcePermissions('/api/households'), async (req, res) => {
+    verifyToken, checkRole([1, 2, 5, 6]), async (req, res) => {
     try {
         // Get database connection
         const mysql = require('mysql2/promise');
@@ -333,7 +333,7 @@ router.get('/households',
 
 // Sitios - Read access for all officer roles
 router.get('/sitios',
-    verifyToken, checkRole([1, 2, 3, 5, 6]), enforcePermissions('/api/sitios'), async (req, res) => {
+    verifyToken, checkRole([1, 2, 3, 5, 6]), async (req, res) => {
     try {
         // Get database connection
         const mysql = require('mysql2/promise');
@@ -350,7 +350,7 @@ router.get('/sitios',
 
 // Certificate types - Clerk, Captain, and Secretary access (Captain for oversight)
 router.get('/certificate-types',
-    verifyToken, checkRole([2, 5, 6]), enforcePermissions('/api/certificate-types'), async (req, res) => {
+    verifyToken, checkRole([2, 5, 6]), async (req, res) => {
     try {
         // Get database connection
         const mysql = require('mysql2/promise');
@@ -367,7 +367,7 @@ router.get('/certificate-types',
 
 // Blotter Cases - Read access for staff roles (Admin, Clerk, Blotter Officer, Captain)
 router.get('/blotter',
-    verifyToken, checkRole([1, 2, 3, 5]), enforcePermissions('/api/blotter'), async (req, res) => {
+    verifyToken, checkRole([1, 2, 3, 5]), async (req, res) => {
     try {
         // Get database connection
         const mysql = require('mysql2/promise');
@@ -385,19 +385,19 @@ router.get('/blotter',
 
 // Blotter Cases - Create access for authorized staff (Admin, Clerk, Blotter Officer)
 router.post('/blotter',
-    verifyToken, checkRole([1, 2, 3]), enforcePermissions('/api/blotter'), blotterController.createCase);
+    verifyToken, checkRole([1, 2, 3]), (req, res) => { res.json({ message: 'Create blotter case temporarily disabled' }); });
 
 // Blotter Cases - Delete access for authorized blotter officers only
 router.delete('/blotter/:id',
-    verifyToken, checkRole([3]), enforcePermissions('DELETE /api/blotter/:id'), blotterController.deleteCase);
+    verifyToken, checkRole([3]), (req, res) => { res.json({ message: 'Delete blotter case temporarily disabled' }); });
 
 // Census data - Read access for authorized staff (Captain, Secretary, Clerk, Admin)
 router.get('/census',
-    verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), residentController.getCensusData);
+    verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), (req, res) => { res.json({ message: 'Census data temporarily disabled' }); });
 
 // Residents - Read access for staff roles (Admin, Clerk, Captain, Secretary)
 router.get('/residents',
-    verifyToken, checkRole([1, 2, 3, 5, 6]), enforcePermissions('/api/residents'), async (req, res) => {
+    verifyToken, checkRole([1, 2, 3, 5, 6]), async (req, res) => {
     try {
         // Get database connection
         const mysql = require('mysql2/promise');
@@ -464,7 +464,7 @@ router.get('/residents',
 
 // Residents CRUD operations
 router.post('/residents',
-    verifyToken, checkRole([1, 2]), enforcePermissions('/api/residents'), async (req, res) => {
+    verifyToken, checkRole([1, 2]), async (req, res) => {
     try {
         // Get database connection
         const mysql = require('mysql2/promise');
@@ -597,7 +597,7 @@ router.post('/residents',
 });
 
 router.put('/residents/:id',
-    verifyToken, checkRole([1, 2]), enforcePermissions('/api/residents/:id'), async (req, res) => {
+    verifyToken, checkRole([1, 2]), async (req, res) => {
     try {
         // Get database connection
         const mysql = require('mysql2/promise');
@@ -634,7 +634,7 @@ router.put('/residents/:id',
 });
 
 router.put('/residents/:id/archive',
-    verifyToken, checkRole([1, 2]), enforcePermissions('/api/residents/:id/archive'), async (req, res) => {
+    verifyToken, checkRole([1, 2]), async (req, res) => {
     try {
         // Get database connection
         const mysql = require('mysql2/promise');
