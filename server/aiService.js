@@ -66,6 +66,40 @@ function calculateFallbackPriority(residentData) {
 }
 
 /**
+ * Generate a narrative summary (placeholder implementation)
+ * @param {Object} data - Data for narrative generation
+ * @returns {Promise<Object>} Narrative result
+ */
+async function generateNarrative(data) {
+  try {
+    // Placeholder implementation - returns dummy narrative
+    // TODO: Integrate with actual AI service when ready
+    const dummyNarrative = {
+      summary: "This is a placeholder narrative generated for demonstration purposes. The AI service integration is not yet implemented.",
+      key_points: [
+        "Resident information processed",
+        "Narrative generation initiated",
+        "Placeholder content returned"
+      ],
+      timestamp: new Date().toISOString(),
+      status: "success"
+    };
+
+    return {
+      success: true,
+      data: dummyNarrative
+    };
+  } catch (error) {
+    console.error('Error generating narrative:', error.message);
+    return {
+      success: false,
+      error: error.message,
+      data: null
+    };
+  }
+}
+
+/**
  * Health check for Python AI service
  * @returns {Promise<boolean>} True if service is healthy
  */
@@ -83,5 +117,6 @@ async function checkAIServiceHealth() {
 module.exports = {
   callPythonAI,
   checkAIServiceHealth,
-  calculateFallbackPriority
+  calculateFallbackPriority,
+  generateNarrative
 };

@@ -112,3 +112,24 @@ export const logout = () => {
   // Redirect to login
   window.location.href = '/login';
 };
+
+// Specific API endpoint functions with corrected paths
+export const getResidentProfile = () => api.get('residents/me');
+export const updateResidentProfile = (data) => api.put('residents/me', data);
+export const uploadVerification = (formData) => {
+  // For file uploads, we need to use fetch directly with FormData
+  // Don't set Content-Type as FormData sets its own boundary
+  const token = getAuthToken();
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const url = `${API_BASE_URL}residents/verification/upload`;
+  return fetch(url, {
+    method: 'POST',
+    headers: headers,
+    body: formData
+  });
+};
+export const generateDocument = (id, data) => api.post(`documents/requests/${id}/generate`, data);

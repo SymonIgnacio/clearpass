@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '../utils/api';
 
 // Helper function to decode JWT payload
 const decodeJWT = (token) => {
@@ -29,10 +30,11 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Check for existing token on mount
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       const token = localStorage.getItem('authToken');
 
       if (token) {
@@ -42,6 +44,7 @@ export const AuthProvider = ({ children }) => {
           const currentTime = Date.now() / 1000;
           if (decoded.exp && decoded.exp > currentTime) {
             setUser(decoded);
+            setIsAuthenticated(true);
             console.log('✅ AuthContext: User restored from localStorage');
           } else {
             console.log('❌ AuthContext: Token expired, clearing');
@@ -55,6 +58,11 @@ export const AuthProvider = ({ children }) => {
 
     checkAuth();
   }, []);
+
+  // Update isAuthenticated when user changes
+  useEffect(() => {
+    setIsAuthenticated(!!user);
+  }, [user]);
 
   const login = (token) => {
     try {
@@ -78,11 +86,31 @@ export const AuthProvider = ({ children }) => {
     console.log('✅ AuthContext: User logged out');
   };
 
+  const checkAuth = async () => {
+    try {
+      const response = await api.get('auth/me');
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        return true;
+      } else {
+        setUser(null);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ AuthContext: checkAuth failed:', error);
+      setUser(null);
+      return false;
+    }
+  };
+
   const value = {
     user,
     login,
     logout,
-    loading
+    checkAuth,
+    loading,
+    isAuthenticated
   };
 
   return (

@@ -315,3 +315,70 @@ exports.uploadVerification = async (req, res) => {
         res.status(500).json({ error: "Database error" });
     }
 };
+
+exports.requestDocument = async (req, res) => {
+    const residentId = req.user.resident_id;
+    const { document_type, request_data } = req.body;
+
+    try {
+        // Validate input
+        if (!document_type) {
+            return res.status(400).json({
+                success: false,
+                message: 'Document type is required'
+            });
+        }
+
+        // Verify resident exists
+        const resident = await knex('residents')
+            .select('Resident_ID', 'First_Name', 'Last_Name')
+            .where('Resident_ID', residentId)
+            .first();
+
+        if (!resident) {
+            return res.status(404).json({
+                success: false,
+                message: 'Resident not found'
+            });
+        }
+
+        // Generate request ID
+        const requestId = `REQ-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+
+        // Insert new record into document requests table
+        const [insertedRecord] = await knex('document_requests')
+            .insert({
+                request_id: requestId,
+                resident_id: residentId,
+                document_type: document_type,
+                request_data: JSON.stringify(request_data || {}),
+                status: 'pending',
+                created_at: knex.fn.now(),
+                updated_at: knex.fn.now()
+            })
+            .returning('*');
+
+        // Return the created request object
+        res.status(201).json({
+            success: true,
+            message: 'Document request created successfully',
+            data: {
+                request_id: insertedRecord.request_id,
+                resident_id: insertedRecord.resident_id,
+                document_type: insertedRecord.document_type,
+                request_data: JSON.parse(insertedRecord.request_data || '{}'),
+                status: insertedRecord.status,
+                created_at: insertedRecord.created_at,
+                updated_at: insertedRecord.updated_at
+            }
+        });
+
+    } catch (error) {
+        console.error('Error creating document request:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create document request',
+            error: error.message
+        });
+    }
+};
