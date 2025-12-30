@@ -147,6 +147,14 @@ class DocumentController {
       const { resident_id, document_type, request_data } = req.body;
       const user_id = req.user?.id || req.body.user_id; // Get from auth or request
 
+      // CRITICAL: Enforce Verification Gate - Check account status
+      if (req.user?.account_status !== 'Verified') {
+        return res.status(403).json({
+          success: false,
+          message: 'Account is not verified. Please upload a valid ID first.'
+        });
+      }
+
       // Validate required fields
       if (!resident_id || !document_type) {
         return res.status(400).json({
@@ -515,6 +523,106 @@ class DocumentController {
       res.status(500).json({
         success: false,
         message: 'Failed to validate document'
+      });
+    }
+  }
+
+  /**
+   * Verify QR code for documents and IDs
+   */
+  async verifyQRCode(req, res) {
+    try {
+      const { qr_code_data } = req.body;
+
+      if (!qr_code_data) {
+        return res.status(400).json({
+          error: 'QR code data is required',
+          message: 'Please provide the QR code data to verify'
+        });
+      }
+
+      // First, check certificates_log table for QR validation strings
+      const certificate = await knex('certificates_log')
+        .select(
+          'certificates_log.*',
+          'residents.First_Name',
+          'residents.Last_Name',
+          'residents.Mobile_Number',
+          'households.Street_Address',
+          'sitios.name as sitio_name'
+        )
+        .leftJoin('residents', 'certificates_log.resident_id', 'residents.Resident_ID')
+        .leftJoin('households', 'residents.Household_ID', 'households.Household_ID')
+        .leftJoin('sitios', 'households.Sitio_ID', 'sitios.id')
+        .where('certificates_log.qr_validation_string', qr_code_data)
+        .where('certificates_log.status', 'Released')
+        .first();
+
+      if (certificate) {
+        // Found a certificate
+        const residentName = `${certificate.First_Name || 'Unknown'} ${certificate.Last_Name || ''}`.trim();
+        const address = certificate.Street_Address || 'Not specified';
+        const sitio = certificate.sitio_name || 'Not specified';
+
+        return res.json({
+          status: 'VALID',
+          type: 'certificate',
+          message: 'Certificate verified successfully',
+          certificate: {
+            number: certificate.control_no,
+            type: certificate.certificate_type,
+            resident_name: residentName,
+            address: address,
+            sitio: sitio,
+            issued_date: certificate.date_issued,
+            signatory_captain: certificate.signatory_captain || 'Captain Juan Dela Cruz',
+            signatory_secretary: certificate.signatory_secretary || 'Secretary Maria Santos'
+          }
+        });
+      }
+
+      // If not found in certificates, check residents table for ID QR codes
+      const resident = await knex('residents')
+        .select(
+          'residents.*',
+          'households.Street_Address',
+          'sitios.name as sitio_name'
+        )
+        .leftJoin('households', 'residents.Household_ID', 'households.Household_ID')
+        .leftJoin('sitios', 'households.Sitio_ID', 'sitios.id')
+        .where('residents.qr_identity_hash', qr_code_data)
+        .first();
+
+      if (resident) {
+        // Found a resident ID
+        const age = resident.Birthdate ?
+          new Date().getFullYear() - new Date(resident.Birthdate).getFullYear() : 'N/A';
+
+        return res.json({
+          status: 'VALID',
+          type: 'barangay_id',
+          message: 'Barangay ID verified successfully',
+          resident: {
+            name: `${resident.First_Name} ${resident.Middle_Name || ''} ${resident.Last_Name}`.trim(),
+            age: age,
+            address: resident.Street_Address || 'Not specified',
+            sitio: resident.sitio_name || 'Not specified',
+            contact: resident.Mobile_Number || 'Not specified'
+          }
+        });
+      }
+
+      // QR code not found in any table
+      return res.json({
+        status: 'INVALID',
+        message: 'QR code not found or invalid. This document may be counterfeit or expired.'
+      });
+
+    } catch (error) {
+      console.error('QR verification error:', error);
+      return res.status(500).json({
+        status: 'ERROR',
+        message: 'Verification service temporarily unavailable. Please try again later.'
       });
     }
   }

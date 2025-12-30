@@ -14,14 +14,15 @@ import {
 } from '@mui/material'
 import { LockOutlined, PersonAdd, Business, Person } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
+import { useAuth } from '../contexts/AuthContext'
 
-const Login = ({ onLogin }) => {
+const Login = () => {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
-  const [isUsingUsername, setIsUsingUsername] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -40,39 +41,25 @@ const Login = ({ onLogin }) => {
     try {
       console.log('🔐 Attempting resident login...')
 
-      // Authenticate with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password)
-      const user = userCredential.user
+      // Authenticate with resident login endpoint
+      const response = await apiRequest('auth/resident/login', {
+        method: 'POST',
+        body: {
+          username: formData.email, // Username can be email or username
+          password: formData.password
+        }
+      })
 
-      console.log('✅ Firebase authentication successful:', { uid: user.uid, email: user.email })
-
-      // Get additional user data from the Firebase User object
-      const userInfo = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || user.email.split('@')[0],
-        emailVerified: user.emailVerified,
-        role: 'resident',
-        auth_type: 'firebase',
-        created_at: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Login failed')
       }
 
-      // Store resident authentication data in localStorage
-      localStorage.setItem('residentUser', JSON.stringify(userInfo))
-      localStorage.setItem('residentAuthToken', await user.getIdToken())
-      localStorage.setItem('residentAuthTimestamp', Date.now().toString())
+      const data = await response.json()
+      console.log('✅ Resident login successful:', { role: data.user.role, username: data.user.username })
 
-      // Clear any officer auth data to avoid conflicts
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('user')
-
-      console.log('✅ Resident login successful - proceeding to dashboard')
-
-      // Call onLogin callback to update app state
-      if (onLogin) {
-        onLogin(userInfo)
-      }
+      // Use AuthContext login function
+      login(data.token)
 
       // Navigate to dashboard
       navigate('/')
@@ -82,17 +69,15 @@ const Login = ({ onLogin }) => {
 
       let errorMessage = 'Login failed. Please try again.'
 
-      // Handle specific Firebase errors
-      if (err.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email address.'
-      } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        errorMessage = 'Invalid email or password.'
-      } else if (err.code === 'auth/user-disabled') {
-        errorMessage = 'This account has been disabled.'
-      } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address format.'
-      } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed login attempts. Please try again later.'
+      // Handle API error messages
+      if (err.message) {
+        errorMessage = err.message
+      } else if (err.message.includes('Invalid credentials')) {
+        errorMessage = 'Invalid username or password.'
+      } else if (err.message.includes('Invalid Resident ID')) {
+        errorMessage = 'Invalid Resident ID.'
+      } else if (err.message.includes('Invalid PIN')) {
+        errorMessage = 'Invalid PIN.'
       }
 
       setError(errorMessage)
@@ -140,14 +125,7 @@ const Login = ({ onLogin }) => {
             </Alert>
           )}
 
-          <Alert severity="info" sx={{ width: '100%', mb: 2 }}>
-            <Typography variant="body2">
-              This login is for residents and the general public who have created accounts through our signup process.
-              Barangay staff should use the Officer Login.
-              <br />
-              <strong>Note:</strong> Complete your residency verification in Settings after login.
-            </Typography>
-          </Alert>
+
 
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
             <TextField
@@ -155,9 +133,9 @@ const Login = ({ onLogin }) => {
               required
               fullWidth
               id="email"
-              label="Email or Username"
+              label="Email or Resident ID"
               name="email"
-              autoComplete="email"
+              autoComplete="username"
               autoFocus
               value={formData.email}
               onChange={handleChange}

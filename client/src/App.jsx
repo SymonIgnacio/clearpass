@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
@@ -15,8 +15,9 @@ import CommunityEvents from './pages/CommunityEvents'
 import Settings from './pages/Settings'
 import SuperAdminSettings from './pages/SuperAdminSettings'
 import ResidentSettings from './pages/ResidentSettings'
-import AdminReports from './pages/AdminReports'
+
 import Login from './pages/Login'
+import Register from './pages/Register'
 import OfficerLogin from './pages/OfficerLogin'
 import AIPatrol from './pages/AIPatrol'
 import RondaAnalytics from './pages/RondaAnalytics'
@@ -25,9 +26,10 @@ import AccountVerification from './components/AccountVerification'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import ProtectedRoute from './components/ProtectedRoute'
-import BantayChatbot from './components/BantayChatbot'
+
 import ErrorBoundary from './components/ErrorBoundary'
 import { NotificationProvider } from './contexts/NotificationContext'
+import { AuthProvider } from './contexts/AuthContext'
 
 const theme = createTheme({
   palette: {
@@ -254,263 +256,119 @@ const theme = createTheme({
 })
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [user, setUser] = useState(null)
-
-  // Authentication check - supports staff and resident authentication
-  useEffect(() => {
-    const checkAuthentication = async () => {
-      // Check for officer authentication (database + JWT)
-      const officerToken = localStorage.getItem('authToken')
-      const officerUser = localStorage.getItem('user')
-
-      // Check for resident authentication (Firebase-based)
-      const residentUser = localStorage.getItem('residentUser')
-      const residentToken = localStorage.getItem('residentAuthToken')
-
-      // No authentication found - set logged out
-      if ((!officerToken || !officerUser) && (!residentUser || !residentToken)) {
-        setIsAuthenticated(false)
-        setUser(null)
-        return
-      }
-
-      // Handle officer authentication
-      if (officerToken && officerUser) {
-        try {
-          const parsedUser = JSON.parse(officerUser)
-          console.log('🔐 Initializing with officer auth data:', { userId: parsedUser.id, role: parsedUser.role })
-
-          setUser(parsedUser)
-          setIsAuthenticated(true)
-        } catch (error) {
-          console.error('❌ Failed to parse stored officer user data:', error)
-          localStorage.removeItem('authToken')
-          localStorage.removeItem('user')
-          setIsAuthenticated(false)
-        }
-        return
-      }
-
-      // Handle resident authentication
-      if (residentUser && residentToken) {
-        try {
-          const parsedUser = JSON.parse(residentUser)
-          console.log('🔐 Initializing with resident auth data:', { uid: parsedUser.uid, role: parsedUser.role })
-
-          // Validate the localStorage data structure
-          if (parsedUser && parsedUser.uid && parsedUser.email && parsedUser.role === 'resident') {
-            setUser(parsedUser)
-            setIsAuthenticated(true)
-            console.log('✅ Resident authentication successful via localStorage')
-          } else {
-            throw new Error('Invalid resident user data structure')
-          }
-        } catch (error) {
-          console.error('❌ Failed to parse resident user data:', error)
-          localStorage.removeItem('residentUser')
-          localStorage.removeItem('residentAuthToken')
-          setIsAuthenticated(false)
-        }
-        return
-      }
-
-      // No valid authentication found
-      setIsAuthenticated(false)
-    }
-
-    checkAuthentication()
-  }, [])
-
-  const handleLogin = (userData) => {
-    setUser(userData)
-    setIsAuthenticated(true)
-  }
-
-  const handleLogout = () => {
-    // Determine appropriate login page based on user type - THEMIS ClearPass compatibility
-    const THEMIS_ROLE_MAP = {
-      1: 'admin',           // IT Admin
-      2: 'clerk',           // Clerk
-      3: 'blotter_officer', // Blotter Officer
-      4: 'resident',        // Resident
-      5: 'captain',         // Captain
-      6: 'secretary'        // Secretary
-    }
-
-    // Convert numeric THEMIS role to string for compatibility, or use as-is if already string
-    const userRole = typeof user?.role === 'number' ? THEMIS_ROLE_MAP[user.role] || user.role : user?.role
-    const isStaffUser = userRole && ['admin', 'captain', 'secretary', 'clerk'].includes(userRole);
-    const loginPage = isStaffUser ? '/officerlogin' : '/login';
-
-    // Clear all authentication data for both user types
-    localStorage.removeItem('authToken')
-    localStorage.removeItem('user')
-    localStorage.removeItem('residentAuthToken')
-    localStorage.removeItem('residentUser')
-
-    setUser(null)
-    setIsAuthenticated(false)
-
-    // Programmatically navigate to the appropriate login page
-    setTimeout(() => {
-      window.location.href = loginPage;
-    }, 100);
-  }
 
   return (
     <ErrorBoundary>
-      <NotificationProvider>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          {/* Public routes */}
-          <Route
-            path="/login"
-            element={
-              isAuthenticated ? (
-                <Navigate to="/" replace />
-              ) : (
-                <Login onLogin={handleLogin} />
-              )
-            }
-          />
+      <AuthProvider>
+        <NotificationProvider>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Register />} />
+              <Route path="/officerlogin" element={<OfficerLogin />} />
+              <Route path="/verify-account" element={<AccountVerification />} />
 
-          <Route
-            path="/officerlogin"
-            element={
-              isAuthenticated ? (
-                <Navigate to="/" replace />
-              ) : (
-                <OfficerLogin onLogin={handleLogin} />
-              )
-            }
-          />
-
-
-
-          <Route
-            path="/verify-account"
-            element={
-              isAuthenticated ? (
-                <Navigate to="/" replace />
-              ) : (
-                <AccountVerification />
-              )
-            }
-          />
-
-          {/* Protected Layout Route */}
-          <Route
-            path="/"
-            element={
-              isAuthenticated ? (
-                <Box sx={{
-                  display: 'flex',
-                  minHeight: '100vh',
-                  backgroundColor: 'background.default'
-                }}>
-                  <Sidebar user={user} onLogout={handleLogout} />
-                  <Box
-                    component="main"
-                    sx={{
-                      flexGrow: 1,
-                      marginLeft: '280px', // Account for sidebar width
-                      transition: 'margin-left 0.3s ease-in-out',
-                    }}
-                  >
-                    <Header user={user} onLogout={handleLogout} />
+              {/* Protected Layout Route */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
                     <Box sx={{
-                      p: 4,
-                      minHeight: 'calc(100vh - 64px)', // Account for header height
+                      display: 'flex',
+                      minHeight: '100vh',
                       backgroundColor: 'background.default'
                     }}>
-                      <Outlet />
-                      {/* BANTAY AI Chatbot - Available on all authenticated pages */}
-                      <BantayChatbot />
+                      <Sidebar />
+                      <Box
+                        component="main"
+                        sx={{
+                          flexGrow: 1,
+                          marginLeft: '280px', // Account for sidebar width
+                          transition: 'margin-left 0.3s ease-in-out',
+                        }}
+                      >
+                        <Header />
+                        <Box sx={{
+                          p: 4,
+                          minHeight: 'calc(100vh - 64px)', // Account for header height
+                          backgroundColor: 'background.default'
+                        }}>
+                          <Outlet />
+                        </Box>
+                      </Box>
                     </Box>
-                  </Box>
-                </Box>
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          >
+                  </ProtectedRoute>
+                }
+              >
             {/* Nested protected routes */}
-            <Route index element={
-              user?.role === 4 || user?.role === 'resident' ?
-                <ResidentDashboard user={user} /> :
-                <Dashboard user={user} />
-            } />
-            <Route path="residents" element={<Residents user={user} />} />
+            <Route index element={<Dashboard />} />
+            <Route path="residents" element={<Residents />} />
             <Route
               path="users"
               element={
-                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary']}>
-                  <Users user={user} />
+                <ProtectedRoute requiredRoles={[1, 'admin']}>
+                  <Users />
                 </ProtectedRoute>
               }
             />
-            <Route path="blotter" element={<Blotter user={user} />} />
+            <Route path="blotter" element={<Blotter />} />
             <Route
               path="documents"
               element={
-                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary', 'clerk']}>
+                <ProtectedRoute requiredRoles={[1, 'admin']}>
                   <DocumentsDashboard />
                 </ProtectedRoute>
               }
             />
 
-            <Route path="census" element={<Census user={user} />} />
-            <Route path="events" element={<CommunityEvents user={user} />} />
+            <Route path="census" element={<Census />} />
+            <Route path="events" element={<CommunityEvents />} />
 
-            <Route path="settings" element={
-              user?.role === 4 || user?.role === 'resident' ?
-                <ResidentSettings user={user} /> :
-                <SuperAdminSettings user={user} />
-            } />
+            <Route path="settings" element={<SuperAdminSettings />} />
 
             {/* Legacy redirects */}
             <Route path="qr-verify" element={<Navigate to="/" replace />} />
             <Route path="qr-verification" element={<Navigate to="/" replace />} />
 
-            {/* AI Routes */}
+            {/* AI Routes - Available to all authenticated users */}
             <Route
               path="ai-dashboard"
               element={
-                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary', 'clerk']}>
-                  <AIPatrol user={user} />
+                <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6, 'admin', 'captain', 'secretary', 'clerk', 'officer', 'resident']}>
+                  <AIPatrol />
                 </ProtectedRoute>
               }
             />
             <Route
               path="ai-patrol"
               element={
-                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary', 'clerk']}>
-                  <AIPatrol user={user} />
+                <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6, 'admin', 'captain', 'secretary', 'clerk', 'officer', 'resident']}>
+                  <AIPatrol />
                 </ProtectedRoute>
               }
             />
             <Route
               path="ronda-analytics"
               element={
-                <ProtectedRoute requiredRoles={['admin', 'captain', 'secretary', 'clerk']}>
-                  <RondaAnalytics user={user} />
+                <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6, 'admin', 'captain', 'secretary', 'clerk', 'officer', 'resident']}>
+                  <RondaAnalytics />
                 </ProtectedRoute>
               }
             />
 
-            {/* Backward compatibility redirects */}
-            <Route path="certificates" element={<Navigate to="documents" replace />} />
-            <Route path="document-templates" element={<Navigate to="documents" replace />} />
-            <Route path="reports" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </Router>
-    </ThemeProvider>
-  </NotificationProvider>
-</ErrorBoundary>
+                {/* Backward compatibility redirects */}
+                <Route path="certificates" element={<Navigate to="documents" replace />} />
+                <Route path="document-templates" element={<Navigate to="documents" replace />} />
+              </Route>
+            </Routes>
+          </Router>
+        </ThemeProvider>
+      </NotificationProvider>
+    </AuthProvider>
+  </ErrorBoundary>
   )
 }
 

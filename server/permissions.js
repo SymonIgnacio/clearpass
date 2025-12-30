@@ -48,10 +48,20 @@ const THEMIS_PERMISSIONS = {
       'GET /api/documents/requests': true,
       'PUT /api/documents/requests/:id/process': true,  // PROCESS & RELEASE
 
-      // Resident registration and data access
-      'POST /api/clerk/residents': true,
+      // Resident management - full read access, create/edit but no delete
+      'GET /api/residents': true,  // List all residents
       'GET /api/residents/:id': true,  // View specific resident
       'GET /api/residents/search': true,
+      'POST /api/residents': true,  // Create residents
+      'POST /api/clerk/residents': true,  // Create residents (alternative endpoint)
+      'PUT /api/residents/:id': true,  // Update residents
+
+      // Household and sitio data access (needed for resident assignment)
+      'GET /api/households': true,
+      'GET /api/sitios': true,
+
+      // Blotter data access (for dashboard statistics)
+      'GET /api/blotter': true,
 
       // Clerk dashboard and documents
       'GET /api/clerk/clearances': true,

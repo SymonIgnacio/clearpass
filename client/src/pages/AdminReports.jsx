@@ -155,21 +155,28 @@ const AdminReports = () => {
     setError(null)
     try {
       const reportPromises = tabs.map(tab =>
-        api.get(`/admin/reports/${tab.key}`).catch(err => {
-          console.error(`Failed to load ${tab.key} report:`, err)
-          return null
-        })
+        api.get(`/admin/reports/${tab.key}`)
       )
 
-      const results = await Promise.all(reportPromises)
+      const results = await Promise.allSettled(reportPromises)
 
       const newReports = {}
-      tabs.forEach((tab, index) => {
-        newReports[tab.key] = results[index]
+      results.forEach((result, index) => {
+        const tabKey = tabs[index].key
+        if (result.status === 'fulfilled') {
+          // Successfully loaded report
+          newReports[tabKey] = result.value
+        } else {
+          // Report failed to load - set to null and log error
+          console.error(`Failed to load ${tabKey} report:`, result.reason)
+          newReports[tabKey] = null
+        }
       })
 
       setReports(newReports)
     } catch (err) {
+      // This catch block should rarely be hit with Promise.allSettled
+      console.error('Unexpected error in loadAllReports:', err)
       setError(`Failed to load reports: ${err.message}`)
     } finally {
       setLoading(false)
@@ -932,6 +939,33 @@ const AdminReports = () => {
     )
   }
 
+  // Show full loading screen during initial load
+  if (loading && !reports.users) {
+    return (
+      <Container maxWidth="xl">
+        <Box
+          sx={{
+            py: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '60vh'
+          }}
+        >
+          <CircularProgress size={64} sx={{ mb: 3 }} />
+          <Typography variant="h5" gutterBottom>
+            Loading Reports Dashboard
+          </Typography>
+          <Typography variant="body1" color="text.secondary" align="center">
+            Fetching system analytics and report data...<br />
+            This may take a few moments.
+          </Typography>
+        </Box>
+      </Container>
+    )
+  }
+
   return (
     <Container maxWidth="xl">
       <Box sx={{ py: 4 }}>
@@ -965,12 +999,12 @@ const AdminReports = () => {
           </Box>
         </Box>
 
-        {/* Loading Progress */}
-        {loading && (
+        {/* Loading Progress for refresh operations */}
+        {loading && reports.users && (
           <Box mb={3}>
             <LinearProgress />
             <Typography variant="body2" color="textSecondary" align="center" sx={{ mt: 1 }}>
-              Loading reports...
+              Refreshing reports...
             </Typography>
           </Box>
         )}

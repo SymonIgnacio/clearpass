@@ -36,156 +36,90 @@ import {
   Settings,
   Lock
 } from '@mui/icons-material'
-import { getNavigationForUser } from '../config/navigation'
+import { useAuth } from '../contexts/AuthContext'
 
 const drawerWidth = 280
 
-const Sidebar = ({ user, onLogout }) => {
+const Sidebar = () => {
   const location = useLocation()
+  const { user, logout } = useAuth()
 
-  // Use new navigation config system - fallback to legacy system if needed
-  let menuItems = []
+  // Menu items with role-based access control - hide items user doesn't have access to
+  const allMenuItems = [
+    {
+      text: 'Dashboard',
+      icon: <Dashboard />,
+      path: '/',
+      description: 'Overview & Analytics',
+      roles: ['admin', 'captain', 'secretary', 'clerk', 'officer', 'resident'] // All roles can access
+    },
+    {
+      text: 'User Management',
+      icon: <SupervisorAccount />,
+      path: '/users',
+      description: 'Manage Staff Accounts & Roles',
+      roles: ['admin'] // IT Admin (1) ONLY
+    },
 
-  try {
-    // Try to use the new NAV_ITEMS config system
-    const navItems = getNavigationForUser(user)
+    {
+      text: 'Residents',
+      icon: <People />,
+      path: '/residents',
+      description: 'Resident Records Management',
+      roles: ['admin', 'captain', 'secretary', 'clerk'] // Admin, Captain, Secretary, Clerk
+    },
+    {
+      text: 'Blotter',
+      icon: <Gavel />,
+      path: '/blotter',
+      description: 'Incident Reports & Case Management',
+      roles: ['admin', 'captain', 'officer'] // Admin, Captain, Officer (NOT Clerk, NOT Secretary)
+    },
+    {
+      text: 'Document Center',
+      icon: <Description />,
+      path: '/documents',
+      description: 'Certificates & Clearance Processing',
+      roles: ['admin'] // IT Admin (1) ONLY
+    },
 
-    // Map navigation config to menu item format with icons
-    menuItems = navItems.map(item => {
-      const iconMap = {
-        'Dashboard': <Dashboard />,
-        'User Management': <SupervisorAccount />,
-        'System Settings': <Settings />,
-        'Resident Import': <People />,
-        'Clearance Processing': <Description />,
-        'Issue Certificates': <DocumentScanner />,
-        'Blotter Cases': <Gavel />,
-        'Incident Analytics': <Analytics />,
-        'Blotter Oversight': <Gavel />,
-        'Executive Reports': <Assessment />,
-        'My Requests': <Assignment />,
-        'My Profile': <Person />
-      }
-
-      return {
-        text: item.label,
-        icon: iconMap[item.label] || <Dashboard />,
-        path: item.path,
-        description: getDescriptionForItem(item.label),
-        badge: item.label === 'AI Hub' ? 'AI' : null
-      }
-    })
-  } catch (error) {
-    console.warn('Navigation config error, falling back to legacy system:', error)
-
-    // Fallback to legacy menu items system
-    const allMenuItems = [
-      {
-        text: 'Dashboard',
-        icon: <Dashboard />,
-        path: '/',
-        description: 'Overview & Analytics',
-        roles: ['admin', 'captain', 'secretary', 'clerk', 'resident'] // All roles can access
-      },
-      {
-        text: 'Residents',
-        icon: <People />,
-        path: '/residents',
-        description: 'Manage Residents',
-        roles: ['admin', 'captain', 'secretary', 'clerk'] // Show based on permissions (STAFF ONLY)
-      },
-      {
-        text: 'Users',
-        icon: <SupervisorAccount />,
-        path: '/users',
-        description: 'Manage User Accounts',
-        roles: ['admin', 'captain', 'secretary'] // Show based on permissions (STAFF ONLY)
-      },
-      {
-        text: 'Blotter',
-        icon: <Gavel />,
-        path: '/blotter',
-        description: 'Incident Reports',
-        roles: ['admin', 'captain', 'secretary', 'clerk'] // Staff roles only (RESIDENTS SHOULD NOT SEE THIS)
-      },
-      {
-        text: 'Document Center',
-        icon: <Description />,
-        path: '/documents',
-        description: 'Certificates & Templates',
-        roles: ['admin', 'captain', 'secretary', 'clerk'] // Show based on permissions (STAFF ONLY)
-      },
-      {
-        text: 'Census',
-        icon: <Assessment />,
-        path: '/census',
-        description: 'Population Stats',
-        roles: ['admin', 'captain', 'secretary', 'clerk'] // Staff roles only
-      },
-      {
-        text: 'AI Hub',
-        icon: <SmartToy />,
-        path: '/ai-dashboard',
-        description: 'AI Command Center & Analytics',
-        badge: 'AI',
-        roles: ['admin', 'captain', 'secretary', 'clerk'] // Staff roles only (RESIDENTS SHOULD NOT ACCESS STAFF AI FEATURES)
-      },
-      {
-        text: 'Events',
-        icon: <Event />,
-        path: '/events',
-        description: 'Community Programs',
-        roles: ['admin', 'captain', 'secretary', 'clerk'] // Staff roles only (RESIDENTS SHOULD NOT SEE INTERNAL EVENTS MANAGEMENT)
-      },
-      {
-        text: 'Settings',
-        icon: <Settings />,
-        path: '/settings',
-        description: 'Account Settings & Document Requests',
-        roles: ['admin', 'captain', 'secretary', 'clerk', 'resident'] // All roles can access their settings
-      }
-    ]
-
-    // Filter menu items based on user role - THEMIS ClearPass compatibility
-    menuItems = allMenuItems.filter(item => {
-      if (!user || !user.role) return false
-
-      // THEMIS ClearPass: Handle both numeric THEMIS roles and legacy string roles
-      const THEMIS_ROLE_MAP = {
-        1: 'admin',           // IT Admin
-        2: 'clerk',           // Clerk
-        3: 'blotter_officer', // Blotter Officer
-        4: 'resident',        // Resident
-        5: 'captain',         // Captain
-        6: 'secretary'        // Secretary
-      }
-
-      // Convert numeric THEMIS role to string for compatibility, or use as-is if already string
-      const userRole = typeof user.role === 'number' ? THEMIS_ROLE_MAP[user.role] || user.role : user.role
-
-      // Check if user role is in item's allowed roles
-      return item.roles.includes(userRole)
-    })
-  }
-
-  // Helper function to get descriptions for navigation items
-  function getDescriptionForItem(label) {
-    const descriptions = {
-      'Dashboard': 'Overview & Analytics',
-      'User Management': 'Manage User Accounts',
-      'System Settings': 'System Configuration',
-      'Resident Import': 'Bulk Resident Import',
-      'Clearance Processing': 'Process Clearance Requests',
-      'Issue Certificates': 'Print & Issue Certificates',
-      'Blotter Cases': 'Manage Incident Reports',
-      'Incident Analytics': 'Case Analysis & Trends',
-      'Blotter Oversight': 'Read-Only Incident Reports',
-      'Executive Reports': 'Analytics & Reports',
-      'My Requests': 'Track Your Requests',
-      'My Profile': 'Update Personal Information'
+    {
+      text: 'AI Hub',
+      icon: <SmartToy />,
+      path: '/ai-dashboard',
+      description: 'AI Analytics & Assistant',
+      badge: 'AI',
+      roles: ['admin', 'captain', 'secretary', 'clerk', 'officer', 'resident'] // All roles
+    },
+    {
+      text: 'Settings',
+      icon: <Settings />,
+      path: '/settings',
+      description: 'Account Settings & System Config',
+      roles: ['admin', 'captain', 'secretary', 'clerk', 'officer', 'resident'] // All roles
     }
-    return descriptions[label] || 'Navigation Item'
-  }
+  ]
+
+  // Filter menu items based on user role - THEMIS ClearPass compatibility
+  const menuItems = allMenuItems.filter(item => {
+    if (!user || !user.role) return false
+
+    // THEMIS ClearPass: Handle both numeric THEMIS roles and legacy string roles
+    const THEMIS_ROLE_MAP = {
+      1: 'admin',           // IT Admin
+      2: 'clerk',           // Clerk
+      3: 'officer',         // Blotter Officer
+      4: 'resident',        // Resident
+      5: 'captain',         // Captain
+      6: 'secretary'        // Secretary
+    }
+
+    // Convert numeric THEMIS role to string for compatibility, or use as-is if already string
+    const userRole = typeof user.role === 'number' ? THEMIS_ROLE_MAP[user.role] || user.role : user.role
+
+    // Check if user role is in item's allowed roles
+    return item.roles.includes(userRole)
+  })
 
   return (
     <Drawer
@@ -370,7 +304,7 @@ const Sidebar = ({ user, onLogout }) => {
               fullWidth
               variant="outlined"
               size="small"
-              onClick={onLogout}
+              onClick={logout}
               startIcon={<Logout />}
               sx={{
                 borderRadius: 2,

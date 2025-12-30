@@ -130,8 +130,48 @@ exports.seed = async function (knex) {
     }
   ]);
 
+  // Hash password for hardcoded resident user
+  const hardcodedPasswordHash = await bcrypt.hash('123456', saltRounds);
+
+  // Users Data (Add hardcoded resident user)
+  await knex('users').insert([
+    {
+      username: 'Symonignacio1@gmail.com',
+      password_hash: hardcodedPasswordHash,
+      role: 'resident',
+      email: 'Symonignacio1@gmail.com',
+      full_name: 'Symon Ignacio',
+      contact_number: '09625460372',
+      is_active: true,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now()
+    },
+    // ... existing users
+  ]);
+
   // Residents Data (Sample - first 10 residents)
   await knex('residents').insert([
+    {
+      Resident_ID: 'RES-HARDCODED-001',
+      Household_ID: 'H-2025-001', // Assign to first household
+      Relation_to_Head: 'Boarder',
+      First_Name: 'Symon',
+      Middle_Name: 'Balilla',
+      Last_Name: 'Ignacio',
+      Birthdate: '2004-07-01',
+      Age: 21,
+      Gender: 'Male',
+      Civil_Status: 'Single',
+      Occupation: 'Student',
+      Income_Estimate: 0.00,
+      Email: 'Symonignacio1@gmail.com',
+      Mobile_Number: '09625460372',
+      Voter_Status: 'Non-Registered',
+      Date_Arrival: '2025-12-19',
+      Residency_Status: 'Active',
+      Profile_Photo_URL: 'https://i.pravatar.cc/150?img=10',
+      QR_Hash_String: 'QR-RES-HARDCODED-001'
+    },
     {
       Resident_ID: 'RES-2025-001',
       Household_ID: 'H-2025-001',

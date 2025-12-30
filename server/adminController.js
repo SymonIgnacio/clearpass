@@ -1,4 +1,21 @@
-const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+const mysql = require('mysql2/promise');
+
+// Database configuration
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'barangay_management',
+  port: process.env.DB_PORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+};
+
+// Get database connection
+async function getDbConnection() {
+  return await mysql.createPool(dbConfig);
+}
 
 /**
  * THEMIS CLEARPASS ADMIN CONTROLLER
@@ -7,6 +24,8 @@ const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'deve
 
 // Get dashboard statistics for IT Admin
 async function getDashboardStats(req, res) {
+  const connection = await getDbConnection();
+
   try {
     // System health metrics
     const dbHealth = {
@@ -19,7 +38,7 @@ async function getDashboardStats(req, res) {
     const tables = ['users', 'residents', 'blotter', 'certificates_log'];
     for (const table of tables) {
       try {
-        const [count] = await knex(table).count('* as count');
+        const [count] = await connection.execute(`SELECT COUNT(*) as count FROM ${table}`);
         dbHealth.tables.push({
           table_name: table,
           record_count: count[0].count,
@@ -43,12 +62,13 @@ async function getDashboardStats(req, res) {
     };
 
     // User management stats
-    const [userStats] = await knex('users')
-      .select(
-        knex.raw('COUNT(*) as total_users'),
-        knex.raw('SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END) as active_users'),
-        knex.raw('COUNT(DISTINCT role) as roles_count')
-      );
+    const [userStats] = await connection.execute(`
+      SELECT
+        COUNT(*) as total_users,
+        SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END) as active_users,
+        COUNT(DISTINCT role) as roles_count
+      FROM users
+    `);
 
     res.json({
       system_health: dbHealth,
@@ -60,6 +80,8 @@ async function getDashboardStats(req, res) {
   } catch (error) {
     console.error('Admin dashboard error:', error);
     res.status(500).json({ error: 'Failed to load admin dashboard' });
+  } finally {
+    await connection.end();
   }
 }
 
@@ -107,22 +129,43 @@ async function getAiTechnicalView(req, res) {
 
 // Get all users for management
 async function getAllUsers(req, res) {
+  const connection = await getDbConnection();
+
   try {
     const { page = 1, limit = 50, role, status } = req.query;
     const offset = (page - 1) * limit;
 
-    let query = knex('users')
-      .select('id', 'username', 'full_name', 'email', 'role', 'is_active', 'created_at', 'last_login')
-      .orderBy('created_at', 'desc')
-      .limit(limit)
-      .offset(offset);
+    // Build WHERE conditions
+    let whereConditions = [];
+    let values = [];
 
-    if (role) query = query.where('role', role);
-    if (status === 'active') query = query.where('is_active', true);
-    if (status === 'inactive') query = query.where('is_active', false);
+    if (role) {
+      whereConditions.push('role = ?');
+      values.push(role);
+    }
+    if (status === 'active') {
+      whereConditions.push('is_active = true');
+    } else if (status === 'inactive') {
+      whereConditions.push('is_active = false');
+    }
 
-    const users = await query;
-    const [{ total }] = await knex('users').count('* as total');
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    // Get users
+    const [users] = await connection.execute(`
+      SELECT id, username, full_name, email, role, is_active, created_at, last_login
+      FROM users
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `, [...values, parseInt(limit), offset]);
+
+    // Get total count
+    const [totalResult] = await connection.execute(`
+      SELECT COUNT(*) as total FROM users ${whereClause}
+    `, values);
+
+    const total = totalResult[0].total;
 
     res.json({
       users,
@@ -137,14 +180,18 @@ async function getAllUsers(req, res) {
   } catch (error) {
     console.error('Get users error:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
+  } finally {
+    await connection.end();
   }
 }
 
 // Create new user
 async function createUser(req, res) {
-  const trx = await knex.transaction();
+  const connection = await getDbConnection();
 
   try {
+    await connection.beginTransaction();
+
     const { username, password, full_name, email, role } = req.body;
 
     // Validate required fields
@@ -153,9 +200,12 @@ async function createUser(req, res) {
     }
 
     // Check if username already exists
-    const existingUser = await trx('users').where('username', username).first();
-    if (existingUser) {
-      await trx.rollback();
+    const [existingUsers] = await connection.execute(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+    if (existingUsers.length > 0) {
+      await connection.rollback();
       return res.status(400).json({ error: 'Username already exists' });
     }
 
@@ -163,29 +213,96 @@ async function createUser(req, res) {
     const password_hash = password; // Placeholder
 
     // Create user
-    const [userId] = await trx('users').insert({
-      username,
-      password_hash,
-      full_name,
-      email,
-      role: parseInt(role),
-      is_active: true,
-      created_at: trx.fn.now(),
-      updated_at: trx.fn.now()
-    });
+    const [result] = await connection.execute(
+      'INSERT INTO users (username, password_hash, full_name, email, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, true, NOW(), NOW())',
+      [username, password_hash, full_name, email, parseInt(role)]
+    );
 
-    await trx.commit();
+    await connection.commit();
 
     res.status(201).json({
       success: true,
-      user_id: userId,
+      user_id: result.insertId,
       message: 'User created successfully'
     });
 
   } catch (error) {
-    await trx.rollback();
+    await connection.rollback();
     console.error('Create user error:', error);
     res.status(500).json({ error: 'Failed to create user' });
+  } finally {
+    await connection.end();
+  }
+}
+
+// Update user - SECURE: Prevent hierarchy privilege escalation
+async function updateUser(req, res) {
+  const connection = await getDbConnection();
+
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const requestingUser = req.user;
+
+    console.log(`🔐 User update request: User ${id} being updated by ${requestingUser.id} (Role: ${requestingUser.role})`);
+
+    // SECURITY CHECK: Prevent hierarchy privilege escalation
+    // Only Super Admin (Role 1) can modify parent_user_id field
+    if (updateData.parent_user_id !== undefined) {
+      if (requestingUser.role !== 1) {
+        console.log(`🚫 HIERARCHY ESCALATION BLOCKED: User ${requestingUser.id} (Role ${requestingUser.role}) attempted to modify parent_user_id`);
+        return res.status(403).json({
+          error: 'Forbidden: Insufficient privileges to modify hierarchy',
+          message: 'Only Super Admin can change user hierarchy assignments'
+        });
+      }
+      console.log(`✅ HIERARCHY MODIFICATION ALLOWED: Super Admin ${requestingUser.id} modifying parent_user_id for user ${id}`);
+    }
+
+    // Build update object, excluding sensitive fields that shouldn't be updated directly
+    const allowedUpdates = {};
+    const updatableFields = ['full_name', 'email', 'contact_number', 'role', 'is_active', 'parent_user_id'];
+
+    for (const field of updatableFields) {
+      if (updateData[field] !== undefined) {
+        allowedUpdates[field] = updateData[field];
+      }
+    }
+
+    // Add updated_at timestamp
+    allowedUpdates.updated_at = 'NOW()';
+
+    // Build the update query
+    const updateFields = [];
+    const values = [];
+
+    Object.keys(allowedUpdates).forEach(field => {
+      updateFields.push(`${field} = ?`);
+      values.push(allowedUpdates[field]);
+    });
+
+    const sql = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
+    values.push(id);
+
+    const [result] = await connection.execute(sql, values);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    console.log(`✅ User ${id} updated successfully by ${requestingUser.id}`);
+
+    res.json({
+      success: true,
+      message: 'User updated successfully',
+      updated_fields: Object.keys(allowedUpdates)
+    });
+
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({ error: 'Failed to update user' });
+  } finally {
+    await connection.end();
   }
 }
 
@@ -193,51 +310,57 @@ const puppeteer = require('puppeteer');
 
 // Generate PDF report for blotter cases
 async function generateBlotterPDF(req, res) {
+  const connection = await getDbConnection();
+
   try {
     const { search, status, sitio, dateFrom, dateTo } = req.query;
 
-    // Build query with filters
-    let query = knex('blotter')
-      .select(
-        'Case_Number',
-        'Incident_Type',
-        knex.raw('JSON_UNQUOTE(JSON_EXTRACT(Complainant_Details, "$.name")) as complainant_name'),
-        knex.raw('JSON_UNQUOTE(JSON_EXTRACT(Respondent_Details, "$.name")) as respondent_name'),
-        'Location_Sitio',
-        'Status',
-        'DateTime_Incident',
-        'Narrative'
-      )
-      .orderBy('DateTime_Incident', 'desc');
+    // Build WHERE conditions
+    let whereConditions = [];
+    let values = [];
 
     if (search) {
-      query = query.where(function() {
-        this.where('Case_Number', 'like', `%${search}%`)
-          .orWhere('Incident_Type', 'like', `%${search}%`)
-          .orWhereRaw('JSON_UNQUOTE(JSON_EXTRACT(Complainant_Details, "$.name")) LIKE ?', [`%${search}%`])
-          .orWhereRaw('JSON_UNQUOTE(JSON_EXTRACT(Respondent_Details, "$.name")) LIKE ?', [`%${search}%`])
-          .orWhere('Location_Sitio', 'like', `%${search}%`)
-          .orWhere('Narrative', 'like', `%${search}%`);
-      });
+      whereConditions.push('(Case_Number LIKE ? OR Incident_Type LIKE ? OR JSON_UNQUOTE(JSON_EXTRACT(Complainant_Details, "$.name")) LIKE ? OR JSON_UNQUOTE(JSON_EXTRACT(Respondent_Details, "$.name")) LIKE ? OR Location_Sitio LIKE ? OR Narrative LIKE ?)');
+      const searchTerm = `%${search}%`;
+      values.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
     }
 
     if (status) {
-      query = query.where('Status', status);
+      whereConditions.push('Status = ?');
+      values.push(status);
     }
 
     if (sitio) {
-      query = query.where('Location_Sitio', sitio);
+      whereConditions.push('Location_Sitio = ?');
+      values.push(sitio);
     }
 
     if (dateFrom) {
-      query = query.where('DateTime_Incident', '>=', dateFrom);
+      whereConditions.push('DateTime_Incident >= ?');
+      values.push(dateFrom);
     }
 
     if (dateTo) {
-      query = query.where('DateTime_Incident', '<=', dateTo + ' 23:59:59');
+      whereConditions.push('DateTime_Incident <= ?');
+      values.push(dateTo + ' 23:59:59');
     }
 
-    const blotterCases = await query;
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    const [blotterCases] = await connection.execute(`
+      SELECT
+        Case_Number,
+        Incident_Type,
+        JSON_UNQUOTE(JSON_EXTRACT(Complainant_Details, '$.name')) as complainant_name,
+        JSON_UNQUOTE(JSON_EXTRACT(Respondent_Details, '$.name')) as respondent_name,
+        Location_Sitio,
+        Status,
+        DateTime_Incident,
+        Narrative
+      FROM blotter
+      ${whereClause}
+      ORDER BY DateTime_Incident DESC
+    `, values);
 
     // Generate HTML content with actual blotter data
     const htmlContent = `
@@ -381,95 +504,96 @@ async function generateBlotterPDF(req, res) {
 
 // Generate PDF report for residents
 async function generateResidentsPDF(req, res) {
+  const connection = await getDbConnection();
+
   try {
     const { search, gender, sitio, vulnerability, residencyFilter, dateFrom, dateTo } = req.query;
 
-    // Build query with filters
-    let query = knex('residents as r')
-      .leftJoin('households as h', 'r.Household_ID', 'h.Household_ID')
-      .leftJoin('sitios as s', 'h.Sitio_ID', 's.id')
-      .select(
-        'r.Resident_ID',
-        'r.First_Name',
-        'r.Last_Name',
-        'r.Middle_Name',
-        'r.Suffix',
-        'r.Gender',
-        'r.Age',
-        'r.Mobile_Number',
-        'r.Residency_Status',
-        'r.Date_Arrival',
-        'r.Occupation',
-        'h.Household_Number',
-        's.name as sitio_name',
-        'r.Is_4Ps',
-        'r.Is_PWD',
-        'r.Is_Senior',
-        'r.Is_Solo_Parent',
-        'r.Is_Out_of_School_Youth'
-      )
-      .orderBy('r.Last_Name');
+    // Build WHERE conditions
+    let whereConditions = [];
+    let values = [];
 
     if (search) {
-      query = query.where(function() {
-        this.where('r.First_Name', 'like', `%${search}%`)
-          .orWhere('r.Last_Name', 'like', `%${search}%`)
-          .orWhere('r.Middle_Name', 'like', `%${search}%`)
-          .orWhere('h.Household_Number', 'like', `%${search}%`)
-          .orWhere('s.name', 'like', `%${search}%`)
-          .orWhere('r.Occupation', 'like', `%${search}%`);
-      });
+      whereConditions.push('(r.First_Name LIKE ? OR r.Last_Name LIKE ? OR r.Middle_Name LIKE ? OR h.Household_Number LIKE ? OR s.name LIKE ? OR r.Occupation LIKE ?)');
+      const searchTerm = `%${search}%`;
+      values.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
     }
 
     if (gender) {
-      query = query.where('r.Gender', gender);
+      whereConditions.push('r.Gender = ?');
+      values.push(gender);
     }
 
     if (sitio) {
-      query = query.where('s.name', sitio);
+      whereConditions.push('s.name = ?');
+      values.push(sitio);
     }
 
     if (residencyFilter) {
-      query = query.where('r.Residency_Status', residencyFilter);
+      whereConditions.push('r.Residency_Status = ?');
+      values.push(residencyFilter);
     }
 
     if (vulnerability === 'vulnerable') {
-      query = query.where(function() {
-        this.where('r.Is_4Ps', true)
-          .orWhere('r.Is_PWD', true)
-          .orWhere('r.Is_Senior', true)
-          .orWhere('r.Is_Solo_Parent', true)
-          .orWhere('r.Is_Out_of_School_Youth', true);
-      });
+      whereConditions.push('(r.Is_4Ps = true OR r.Is_PWD = true OR r.Is_Senior = true OR r.Is_Solo_Parent = true OR r.Is_Out_of_School_Youth = true)');
     } else if (vulnerability) {
       switch (vulnerability) {
         case 'senior':
-          query = query.where('r.Is_Senior', true);
+          whereConditions.push('r.Is_Senior = true');
           break;
         case 'pwd':
-          query = query.where('r.Is_PWD', true);
+          whereConditions.push('r.Is_PWD = true');
           break;
         case '4ps':
-          query = query.where('r.Is_4Ps', true);
+          whereConditions.push('r.Is_4Ps = true');
           break;
         case 'solo_parent':
-          query = query.where('r.Is_Solo_Parent', true);
+          whereConditions.push('r.Is_Solo_Parent = true');
           break;
         case 'osy':
-          query = query.where('r.Is_Out_of_School_Youth', true);
+          whereConditions.push('r.Is_Out_of_School_Youth = true');
           break;
       }
     }
 
     if (dateFrom) {
-      query = query.where('r.Date_Arrival', '>=', dateFrom);
+      whereConditions.push('r.Date_Arrival >= ?');
+      values.push(dateFrom);
     }
 
     if (dateTo) {
-      query = query.where('r.Date_Arrival', '<=', dateTo + ' 23:59:59');
+      whereConditions.push('r.Date_Arrival <= ?');
+      values.push(dateTo + ' 23:59:59');
     }
 
-    const residents = await query;
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    const [residents] = await connection.execute(`
+      SELECT
+        r.Resident_ID,
+        r.First_Name,
+        r.Last_Name,
+        r.Middle_Name,
+        r.Suffix,
+        r.Gender,
+        r.Age,
+        r.Mobile_Number,
+        r.Residency_Status,
+        r.Date_Arrival,
+        r.Occupation,
+        h.Household_Number,
+        s.name as sitio_name,
+        r.Is_4Ps,
+        r.Is_PWD,
+        r.Is_Senior,
+        r.Is_Solo_Parent,
+        r.Is_Out_of_School_Youth
+      FROM residents r
+      LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
+      ${whereClause}
+      ORDER BY r.Last_Name
+    `, values);
 
     // Generate HTML content for PDF
     const htmlContent = `
@@ -610,6 +734,7 @@ module.exports = {
   getAiTechnicalView,
   getAllUsers,
   createUser,
+  updateUser,
   generateBlotterPDF,
   generateResidentsPDF
 };

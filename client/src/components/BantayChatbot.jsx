@@ -130,12 +130,19 @@ const BantayChatbot = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Cleanup timeout on unmount
+  // Cleanup resources on unmount to prevent memory leaks
   useEffect(() => {
     return () => {
+      // Clear any pending retry timeouts
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
       }
+
+      // Reset connection status and cleanup state
+      setConnectionStatus('disconnected');
+      setRetryCount(0);
+      setIsTyping(false);
     };
   }, []);
 
