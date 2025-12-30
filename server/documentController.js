@@ -147,6 +147,14 @@ class DocumentController {
       const { resident_id, document_type, request_data } = req.body;
       const user_id = req.user?.id || req.body.user_id; // Get from auth or request
 
+      // CRITICAL: Enforce Verification Gate - Check account status
+      if (req.user?.account_status !== 'Verified') {
+        return res.status(403).json({
+          success: false,
+          message: 'Account is not verified. Please upload a valid ID first.'
+        });
+      }
+
       // Validate required fields
       if (!resident_id || !document_type) {
         return res.status(400).json({

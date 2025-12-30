@@ -57,6 +57,9 @@ const {
   checkOwnershipOrHierarchy
 } = require('./authMiddleware');
 
+// Import JWT middleware for document requests
+const { verifyToken: verifyTokenJWT } = require('./jwtMiddleware');
+
 // Import Firebase middleware
 const { verifyFirebaseToken } = require('./firebaseMiddleware');
 
@@ -3275,7 +3278,7 @@ const documentController = require('./documentController');
 app.get('/api/documents/types', documentController.getDocumentTypes);
 
 // Document request management
-app.post('/api/documents/requests', documentController.createDocumentRequest);
+app.post('/api/documents/requests', verifyTokenJWT, documentController.createDocumentRequest);
 app.get('/api/documents/requests', documentController.getDocumentRequests);
 app.put('/api/documents/requests/:request_id/approve', documentController.approveDocumentRequest);
 app.get('/api/documents/requests/:request_id/download', documentController.downloadDocument);

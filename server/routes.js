@@ -17,6 +17,20 @@ const upload = multer({
   }
 });
 
+// Configure multer for verification uploads
+const verificationUpload = multer({
+  dest: 'uploads/temp/',
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG, PNG, GIF images and PDF files are allowed'));
+    }
+  }
+});
+
 // Controllers
 const authController = require('./authController');
 const adminController = require('./adminController');
@@ -31,6 +45,12 @@ const documentController = require('./documentController');
 // =========================================================================
 router.post('/auth/login', authController.login);
 router.post('/auth/officer-login', authController.staffLogin); // THEMIS: Separate officer login endpoint
+
+// LOCAL MYSQL AUTHENTICATION - Resident Endpoints
+router.post('/auth/check-census', authController.checkCensus);
+router.post('/auth/register-resident', authController.registerResident);
+router.post('/auth/resident/login', authController.residentLoginLocal);
+
 // Note: Resident Signup is DISABLED per security policy.
 
 // =========================================================================
@@ -103,6 +123,8 @@ router.get('/resident/profile',
     verifyToken, checkRole([4]), enforcePermissions('/api/auth/profile'), residentController.getProfile);
 router.post('/resident/profile/update-photo',
     verifyToken, checkRole([4]), enforcePermissions('/api/resident/profile/update-photo'), upload.single('photo'), residentController.updateProfilePhoto);
+router.post('/resident/upload-verification',
+    verifyToken, checkRole([4]), enforcePermissions('/api/resident/upload-verification'), verificationUpload.single('verification'), residentController.uploadVerification);
 
 // =========================================================================
 // ROLE 5: CAPTAIN ROUTES (Read-Only Executive)

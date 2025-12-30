@@ -36,11 +36,13 @@ import {
   Settings,
   Lock
 } from '@mui/icons-material'
+import { useAuth } from '../contexts/AuthContext'
 
 const drawerWidth = 280
 
-const Sidebar = ({ user, onLogout }) => {
+const Sidebar = () => {
   const location = useLocation()
+  const { user, logout } = useAuth()
 
   // Menu items with role-based access control - hide items user doesn't have access to
   const allMenuItems = [
@@ -302,7 +304,7 @@ const Sidebar = ({ user, onLogout }) => {
               fullWidth
               variant="outlined"
               size="small"
-              onClick={onLogout}
+              onClick={logout}
               startIcon={<Logout />}
               sx={{
                 borderRadius: 2,

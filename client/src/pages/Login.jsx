@@ -14,14 +14,15 @@ import {
 } from '@mui/material'
 import { LockOutlined, PersonAdd, Business, Person } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
+import { useAuth } from '../contexts/AuthContext'
 
-const Login = ({ onLogin }) => {
+const Login = () => {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
-  const [isUsingUsername, setIsUsingUsername] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -40,11 +41,11 @@ const Login = ({ onLogin }) => {
     try {
       console.log('🔐 Attempting resident login...')
 
-      // Authenticate with API (supports both email and Resident ID)
-      const response = await apiRequest('auth/login', {
+      // Authenticate with resident login endpoint
+      const response = await apiRequest('auth/resident/login', {
         method: 'POST',
         body: {
-          username: formData.email, // Can be email or Resident ID
+          username: formData.email, // Username can be email or username
           password: formData.password
         }
       })
@@ -55,23 +56,10 @@ const Login = ({ onLogin }) => {
       }
 
       const data = await response.json()
-      console.log('✅ API authentication successful:', { role: data.user.role, email: data.user.email })
+      console.log('✅ Resident login successful:', { role: data.user.role, username: data.user.username })
 
-      // Store authentication data in localStorage (compatible with existing app structure)
-      localStorage.setItem('authToken', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
-
-      // Clear any conflicting resident-specific data
-      localStorage.removeItem('residentUser')
-      localStorage.removeItem('residentAuthToken')
-      localStorage.removeItem('residentAuthTimestamp')
-
-      console.log('✅ Resident login successful - proceeding to dashboard')
-
-      // Call onLogin callback to update app state
-      if (onLogin) {
-        onLogin(data.user)
-      }
+      // Use AuthContext login function
+      login(data.token)
 
       // Navigate to dashboard
       navigate('/')
@@ -84,16 +72,12 @@ const Login = ({ onLogin }) => {
       // Handle API error messages
       if (err.message) {
         errorMessage = err.message
-      } else if (err.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email or Resident ID.'
-      } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        errorMessage = 'Invalid email/Resident ID or password.'
-      } else if (err.code === 'auth/user-disabled') {
-        errorMessage = 'This account has been disabled.'
-      } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address or Resident ID format.'
-      } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed login attempts. Please try again later.'
+      } else if (err.message.includes('Invalid credentials')) {
+        errorMessage = 'Invalid username or password.'
+      } else if (err.message.includes('Invalid Resident ID')) {
+        errorMessage = 'Invalid Resident ID.'
+      } else if (err.message.includes('Invalid PIN')) {
+        errorMessage = 'Invalid PIN.'
       }
 
       setError(errorMessage)

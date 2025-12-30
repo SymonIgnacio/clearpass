@@ -51,6 +51,7 @@ const ResidentDashboard = ({ user }) => {
   const [clearanceModal, setClearanceModal] = useState(false)
   const [qrModal, setQrModal] = useState(false)
   const [profileModal, setProfileModal] = useState(false)
+  const [verificationModal, setVerificationModal] = useState(false)
 
   // Form states
   const [clearanceForm, setClearanceForm] = useState({
@@ -59,6 +60,7 @@ const ResidentDashboard = ({ user }) => {
   })
   const [qrCode, setQrCode] = useState('')
   const [photoFile, setPhotoFile] = useState(null)
+  const [verificationFile, setVerificationFile] = useState(null)
 
   useEffect(() => {
     fetchDashboardData()
@@ -148,6 +150,37 @@ const ResidentDashboard = ({ user }) => {
     } catch (error) {
       console.error('Error updating photo:', error)
       setError('Failed to update profile photo.')
+    }
+  }
+
+  const handleVerificationUpload = async () => {
+    if (!verificationFile) {
+      setError('Please select a verification file.')
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('verification', verificationFile)
+
+    try {
+      const response = await apiRequest('resident/upload-verification', {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setVerificationModal(false)
+        setVerificationFile(null)
+        fetchDashboardData() // Refresh profile data to show new status
+        alert('Verification file uploaded successfully! Your account is now under review.')
+      } else {
+        setError(data.error || 'Failed to upload verification file.')
+      }
+    } catch (error) {
+      console.error('Error uploading verification:', error)
+      setError('Failed to upload verification file.')
     }
   }
 
@@ -340,7 +373,7 @@ const ResidentDashboard = ({ user }) => {
               </Box>
             </Box>
 
-            <Grid container spacing={2}>
+            <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   <Phone sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />
@@ -358,6 +391,43 @@ const ResidentDashboard = ({ user }) => {
                 </Box>
               </Grid>
             </Grid>
+
+            {/* Account Verification Section */}
+            <Divider sx={{ my: 2 }} />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                  Account Verification
+                </Typography>
+                {user?.account_status === 'Verified' && (
+                  <Typography variant="body2" color="success.main" sx={{ display: 'flex', alignItems: 'center' }}>
+                    <CheckCircle sx={{ mr: 1, fontSize: 16 }} />
+                    Account Verified
+                  </Typography>
+                )}
+                {user?.account_status === 'Pending Verification' && (
+                  <Typography variant="body2" color="warning.main" sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Warning sx={{ mr: 1, fontSize: 16 }} />
+                    Under Review
+                  </Typography>
+                )}
+                {(user?.account_status === 'Unverified' || user?.account_status === 'Unregistered') && (
+                  <Typography variant="body2" color="error.main" sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Warning sx={{ mr: 1, fontSize: 16 }} />
+                    Verification Required
+                  </Typography>
+                )}
+              </Box>
+              {(user?.account_status === 'Unverified' || user?.account_status === 'Unregistered') && (
+                <Button
+                  variant="contained"
+                  startIcon={<Description />}
+                  onClick={() => setVerificationModal(true)}
+                >
+                  Upload ID
+                </Button>
+              )}
+            </Box>
           </CardContent>
         </Card>
       )}
@@ -531,6 +601,57 @@ const ResidentDashboard = ({ user }) => {
             disabled={!photoFile}
           >
             Upload Photo
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Verification Upload Modal */}
+      <Dialog open={verificationModal} onClose={() => setVerificationModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Upload Verification Document</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Please upload a valid ID or proof of residency to verify your account. Accepted formats: JPEG, PNG, GIF, PDF (max 10MB).
+          </Typography>
+
+          <Box sx={{ textAlign: 'center' }}>
+            <input
+              accept="image/*,.pdf"
+              style={{ display: 'none' }}
+              id="verification-upload"
+              type="file"
+              onChange={(e) => setVerificationFile(e.target.files[0])}
+            />
+            <label htmlFor="verification-upload">
+              <Button
+                variant="outlined"
+                component="span"
+                startIcon={<Description />}
+                sx={{ mb: 2 }}
+              >
+                Choose File
+              </Button>
+            </label>
+
+            {verificationFile && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  Selected: {verificationFile.name}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Size: {(verificationFile.size / 1024 / 1024).toFixed(2)} MB
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setVerificationModal(false)}>Cancel</Button>
+          <Button
+            onClick={handleVerificationUpload}
+            variant="contained"
+            disabled={!verificationFile}
+          >
+            Submit for Review
           </Button>
         </DialogActions>
       </Dialog>

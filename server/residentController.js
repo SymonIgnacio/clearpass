@@ -251,3 +251,67 @@ exports.getCensusData = async (req, res) => {
         res.status(500).json({ error: "Failed to fetch census data" });
     }
 };
+
+exports.uploadVerification = async (req, res) => {
+    const residentId = req.user.resident_id;
+    try {
+        // Check if file was uploaded
+        if (!req.file) {
+            return res.status(400).json({ error: "No verification file provided" });
+        }
+
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+        if (!allowedTypes.includes(req.file.mimetype)) {
+            return res.status(400).json({
+                error: "Invalid file type. Only JPEG, PNG, GIF images and PDF files are allowed."
+            });
+        }
+
+        // Validate file size (max 10MB)
+        const maxSize = 10 * 1024 * 1024;
+        if (req.file.size > maxSize) {
+            return res.status(400).json({
+                error: "File too large. Maximum size is 10MB."
+            });
+        }
+
+        // Generate unique filename
+        const fileExtension = req.file.originalname.split('.').pop().toLowerCase();
+        const filename = `verification_${residentId}_${Date.now()}.${fileExtension}`;
+        const filepath = `uploads/verification/${filename}`;
+
+        // Ensure directory exists
+        const fs = require('fs').promises;
+        const path = require('path');
+        const uploadDir = path.dirname(filepath);
+
+        try {
+            await fs.mkdir(uploadDir, { recursive: true });
+            await fs.rename(req.file.path, filepath);
+        } catch (fileError) {
+            console.error('File operation error:', fileError);
+            return res.status(500).json({ error: "Failed to save verification file" });
+        }
+
+        // Update resident record
+        const verificationFileUrl = `/uploads/verification/${filename}`;
+        await knex('residents')
+            .where({ Resident_ID: residentId })
+            .update({
+                verification_file: verificationFileUrl,
+                account_status: 'Pending Verification',
+                updated_at: knex.fn.now()
+            });
+
+        res.json({
+            message: "Verification file uploaded successfully. Your account is now under review.",
+            verification_file: verificationFileUrl,
+            account_status: 'Pending Verification'
+        });
+
+    } catch (error) {
+        console.error("Verification upload error:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+};

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
@@ -17,6 +17,7 @@ import SuperAdminSettings from './pages/SuperAdminSettings'
 import ResidentSettings from './pages/ResidentSettings'
 
 import Login from './pages/Login'
+import Register from './pages/Register'
 import OfficerLogin from './pages/OfficerLogin'
 import AIPatrol from './pages/AIPatrol'
 import RondaAnalytics from './pages/RondaAnalytics'
@@ -28,6 +29,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 
 import ErrorBoundary from './components/ErrorBoundary'
 import { NotificationProvider } from './contexts/NotificationContext'
+import { AuthProvider } from './contexts/AuthContext'
 
 const theme = createTheme({
   palette: {
@@ -254,176 +256,65 @@ const theme = createTheme({
 })
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [user, setUser] = useState(null)
-
-  // Authentication check - unified authentication for both staff and residents
-  useEffect(() => {
-    const checkAuthentication = async () => {
-      // Check for authentication (unified for both staff and residents)
-      const authToken = localStorage.getItem('authToken')
-      const userData = localStorage.getItem('user')
-
-      // No authentication found - set logged out
-      if (!authToken || !userData) {
-        setIsAuthenticated(false)
-        setUser(null)
-        return
-      }
-
-      // Parse and validate user data
-      try {
-        const parsedUser = JSON.parse(userData)
-        console.log('🔐 Initializing with auth data:', { userId: parsedUser.id, role: parsedUser.role, auth_type: parsedUser.auth_type })
-
-        // Validate user data structure
-        if (parsedUser && parsedUser.id && parsedUser.role) {
-          setUser(parsedUser)
-          setIsAuthenticated(true)
-          console.log('✅ Authentication successful via localStorage')
-        } else {
-          throw new Error('Invalid user data structure')
-        }
-      } catch (error) {
-        console.error('❌ Failed to parse user data:', error)
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('user')
-        setIsAuthenticated(false)
-      }
-    }
-
-    checkAuthentication()
-  }, [])
-
-  const handleLogin = (userData) => {
-    setUser(userData)
-    setIsAuthenticated(true)
-  }
-
-  const handleLogout = () => {
-    // Determine appropriate login page based on user type - THEMIS ClearPass compatibility
-    const THEMIS_ROLE_MAP = {
-      1: 'admin',           // IT Admin
-      2: 'clerk',           // Clerk
-      3: 'officer',         // Blotter Officer
-      4: 'resident',        // Resident
-      5: 'captain',         // Captain
-      6: 'secretary'        // Secretary
-    }
-
-    // Convert numeric THEMIS role to string for compatibility, or use as-is if already string
-    const userRole = typeof user?.role === 'number' ? THEMIS_ROLE_MAP[user.role] || user.role : user?.role
-    const isStaffUser = userRole && ['admin', 'captain', 'secretary', 'clerk'].includes(userRole);
-    const loginPage = isStaffUser ? '/officerlogin' : '/login';
-
-    // Clear all authentication data for both user types
-    localStorage.removeItem('authToken')
-    localStorage.removeItem('user')
-    localStorage.removeItem('residentAuthToken')
-    localStorage.removeItem('residentUser')
-
-    setUser(null)
-    setIsAuthenticated(false)
-
-    // Programmatically navigate to the appropriate login page
-    setTimeout(() => {
-      window.location.href = loginPage;
-    }, 100);
-  }
 
   return (
     <ErrorBoundary>
-      <NotificationProvider>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          {/* Public routes */}
-          <Route
-            path="/login"
-            element={
-              isAuthenticated ? (
-                <Navigate to="/" replace />
-              ) : (
-                <Login onLogin={handleLogin} />
-              )
-            }
-          />
+      <AuthProvider>
+        <NotificationProvider>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Register />} />
+              <Route path="/officerlogin" element={<OfficerLogin />} />
+              <Route path="/verify-account" element={<AccountVerification />} />
 
-          <Route
-            path="/officerlogin"
-            element={
-              isAuthenticated ? (
-                <Navigate to="/" replace />
-              ) : (
-                <OfficerLogin onLogin={handleLogin} />
-              )
-            }
-          />
-
-
-
-          <Route
-            path="/verify-account"
-            element={
-              isAuthenticated ? (
-                <Navigate to="/" replace />
-              ) : (
-                <AccountVerification />
-              )
-            }
-          />
-
-          {/* Protected Layout Route */}
-          <Route
-            path="/"
-            element={
-              isAuthenticated ? (
-                <Box sx={{
-                  display: 'flex',
-                  minHeight: '100vh',
-                  backgroundColor: 'background.default'
-                }}>
-                  <Sidebar user={user} onLogout={handleLogout} />
-                  <Box
-                    component="main"
-                    sx={{
-                      flexGrow: 1,
-                      marginLeft: '280px', // Account for sidebar width
-                      transition: 'margin-left 0.3s ease-in-out',
-                    }}
-                  >
-                    <Header user={user} onLogout={handleLogout} />
+              {/* Protected Layout Route */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
                     <Box sx={{
-                      p: 4,
-                      minHeight: 'calc(100vh - 64px)', // Account for header height
+                      display: 'flex',
+                      minHeight: '100vh',
                       backgroundColor: 'background.default'
                     }}>
-                      <Outlet />
+                      <Sidebar />
+                      <Box
+                        component="main"
+                        sx={{
+                          flexGrow: 1,
+                          marginLeft: '280px', // Account for sidebar width
+                          transition: 'margin-left 0.3s ease-in-out',
+                        }}
+                      >
+                        <Header />
+                        <Box sx={{
+                          p: 4,
+                          minHeight: 'calc(100vh - 64px)', // Account for header height
+                          backgroundColor: 'background.default'
+                        }}>
+                          <Outlet />
+                        </Box>
+                      </Box>
                     </Box>
-                  </Box>
-                </Box>
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          >
+                  </ProtectedRoute>
+                }
+              >
             {/* Nested protected routes */}
-            <Route index element={
-              user?.role === 4 || user?.role === 'resident' ?
-                <ResidentDashboard user={user} /> :
-                <Dashboard user={user} />
-            } />
-            <Route path="residents" element={<Residents user={user} />} />
+            <Route index element={<Dashboard />} />
+            <Route path="residents" element={<Residents />} />
             <Route
               path="users"
               element={
                 <ProtectedRoute requiredRoles={[1, 'admin']}>
-                  <Users user={user} />
+                  <Users />
                 </ProtectedRoute>
               }
             />
-            <Route path="blotter" element={<Blotter user={user} />} />
+            <Route path="blotter" element={<Blotter />} />
             <Route
               path="documents"
               element={
@@ -433,14 +324,10 @@ function App() {
               }
             />
 
-            <Route path="census" element={<Census user={user} />} />
-            <Route path="events" element={<CommunityEvents user={user} />} />
+            <Route path="census" element={<Census />} />
+            <Route path="events" element={<CommunityEvents />} />
 
-            <Route path="settings" element={
-              user?.role === 4 || user?.role === 'resident' ?
-                <ResidentSettings user={user} /> :
-                <SuperAdminSettings user={user} />
-            } />
+            <Route path="settings" element={<SuperAdminSettings />} />
 
             {/* Legacy redirects */}
             <Route path="qr-verify" element={<Navigate to="/" replace />} />
@@ -451,7 +338,7 @@ function App() {
               path="ai-dashboard"
               element={
                 <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6, 'admin', 'captain', 'secretary', 'clerk', 'officer', 'resident']}>
-                  <AIPatrol user={user} />
+                  <AIPatrol />
                 </ProtectedRoute>
               }
             />
@@ -459,7 +346,7 @@ function App() {
               path="ai-patrol"
               element={
                 <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6, 'admin', 'captain', 'secretary', 'clerk', 'officer', 'resident']}>
-                  <AIPatrol user={user} />
+                  <AIPatrol />
                 </ProtectedRoute>
               }
             />
@@ -467,20 +354,21 @@ function App() {
               path="ronda-analytics"
               element={
                 <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6, 'admin', 'captain', 'secretary', 'clerk', 'officer', 'resident']}>
-                  <RondaAnalytics user={user} />
+                  <RondaAnalytics />
                 </ProtectedRoute>
               }
             />
 
-            {/* Backward compatibility redirects */}
-            <Route path="certificates" element={<Navigate to="documents" replace />} />
-            <Route path="document-templates" element={<Navigate to="documents" replace />} />
-          </Route>
-        </Routes>
-      </Router>
-    </ThemeProvider>
-  </NotificationProvider>
-</ErrorBoundary>
+                {/* Backward compatibility redirects */}
+                <Route path="certificates" element={<Navigate to="documents" replace />} />
+                <Route path="document-templates" element={<Navigate to="documents" replace />} />
+              </Route>
+            </Routes>
+          </Router>
+        </ThemeProvider>
+      </NotificationProvider>
+    </AuthProvider>
+  </ErrorBoundary>
   )
 }
 

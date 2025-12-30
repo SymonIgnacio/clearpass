@@ -1,9 +1,11 @@
 import React from 'react'
 import { AppBar, Toolbar, Typography, Box, Chip, IconButton, Menu, MenuItem } from '@mui/material'
 import { Security, AccountCircle, Logout } from '@mui/icons-material'
+import { useAuth } from '../contexts/AuthContext'
 
-const Header = ({ user, onLogout }) => {
+const Header = () => {
   const [anchorEl, setAnchorEl] = React.useState(null)
+  const { user, logout } = useAuth()
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget)
@@ -15,7 +17,7 @@ const Header = ({ user, onLogout }) => {
 
   const handleLogout = () => {
     handleClose()
-    onLogout()
+    logout()
   }
 
   return (
