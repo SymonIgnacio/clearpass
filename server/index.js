@@ -12,7 +12,6 @@ const validator = require('validator');
 const PDFDocument = require('pdfkit');
 const bcrypt = require('bcrypt');
 const knex = require('knex');
-const admin = require('firebase-admin');
 require('dotenv').config();
 
 // Environment variable validation
@@ -59,9 +58,6 @@ const {
 
 // Import JWT middleware for document requests
 const { verifyToken: verifyTokenJWT } = require('./jwtMiddleware');
-
-// Import Firebase middleware
-const { verifyFirebaseToken } = require('./firebaseMiddleware');
 
 // Import monitoring system
 const {
@@ -1455,7 +1451,7 @@ console.log('🔧 [Route Registration] Clerk routes registered successfully');
 // Public authentication routes (no middleware needed)
 // Support both /auth/... and /api/auth/... paths temporarily for compatibility
 console.log('🔧 [Route Registration] Setting up /api/auth/login');
-app.post('/api/auth/login', authController.residentLogin); // Primary /api route
+app.post('/api/auth/login', authController.loginResident); // Primary /api route
 app.post('/auth/login', authController.residentLogin); // Legacy /auth route
 
 console.log('🔧 [Route Registration] Setting up THEMIS ResidentID + PIN login');

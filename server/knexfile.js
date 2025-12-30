@@ -39,6 +39,28 @@ module.exports = {
     },
   },
 
+  test: {
+    client: 'mysql2',
+    connection: {
+      host: process.env.DB_HOST || 'localhost',
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME_TEST || 'barangay_management_test',
+      port: process.env.DB_PORT || 3306,
+    },
+    migrations: {
+      directory: './migrations',
+      tableName: 'knex_migrations',
+    },
+    seeds: {
+      directory: './seeds',
+    },
+    pool: {
+      min: 1,
+      max: 5,
+    },
+  },
+
   production: {
     client: 'mysql2',
     connection: getDatabaseConfig(),

@@ -43,8 +43,8 @@ const documentController = require('./documentController');
 // =========================================================================
 // PUBLIC ROUTES (Restricted: No Signup, Login Only)
 // =========================================================================
-router.post('/auth/login', authController.login);
-router.post('/auth/officer-login', authController.staffLogin); // THEMIS: Separate officer login endpoint
+// router.post('/auth/login', authController.login); // Legacy route - function not implemented
+// router.post('/auth/officer-login', authController.staffLogin); // THEMIS: Separate officer login endpoint - disabled
 
 router.post('/auth/check-census', authController.checkCensus);
 router.post('/auth/register-resident', authController.registerResident);

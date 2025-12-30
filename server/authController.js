@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+const { sendWelcomeEmail } = require('./notificationService');
 
 /**
  * Census-First Authentication Controller
@@ -172,6 +173,11 @@ async function registerResident(req, res) {
         role: 'resident',
         account_status: 'Unverified'
       }
+    });
+
+    // Send welcome email asynchronously (don't block response)
+    sendWelcomeEmail(resident).catch(err => {
+      console.error('Failed to send welcome email:', err);
     });
 
   } catch (error) {

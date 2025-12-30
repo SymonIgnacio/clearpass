@@ -1,6 +1,7 @@
 const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
 const PDFDocument = require('pdfkit');
 const crypto = require('crypto');
+const { sendIncidentReportNotification } = require('./notificationService');
 
 /**
  * THEMIS CLEARPASS BLOTTER OFFICER CONTROLLER
@@ -90,6 +91,19 @@ async function createCase(req, res) {
       status: status || 'Active',
       message: 'Blotter case created successfully. Resident is now blocked from clearance issuance.',
       clearpass_impact: 'Resident cannot obtain barangay clearances until case is resolved'
+    });
+
+    // Send incident report notification asynchronously
+    const incidentData = {
+      Case_Number: finalCaseNumber,
+      Incident_Type: incident_type,
+      Narrative: narrative,
+      DateTime_Incident: date_time_incident,
+      Location_Sitio: location_sitio,
+      Status: status || 'Active'
+    };
+    sendIncidentReportNotification(incidentData, resident).catch(err => {
+      console.error('Failed to send incident report notification:', err);
     });
 
   } catch (error) {
