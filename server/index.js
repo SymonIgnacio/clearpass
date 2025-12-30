@@ -1578,40 +1578,24 @@ app.get('/blotter', async (req, res) => {
   res.json(rows);
 });
 
-// Certificate routes
-app.get('/api/certificates', (req, res, next) => {
-  // Check for resident Firebase token first
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.split('Bearer ')[1];
-    // Check if it looks like a Firebase ID token (longer than typical JWT)
-    if (token && token.length > 500) {
-      return verifyFirebaseToken(req, res, next); // Resident path
-    }
-  }
-  // Default to JWT verification for staff (unrestricted access)
-  return verifyToken(req, res, next);
-}, async (req, res) => {
+// Certificate routes - FIXED: MySQL-only authentication
+app.get('/api/certificates', verifyToken, async (req, res) => {
   try {
-    // Check if user is a resident (Firebase authenticated)
-    const isResident = req.firebaseUser ? true : false;
+    // Check if user is a resident (role-based access)
+    const isResident = req.user.role === 4;
 
     let query, values;
 
-    if (isResident && req.firebaseUser) {
+    if (isResident) {
       // Resident can only see their own certificates
       query = `
         SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
         FROM certificates_log c
         JOIN residents r ON c.resident_id = r.Resident_ID
-        WHERE EXISTS (
-          SELECT 1 FROM users u
-          WHERE u.resident_id = r.Resident_ID
-          AND u.firebase_uid = ?
-        )
+        WHERE r.Resident_ID = ?
         ORDER BY c.created_at DESC
       `;
-      values = [req.firebaseUser.uid];
+      values = [req.user.id];
     } else {
       // Staff can see all certificates
       query = `
@@ -1630,51 +1614,41 @@ app.get('/api/certificates', (req, res, next) => {
     res.status(500).json({ error: 'Failed to fetch certificates' });
   }
 });
-app.get('/certificates', (req, res, next) => {
-  // Check for resident Firebase token first
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.split('Bearer ')[1];
-    // Check if it looks like a Firebase ID token (longer than typical JWT)
-    if (token && token.length > 500) {
-      return verifyFirebaseToken(req, res, next); // Resident path
+
+app.get('/certificates', verifyToken, async (req, res) => {
+  try {
+    // Check if user is a resident (role-based access)
+    const isResident = req.user.role === 4;
+
+    let query, values;
+
+    if (isResident) {
+      // Resident can only see their own certificates
+      query = `
+        SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
+        FROM certificates_log c
+        JOIN residents r ON c.resident_id = r.Resident_ID
+        WHERE r.Resident_ID = ?
+        ORDER BY c.created_at DESC
+      `;
+      values = [req.user.id];
+    } else {
+      // Staff can see all certificates
+      query = `
+        SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
+        FROM certificates_log c
+        JOIN residents r ON c.resident_id = r.Resident_ID
+        ORDER BY c.created_at DESC
+      `;
+      values = [];
     }
+
+    const [rows] = await db.execute(query, values);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching certificates:', error);
+    res.status(500).json({ error: 'Failed to fetch certificates' });
   }
-  // Default to JWT verification for staff (unrestricted access)
-  return verifyToken(req, res, next);
-}, async (req, res) => {
-  // Check if user is a resident (Firebase authenticated)
-  const isResident = req.firebaseUser ? true : false;
-
-  let query, values;
-
-  if (isResident && req.firebaseUser) {
-    // Resident can only see their own certificates
-    query = `
-      SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
-      FROM certificates_log c
-      JOIN residents r ON c.resident_id = r.Resident_ID
-      WHERE EXISTS (
-        SELECT 1 FROM users u
-        WHERE u.resident_id = r.Resident_ID
-        AND u.firebase_uid = ?
-      )
-      ORDER BY c.created_at DESC
-    `;
-    values = [req.firebaseUser.uid];
-  } else {
-    // Staff can see all certificates
-    query = `
-      SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
-      FROM certificates_log c
-      JOIN residents r ON c.resident_id = r.Resident_ID
-      ORDER BY c.created_at DESC
-    `;
-    values = [];
-  }
-
-  const [rows] = await db.execute(query, values);
-  res.json(rows);
 });
 
 console.log('🔧 [Route Registration] Authentication routes registered successfully');
@@ -1683,216 +1657,9 @@ console.log('🔧 [Route Registration] Authentication routes registered successf
 
 
 
-// Email verification for residency graduation
-app.post('/api/auth/verify-email-for-residency', verifyFirebaseToken, authController.verifyEmailForResidency);
-
-// Residency verification submission with file upload (support both Firebase and JWT tokens)
-app.post('/api/auth/submit-residency-verification', uploadBlob.single('proof_document'), async (req, res) => {
-  try {
-    const { proof_type, notes } = req.body;
-
-    // Check authorization header
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        error: 'Authorization header required'
-      });
-    }
-
-    const token = authHeader.split('Bearer ')[1];
-
-    // Determine if it's a Firebase token (long) or JWT token (short)
-    let user, firebaseUser, userId;
-
-    if (token.length > 500) {
-      // Firebase ID token
-      try {
-        const decodedToken = await admin.auth().verifyIdToken(token);
-        firebaseUser = {
-          uid: decodedToken.uid,
-          email: decodedToken.email,
-          name: decodedToken.name
-        };
-
-        // Get user by Firebase UID
-        const [userRows] = await db.execute(
-          'SELECT id, full_name, email, resident_id FROM users WHERE firebase_uid = ?',
-          [firebaseUser.uid]
-        );
-
-        if (userRows.length > 0) {
-          user = userRows[0];
-          userId = user.id;
-        }
-      } catch (firebaseError) {
-        return res.status(401).json({
-          error: 'Invalid Firebase token'
-        });
-      }
-    } else {
-      // JWT token - verify directly with jsonwebtoken
-      try {
-        const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        userId = decoded.id;
-
-        const [userRows] = await db.execute(
-          'SELECT id, full_name, email, resident_id FROM users WHERE id = ?',
-          [userId]
-        );
-
-        if (userRows.length > 0) {
-          user = userRows[0];
-        }
-      } catch (jwtError) {
-        return res.status(401).json({
-          error: 'Invalid JWT token'
-        });
-      }
-    }
-
-    if (!user) {
-      return res.status(404).json({
-        error: 'User account not found'
-      });
-    }
-
-    console.log('🚀 [Residency Verification] Submitting for user:', userId, user.full_name);
-
-    if (!proof_type) {
-      return res.status(400).json({
-        error: 'Proof type is required'
-      });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({
-        error: 'Proof document file is required'
-      });
-    }
-
-    // Ensure user has a resident record
-    let residentId = user.resident_id;
-    if (!residentId) {
-      // Create a basic resident record if it doesn't exist
-      residentId = firebaseUser ?
-        `RES-TEMP-${Date.now()}-${firebaseUser.uid.substring(0, 8)}` :
-        `RES-TEMP-${Date.now()}-${userId}`;
-
-      console.log('📝 Creating temporary resident record for user:', userId);
-
-      try {
-        await db.execute(
-          'INSERT INTO residents (Resident_ID, First_Name, Email, Residency_Status, Date_Arrival, created_at) VALUES (?, ?, ?, ?, CURDATE(), NOW())',
-          [residentId, user.full_name || 'Unknown', user.email || '', 'pending']
-        );
-
-        // Link resident to user
-        await db.execute(
-          'UPDATE users SET resident_id = ? WHERE id = ?',
-          [residentId, userId]
-        );
-      } catch (createError) {
-        console.error('Error creating resident record:', createError);
-        // Continue anyway - may already exist
-      }
-    }
-
-    // Generate request ID
-    const requestId = `REQ-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-
-    console.log('📄 File received:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'NONE');
-
-    // Insert verification request with BLOB storage
-    const [result] = await db.execute(`
-      INSERT INTO resident_verification_requests (
-        request_id, user_id, file_data, file_encoding, original_filename, mime_type, file_size,
-        proof_type, notes, status, submitted_at
-      ) VALUES (?, ?, ?, 'buffer', ?, ?, ?, ?, ?, 'pending', NOW())
-    `, [
-      requestId,
-      userId,
-      req.file.buffer, // Store actual file data as BLOB
-      req.file.originalname, // Store original filename
-      req.file.mimetype, // Store MIME type
-      req.file.size, // Store file size
-      proof_type,
-      notes || null
-    ]);
-
-    console.log('✅ Residency verification submitted:', requestId);
-
-    res.json({
-      success: true,
-      message: 'Residency verification request submitted successfully',
-      request_id: requestId,
-      file_name: req.file.originalname,
-      submitted_at: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('❌ Residency verification submission error:', error);
-    res.status(500).json({
-      error: 'Failed to submit residency verification request',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// Get residency verification status
-app.get('/api/auth/residency-verification/status', verifyFirebaseToken, async (req, res) => {
-  try {
-    const firebaseUid = req.firebaseUser.uid;
-
-    // Get user ID first
-    const [userRows] = await db.execute('SELECT id FROM users WHERE firebase_uid = ?', [firebaseUid]);
-    if (userRows.length === 0) {
-      return res.json({ found: false, message: 'User not found' });
-    }
-
-    const userId = userRows[0].id;
-
-    // Get latest verification request for this user using resident_verification_requests table
-    const [rows] = await db.execute(`
-      SELECT
-        rvr.*, u.full_name, u.email,
-        r.First_Name, r.Last_Name, r.Residency_Status as resident_status
-      FROM resident_verification_requests rvr
-      JOIN users u ON rvr.user_id = u.id
-      LEFT JOIN residents r ON u.resident_id = r.Resident_ID
-      WHERE rvr.user_id = ? AND rvr.status != 'rejected'
-      ORDER BY rvr.submitted_at DESC
-      LIMIT 1
-    `, [userId]);
-
-    if (rows.length === 0) {
-      return res.json({
-        found: false,
-        message: 'No active verification request found'
-      });
-    }
-
-    const request = rows[0];
-
-    res.json({
-      found: true,
-      status: request.status,
-      request_id: request.id,
-      proof_type: request.proof_type,
-      notes: request.notes,
-      submitted_at: request.submitted_at,
-      reviewed_at: request.reviewed_at,
-      officer_notes: request.review_notes,
-      review_reason: request.review_reason
-    });
-
-  } catch (error) {
-    console.error('Error fetching verification status:', error);
-    res.status(500).json({
-      error: 'Failed to fetch verification status'
-    });
-  }
-});
+// Email verification for residency graduation - REMOVED (Firebase legacy)
+// Residency verification submission - REMOVED (Firebase legacy)
+// Residency verification status - REMOVED (Firebase legacy)
 
 // Protected auth routes (use Firebase middleware for residents, JWT for staff)
 // Check user auth type and route accordingly
@@ -1926,174 +1693,11 @@ app.put('/api/auth/profile', (req, res, next) => {
 
 app.get('/api/auth/subordinates', verifyToken, authController.getSubordinates);
 
-// Firebase users management
-app.get('/api/auth/firebase-users', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
-  try {
-    console.log('=== FETCHING FIREBASE USERS ===');
-
-    // Get Firebase users using Admin SDK
-    const firebaseUsers = [];
-    let nextPageToken;
-
-    do {
-      const listUsersResult = await admin.auth().listUsers(1000, nextPageToken);
-      firebaseUsers.push(...listUsersResult.users);
-      nextPageToken = listUsersResult.pageToken;
-    } while (nextPageToken);
-
-    console.log(`Found ${firebaseUsers.length} Firebase users`);
-
-    // Get corresponding database records for enhanced info
-    const [dbUsersRows] = await db.execute(`
-      SELECT firebase_uid, full_name, email, role, is_active, created_at, last_login, residency_status
-      FROM users
-      WHERE firebase_uid IS NOT NULL
-    `);
-    const dbUsers = dbUsersRows;
-
-    // Create a map for quick lookup
-    const dbUserMap = {};
-    dbUsers.forEach(dbUser => {
-      dbUserMap[dbUser.firebase_uid] = dbUser;
-    });
-
-    // Combine Firebase and database data
-    const combinedUsers = firebaseUsers.map(firebaseUser => {
-      const dbUser = dbUserMap[firebaseUser.uid];
-      const displayName = firebaseUser.displayName || firebaseUser.email.split('@')[0];
-
-      return {
-        id: firebaseUser.uid,
-        firebase_uid: firebaseUser.uid,
-        username: displayName,
-        full_name: dbUser?.full_name || displayName,
-        email: firebaseUser.email,
-        role: dbUser?.role || 'resident',
-        is_active: dbUser?.is_active !== false, // Default to true if not in DB
-        email_verified: firebaseUser.emailVerified,
-        phone_verified: firebaseUser.phoneNumber ? true : false,
-        created_at: firebaseUser.metadata.creationTime,
-        last_login: firebaseUser.metadata.lastSignInTime,
-        residency_status: dbUser?.residency_status || 'pending'
-      };
-    });
-
-    console.log(`Returning ${combinedUsers.length} combined users`);
-
-    res.json({
-      success: true,
-      users: combinedUsers,
-      total: combinedUsers.length
-    });
-
-  } catch (error) {
-    console.error('Error fetching Firebase users:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch Firebase users',
-      details: error.message
-    });
-  }
-});
+// Firebase users management - REMOVED (MySQL-only authentication)
 
 
 
-// Protected residency verification management
-app.get('/api/auth/residency-verifications/pending', verifyToken, checkRole(['captain', 'secretary', 'clerk']), authController.getPendingResidencyVerifications);
-app.put('/api/auth/residency-verifications/:request_id/review', verifyToken, checkRole(['captain', 'secretary', 'clerk']), authController.reviewResidencyVerification);
-app.get('/api/auth/residency-verifications/status/:user_id', verifyToken, authController.getResidencyVerificationStatus);
-
-// BLOB file retrieval endpoint - serve files stored in database
-app.get('/api/auth/residency-verifications/:request_id/file', verifyFirebaseToken, async (req, res) => {
-  try {
-    const requestId = req.params.request_id;
-    const firebaseUid = req.firebaseUser.uid;
-
-    // Get the verification request to check ownership and file data
-    const [rows] = await db.execute(`
-      SELECT rvr.file_data, rvr.original_filename, rvr.mime_type, rvr.file_size, rvr.user_id, u.firebase_uid
-      FROM resident_verification_requests rvr
-      JOIN users u ON rvr.user_id = u.id
-      WHERE rvr.id = ? AND rvr.status != 'rejected'
-    `, [requestId]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Verification request not found' });
-    }
-
-    const request = rows[0];
-
-    // Check if user owns this verification request (or is staff)
-    if (request.firebase_uid !== firebaseUid) {
-      // Only allow officers to view files they review
-      return res.status(403).json({ error: 'Access denied - not your verification request' });
-    }
-
-    if (!request.file_data) {
-      return res.status(404).json({ error: 'No file attached to this verification request' });
-    }
-
-    // Set appropriate headers for file download/display
-    const fileName = request.original_filename || 'verification_document.bin';
-    const mimeType = request.mime_type || 'application/octet-stream';
-
-    res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-
-    if (request.file_size) {
-      res.setHeader('Content-Length', request.file_size);
-    }
-
-    // Send the BLOB data directly
-    res.send(request.file_data);
-
-  } catch (error) {
-    console.error('Error retrieving BLOB file:', error);
-    res.status(500).json({ error: 'Failed to retrieve file' });
-  }
-});
-
-// Officer endpoint to view resident verification files
-app.get('/api/auth/residency-verifications/:request_id/file/officer', verifyToken, checkRole(['captain', 'secretary', 'clerk']), async (req, res) => {
-  try {
-    const requestId = req.params.request_id;
-
-    // Get the verification request file data
-    const [rows] = await db.execute(`
-      SELECT file_data, original_filename, mime_type, file_size
-      FROM resident_verification_requests
-      WHERE id = ?
-    `, [requestId]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Verification request not found' });
-    }
-
-    const request = rows[0];
-
-    if (!request.file_data) {
-      return res.status(404).json({ error: 'No file attached to this verification request' });
-    }
-
-    // Set appropriate headers
-    const fileName = request.original_filename || 'verification_document.bin';
-    const mimeType = request.mime_type || 'application/octet-stream';
-
-    res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-
-    if (request.file_size) {
-      res.setHeader('Content-Length', request.file_size);
-    }
-
-    // Send the BLOB data directly
-    res.send(request.file_data);
-
-  } catch (error) {
-    console.error('Error retrieving BLOB file for officer:', error);
-    res.status(500).json({ error: 'Failed to retrieve file' });
-  }
-});
+// Protected residency verification management - REMOVED (Firebase legacy)
 
 // ==========================================
 // PUBLIC STATS ENDPOINTS (No Auth Required)
@@ -4548,89 +4152,27 @@ app.get('/ai/patrol-suggestions', async (req, res) => {
   }
 });
 
-app.get('/auth/firebase-users', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
-  try {
-    console.log('=== FETCHING FIREBASE USERS (non-API route) ===');
+// Firebase users route - REMOVED (MySQL-only authentication)
 
-    // Get Firebase users using Admin SDK
-    const firebaseUsers = [];
-    let nextPageToken;
-
-    do {
-      const listUsersResult = await admin.auth().listUsers(1000, nextPageToken);
-      firebaseUsers.push(...listUsersResult.users);
-      nextPageToken = listUsersResult.pageToken;
-    } while (nextPageToken);
-
-    console.log(`Found ${firebaseUsers.length} Firebase users`);
-
-    // Get corresponding database records for enhanced info
-    const dbUsers = await knex('users')
-      .whereNotNull('firebase_uid')
-      .select('firebase_uid', 'full_name', 'email', 'role', 'is_active', 'created_at', 'last_login', 'residency_status');
-
-    // Create a map for quick lookup
-    const dbUserMap = {};
-    dbUsers.forEach(dbUser => {
-      dbUserMap[dbUser.firebase_uid] = dbUser;
-    });
-
-    // Combine Firebase and database data
-    const combinedUsers = firebaseUsers.map(firebaseUser => {
-      const dbUser = dbUserMap[firebaseUser.uid];
-      const displayName = firebaseUser.displayName || firebaseUser.email.split('@')[0];
-
-      return {
-        id: firebaseUser.uid,
-        firebase_uid: firebaseUser.uid,
-        username: displayName,
-        full_name: dbUser?.full_name || displayName,
-        email: firebaseUser.email,
-        role: dbUser?.role || 'resident',
-        is_active: dbUser?.is_active !== false, // Default to true if not in DB
-        email_verified: firebaseUser.emailVerified,
-        phone_verified: firebaseUser.phoneNumber ? true : false,
-        created_at: firebaseUser.metadata.creationTime,
-        last_login: firebaseUser.metadata.lastSignInTime,
-        residency_status: dbUser?.residency_status || 'pending'
-      };
-    });
-
-    console.log(`Returning ${combinedUsers.length} combined users`);
-
-    res.json({
-      success: true,
-      users: combinedUsers,
-      total: combinedUsers.length
-    });
-
-  } catch (error) {
-    console.error('Error fetching Firebase users:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch Firebase users',
-      details: error.message
-    });
-  }
-});
-
-// Residency verifications routes (non-API prefix)
+// Residency verifications routes (non-API prefix) - FIXED: Use db instead of knex
 app.get('/auth/residency-verifications/pending', verifyToken, checkRole(['captain', 'secretary', 'clerk']), async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
 
-    const requests = await knex('resident_verification_requests')
-      .select(
-        'resident_verification_requests.*',
-        'users.username',
-        'users.full_name',
-        'users.email'
-      )
-      .join('users', 'resident_verification_requests.user_id', 'users.id')
-      .where('resident_verification_requests.status', 'pending')
-      .orderBy('resident_verification_requests.submitted_at', 'asc')
-      .limit(limit)
-      .offset((page - 1) * limit);
+    // Use db.execute instead of knex
+    const [requests] = await db.execute(`
+      SELECT
+        rvr.*,
+        u.username,
+        u.full_name,
+        u.email
+      FROM resident_verification_requests rvr
+      JOIN users u ON rvr.user_id = u.id
+      WHERE rvr.status = 'pending'
+      ORDER BY rvr.submitted_at ASC
+      LIMIT ? OFFSET ?
+    `, [parseInt(limit), offset]);
 
     const formattedRequests = requests.map(row => ({
       request_id: row.request_id,
@@ -4639,7 +4181,7 @@ app.get('/auth/residency-verifications/pending', verifyToken, checkRole(['captai
       full_name: row.full_name,
       email: row.email,
       proof_type: row.proof_type,
-      proof_path: row.proof_of_residency_path,
+      proof_path: row.proof_path,
       notes: row.notes,
       submitted_at: row.submitted_at
     }));
@@ -4663,9 +4205,11 @@ app.get('/auth/residency-verifications/pending', verifyToken, checkRole(['captai
 });
 
 app.put('/auth/residency-verifications/:request_id/review', verifyToken, checkRole(['captain', 'secretary', 'clerk']), async (req, res) => {
-  const trx = await knex.transaction();
+  const connection = await db.getConnection();
 
   try {
+    await connection.beginTransaction();
+
     const { request_id } = req.params;
     const { action, review_notes } = req.body; // action: 'approve' or 'reject'
     const reviewed_by = req.user?.id;
@@ -4678,62 +4222,40 @@ app.put('/auth/residency-verifications/:request_id/review', verifyToken, checkRo
       });
     }
 
-    // Get the verification request
-    const verificationRequest = await trx('resident_verification_requests')
-      .where('request_id', request_id)
-      .where('status', 'pending')
-      .first();
+    // Get the verification request using db.execute
+    const [verificationRows] = await connection.execute(
+      'SELECT * FROM resident_verification_requests WHERE request_id = ? AND status = ?',
+      [request_id, 'pending']
+    );
 
-    if (!verificationRequest) {
-      await trx.rollback();
+    if (verificationRows.length === 0) {
+      await connection.rollback();
       return res.status(404).json({
         success: false,
         message: 'Verification request not found or already processed.'
       });
     }
 
+    const verificationRequest = verificationRows[0];
     const newStatus = action === 'approve' ? 'approved' : 'rejected';
 
     // Update verification request
-    await trx('resident_verification_requests')
-      .where('request_id', request_id)
-      .update({
-        status: newStatus,
-        reviewed_at: trx.fn.now(),
-        reviewed_by: reviewed_by,
-        review_notes: review_notes,
-        updated_at: trx.fn.now()
-      });
+    await connection.execute(
+      'UPDATE resident_verification_requests SET status = ?, reviewed_at = NOW(), reviewed_by = ?, review_notes = ?, updated_at = NOW() WHERE request_id = ?',
+      [newStatus, reviewed_by, review_notes, request_id]
+    );
 
     if (action === 'approve') {
       // Update user residency status
-      await trx('users')
-        .where('id', verificationRequest.user_id)
-        .update({
-          residency_status: 'verified',
-          residency_verified_at: trx.fn.now(),
-          residency_verified_by: reviewed_by,
-          updated_at: trx.fn.now()
-        });
+      await connection.execute(
+        'UPDATE users SET residency_status = ?, residency_verified_at = NOW(), residency_verified_by = ?, updated_at = NOW() WHERE id = ?',
+        ['verified', reviewed_by, verificationRequest.user_id]
+      );
 
-      // Log the approval
-      try {
-        await trx('audit_log').insert({
-          user_id: reviewed_by,
-          action: 'RESIDENCY_VERIFICATION_APPROVED',
-          entity_type: 'resident_verification_request',
-          entity_id: request_id,
-          details: JSON.stringify({
-            user_id: verificationRequest.user_id,
-            request_id: request_id
-          }),
-          created_at: trx.fn.now()
-        });
-      } catch (logError) {
-        console.log('⚠️ Failed to log approval:', logError.message);
-      }
+      // Log the approval (optional - simplified)
+      console.log('✅ Residency verification approved:', request_id);
 
-      await trx.commit();
+      await connection.commit();
 
       res.json({
         success: true,
@@ -4748,7 +4270,7 @@ app.put('/auth/residency-verifications/:request_id/review', verifyToken, checkRo
 
     } else {
       // For rejection, just update status
-      await trx.commit();
+      await connection.commit();
 
       res.json({
         success: true,
@@ -4761,12 +4283,14 @@ app.put('/auth/residency-verifications/:request_id/review', verifyToken, checkRo
     }
 
   } catch (error) {
-    await trx.rollback();
+    await connection.rollback();
     console.error('Error reviewing residency verification:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to process verification review'
     });
+  } finally {
+    connection.release();
   }
 });
 
@@ -4872,20 +4396,8 @@ app.get('/analytics/dashboard-summary', async (req, res) => {
   }
 });
 
-// Programs route (community events)
-app.get('/programs', (req, res, next) => {
-  // Check for resident Firebase token first
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.split('Bearer ')[1];
-    // Check if it looks like a Firebase ID token (longer than typical JWT)
-    if (token && token.length > 500) {
-      return verifyFirebaseToken(req, res, next); // Resident path - programs are public
-    }
-  }
-  // Default to JWT verification for staff (required for access)
-  return verifyToken(req, res, next);
-}, async (req, res) => {
+// Programs route (community events) - FIXED: MySQL-only authentication
+app.get('/programs', verifyToken, async (req, res) => {
   try {
     // Programs are public information for residents - no filtering needed
     const [rows] = await db.execute(`
@@ -5050,20 +4562,8 @@ app.get('/verify-qr/:hash', async (req, res) => {
 // COMMUNITY EVENTS MODULE
 // ==========================================
 
-// Get all community programs/events (supports both resident and staff with dynamic auth)
-app.get('/api/programs', (req, res, next) => {
-  // Check for resident Firebase token first
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.split('Bearer ')[1];
-    // Check if it looks like a Firebase ID token (longer than typical JWT)
-    if (token && token.length > 500) {
-      return verifyFirebaseToken(req, res, next); // Resident path - programs are public
-    }
-  }
-  // Default to JWT verification for staff (required for access)
-  return verifyToken(req, res, next);
-}, async (req, res) => {
+// Get all community programs/events - FIXED: MySQL-only authentication
+app.get('/api/programs', verifyToken, async (req, res) => {
   try {
     // Programs are public information for residents - no filtering needed
     const [rows] = await db.execute(`

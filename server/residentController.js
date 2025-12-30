@@ -316,6 +316,49 @@ exports.uploadVerification = async (req, res) => {
     }
 };
 
+exports.updateContactInfo = async (req, res) => {
+    const residentId = req.user.resident_id;
+    const { email, mobile_number } = req.body;
+
+    try {
+        // Create updateData object with only provided fields
+        const updateData = {};
+        if (email !== undefined) updateData.Email = email;
+        if (mobile_number !== undefined) updateData.Mobile_Number = mobile_number;
+
+        // Validate that updateData is not empty
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No update data provided. Please provide email or mobile_number.'
+            });
+        }
+
+        // Update the residents table
+        const result = await knex('residents')
+            .where({ Resident_ID: residentId })
+            .update({
+                ...updateData,
+                updated_at: knex.fn.now()
+            });
+
+        // Return success response
+        res.status(200).json({
+            success: true,
+            message: 'Contact information updated successfully',
+            records_updated: result
+        });
+
+    } catch (error) {
+        console.error('Error updating contact info:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update contact information',
+            error: error.message
+        });
+    }
+};
+
 exports.requestDocument = async (req, res) => {
     const residentId = req.user.resident_id;
     const { document_type, request_data } = req.body;

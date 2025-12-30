@@ -167,18 +167,14 @@ router.post('/ai/chatbot/log',
             resident_id
         } = req.body;
 
-        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+        // Get database connection
+        const mysql = require('mysql2/promise');
+        const db = mysql.createPool(require('./database'));
 
-        await knex('ai_chatbot_conversations').insert({
-            session_id,
-            user_message,
-            bot_response,
-            intent_detected,
-            confidence_score,
-            user_id,
-            resident_id,
-            created_at: knex.fn.now()
-        });
+        await db.execute(
+            'INSERT INTO ai_chatbot_conversations (session_id, user_message, bot_response, intent_detected, confidence_score, user_id, resident_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
+            [session_id, user_message, bot_response, intent_detected, confidence_score, user_id, resident_id]
+        );
 
         res.json({ success: true, message: 'Conversation logged successfully' });
 
@@ -288,10 +284,13 @@ router.get('/auth/residency-verifications/pending',
 router.get('/programs',
     verifyToken, checkRole([5, 6]), enforcePermissions('/api/programs'), async (req, res) => {
     try {
-        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
-        const programs = await knex('community_programs')
-            .select('*')
-            .orderBy('program_date', 'desc');
+        // Get database connection
+        const mysql = require('mysql2/promise');
+        const db = mysql.createPool(require('./database'));
+
+        const [programs] = await db.execute(
+            'SELECT * FROM community_programs ORDER BY program_date DESC'
+        );
         res.json(programs);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch programs' });
@@ -302,11 +301,13 @@ router.get('/programs',
 router.get('/templates',
     verifyToken, checkRole([2, 5, 6]), enforcePermissions('/api/templates'), async (req, res) => {
     try {
-        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
-        const templates = await knex('templates')
-            .select('*')
-            .where('is_active', true)
-            .orderBy('name');
+        // Get database connection
+        const mysql = require('mysql2/promise');
+        const db = mysql.createPool(require('./database'));
+
+        const [templates] = await db.execute(
+            'SELECT * FROM templates WHERE is_active = true ORDER BY name'
+        );
         res.json(templates);
     } catch (error) {
         res.json([]); // Return empty array if table doesn't exist
@@ -317,10 +318,13 @@ router.get('/templates',
 router.get('/households',
     verifyToken, checkRole([1, 2, 5, 6]), enforcePermissions('/api/households'), async (req, res) => {
     try {
-        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
-        const households = await knex('households')
-            .select('*')
-            .orderBy('Household_Number');
+        // Get database connection
+        const mysql = require('mysql2/promise');
+        const db = mysql.createPool(require('./database'));
+
+        const [households] = await db.execute(
+            'SELECT * FROM households ORDER BY Household_Number'
+        );
         res.json(households);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch households' });
@@ -331,10 +335,13 @@ router.get('/households',
 router.get('/sitios',
     verifyToken, checkRole([1, 2, 3, 5, 6]), enforcePermissions('/api/sitios'), async (req, res) => {
     try {
-        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
-        const sitios = await knex('sitios')
-            .select('*')
-            .orderBy('name');
+        // Get database connection
+        const mysql = require('mysql2/promise');
+        const db = mysql.createPool(require('./database'));
+
+        const [sitios] = await db.execute(
+            'SELECT * FROM sitios ORDER BY name'
+        );
         res.json(sitios);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch sitios' });
@@ -345,11 +352,13 @@ router.get('/sitios',
 router.get('/certificate-types',
     verifyToken, checkRole([2, 5, 6]), enforcePermissions('/api/certificate-types'), async (req, res) => {
     try {
-        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
-        const types = await knex('certificate_types')
-            .select('*')
-            .where('is_active', true)
-            .orderBy('name');
+        // Get database connection
+        const mysql = require('mysql2/promise');
+        const db = mysql.createPool(require('./database'));
+
+        const [types] = await db.execute(
+            'SELECT * FROM certificate_types WHERE is_active = true ORDER BY name'
+        );
         res.json({ success: true, data: types });
     } catch (error) {
         res.json({ success: true, data: [] });
@@ -360,10 +369,13 @@ router.get('/certificate-types',
 router.get('/blotter',
     verifyToken, checkRole([1, 2, 3, 5]), enforcePermissions('/api/blotter'), async (req, res) => {
     try {
-        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
-        const blotterCases = await knex('blotter')
-            .select('*')
-            .orderBy('DateTime_Incident', 'desc');
+        // Get database connection
+        const mysql = require('mysql2/promise');
+        const db = mysql.createPool(require('./database'));
+
+        const [blotterCases] = await db.execute(
+            'SELECT * FROM blotter ORDER BY DateTime_Incident DESC'
+        );
         res.json(blotterCases);
     } catch (error) {
         console.error('Error fetching blotter cases:', error);
@@ -387,60 +399,62 @@ router.get('/census',
 router.get('/residents',
     verifyToken, checkRole([1, 2, 3, 5, 6]), enforcePermissions('/api/residents'), async (req, res) => {
     try {
-        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+        // Get database connection
+        const mysql = require('mysql2/promise');
+        const db = mysql.createPool(require('./database'));
+
         const { search, sitio_id, residency_status, show_vulnerable, dateFrom, dateTo, gender } = req.query;
 
-        let query = knex('residents as r')
-            .leftJoin('households as h', 'r.Household_ID', 'h.Household_ID')
-            .leftJoin('sitios as s', 'h.Sitio_ID', 's.id')
-            .select(
-                'r.*',
-                'h.Household_Number',
-                's.name as sitio_name'
-            );
+        // Build WHERE conditions
+        let whereConditions = [];
+        let values = [];
 
         if (search) {
-            query = query.where(function() {
-                this.where('r.First_Name', 'like', `%${search}%`)
-                    .orWhere('r.Last_Name', 'like', `%${search}%`)
-                    .orWhere('r.Middle_Name', 'like', `%${search}%`)
-                    .orWhere('h.Household_Number', 'like', `%${search}%`)
-                    .orWhere('s.name', 'like', `%${search}%`)
-                    .orWhere('r.Occupation', 'like', `%${search}%`);
-            });
+            whereConditions.push('(r.First_Name LIKE ? OR r.Last_Name LIKE ? OR r.Middle_Name LIKE ? OR h.Household_Number LIKE ? OR s.name LIKE ? OR r.Occupation LIKE ?)');
+            const searchTerm = `%${search}%`;
+            values.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
         }
 
         if (sitio_id) {
-            query = query.where('s.name', sitio_id);
+            whereConditions.push('s.name = ?');
+            values.push(sitio_id);
         }
 
         if (residency_status) {
-            query = query.where('r.Residency_Status', residency_status);
+            whereConditions.push('r.Residency_Status = ?');
+            values.push(residency_status);
         }
 
         if (gender) {
-            query = query.where('r.Gender', gender);
+            whereConditions.push('r.Gender = ?');
+            values.push(gender);
         }
 
         if (show_vulnerable === 'true') {
-            query = query.where(function() {
-                this.where('r.Is_4Ps', true)
-                    .orWhere('r.Is_PWD', true)
-                    .orWhere('r.Is_Senior', true)
-                    .orWhere('r.Is_Solo_Parent', true)
-                    .orWhere('r.Is_Out_of_School_Youth', true);
-            });
+            whereConditions.push('(r.Is_4Ps = true OR r.Is_PWD = true OR r.Is_Senior = true OR r.Is_Solo_Parent = true OR r.Is_Out_of_School_Youth = true)');
         }
 
         if (dateFrom) {
-            query = query.where('r.Date_Arrival', '>=', dateFrom);
+            whereConditions.push('r.Date_Arrival >= ?');
+            values.push(dateFrom);
         }
 
         if (dateTo) {
-            query = query.where('r.Date_Arrival', '<=', dateTo + ' 23:59:59');
+            whereConditions.push('r.Date_Arrival <= ?');
+            values.push(dateTo + ' 23:59:59');
         }
 
-        const residents = await query.orderBy('r.Last_Name');
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+        const [residents] = await db.execute(`
+            SELECT r.*, h.Household_Number, s.name as sitio_name
+            FROM residents r
+            LEFT JOIN households h ON r.Household_ID = h.Household_ID
+            LEFT JOIN sitios s ON h.Sitio_ID = s.id
+            ${whereClause}
+            ORDER BY r.Last_Name
+        `, values);
+
         res.json(residents);
     } catch (error) {
         console.error('Error fetching residents:', error);
@@ -452,10 +466,11 @@ router.get('/residents',
 router.post('/residents',
     verifyToken, checkRole([1, 2]), enforcePermissions('/api/residents'), async (req, res) => {
     try {
-        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+        // Get database connection
+        const mysql = require('mysql2/promise');
+        const db = mysql.createPool(require('./database'));
+
         const residentData = req.body;
-
-
 
         // Generate unique Resident ID (6-digit format like RES-123456)
         const residentIdNumber = Math.floor(100000 + Math.random() * 900000);
@@ -464,63 +479,71 @@ router.post('/residents',
         // Generate temporary 6-digit password
         const tempPassword = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Prepare data for residents table - using correct PascalCase field names
-        const residentDataFormatted = {
-            Resident_ID: residentId,
-            Household_ID: residentData.household_id,
-            Relation_to_Head: residentData.relation_to_head || 'Head',
-            First_Name: residentData.first_name,
-            Middle_Name: residentData.middle_name || '',
-            Last_Name: residentData.last_name,
-            Suffix: residentData.suffix || '',
-            Birthdate: residentData.birthdate,
-            Gender: residentData.gender,
-            Civil_Status: residentData.civil_status,
-            Occupation: residentData.occupation || '',
-            Income_Estimate: parseFloat(residentData.income_estimate) || 0,
-            Mobile_Number: residentData.mobile_number || '',
-            Voter_Status: residentData.voter_status || 'Non-Registered',
-            Date_Arrival: residentData.date_arrival,
-            Residency_Status: 'Active',
-            created_at: knex.fn.now(),
-            updated_at: knex.fn.now()
-        };
-
         // Create resident record in database
-        await knex('residents').insert(residentDataFormatted);
+        await db.execute(`
+            INSERT INTO residents (
+                Resident_ID, Household_ID, Relation_to_Head, First_Name, Middle_Name, Last_Name, Suffix,
+                Birthdate, Gender, Civil_Status, Occupation, Income_Estimate, Mobile_Number,
+                Voter_Status, Date_Arrival, Residency_Status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        `, [
+            residentId,
+            residentData.household_id,
+            residentData.relation_to_head || 'Head',
+            residentData.first_name,
+            residentData.middle_name || '',
+            residentData.last_name,
+            residentData.suffix || '',
+            residentData.birthdate,
+            residentData.gender,
+            residentData.civil_status,
+            residentData.occupation || '',
+            parseFloat(residentData.income_estimate) || 0,
+            residentData.mobile_number || '',
+            residentData.voter_status || 'Non-Registered',
+            residentData.date_arrival,
+            'Active'
+        ]);
 
         // Prepare vulnerabilities data for separate table
-        const vulnerabilitiesData = {
-            Resident_ID: residentId,
-            Is_4Ps: residentData.is_4ps === 'true' || residentData.is_4ps === true,
-            Is_PWD: residentData.is_pwd === 'true' || residentData.is_pwd === true,
-            Is_Senior: false, // Will be calculated based on birthdate
-            Is_Solo_Parent: residentData.is_solo_parent === 'true' || residentData.is_solo_parent === true,
-            Is_Out_of_School_Youth: residentData.is_out_of_school_youth === 'true' || residentData.is_out_of_school_youth === true,
-            Disability_Type: residentData.disability_type || '',
-            Vulnerability_Score: 0, // Will be calculated
-            created_at: knex.fn.now(),
-            updated_at: knex.fn.now()
-        };
+        const is4Ps = residentData.is_4ps === 'true' || residentData.is_4ps === true;
+        const isPwd = residentData.is_pwd === 'true' || residentData.is_pwd === true;
+        const isSoloParent = residentData.is_solo_parent === 'true' || residentData.is_solo_parent === true;
+        const isOutOfSchoolYouth = residentData.is_out_of_school_youth === 'true' || residentData.is_out_of_school_youth === true;
 
         // Calculate if senior citizen (65+ years old) and vulnerability score
+        let isSenior = false;
         if (residentData.birthdate) {
             const birthDate = new Date(residentData.birthdate);
             const today = new Date();
             const age = today.getFullYear() - birthDate.getFullYear();
-            vulnerabilitiesData.Is_Senior = age >= 65;
+            isSenior = age >= 65;
         }
 
         // Calculate vulnerability score
-        vulnerabilitiesData.Vulnerability_Score =
-            (vulnerabilitiesData.Is_4Ps ? 1 : 0) +
-            (vulnerabilitiesData.Is_PWD ? 2 : 0) +
-            (vulnerabilitiesData.Is_Senior ? 1 : 0) +
-            (vulnerabilitiesData.Is_Solo_Parent ? 1 : 0) +
-            (vulnerabilitiesData.Is_Out_of_School_Youth ? 1 : 0);
+        const vulnerabilityScore =
+            (is4Ps ? 1 : 0) +
+            (isPwd ? 2 : 0) +
+            (isSenior ? 1 : 0) +
+            (isSoloParent ? 1 : 0) +
+            (isOutOfSchoolYouth ? 1 : 0);
 
         // Insert vulnerabilities record
-        await knex('vulnerabilities').insert(vulnerabilitiesData);
+        await db.execute(`
+            INSERT INTO vulnerabilities (
+                Resident_ID, Is_4Ps, Is_PWD, Is_Senior, Is_Solo_Parent, Is_Out_of_School_Youth,
+                Disability_Type, Vulnerability_Score, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        `, [
+            residentId,
+            is4Ps,
+            isPwd,
+            isSenior,
+            isSoloParent,
+            isOutOfSchoolYouth,
+            residentData.disability_type || '',
+            vulnerabilityScore
+        ]);
 
         // Auto-create user account for resident
         let userAccount = null;
@@ -531,23 +554,22 @@ router.post('/residents',
             const hashedPassword = await bcrypt.hash(tempPassword, saltRounds);
 
             // Create user account in users table
-            const [userResult] = await knex('users').insert({
-                username: residentData.email, // Use email as username
-                password_hash: hashedPassword,
-                role: 'resident',
-                email: residentData.email,
-                full_name: `${residentData.First_Name} ${residentData.Last_Name}`,
-                contact_number: residentData.Mobile_Number || '',
-                is_active: true,
-                created_at: knex.fn.now(),
-                updated_at: knex.fn.now()
-            }).returning('id');
+            await db.execute(`
+                INSERT INTO users (
+                    username, password_hash, role, email, full_name, contact_number, is_active, created_at, updated_at
+                ) VALUES (?, ?, 'resident', ?, ?, ?, true, NOW(), NOW())
+            `, [
+                residentData.email, // Use email as username
+                hashedPassword,
+                residentData.email,
+                `${residentData.first_name} ${residentData.last_name}`,
+                residentData.mobile_number || ''
+            ]);
 
             userAccount = {
-                user_id: userResult.id || userResult,
                 username: residentData.email,
                 email: residentData.email,
-                full_name: `${residentData.First_Name} ${residentData.Last_Name}`,
+                full_name: `${residentData.first_name} ${residentData.last_name}`,
                 role: 'resident'
             };
         } catch (userError) {
@@ -577,16 +599,32 @@ router.post('/residents',
 router.put('/residents/:id',
     verifyToken, checkRole([1, 2]), enforcePermissions('/api/residents/:id'), async (req, res) => {
     try {
-        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+        // Get database connection
+        const mysql = require('mysql2/promise');
+        const db = mysql.createPool(require('./database'));
+
         const { id } = req.params;
         const updateData = req.body;
 
-        await knex('residents')
-            .where('Resident_ID', id)
-            .update({
-                ...updateData,
-                updated_at: knex.fn.now()
-            });
+        // Build dynamic update query
+        const updateFields = [];
+        const values = [];
+
+        Object.keys(updateData).forEach(key => {
+            if (updateData[key] !== undefined) {
+                updateFields.push(`${key} = ?`);
+                values.push(updateData[key]);
+            }
+        });
+
+        if (updateFields.length > 0) {
+            updateFields.push('updated_at = NOW()');
+
+            const sql = `UPDATE residents SET ${updateFields.join(', ')} WHERE Resident_ID = ?`;
+            values.push(id);
+
+            await db.execute(sql, values);
+        }
 
         res.json({ message: 'Resident updated successfully' });
     } catch (error) {
@@ -598,18 +636,18 @@ router.put('/residents/:id',
 router.put('/residents/:id/archive',
     verifyToken, checkRole([1, 2]), enforcePermissions('/api/residents/:id/archive'), async (req, res) => {
     try {
-        const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+        // Get database connection
+        const mysql = require('mysql2/promise');
+        const db = mysql.createPool(require('./database'));
+
         const { id } = req.params;
         const { departure_reason, departure_date } = req.body;
 
-        await knex('residents')
-            .where('Resident_ID', id)
-            .update({
-                Residency_Status: 'Transferred Out',
-                departure_reason,
-                departure_date,
-                updated_at: knex.fn.now()
-            });
+        await db.execute(`
+            UPDATE residents
+            SET Residency_Status = 'Transferred Out', departure_reason = ?, departure_date = ?, updated_at = NOW()
+            WHERE Resident_ID = ?
+        `, [departure_reason, departure_date, id]);
 
         res.json({ message: 'Resident archived successfully' });
     } catch (error) {

@@ -455,10 +455,250 @@ async function register(req, res) {
   }
 }
 
+/**
+ * Get user profile - MySQL-only (no Firebase)
+ * GET /api/auth/profile
+ */
+async function getProfile(req, res) {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    let profile;
+
+    if (userRole === 'resident') {
+      // Get resident profile
+      const [residents] = await getDbConnection().execute(`
+        SELECT
+          r.Resident_ID as id,
+          r.First_Name,
+          r.Last_Name,
+          r.Middle_Name,
+          r.Suffix,
+          r.Birthdate,
+          r.Gender,
+          r.Civil_Status,
+          r.Mobile_Number,
+          r.Email,
+          r.Occupation,
+          r.Income_Estimate,
+          r.Residency_Status,
+          r.Date_Arrival,
+          r.Profile_Photo_URL,
+          h.Household_Number,
+          h.Street_Address,
+          s.name as sitio_name
+        FROM residents r
+        LEFT JOIN households h ON r.Household_ID = h.Household_ID
+        LEFT JOIN sitios s ON h.Sitio_ID = s.id
+        WHERE r.Resident_ID = ?
+      `, [userId]);
+
+      if (residents.length === 0) {
+        return res.status(404).json({ error: 'Resident profile not found' });
+      }
+
+      profile = {
+        id: residents[0].id,
+        full_name: `${residents[0].First_Name} ${residents[0].Middle_Name || ''} ${residents[0].Last_Name} ${residents[0].Suffix || ''}`.trim(),
+        first_name: residents[0].First_Name,
+        middle_name: residents[0].Middle_Name,
+        last_name: residents[0].Last_Name,
+        suffix: residents[0].Suffix,
+        birthdate: residents[0].Birthdate,
+        gender: residents[0].Gender,
+        civil_status: residents[0].Civil_Status,
+        mobile_number: residents[0].Mobile_Number,
+        email: residents[0].Email,
+        occupation: residents[0].Occupation,
+        income_estimate: residents[0].Income_Estimate,
+        residency_status: residents[0].Residency_Status,
+        date_arrival: residents[0].Date_Arrival,
+        profile_photo_url: residents[0].Profile_Photo_URL,
+        household_number: residents[0].Household_Number,
+        street_address: residents[0].Street_Address,
+        sitio_name: residents[0].sitio_name,
+        role: 'resident'
+      };
+    } else {
+      // Get staff profile from users table
+      const [users] = await getDbConnection().execute(`
+        SELECT
+          id,
+          username,
+          full_name,
+          email,
+          contact_number,
+          role,
+          is_active,
+          last_login,
+          created_at
+        FROM users
+        WHERE id = ?
+      `, [userId]);
+
+      if (users.length === 0) {
+        return res.status(404).json({ error: 'User profile not found' });
+      }
+
+      profile = {
+        id: users[0].id,
+        username: users[0].username,
+        full_name: users[0].full_name,
+        email: users[0].email,
+        contact_number: users[0].contact_number,
+        role: users[0].role,
+        is_active: users[0].is_active,
+        last_login: users[0].last_login,
+        created_at: users[0].created_at
+      };
+    }
+
+    res.json({
+      success: true,
+      profile: profile
+    });
+
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({
+      error: 'Internal server error during profile retrieval'
+    });
+  }
+}
+
+/**
+ * Update user profile - MySQL-only (no Firebase)
+ * PUT /api/auth/profile
+ */
+async function updateProfile(req, res) {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    const updates = req.body;
+
+    const connection = await getDbConnection();
+
+    if (userRole === 'resident') {
+      // Update resident profile
+      const allowedFields = [
+        'First_Name', 'Middle_Name', 'Last_Name', 'Suffix', 'Birthdate',
+        'Gender', 'Civil_Status', 'Mobile_Number', 'Email', 'Occupation',
+        'Income_Estimate', 'Profile_Photo_URL'
+      ];
+
+      const updateFields = [];
+      const values = [];
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (allowedFields.includes(key)) {
+          updateFields.push(`${key} = ?`);
+          values.push(value);
+        }
+      }
+
+      if (updateFields.length > 0) {
+        const sql = `UPDATE residents SET ${updateFields.join(', ')} WHERE Resident_ID = ?`;
+        values.push(userId);
+        await connection.execute(sql, values);
+      }
+
+      // Get updated profile
+      const [updatedResidents] = await connection.execute(`
+        SELECT
+          r.Resident_ID as id,
+          r.First_Name, r.Last_Name, r.Middle_Name, r.Suffix,
+          r.Birthdate, r.Gender, r.Civil_Status, r.Mobile_Number, r.Email,
+          r.Occupation, r.Income_Estimate, r.Profile_Photo_URL
+        FROM residents r
+        WHERE r.Resident_ID = ?
+      `, [userId]);
+
+      res.json({
+        success: true,
+        message: 'Profile updated successfully',
+        profile: updatedResidents[0]
+      });
+
+    } else {
+      // Update staff profile
+      const allowedFields = ['full_name', 'email', 'contact_number'];
+
+      const updateFields = [];
+      const values = [];
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (allowedFields.includes(key)) {
+          updateFields.push(`${key} = ?`);
+          values.push(value);
+        }
+      }
+
+      if (updateFields.length > 0) {
+        const sql = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
+        values.push(userId);
+        await connection.execute(sql, values);
+      }
+
+      res.json({
+        success: true,
+        message: 'Profile updated successfully'
+      });
+    }
+
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({
+      error: 'Internal server error during profile update'
+    });
+  }
+}
+
+/**
+ * Get subordinates (for hierarchy management)
+ * GET /api/auth/subordinates
+ */
+async function getSubordinates(req, res) {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // Get users who report to this user (based on parent_user_id)
+    const [subordinates] = await getDbConnection().execute(`
+      SELECT
+        id,
+        username,
+        full_name,
+        email,
+        role,
+        is_active,
+        last_login
+      FROM users
+      WHERE parent_user_id = ? AND is_active = true
+      ORDER BY role, full_name
+    `, [userId]);
+
+    res.json({
+      success: true,
+      subordinates: subordinates,
+      count: subordinates.length
+    });
+
+  } catch (error) {
+    console.error('Get subordinates error:', error);
+    res.status(500).json({
+      error: 'Internal server error during subordinates retrieval'
+    });
+  }
+}
+
 module.exports = {
   checkCensus,
   registerResident,
   loginResident,
   staffLogin,
-  register
+  register,
+  getProfile,
+  updateProfile,
+  getSubordinates
 };
