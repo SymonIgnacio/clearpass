@@ -1,7 +1,20 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
-const { sendWelcomeEmail } = require('./notificationService');
+const mysql = require('mysql2/promise');
+
+// Database configuration
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'barangay_management',
+  port: process.env.DB_PORT || 3306
+};
+
+// Get database connection
+async function getDbConnection() {
+  return await mysql.createConnection(dbConfig);
+}
 
 /**
  * Census-First Authentication Controller
@@ -40,25 +53,32 @@ async function checkCensus(req, res) {
       });
     }
 
-    // Query residents table
-    const resident = await knex('residents')
-      .where('Resident_ID', resident_id)
-      .where('Last_Name', last_name)
-      .first();
+    const connection = await getDbConnection();
+    try {
+      // Query residents table
+      const [rows] = await connection.execute(
+        'SELECT * FROM residents WHERE Resident_ID = ? AND Last_Name = ?',
+        [resident_id, last_name]
+      );
 
-    if (!resident) {
-      console.log('❌ Resident not found in census');
-      return res.status(404).json({
-        error: 'Resident not found in census'
-      });
-    }
+      const resident = rows[0];
 
-    // Check if already registered (has password_hash)
-    if (resident.password_hash) {
-      console.log('❌ Account already active for resident:', resident_id);
-      return res.status(400).json({
-        error: 'Account already active'
-      });
+      if (!resident) {
+        console.log('❌ Resident not found in census');
+        return res.status(404).json({
+          error: 'Resident not found in census'
+        });
+      }
+
+      // Check if already registered (has password_hash)
+      if (resident.password_hash) {
+        console.log('❌ Account already active for resident:', resident_id);
+        return res.status(400).json({
+          error: 'Account already active'
+        });
+      }
+    } finally {
+      await connection.end();
     }
 
     console.log('✅ Valid resident found:', resident_id);
@@ -108,47 +128,53 @@ async function registerResident(req, res) {
       });
     }
 
-    // Check if resident exists and is eligible
-    const resident = await knex('residents')
-      .where('Resident_ID', resident_id)
-      .first();
+    const connection = await getDbConnection();
+    let resident;
+    try {
+      // Check if resident exists and is eligible
+      const [residentRows] = await connection.execute(
+        'SELECT * FROM residents WHERE Resident_ID = ?',
+        [resident_id]
+      );
+      resident = residentRows[0];
 
-    if (!resident) {
-      return res.status(404).json({
-        error: 'Resident not found'
-      });
+      if (!resident) {
+        return res.status(404).json({
+          error: 'Resident not found'
+        });
+      }
+
+      if (resident.password_hash) {
+        return res.status(400).json({
+          error: 'Account already registered'
+        });
+      }
+
+      // Check if username is already taken
+      const [usernameRows] = await connection.execute(
+        'SELECT Resident_ID FROM residents WHERE username = ? AND Resident_ID != ?',
+        [username, resident_id]
+      );
+
+      if (usernameRows.length > 0) {
+        return res.status(409).json({
+          error: 'Username already taken'
+        });
+      }
+
+      // Hash password
+      const saltRounds = 10;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
+
+      // Update resident record
+      await connection.execute(
+        'UPDATE residents SET username = ?, password_hash = ?, account_status = ? WHERE Resident_ID = ?',
+        [username, passwordHash, 'Unverified', resident_id]
+      );
+
+    } finally {
+      await connection.end();
     }
-
-    if (resident.password_hash) {
-      return res.status(400).json({
-        error: 'Account already registered'
-      });
-    }
-
-    // Check if username is already taken
-    const existingUsername = await knex('residents')
-      .where('username', username)
-      .whereNot('Resident_ID', resident_id) // Exclude current resident
-      .first();
-
-    if (existingUsername) {
-      return res.status(409).json({
-        error: 'Username already taken'
-      });
-    }
-
-    // Hash password
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-
-    // Update resident record
-    await knex('residents')
-      .where('Resident_ID', resident_id)
-      .update({
-        username: username,
-        password_hash: passwordHash,
-        account_status: 'Unverified'
-      });
 
     console.log('✅ Resident registered successfully:', resident_id);
 
@@ -176,9 +202,14 @@ async function registerResident(req, res) {
     });
 
     // Send welcome email asynchronously (don't block response)
-    sendWelcomeEmail(resident).catch(err => {
-      console.error('Failed to send welcome email:', err);
-    });
+    try {
+      const { sendWelcomeEmail } = require('./notificationService');
+      sendWelcomeEmail(resident).catch(err => {
+        console.error('Failed to send welcome email:', err);
+      });
+    } catch (emailError) {
+      console.error('Failed to load notification service:', emailError);
+    }
 
   } catch (error) {
     console.error('❌ Register resident error:', error);
@@ -205,27 +236,34 @@ async function loginResident(req, res) {
       });
     }
 
-    // Find resident by username
-    const resident = await knex('residents')
-      .where('username', username)
-      .whereNot('account_status', 'Unregistered')
-      .first();
+    const connection = await getDbConnection();
+    let resident;
+    try {
+      // Find resident by username
+      const [rows] = await connection.execute(
+        'SELECT * FROM residents WHERE username = ? AND account_status != ?',
+        [username, 'Unregistered']
+      );
+      resident = rows[0];
 
-    if (!resident) {
-      console.log('❌ Resident not found or not registered');
-      return res.status(401).json({
-        error: 'Invalid credentials'
-      });
-    }
+      if (!resident) {
+        console.log('❌ Resident not found or not registered');
+        return res.status(401).json({
+          error: 'Invalid credentials'
+        });
+      }
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, resident.password_hash);
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, resident.password_hash);
 
-    if (!isValidPassword) {
-      console.log('❌ Invalid password');
-      return res.status(401).json({
-        error: 'Invalid credentials'
-      });
+      if (!isValidPassword) {
+        console.log('❌ Invalid password');
+        return res.status(401).json({
+          error: 'Invalid credentials'
+        });
+      }
+    } finally {
+      await connection.end();
     }
 
     console.log('✅ Resident login successful:', username);
@@ -278,27 +316,34 @@ async function staffLogin(req, res) {
       });
     }
 
-    // Find user in users table
-    const user = await knex('users')
-      .where('username', username)
-      .where('is_active', true)
-      .first();
+    const connection = await getDbConnection();
+    let user;
+    try {
+      // Find user in users table
+      const [rows] = await connection.execute(
+        'SELECT * FROM users WHERE username = ? AND is_active = true',
+        [username]
+      );
+      user = rows[0];
 
-    if (!user) {
-      console.log('❌ Staff not found or inactive');
-      return res.status(401).json({
-        error: 'Invalid credentials'
-      });
-    }
+      if (!user) {
+        console.log('❌ Staff not found or inactive');
+        return res.status(401).json({
+          error: 'Invalid credentials'
+        });
+      }
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, user.password_hash);
 
-    if (!isValidPassword) {
-      console.log('❌ Invalid password');
-      return res.status(401).json({
-        error: 'Invalid credentials'
-      });
+      if (!isValidPassword) {
+        console.log('❌ Invalid password');
+        return res.status(401).json({
+          error: 'Invalid credentials'
+        });
+      }
+    } finally {
+      await connection.end();
     }
 
     console.log('✅ Staff login successful:', username);
@@ -359,45 +404,48 @@ async function register(req, res) {
       });
     }
 
-    // Check if username already exists
-    const existingUser = await knex('users')
-      .where('username', username)
-      .first();
+    const connection = await getDbConnection();
+    try {
+      // Check if username already exists
+      const [existingRows] = await connection.execute(
+        'SELECT id FROM users WHERE username = ?',
+        [username]
+      );
 
-    if (existingUser) {
-      return res.status(409).json({
-        error: 'Username already exists'
-      });
-    }
-
-    // Hash password
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-
-    // Create user
-    const [userId] = await knex('users').insert({
-      username,
-      password_hash: passwordHash,
-      full_name,
-      email,
-      role: parseInt(role),
-      is_active: true,
-      created_at: knex.fn.now(),
-      updated_at: knex.fn.now()
-    });
-
-    console.log('✅ User registered successfully:', username);
-
-    res.status(201).json({
-      message: 'User registered successfully',
-      user: {
-        id: userId,
-        username,
-        full_name,
-        email,
-        role: parseInt(role)
+      if (existingRows.length > 0) {
+        return res.status(409).json({
+          error: 'Username already exists'
+        });
       }
-    });
+
+      // Hash password
+      const saltRounds = 10;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
+
+      // Create user
+      const [result] = await connection.execute(
+        'INSERT INTO users (username, password_hash, full_name, email, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, true, NOW(), NOW())',
+        [username, passwordHash, full_name, email, parseInt(role)]
+      );
+
+      const userId = result.insertId;
+
+      console.log('✅ User registered successfully:', username);
+
+      res.status(201).json({
+        message: 'User registered successfully',
+        user: {
+          id: userId,
+          username,
+          full_name,
+          email,
+          role: parseInt(role)
+        }
+      });
+
+    } finally {
+      await connection.end();
+    }
 
   } catch (error) {
     console.error('❌ User registration error:', error);
