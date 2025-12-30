@@ -46,10 +46,9 @@ const documentController = require('./documentController');
 router.post('/auth/login', authController.login);
 router.post('/auth/officer-login', authController.staffLogin); // THEMIS: Separate officer login endpoint
 
-// LOCAL MYSQL AUTHENTICATION - Resident Endpoints
 router.post('/auth/check-census', authController.checkCensus);
 router.post('/auth/register-resident', authController.registerResident);
-router.post('/auth/resident/login', authController.residentLoginLocal);
+router.post('/auth/resident/login', authController.loginResident);
 
 // Note: Resident Signup is DISABLED per security policy.
 
