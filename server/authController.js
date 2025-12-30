@@ -261,8 +261,156 @@ async function loginResident(req, res) {
   }
 }
 
+/**
+ * Staff Login - Authenticate officers against users table
+ * POST /api/auth/officer-login
+ */
+async function staffLogin(req, res) {
+  try {
+    const { username, password } = req.body;
+
+    console.log('🔐 Staff Login - Username:', username);
+
+    // Validate input
+    if (!username || !password) {
+      return res.status(400).json({
+        error: 'Username and password are required'
+      });
+    }
+
+    // Find user in users table
+    const user = await knex('users')
+      .where('username', username)
+      .where('is_active', true)
+      .first();
+
+    if (!user) {
+      console.log('❌ Staff not found or inactive');
+      return res.status(401).json({
+        error: 'Invalid credentials'
+      });
+    }
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+
+    if (!isValidPassword) {
+      console.log('❌ Invalid password');
+      return res.status(401).json({
+        error: 'Invalid credentials'
+      });
+    }
+
+    console.log('✅ Staff login successful:', username);
+
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        id: user.id,
+        role: user.role,
+        username: user.username
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '8h' } // Staff sessions last longer
+    );
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role,
+        contact_number: user.contact_number
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Staff login error:', error);
+    res.status(500).json({
+      error: 'Internal server error during login'
+    });
+  }
+}
+
+/**
+ * Register New User - Super Admin only
+ * POST /api/auth/register
+ */
+async function register(req, res) {
+  try {
+    const { username, password, full_name, email, role } = req.body;
+
+    console.log('👤 User Registration - Username:', username, 'Role:', role);
+
+    // Validate required fields
+    if (!username || !password || !full_name || !role) {
+      return res.status(400).json({
+        error: 'Username, password, full name, and role are required'
+      });
+    }
+
+    // Validate role (must be 1-6 for THEMIS system)
+    if (role < 1 || role > 6) {
+      return res.status(400).json({
+        error: 'Invalid role. Must be between 1-6'
+      });
+    }
+
+    // Check if username already exists
+    const existingUser = await knex('users')
+      .where('username', username)
+      .first();
+
+    if (existingUser) {
+      return res.status(409).json({
+        error: 'Username already exists'
+      });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // Create user
+    const [userId] = await knex('users').insert({
+      username,
+      password_hash: passwordHash,
+      full_name,
+      email,
+      role: parseInt(role),
+      is_active: true,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now()
+    });
+
+    console.log('✅ User registered successfully:', username);
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      user: {
+        id: userId,
+        username,
+        full_name,
+        email,
+        role: parseInt(role)
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ User registration error:', error);
+    res.status(500).json({
+      error: 'Internal server error during registration'
+    });
+  }
+}
+
 module.exports = {
   checkCensus,
   registerResident,
-  loginResident
+  loginResident,
+  staffLogin,
+  register
 };
