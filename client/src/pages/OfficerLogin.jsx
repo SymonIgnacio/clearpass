@@ -54,7 +54,7 @@ const OfficerLogin = () => {
       localStorage.removeItem('residentUser')
       localStorage.removeItem('residentAuthToken')
 
-      // Authenticate user with AuthContext
+      // Authenticate user with AuthContext (FIXED: Removed props.onLogin legacy dependency)
       await login(token)
 
       // Navigate to dashboard on success

@@ -7,7 +7,7 @@ const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'deve
  */
 
 // THEMIS CLEARPASS: 6-tier Role-Based Access Control System - SYNCHRONIZED WITH EXISTING DATABASE DUMP
-// UPDATED MAPPINGS: IT_ADMIN=5, CAPTAIN=2, SECRETARY=3, CLERK=4, BLOTTER_OFFICER=6, RESIDENT=12
+// CRITICAL DATABASE ALIGNMENT: IT_ADMIN=5, CAPTAIN=2, SECRETARY=3, CLERK=4, BLOTTER_OFFICER=6, RESIDENT=12
 const THEMIS_ROLES = {
   5: { // IT Admin (System Guardian)
     level: 5,

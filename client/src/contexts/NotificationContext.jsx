@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useAuth } from './AuthContext';
 import {
   Snackbar,
   Alert,
@@ -40,6 +41,7 @@ export const useNotifications = () => {
 };
 
 export const NotificationProvider = ({ children }) => {
+  const { token, isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -57,7 +59,7 @@ export const NotificationProvider = ({ children }) => {
         wsConnection.close();
       }
     };
-  }, []);
+  }, [token, isAuthenticated]);
 
   // Update unread count whenever notifications change
   useEffect(() => {
@@ -67,20 +69,24 @@ export const NotificationProvider = ({ children }) => {
 
   const initializeWebSocket = () => {
     try {
-      // Get authentication token
-      const token = localStorage.getItem('authToken');
-      console.log('📡 Initializing WebSocket with token:', token ? 'Token present' : 'No token');
+      // CRITICAL: Only connect if user is authenticated AND has token
+      if (!token || !isAuthenticated) {
+        console.log('📡 User not authenticated, skipping WebSocket connection');
+        return;
+      }
 
-      if (!token) {
+      // Get authentication token
+      const authToken = localStorage.getItem('authToken');
+      console.log('📡 Initializing WebSocket with token:', authToken ? 'Token present' : 'No token');
+
+      if (!authToken) {
         console.log('📡 No auth token found, skipping WebSocket connection');
-        // Fallback to polling since we can't authenticate WebSocket
-        startPolling();
         return;
       }
 
       const wsUrl = process.env.NODE_ENV === 'production'
-        ? `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/ws/notifications?token=${encodeURIComponent(token)}`
-        : `ws://localhost:3001/ws/notifications?token=${encodeURIComponent(token)}`;
+        ? `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/ws/notifications?token=${encodeURIComponent(authToken)}`
+        : `ws://localhost:3001/ws/notifications?token=${encodeURIComponent(authToken)}`;
 
       const ws = new WebSocket(wsUrl);
 

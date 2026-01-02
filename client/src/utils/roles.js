@@ -1,7 +1,7 @@
 // Role utility functions for consistent role handling across the application
 
 // THEMIS role definitions (numeric) - SYNCHRONIZED WITH EXISTING DATABASE DUMP
-// UPDATED MAPPINGS: IT_ADMIN=5, CAPTAIN=2, SECRETARY=3, CLERK=4, BLOTTER_OFFICER=6, RESIDENT=12
+// CRITICAL DATABASE ALIGNMENT: IT_ADMIN=5, CAPTAIN=2, SECRETARY=3, CLERK=4, BLOTTER_OFFICER=6, RESIDENT=12
 export const THEMIS_ROLES = {
   5: { id: 5, key: 'it_admin', name: 'IT Admin', displayName: 'Super Admin' },
   2: { id: 2, key: 'captain', name: 'Captain', displayName: 'Barangay Captain' },
