@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
@@ -12,7 +14,6 @@ const validator = require('validator');
 const PDFDocument = require('pdfkit');
 const bcrypt = require('bcrypt');
 const knex = require('knex');
-require('dotenv').config();
 
 // Environment variable validation
 function validateEnvironmentVariables() {
@@ -83,48 +84,42 @@ const port = process.env.SERVER_PORT || 3001;
 // Import SSL configuration
 const sslConfig = require('./ssl-config');
 
-// Rate limiting
+// Rate limiting - Updated to express-rate-limit v7 syntax
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  limit: 100, // limit each IP to 100 requests per windowMs
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: 15 * 60 * 1000
   },
-  standardHeaders: true,
+  standardHeaders: 'draft-7',
   legacyHeaders: false
 });
 
 // Stricter rate limiting for sensitive endpoints
 const strictLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // limit each IP to 10 requests per windowMs for sensitive operations
+  limit: 10, // limit each IP to 10 requests per windowMs for sensitive operations
   message: {
     error: 'Too many sensitive operations, please try again later.',
     retryAfter: 15 * 60 * 1000
-  }
+  },
+  standardHeaders: 'draft-7',
+  legacyHeaders: false
 });
 
 // Strict rate limiting for authentication endpoints (anti-brute force)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 authentication attempts per windowMs
-  message: {
-    success: false,
-    error: 'Too many authentication attempts, please try again later.',
-    code: 429,
-    retryAfter: 15 * 60 * 1000,
-    timestamp: new Date().toISOString()
-  },
-  standardHeaders: true,
+  limit: 5, // limit each IP to 5 authentication attempts per windowMs
+  standardHeaders: 'draft-7',
   legacyHeaders: false,
-  // Log failed attempts
-  onLimitReached: (req, res) => {
-    logger.warn('Rate limit exceeded for authentication', {
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      endpoint: req.originalUrl
-    });
+  // Replacement for onLimitReached - modern handler function
+  handler: (req, res, next, options) => {
+    // Log the warning
+    console.warn(`Rate limit exceeded for authentication: IP ${req.ip}`);
+    // Return the standard response
+    res.status(options.statusCode).send(options.message);
   }
 });
 

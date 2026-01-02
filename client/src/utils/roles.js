@@ -1,23 +1,23 @@
 // Role utility functions for consistent role handling across the application
 
-// THEMIS role definitions (numeric)
+// THEMIS role definitions (numeric) - SYNCHRONIZED WITH SQL DATABASE
 export const THEMIS_ROLES = {
   1: { id: 1, key: 'it_admin', name: 'IT Admin', displayName: 'Super Admin' },
-  2: { id: 2, key: 'clerk', name: 'Clerk', displayName: 'Barangay Clerk' },
-  3: { id: 3, key: 'blotter_officer', name: 'Blotter Officer', displayName: 'Blotter Officer' },
-  4: { id: 4, key: 'resident', name: 'Resident', displayName: 'Resident' },
-  5: { id: 5, key: 'captain', name: 'Captain', displayName: 'Barangay Captain' },
-  6: { id: 6, key: 'secretary', name: 'Secretary', displayName: 'Barangay Secretary' }
+  2: { id: 2, key: 'captain', name: 'Captain', displayName: 'Barangay Captain' },
+  3: { id: 3, key: 'secretary', name: 'Secretary', displayName: 'Barangay Secretary' },
+  4: { id: 4, key: 'clerk', name: 'Clerk', displayName: 'Barangay Clerk' },
+  6: { id: 6, key: 'resident', name: 'Resident', displayName: 'Resident' },
+  7: { id: 7, key: 'blotter_officer', name: 'Blotter Officer', displayName: 'Blotter Officer' }
 };
 
 // Legacy role mapping for backward compatibility
 export const ROLE_MAPPING = {
   'admin': THEMIS_ROLES[1],
-  'captain': THEMIS_ROLES[5],
-  'secretary': THEMIS_ROLES[6],
-  'clerk': THEMIS_ROLES[2],
-  'resident': THEMIS_ROLES[4],
-  'blotter_officer': THEMIS_ROLES[3],
+  'captain': THEMIS_ROLES[2],
+  'secretary': THEMIS_ROLES[3],
+  'clerk': THEMIS_ROLES[4],
+  'resident': THEMIS_ROLES[6],
+  'blotter_officer': THEMIS_ROLES[7],
   'it_admin': THEMIS_ROLES[1]
 };
 
@@ -156,21 +156,21 @@ export const hasMinimumLevel = (user, minLevel) => {
   return userLevel >= minLevel;
 };
 
-// Role constants for easy reference
+// Role constants for easy reference - SYNCHRONIZED WITH SQL DATABASE
 export const ROLES = {
   IT_ADMIN: 1,
-  CLERK: 2,
-  BLOTTER_OFFICER: 3,
-  RESIDENT: 4,
-  CAPTAIN: 5,
-  SECRETARY: 6
+  CAPTAIN: 2,
+  SECRETARY: 3,
+  CLERK: 4,
+  RESIDENT: 6,
+  BLOTTER_OFFICER: 7
 };
 
 export const ROLE_KEYS = {
   IT_ADMIN: 'it_admin',
-  CLERK: 'clerk',
-  BLOTTER_OFFICER: 'blotter_officer',
-  RESIDENT: 'resident',
   CAPTAIN: 'captain',
-  SECRETARY: 'secretary'
+  SECRETARY: 'secretary',
+  CLERK: 'clerk',
+  RESIDENT: 'resident',
+  BLOTTER_OFFICER: 'blotter_officer'
 };

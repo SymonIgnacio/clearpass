@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Container,
   Paper,
@@ -14,8 +14,12 @@ import {
 } from '@mui/material'
 import { LockOutlined, PersonAdd } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
+import { useAuth } from '../contexts/AuthContext'
 
-const OfficerLogin = ({ onLogin }) => {
+const OfficerLogin = () => {
+  const { login } = useAuth()
+  const navigate = useNavigate()
+
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -50,8 +54,11 @@ const OfficerLogin = ({ onLogin }) => {
       localStorage.removeItem('residentUser')
       localStorage.removeItem('residentAuthToken')
 
-      // Call onLogin callback to update app state
-      onLogin(user)
+      // Authenticate user with AuthContext
+      await login(token)
+
+      // Navigate to dashboard on success
+      navigate('/dashboard')
     } catch (err) {
       console.error('Officer login error:', err)
       // Show more detailed error information

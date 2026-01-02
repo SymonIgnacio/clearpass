@@ -6,7 +6,7 @@ const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'deve
  * Handles JWT verification and hierarchy-based access control
  */
 
-// THEMIS CLEARPASS: 6-tier Role-Based Access Control System
+// THEMIS CLEARPASS: 6-tier Role-Based Access Control System - SYNCHRONIZED WITH SQL DATABASE
 const THEMIS_ROLES = {
   1: { // IT Admin (System Guardian)
     level: 1,
@@ -18,37 +18,8 @@ const THEMIS_ROLES = {
     display_name: 'IT Admin',
     description: 'System Guardian - Tech/Infra only - System maintenance and user creation'
   },
-  2: { // Clerk (The ClearPass Operator - Issuance)
+  2: { // Captain (Executive Viewer)
     level: 2,
-    role_name: 'clerk',
-    permissions: [
-      'issue_certificates', 'process_clearances', 'data_entry',
-      'basic_support', 'create_records', 'clearpass_gate'
-    ],
-    display_name: 'Clerk',
-    description: 'ClearPass Engine - Certificate issuance and processing with ClearPass validation'
-  },
-  3: { // Blotter Officer (The Encoder)
-    level: 3,
-    role_name: 'blotter_officer',
-    permissions: [
-      'manage_blotter', 'create_cases', 'update_cases', 'close_cases'
-    ],
-    display_name: 'Blotter Officer',
-    description: 'The Encoder - Full CRUD for blotter cases (triggers ClearPass blocks)'
-  },
-  4: { // Resident (The End User)
-    level: 4,
-    role_name: 'resident',
-    permissions: [
-      'view_own_profile', 'request_clearance', 'update_profile',
-      'view_certificates', 'submit_verification'
-    ],
-    display_name: 'Resident',
-    description: 'End User - Login with ResidentID + PIN'
-  },
-  5: { // Captain (Executive Viewer)
-    level: 5,
     role_name: 'captain',
     permissions: [
       'read_analytics', 'view_reports', 'supervise_operations'
@@ -56,8 +27,8 @@ const THEMIS_ROLES = {
     display_name: 'Captain',
     description: 'Executive Viewer - Read-Only Analytics - Leadership oversight'
   },
-  6: { // Secretary (The Overseer)
-    level: 6,
+  3: { // Secretary (The Overseer)
+    level: 3,
     role_name: 'secretary',
     permissions: [
       'manage_documents', 'approve_clearances', 'process_requests',
@@ -66,6 +37,35 @@ const THEMIS_ROLES = {
     ],
     display_name: 'Secretary',
     description: 'The Overseer - Document processing, approvals, and supervision'
+  },
+  4: { // Clerk (The ClearPass Operator - Issuance)
+    level: 4,
+    role_name: 'clerk',
+    permissions: [
+      'issue_certificates', 'process_clearances', 'data_entry',
+      'basic_support', 'create_records', 'clearpass_gate'
+    ],
+    display_name: 'Clerk',
+    description: 'ClearPass Engine - Certificate issuance and processing with ClearPass validation'
+  },
+  6: { // Resident (The End User)
+    level: 6,
+    role_name: 'resident',
+    permissions: [
+      'view_own_profile', 'request_clearance', 'update_profile',
+      'view_certificates', 'submit_verification'
+    ],
+    display_name: 'Resident',
+    description: 'End User - Login with ResidentID + PIN'
+  },
+  7: { // Blotter Officer (The Encoder)
+    level: 7,
+    role_name: 'blotter_officer',
+    permissions: [
+      'manage_blotter', 'create_cases', 'update_cases', 'close_cases'
+    ],
+    display_name: 'Blotter Officer',
+    description: 'The Encoder - Full CRUD for blotter cases (triggers ClearPass blocks)'
   }
 };
 
@@ -97,7 +97,7 @@ async function verifyToken(req, res, next) {
     }
 
     // Get role information from THEMIS roles mapping
-    const roleInfo = THEMIS_ROLES[user.role] || THEMIS_ROLES[5];
+    const roleInfo = THEMIS_ROLES[user.role] || THEMIS_ROLES[4]; // Fallback to Clerk role
 
     // Attach user to request object with hierarchy information
     req.user = {
@@ -256,7 +256,7 @@ async function checkHierarchyAccess(req, res, next) {
     }
 
     // Get hierarchy level from THEMIS roles mapping
-    const targetRoleInfo = THEMIS_ROLES[targetUser.role] || THEMIS_ROLES[5];
+    const targetRoleInfo = THEMIS_ROLES[targetUser.role] || THEMIS_ROLES[4]; // Fallback to Clerk role
     targetUser.hierarchy_level = targetRoleInfo.level;
 
     // Check hierarchy chain
