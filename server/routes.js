@@ -32,7 +32,7 @@ const verificationUpload = multer({
 });
 
 // Controllers
-// const authController = require('./authController');
+const authController = require('./authController');
 // const adminController = require('./adminController');
 // const clerkController = require('./clerkController');
 // const blotterController = require('./blotterController');
@@ -112,7 +112,7 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/auth/officer-login', validateLogin, (req, res) => { res.json({ message: 'Officer login temporarily disabled' }); }); // THEMIS: Officer login endpoint
+router.post('/auth/officer-login', validateLogin, authController.staffLogin); // THEMIS: Officer login endpoint
 
 /**
  * @swagger

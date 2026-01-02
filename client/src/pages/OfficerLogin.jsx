@@ -40,32 +40,65 @@ const OfficerLogin = () => {
     setError('')
 
     try {
+      console.log('🔐 OfficerLogin: Attempting login with credentials');
+
       const response = await apiRequest('auth/officer-login', {
         method: 'POST',
         body: formData
       })
-      const { token, user } = await response.json()
 
-      // Store token and user data
-      localStorage.setItem('authToken', token)
-      localStorage.setItem('user', JSON.stringify(user))
+      if (!response.ok) {
+        throw new Error(`Login request failed with status ${response.status}`);
+      }
+
+      const responseData = await response.json()
+      const { token, user } = responseData
+
+      console.log('🔐 OfficerLogin: Received token and user data from server');
+
+      if (!token) {
+        throw new Error('No authentication token received from server');
+      }
+
+      // Store additional user data for compatibility
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user))
+      }
 
       // Clear any resident auth data (in case user was logged in as resident)
       localStorage.removeItem('residentUser')
       localStorage.removeItem('residentAuthToken')
 
-      // Authenticate user with AuthContext (FIXED: Removed props.onLogin legacy dependency)
-      await login(token)
+      // Authenticate user with AuthContext - this now handles token validation internally
+      const loginResult = await login(token)
+
+      console.log('🔐 OfficerLogin: AuthContext login completed successfully');
 
       // Navigate to dashboard on success
       navigate('/dashboard')
     } catch (err) {
-      console.error('Officer login error:', err)
-      // Show more detailed error information
-      let errorMessage = 'Login failed. Please check your credentials.'
+      console.error('❌ OfficerLogin: Login error:', err)
+
+      // Enhanced error handling with more specific messages
+      let errorMessage = 'Login failed. Please try again.'
+
       if (err.message) {
-        errorMessage += ` (${err.message})`
+        // Handle specific error types
+        if (err.message.includes('Invalid token')) {
+          errorMessage = 'Authentication failed. Please contact support if this persists.'
+        } else if (err.message.includes('401')) {
+          errorMessage = 'Invalid credentials. Please check your username and password.'
+        } else if (err.message.includes('403')) {
+          errorMessage = 'Access denied. Your account may not have permission to log in.'
+        } else if (err.message.includes('500')) {
+          errorMessage = 'Server error. Please try again later.'
+        } else if (err.message.includes('No authentication token')) {
+          errorMessage = 'Authentication failed. Please contact support.'
+        } else {
+          errorMessage = `Login failed: ${err.message}`
+        }
       }
+
       // Try to get error details from response if available
       if (err.response) {
         try {
@@ -74,9 +107,10 @@ const OfficerLogin = () => {
             errorMessage = errorData.error
           }
         } catch (parseError) {
-          // Ignore parse errors
+          console.warn('Could not parse error response:', parseError)
         }
       }
+
       setError(errorMessage)
     } finally {
       setLoading(false)

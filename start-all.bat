@@ -38,7 +38,7 @@ echo 🔗 API:         http://localhost:3001/health
 echo 🤖 AI Service:  http://localhost:5000/health
 echo 🗄️  phpMyAdmin: http://localhost/phpmyadmin
 echo.
-echo Login credentials: captain / admin123
-echo.
+
+
 echo Press any key to exit this window...
 pause >nul
