@@ -37,6 +37,7 @@ import {
   Lock
 } from '@mui/icons-material'
 import { useAuth } from '../contexts/AuthContext'
+import { ROLES } from '../utils/roles'
 
 const drawerWidth = 280
 
@@ -51,74 +52,59 @@ const Sidebar = () => {
       icon: <Dashboard />,
       path: '/',
       description: 'Overview & Analytics',
-      roles: ['admin', 'captain', 'secretary', 'clerk', 'officer', 'resident'] // All roles can access
+      roles: [ROLES.IT_ADMIN, ROLES.SECRETARY, ROLES.CLERK, ROLES.BLOTTER_OFFICER, ROLES.CAPTAIN, ROLES.RESIDENT] // All roles can access
     },
     {
       text: 'User Management',
       icon: <SupervisorAccount />,
       path: '/users',
       description: 'Manage Staff Accounts & Roles',
-      roles: ['admin'] // IT Admin (1) ONLY
+      roles: [ROLES.IT_ADMIN] // IT Admin (1) ONLY
     },
-
     {
       text: 'Residents',
       icon: <People />,
       path: '/residents',
       description: 'Resident Records Management',
-      roles: ['admin', 'captain', 'secretary', 'clerk'] // Admin, Captain, Secretary, Clerk
+      roles: [ROLES.IT_ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.CLERK] // Admin, Captain, Secretary, Clerk
     },
     {
       text: 'Blotter',
       icon: <Gavel />,
       path: '/blotter',
       description: 'Incident Reports & Case Management',
-      roles: ['admin', 'captain', 'officer'] // Admin, Captain, Officer (NOT Clerk, NOT Secretary)
+      roles: [ROLES.IT_ADMIN, ROLES.CAPTAIN, ROLES.BLOTTER_OFFICER] // Admin, Captain, Officer (NOT Clerk, NOT Secretary)
     },
     {
       text: 'Document Center',
       icon: <Description />,
       path: '/documents',
       description: 'Certificates & Clearance Processing',
-      roles: ['admin'] // IT Admin (1) ONLY
+      roles: [ROLES.IT_ADMIN] // IT Admin (1) ONLY
     },
-
     {
       text: 'AI Hub',
       icon: <SmartToy />,
       path: '/ai-dashboard',
       description: 'AI Analytics & Assistant',
       badge: 'AI',
-      roles: ['admin', 'captain', 'secretary', 'clerk', 'officer', 'resident'] // All roles
+      roles: [ROLES.IT_ADMIN, ROLES.SECRETARY, ROLES.CLERK, ROLES.BLOTTER_OFFICER, ROLES.CAPTAIN, ROLES.RESIDENT] // All roles
     },
     {
       text: 'Settings',
       icon: <Settings />,
       path: '/settings',
       description: 'Account Settings & System Config',
-      roles: ['admin', 'captain', 'secretary', 'clerk', 'officer', 'resident'] // All roles
+      roles: [ROLES.IT_ADMIN, ROLES.SECRETARY, ROLES.CLERK, ROLES.BLOTTER_OFFICER, ROLES.CAPTAIN, ROLES.RESIDENT] // All roles
     }
   ]
 
-  // Filter menu items based on user role - THEMIS ClearPass compatibility
+  // Filter menu items based on user role - THEMIS ClearPass strict numeric checking
   const menuItems = allMenuItems.filter(item => {
     if (!user || !user.role) return false
 
-    // THEMIS ClearPass: Handle both numeric THEMIS roles and legacy string roles
-    const THEMIS_ROLE_MAP = {
-      1: 'admin',           // IT Admin
-      2: 'clerk',           // Clerk
-      3: 'officer',         // Blotter Officer
-      4: 'resident',        // Resident
-      5: 'captain',         // Captain
-      6: 'secretary'        // Secretary
-    }
-
-    // Convert numeric THEMIS role to string for compatibility, or use as-is if already string
-    const userRole = typeof user.role === 'number' ? THEMIS_ROLE_MAP[user.role] || user.role : user.role
-
-    // Check if user role is in item's allowed roles
-    return item.roles.includes(userRole)
+    // Strict numeric role checking only
+    return item.roles.includes(user.role)
   })
 
   return (

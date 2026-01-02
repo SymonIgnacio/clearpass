@@ -143,67 +143,27 @@ function checkRole(allowedRoles = []) {
 
     // THEMIS: IT Admin (Role 1) has UNIVERSAL access - bypass ALL role checks FIRST
     const userRole = req.user.role;
-    if (userRole === 1 || userRole === 'admin') {
-      console.log('✅ RBAC Debug: IT Admin (Role 1) granted UNIVERSAL access to all endpoints');
+    if (userRole === 1) {
+      console.log('✅ RBAC: IT Admin (Role 1) granted UNIVERSAL access to all endpoints');
       return next();
     }
 
-    // THEMIS: Handle string 'admin' role conversion
-    console.log(`🔐 RBAC Debug: User role from JWT: ${userRole} (type: ${typeof userRole})`);
-    console.log(`🔐 RBAC Debug: Allowed roles: ${JSON.stringify(allowedRoles)}`);
+    console.log(`🔐 RBAC: User role: ${userRole}, Allowed roles: ${JSON.stringify(allowedRoles)}`);
 
-    // Convert string roles to THEMIS numeric roles
-    let numericRole = userRole;
-    if (typeof userRole === 'string') {
-      const roleMap = {
-        'admin': 1,      // IT Admin
-        'clerk': 2,      // Clerk
-        'blotter_officer': 3, // Blotter Officer
-        'resident': 4,   // Resident
-        'captain': 5,    // Captain
-        'secretary': 6   // Secretary
-      };
-      numericRole = roleMap[userRole] !== undefined ? roleMap[userRole] : 4;
-      console.log(`🔐 RBAC Debug: Converted '${userRole}' to numeric role: ${numericRole}`);
-    }
-
-    // Super Admin has all access - bypass all checks
-    if (userRole === 'admin') {
-      console.log('✅ RBAC Debug: Super Admin (string admin) granted access to all endpoints');
-      return next();
-    }
-
-    // Check if user's numeric role is in allowed roles
-    const hasRoleAccess = allowedRoles.some(role => {
-      if (typeof role === 'number') {
-        // THEMIS numeric role check
-        const access = numericRole === role;
-        console.log(`🔐 RBAC Debug: Checking numeric role ${numericRole} against ${role}: ${access}`);
-        return access;
-      } else if (typeof role === 'string') {
-        // Legacy string role support
-        const roleMap = {
-          'admin': 1, 'clerk': 2, 'blotter_officer': 3,
-          'resident': 4, 'captain': 5, 'secretary': 6
-        };
-        const access = numericRole === roleMap[role] || req.user.role_name === role;
-        console.log(`🔐 RBAC Debug: Checking string role '${role}' against numeric ${numericRole}: ${access}`);
-        return access;
-      }
-      return false;
-    });
+    // ENFORCE STRICT NUMERIC ROLE CHECKING ONLY - THEMIS STANDARD
+    const hasRoleAccess = allowedRoles.includes(userRole);
 
     if (!hasRoleAccess) {
-      console.log(`❌ RBAC Debug: Access DENIED - Role ${numericRole} not in allowed roles ${JSON.stringify(allowedRoles)}`);
+      console.log(`❌ RBAC: Access DENIED - Role ${userRole} not in allowed roles ${JSON.stringify(allowedRoles)}`);
       return res.status(403).json({
         error: 'Insufficient permissions',
         required: allowedRoles,
-        current_role: numericRole,
+        current_role: userRole,
         current_role_name: req.user.role_name
       });
     }
 
-    console.log(`✅ RBAC Debug: Access GRANTED - Role ${numericRole} allowed`);
+    console.log(`✅ RBAC: Access GRANTED - Role ${userRole} allowed`);
     next();
   };
 }
@@ -217,8 +177,8 @@ function checkPermission(requiredPermissions = []) {
       });
     }
 
-    // Super Admin has all permissions
-    if (req.user.role === 'admin' || req.user.role_name === 'Super Admin') {
+    // IT Admin (Role 1) has all permissions - THEMIS STANDARD
+    if (req.user.role === 1) {
       return next();
     }
 
@@ -252,8 +212,8 @@ async function checkHierarchyAccess(req, res, next) {
       });
     }
 
-    // Super Admin can access everything
-    if (req.user.role === 'admin' || req.user.role_name === 'Super Admin') {
+    // IT Admin (Role 1) has universal access - THEMIS STANDARD
+    if (req.user.role === 1) {
       return next();
     }
 

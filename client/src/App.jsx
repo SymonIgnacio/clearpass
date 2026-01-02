@@ -30,6 +30,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthProvider } from './contexts/AuthContext'
+import { ROLES } from './utils/roles'
 
 const theme = createTheme({
   palette: {
@@ -309,7 +310,7 @@ function App() {
             <Route
               path="users"
               element={
-                <ProtectedRoute requiredRoles={[1, 'admin']}>
+                <ProtectedRoute requiredRoles={[ROLES.IT_ADMIN]}>
                   <Users />
                 </ProtectedRoute>
               }
@@ -318,7 +319,7 @@ function App() {
             <Route
               path="documents"
               element={
-                <ProtectedRoute requiredRoles={[1, 'admin']}>
+                <ProtectedRoute requiredRoles={[ROLES.IT_ADMIN]}>
                   <DocumentsDashboard />
                 </ProtectedRoute>
               }
@@ -337,7 +338,7 @@ function App() {
             <Route
               path="ai-dashboard"
               element={
-                <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6, 'admin', 'captain', 'secretary', 'clerk', 'officer', 'resident']}>
+                <ProtectedRoute requiredRoles={Object.values(ROLES)}>
                   <AIPatrol />
                 </ProtectedRoute>
               }
@@ -345,7 +346,7 @@ function App() {
             <Route
               path="ai-patrol"
               element={
-                <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6, 'admin', 'captain', 'secretary', 'clerk', 'officer', 'resident']}>
+                <ProtectedRoute requiredRoles={Object.values(ROLES)}>
                   <AIPatrol />
                 </ProtectedRoute>
               }
@@ -353,7 +354,7 @@ function App() {
             <Route
               path="ronda-analytics"
               element={
-                <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6, 'admin', 'captain', 'secretary', 'clerk', 'officer', 'resident']}>
+                <ProtectedRoute requiredRoles={Object.values(ROLES)}>
                   <RondaAnalytics />
                 </ProtectedRoute>
               }

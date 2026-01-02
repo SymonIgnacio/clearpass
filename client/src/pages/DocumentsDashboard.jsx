@@ -149,12 +149,12 @@ const DocumentsDashboard = ({ user }) => {
     console.log('User role:', user?.role);
 
     try {
-      // Allow access for secretary and higher roles (admin, captain, secretary)
-      const hasManagementAccess = user?.role === 'admin' || user?.role === 'captain' || user?.role === 'secretary';
+      // Allow access for secretary and higher roles (IT Admin 1, Secretary 6, Captain 5)
+      const hasManagementAccess = [1, 5, 6].includes(user?.role); // IT Admin, Captain, Secretary
       console.log('Has management access (templates/cert types):', hasManagementAccess);
 
-      // Only fetch template stats if user has admin/captain role
-      const shouldFetchStats = user?.role === 'admin' || user?.role === 'captain';
+      // Only fetch template stats if user has IT Admin/Captain role
+      const shouldFetchStats = [1, 5].includes(user?.role); // IT Admin, Captain
       console.log('Should fetch template stats:', shouldFetchStats);
 
       // Load all data in parallel
@@ -717,7 +717,7 @@ const DocumentsDashboard = ({ user }) => {
           onChange={(e, newValue) => {
             // Handle tab restrictions
             if (newValue === 2 || newValue === 3) { // Document Templates and Certificate Types
-              if (user?.role === 'clerk') {
+              if (user?.role === 3) {
                 return; // Clerk cannot access these tabs
               }
             }
@@ -742,18 +742,11 @@ const DocumentsDashboard = ({ user }) => {
             disabled={user?.residency_status === 'pending'}
           />
           <Tab
-            icon={<Description />}
-            label="Certificate History"
+            icon={<Settings />}
+            label="Document Templates"
             iconPosition="start"
           />
-          {user?.role !== 'clerk' && (
-            <Tab
-              icon={<Settings />}
-              label="Document Templates"
-              iconPosition="start"
-            />
-          )}
-          {user?.role !== 'clerk' && (
+          {user?.role !== 3 && (
             <Tab
               icon={<Assignment />}
               label="Certificate Types"
@@ -1033,14 +1026,14 @@ const DocumentsDashboard = ({ user }) => {
             </Box>
           )}
 
-          {activeTab === (user?.role !== 'clerk' ? 2 : 0) && user?.role !== 'clerk' && (
+          {activeTab === (user?.role !== 3 ? 2 : 0) && user?.role !== 3 && (
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   <Settings sx={{ mr: 1, verticalAlign: 'middle' }} />
                   Document Templates
                 </Typography>
-                {user?.role === 'admin' || user?.role === 'captain' ? (
+                {[1, 5].includes(user?.role) ? (
                   <Button
                     variant="outlined"
                     startIcon={<Download />}
@@ -1054,7 +1047,7 @@ const DocumentsDashboard = ({ user }) => {
 
               {/* Create Template Button for Secretary */}
               <Box sx={{ mb: 3 }}>
-                {(user?.role === 'admin' || user?.role === 'captain') && (
+                {[1, 5].includes(user?.role) && (
                   <Button
                     variant="contained"
                     startIcon={<Add />}

@@ -11,6 +11,11 @@ const jwt = require('jsonwebtoken');
  */
 function verifyToken(req, res, next) {
   try {
+    // CRITICAL SECURITY: Enforce JWT_SECRET in production
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is required in production');
+    }
+
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {

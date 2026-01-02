@@ -224,7 +224,10 @@ async function getOfficerCases(req, res) {
 
   } catch (error) {
     console.error('Get officer cases error:', error);
-    res.status(500).json({ error: 'Failed to fetch blotter cases' });
+    res.status(500).json({
+      error: 'Failed to fetch blotter cases',
+      details: error.message
+    });
   }
 }
 
@@ -423,11 +426,101 @@ async function getHotspotAnalytics(req, res) {
   }
 }
 
+// THEMIS CLEARPASS: Get resident blotter history for ClearPass validation
+async function getResidentBlotterHistory(req, res) {
+  try {
+    const { residentId } = req.params;
+
+    if (!residentId) {
+      return res.status(400).json({
+        error: 'Resident ID is required',
+        message: 'Please provide a resident ID to fetch blotter history'
+      });
+    }
+
+    console.log(`🔍 THEMIS CLEARPASS: Fetching blotter history for resident ${residentId}`);
+
+    // Get blotter cases where resident is the respondent
+    const respondentCases = await knex('blotter')
+      .select(
+        'blotter.*',
+        'residents.First_Name as respondent_first_name',
+        'residents.Last_Name as respondent_last_name'
+      )
+      .leftJoin('residents', 'blotter.respondent_id', 'residents.Resident_ID')
+      .where('blotter.respondent_id', residentId)
+      .orderBy('blotter.created_at', 'desc');
+
+    // Get blotter cases where resident is a complainant
+    const complainantCases = await knex('blotter')
+      .select(
+        'blotter.*',
+        'residents.First_Name as respondent_first_name',
+        'residents.Last_Name as respondent_last_name'
+      )
+      .leftJoin('residents', 'blotter.respondent_id', 'residents.Resident_ID')
+      .whereRaw('JSON_CONTAINS(Complainant_Details, ?, "$.resident_id")', [JSON.stringify(residentId)])
+      .orderBy('blotter.created_at', 'desc');
+
+    // Combine and deduplicate cases
+    const allCases = [...respondentCases, ...complainantCases];
+    const uniqueCases = allCases.filter((caseItem, index, self) =>
+      index === self.findIndex(c => c.Case_Number === caseItem.Case_Number)
+    );
+
+    // Format for response
+    const formattedCases = uniqueCases.map(caseItem => ({
+      case_number: caseItem.Case_Number,
+      incident_type: caseItem.Incident_Type,
+      status: caseItem.Status,
+      date_incident: caseItem.DateTime_Incident,
+      location: caseItem.Location_Sitio,
+      narrative: caseItem.Narrative,
+      respondent_id: caseItem.respondent_id,
+      respondent_name: caseItem.respondent_first_name && caseItem.respondent_last_name ?
+        `${caseItem.respondent_first_name} ${caseItem.respondent_last_name}` : 'Unknown',
+      role_in_case: caseItem.respondent_id === residentId ? 'Respondent' : 'Complainant',
+      created_at: caseItem.created_at,
+      updated_at: caseItem.updated_at
+    }));
+
+    // Calculate ClearPass status
+    const activeCases = formattedCases.filter(c => ['Active', 'Pending'].includes(c.status));
+    const clearpass_status = activeCases.length > 0 ? 'BLOCKED' : 'CLEAR';
+
+    console.log(`✅ THEMIS CLEARPASS: Found ${formattedCases.length} cases for resident ${residentId}, Status: ${clearpass_status}`);
+
+    res.json({
+      success: true,
+      resident_id: residentId,
+      clearpass_status: clearpass_status,
+      active_cases_count: activeCases.length,
+      total_cases_count: formattedCases.length,
+      cases: formattedCases,
+      summary: {
+        active: activeCases.length,
+        resolved: formattedCases.filter(c => c.status === 'Resolved').length,
+        dismissed: formattedCases.filter(c => c.status === 'Dismissed').length,
+        pending: formattedCases.filter(c => c.status === 'Pending').length
+      },
+      generated_at: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error fetching resident blotter history:', error);
+    res.status(500).json({
+      error: 'Failed to fetch resident blotter history',
+      details: error.message
+    });
+  }
+}
+
 module.exports = {
   createCase,
   updateCaseStatus,
   getOfficerCases,
   generateMonthlyReport,
   deleteCase,
-  getHotspotAnalytics
+  getHotspotAnalytics,
+  getResidentBlotterHistory
 };

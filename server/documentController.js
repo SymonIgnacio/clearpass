@@ -155,6 +155,17 @@ class DocumentController {
         });
       }
 
+      // THEMIS CLEARPASS: Auto-block logic - Check for active blotter cases
+      const hasActiveBlotter = await this.checkClearPassBlock(resident_id);
+      if (hasActiveBlotter) {
+        return res.status(403).json({
+          success: false,
+          message: 'Derogatory Record Found - Cannot issue clearance. Resident has active blotter cases.',
+          clearpass_status: 'BLOCKED',
+          reason: 'Active blotter record found'
+        });
+      }
+
       // Validate required fields
       if (!resident_id || !document_type) {
         return res.status(400).json({
@@ -980,6 +991,24 @@ class DocumentController {
       'medico_legal': `requires medico-legal documentation. Requestor: ${requestDetails.requestor_name || 'Not specified'}. Blotter Reference: ${requestDetails.blotter_reference || 'Not specified'}.`
     };
     return contents[documentType] || 'This certificate is issued for the purposes stated in the request.';
+  }
+
+  /**
+   * THEMIS CLEARPASS: Check if resident has active blotter cases
+   */
+  async checkClearPassBlock(resident_id) {
+    try {
+      const [count] = await knex('blotter')
+        .count('* as total')
+        .where('respondent_id', resident_id)
+        .whereIn('Status', ['Active', 'Pending']);
+
+      return count[0].total > 0;
+    } catch (error) {
+      console.error('Error checking ClearPass block:', error);
+      // Fail-safe: return true (block) if database error
+      return true;
+    }
   }
 
   /**
