@@ -188,15 +188,12 @@ exports.up = function (knex) {
       table.string('email', 100);
       table.string('full_name', 200);
       table.string('contact_number', 20);
-      table.integer('official_id').nullable().unsigned(); // Links to officials table
       table.boolean('is_active').defaultTo(true);
       table.timestamp('last_login').nullable();
       table.timestamp('created_at').defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.fn.now());
-      table.foreign('official_id').references('id').inTable('officials');
       table.index('role');
       table.index('is_active');
-      table.index('official_id');
     })
 
     // ==========================================

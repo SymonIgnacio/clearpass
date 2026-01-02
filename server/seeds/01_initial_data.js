@@ -65,24 +65,21 @@ exports.seed = async function (knex) {
       password_hash: captainHash,
       role: 'captain',
       email: 'captain@barangay-batia.gov.ph',
-      full_name: 'Juan Dela Cruz',
-      official_id: 1
+      full_name: 'Juan Dela Cruz'
     },
     {
       username: 'secretary',
       password_hash: secretaryHash,
       role: 'secretary',
       email: 'secretary@barangay-batia.gov.ph',
-      full_name: 'Maria Santos',
-      official_id: 2
+      full_name: 'Maria Santos'
     },
     {
       username: 'clerk',
       password_hash: clerkHash,
       role: 'clerk',
       email: 'clerk@barangay-batia.gov.ph',
-      full_name: 'Pedro Reyes',
-      official_id: 3
+      full_name: 'Pedro Reyes'
     }
   ]);
 
