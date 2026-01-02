@@ -4,7 +4,6 @@ exports.seed = async function (knex) {
   // Clear existing data (in reverse order of dependencies)
   await knex('audit_log').del();
   await knex('users').del();
-  await knex('officials').del();
   await knex('certificates_log').del();
   await knex('certificate_types').del();
   await knex('blotter').del();
@@ -25,31 +24,6 @@ exports.seed = async function (knex) {
     { name: 'Northville 5', description: 'Northern residential district with growing community' },
     { name: 'St. Martha', description: 'Eastern residential area with mixed housing types' },
     { name: 'AFP/PNP', description: 'Military and police housing compound' }
-  ]);
-
-  // Officials Data
-  await knex('officials').insert([
-    {
-      name: 'Juan Dela Cruz',
-      position: 'Captain',
-      role_access_level: 'Full',
-      contact_number: '09123456789',
-      email: 'captain@barangay-batia.gov.ph'
-    },
-    {
-      name: 'Maria Santos',
-      position: 'Secretary',
-      role_access_level: 'Full',
-      contact_number: '09123456790',
-      email: 'secretary@barangay-batia.gov.ph'
-    },
-    {
-      name: 'Pedro Reyes',
-      position: 'Clerk',
-      role_access_level: 'Limited',
-      contact_number: '09123456791',
-      email: 'clerk@barangay-batia.gov.ph'
-    }
   ]);
 
   // Hash passwords for users
