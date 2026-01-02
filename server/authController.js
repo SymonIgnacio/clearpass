@@ -281,12 +281,13 @@ async function loginResident(req, res) {
 
     res.json({
       message: 'Login successful',
-      token,
+      token: token,
       user: {
         id: resident.Resident_ID,
         username: resident.username,
         full_name: `${resident.First_Name} ${resident.Last_Name}`,
         role: 'resident',
+        role_id: 12,
         account_status: resident.account_status
       }
     });
@@ -368,6 +369,7 @@ async function staffLogin(req, res) {
         full_name: user.full_name,
         email: user.email,
         role: user.role,
+        role_id: user.role,
         contact_number: user.contact_number
       }
     });

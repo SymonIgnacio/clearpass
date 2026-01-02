@@ -51,7 +51,10 @@ export const NotificationProvider = ({ children }) => {
 
   // Initialize WebSocket connection
   useEffect(() => {
-    initializeWebSocket();
+    // CRITICAL: Only connect if user is authenticated AND has token
+    if (token && isAuthenticated) {
+      initializeWebSocket();
+    }
     loadPersistedNotifications();
 
     return () => {
