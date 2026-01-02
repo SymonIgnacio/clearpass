@@ -98,14 +98,14 @@ async function verifyToken(req, res, next) {
       });
     }
 
-    // Get role information from THEMIS roles mapping
-    const roleInfo = THEMIS_ROLES[user.role] || THEMIS_ROLES[4]; // Fallback to Clerk role
+    // Get role information from THEMIS roles mapping using role_id column
+    const roleInfo = THEMIS_ROLES[user.role_id] || THEMIS_ROLES[4]; // Fallback to Clerk role
 
     // Attach user to request object with hierarchy information
     req.user = {
       id: user.id,
       username: user.username,
-      role: user.role,
+      role: user.role_id,
       role_name: roleInfo.display_name,
       hierarchy_level: roleInfo.level,
       permissions: roleInfo.permissions,
@@ -246,7 +246,7 @@ async function checkHierarchyAccess(req, res, next) {
 
     // Validate target user exists
     const targetUser = await knex('users')
-      .select('id', 'parent_user_id', 'role')
+      .select('id', 'parent_user_id', 'role_id')
       .where('id', targetUserId)
       .where('is_active', true)
       .first();
@@ -258,7 +258,7 @@ async function checkHierarchyAccess(req, res, next) {
     }
 
     // Get hierarchy level from THEMIS roles mapping
-    const targetRoleInfo = THEMIS_ROLES[targetUser.role] || THEMIS_ROLES[4]; // Fallback to Clerk role
+    const targetRoleInfo = THEMIS_ROLES[targetUser.role_id] || THEMIS_ROLES[4]; // Fallback to Clerk role
     targetUser.hierarchy_level = targetRoleInfo.level;
 
     // Check hierarchy chain

@@ -51,10 +51,20 @@ export const NotificationProvider = ({ children }) => {
 
   // Initialize WebSocket connection
   useEffect(() => {
-    // CRITICAL: Only connect if user is authenticated AND has token
-    if (token && isAuthenticated) {
-      initializeWebSocket();
+    // CRITICAL: Strict guard - only connect if user is authenticated AND has valid token
+    if (!token || !isAuthenticated) {
+      console.log('📡 NotificationContext: Skipping WebSocket connection - not authenticated');
+      return;
     }
+
+    // Additional validation - ensure token is not null/empty
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken || authToken === 'null' || authToken === 'undefined') {
+      console.log('📡 NotificationContext: Skipping WebSocket connection - invalid token');
+      return;
+    }
+
+    initializeWebSocket();
     loadPersistedNotifications();
 
     return () => {

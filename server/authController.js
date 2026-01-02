@@ -287,7 +287,7 @@ async function loginResident(req, res) {
         username: resident.username,
         full_name: `${resident.First_Name} ${resident.Last_Name}`,
         role: 'resident',
-        role_id: 12,
+        role_id: resident.role_id || 12,
         account_status: resident.account_status
       }
     });
@@ -353,7 +353,7 @@ async function staffLogin(req, res) {
     const token = jwt.sign(
       {
         id: user.id,
-        role: user.role,
+        role: user.role_id,
         username: user.username
       },
       process.env.JWT_SECRET,
@@ -368,8 +368,8 @@ async function staffLogin(req, res) {
         username: user.username,
         full_name: user.full_name,
         email: user.email,
-        role: user.role,
-        role_id: user.role,
+        role: user.role_id,
+        role_id: user.role_id,
         contact_number: user.contact_number
       }
     });
