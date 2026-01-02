@@ -105,6 +105,29 @@ const strictLimiter = rateLimit({
   }
 });
 
+// Strict rate limiting for authentication endpoints (anti-brute force)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 authentication attempts per windowMs
+  message: {
+    success: false,
+    error: 'Too many authentication attempts, please try again later.',
+    code: 429,
+    retryAfter: 15 * 60 * 1000,
+    timestamp: new Date().toISOString()
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Log failed attempts
+  onLimitReached: (req, res) => {
+    logger.warn('Rate limit exceeded for authentication', {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      endpoint: req.originalUrl
+    });
+  }
+});
+
 // Middleware
 const corsOrigins = process.env.NODE_ENV === 'production'
   ? [
@@ -314,6 +337,9 @@ app.use((req, res, next) => {
 
 // Import organized routes
 const themisRoutes = require('./routes');
+
+// Apply strict auth rate limiting to authentication endpoints
+app.use('/api/auth', authLimiter);
 
 // Mount THEMIS ClearPass role-based routes at /api
 app.use('/api', themisRoutes);

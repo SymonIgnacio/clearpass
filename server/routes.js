@@ -40,15 +40,214 @@ const verificationUpload = multer({
 // const captainController = require('./captainController');
 // const documentController = require('./documentController');
 
-// =========================================================================
-// PUBLIC ROUTES (Restricted: No Signup, Login Only)
-// =========================================================================
-router.post('/auth/officer-login', (req, res) => { res.json({ message: 'Officer login temporarily disabled' }); }); // THEMIS: Officer login endpoint
-router.post('/auth/register', verifyToken, (req, res) => { res.json({ message: 'Register endpoint temporarily disabled' }); }); // User registration - Super Admin only
+// Import validation middleware
+const {
+  validateLogin,
+  validateRegister,
+  validateBlotter,
+  validateResident,
+  validateCertificateRequest,
+  validateDocumentRequest,
+  validateCommunityProgram,
+  validateHousehold,
+  validateChatbotMessage
+} = require('./middleware/validate');
+
+// Import error handler
+const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+
+/**
+ * @swagger
+ * /auth/officer-login:
+ *   post:
+ *     summary: Officer login endpoint
+ *     description: Authenticates staff members (admin, clerk, blotter officer, captain, secretary)
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 minLength: 3
+ *                 maxLength: 50
+ *                 description: Staff username
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *                 description: Staff password
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 token:
+ *                   type: string
+ *                   description: JWT authentication token
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Validation failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many authentication attempts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/auth/officer-login', validateLogin, (req, res) => { res.json({ message: 'Officer login temporarily disabled' }); }); // THEMIS: Officer login endpoint
+
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register new staff user
+ *     description: Creates a new staff account (Admin only)
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - full_name
+ *               - password
+ *               - role
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 minLength: 3
+ *                 maxLength: 50
+ *                 description: Unique username
+ *               full_name:
+ *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 100
+ *                 description: Full name of the user
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email address (optional)
+ *               contact_number:
+ *                 type: string
+ *                 pattern: '^(\+63|63|0)[0-9]{10}$'
+ *                 description: Philippine mobile number (optional)
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *                 description: Password with complexity requirements
+ *               role:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 6
+ *                 description: User role (1=IT Admin, 2=Clerk, 3=Blotter Officer, 4=Resident, 5=Captain, 6=Secretary)
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     username:
+ *                       type: string
+ *                     full_name:
+ *                       type: string
+ *                     role:
+ *                       type: integer
+ *                     temp_password:
+ *                       type: string
+ *                       description: Temporary password for the user
+ *       400:
+ *         description: Validation failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Insufficient permissions
+ */
+router.post('/auth/register', verifyToken, validateRegister, (req, res) => { res.json({ message: 'Register endpoint temporarily disabled' }); }); // User registration - Super Admin only
 
 router.post('/auth/check-census', (req, res) => { res.json({ message: 'Check census temporarily disabled' }); });
 router.post('/auth/register-resident', (req, res) => { res.json({ message: 'Register resident temporarily disabled' }); });
-router.post('/auth/resident/login', (req, res) => { res.json({ message: 'Resident login temporarily disabled' }); });
+
+/**
+ * @swagger
+ * /auth/resident/login:
+ *   post:
+ *     summary: Resident login endpoint
+ *     description: Authenticates residents using their credentials
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Resident username or email
+ *               password:
+ *                 type: string
+ *                 description: Resident password
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 token:
+ *                   type: string
+ *                   description: JWT authentication token
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Validation failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many authentication attempts
+ */
+router.post('/auth/resident/login', validateLogin, (req, res) => { res.json({ message: 'Resident login temporarily disabled' }); });
 
 // Note: Resident Signup is DISABLED per security policy.
 
