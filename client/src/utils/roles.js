@@ -1,6 +1,7 @@
 // Role utility functions for consistent role handling across the application
 
 // THEMIS role definitions (numeric) - SYNCHRONIZED WITH SQL DATABASE
+// CONFIRMED FROM DB DUMP: Admin=1, Captain=2, Secretary=3, Clerk=4, Resident=6, Blotter Officer=7
 export const THEMIS_ROLES = {
   1: { id: 1, key: 'it_admin', name: 'IT Admin', displayName: 'Super Admin' },
   2: { id: 2, key: 'captain', name: 'Captain', displayName: 'Barangay Captain' },

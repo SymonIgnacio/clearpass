@@ -7,6 +7,7 @@ const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'deve
  */
 
 // THEMIS CLEARPASS: 6-tier Role-Based Access Control System - SYNCHRONIZED WITH SQL DATABASE
+// CONFIRMED FROM DB DUMP: Admin=1, Captain=2, Secretary=3, Clerk=4, Resident=6, Blotter Officer=7
 const THEMIS_ROLES = {
   1: { // IT Admin (System Guardian)
     level: 1,
@@ -62,7 +63,8 @@ const THEMIS_ROLES = {
     level: 7,
     role_name: 'blotter_officer',
     permissions: [
-      'manage_blotter', 'create_cases', 'update_cases', 'close_cases'
+      'manage_blotter', 'create_cases', 'update_cases', 'close_cases',
+      'view_residents', 'background_checks', 'clearpass_blocks'
     ],
     display_name: 'Blotter Officer',
     description: 'The Encoder - Full CRUD for blotter cases (triggers ClearPass blocks)'
