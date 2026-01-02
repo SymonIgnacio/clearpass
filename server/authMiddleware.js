@@ -6,11 +6,11 @@ const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'deve
  * Handles JWT verification and hierarchy-based access control
  */
 
-// THEMIS CLEARPASS: 6-tier Role-Based Access Control System - SYNCHRONIZED WITH SQL DATABASE
-// CONFIRMED FROM DB DUMP: Admin=1, Captain=2, Secretary=3, Clerk=4, Resident=6, Blotter Officer=7
+// THEMIS CLEARPASS: 6-tier Role-Based Access Control System - SYNCHRONIZED WITH EXISTING DATABASE DUMP
+// UPDATED MAPPINGS: IT_ADMIN=5, CAPTAIN=2, SECRETARY=3, CLERK=4, BLOTTER_OFFICER=6, RESIDENT=12
 const THEMIS_ROLES = {
-  1: { // IT Admin (System Guardian)
-    level: 1,
+  5: { // IT Admin (System Guardian)
+    level: 5,
     role_name: 'it_admin',
     permissions: [
       'tech_support', 'system_monitoring', 'user_provisioning',
@@ -49,18 +49,8 @@ const THEMIS_ROLES = {
     display_name: 'Clerk',
     description: 'ClearPass Engine - Certificate issuance and processing with ClearPass validation'
   },
-  6: { // Resident (The End User)
+  6: { // Blotter Officer (The Encoder)
     level: 6,
-    role_name: 'resident',
-    permissions: [
-      'view_own_profile', 'request_clearance', 'update_profile',
-      'view_certificates', 'submit_verification'
-    ],
-    display_name: 'Resident',
-    description: 'End User - Login with ResidentID + PIN'
-  },
-  7: { // Blotter Officer (The Encoder)
-    level: 7,
     role_name: 'blotter_officer',
     permissions: [
       'manage_blotter', 'create_cases', 'update_cases', 'close_cases',
@@ -68,6 +58,16 @@ const THEMIS_ROLES = {
     ],
     display_name: 'Blotter Officer',
     description: 'The Encoder - Full CRUD for blotter cases (triggers ClearPass blocks)'
+  },
+  12: { // Resident (The End User)
+    level: 12,
+    role_name: 'resident',
+    permissions: [
+      'view_own_profile', 'request_clearance', 'update_profile',
+      'view_certificates', 'submit_verification'
+    ],
+    display_name: 'Resident',
+    description: 'End User - Login with ResidentID + PIN'
   }
 };
 
@@ -143,10 +143,10 @@ function checkRole(allowedRoles = []) {
       });
     }
 
-    // THEMIS: IT Admin (Role 1) has UNIVERSAL access - bypass ALL role checks FIRST
+    // THEMIS: IT Admin (Role 5) has UNIVERSAL access - bypass ALL role checks FIRST
     const userRole = req.user.role;
-    if (userRole === 1) {
-      console.log('✅ RBAC: IT Admin (Role 1) granted UNIVERSAL access to all endpoints');
+    if (userRole === 5) {
+      console.log('✅ RBAC: IT Admin (Role 5) granted UNIVERSAL access to all endpoints');
       return next();
     }
 
@@ -179,8 +179,8 @@ function checkPermission(requiredPermissions = []) {
       });
     }
 
-    // IT Admin (Role 1) has all permissions - THEMIS STANDARD
-    if (req.user.role === 1) {
+    // IT Admin (Role 5) has all permissions - THEMIS STANDARD
+    if (req.user.role === 5) {
       return next();
     }
 
@@ -214,8 +214,8 @@ async function checkHierarchyAccess(req, res, next) {
       });
     }
 
-    // IT Admin (Role 1) has universal access - THEMIS STANDARD
-    if (req.user.role === 1) {
+    // IT Admin (Role 5) has universal access - THEMIS STANDARD
+    if (req.user.role === 5) {
       return next();
     }
 

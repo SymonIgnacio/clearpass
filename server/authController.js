@@ -397,10 +397,11 @@ async function register(req, res) {
       });
     }
 
-    // Validate role (must be 1-6 for THEMIS system)
-    if (role < 1 || role > 6) {
+    // Validate role (must be valid THEMIS roles: 2,3,4,5,6,12)
+    const validRoles = [2, 3, 4, 5, 6, 12];
+    if (!validRoles.includes(role)) {
       return res.status(400).json({
-        error: 'Invalid role. Must be between 1-6'
+        error: 'Invalid role. Must be one of: 2(Captain), 3(Secretary), 4(Clerk), 5(IT Admin), 6(Blotter Officer), 12(Resident)'
       });
     }
 

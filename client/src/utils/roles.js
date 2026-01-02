@@ -1,14 +1,14 @@
 // Role utility functions for consistent role handling across the application
 
-// THEMIS role definitions (numeric) - SYNCHRONIZED WITH SQL DATABASE
-// CONFIRMED FROM DB DUMP: Admin=1, Captain=2, Secretary=3, Clerk=4, Resident=6, Blotter Officer=7
+// THEMIS role definitions (numeric) - SYNCHRONIZED WITH EXISTING DATABASE DUMP
+// UPDATED MAPPINGS: IT_ADMIN=5, CAPTAIN=2, SECRETARY=3, CLERK=4, BLOTTER_OFFICER=6, RESIDENT=12
 export const THEMIS_ROLES = {
-  1: { id: 1, key: 'it_admin', name: 'IT Admin', displayName: 'Super Admin' },
+  5: { id: 5, key: 'it_admin', name: 'IT Admin', displayName: 'Super Admin' },
   2: { id: 2, key: 'captain', name: 'Captain', displayName: 'Barangay Captain' },
   3: { id: 3, key: 'secretary', name: 'Secretary', displayName: 'Barangay Secretary' },
   4: { id: 4, key: 'clerk', name: 'Clerk', displayName: 'Barangay Clerk' },
-  6: { id: 6, key: 'resident', name: 'Resident', displayName: 'Resident' },
-  7: { id: 7, key: 'blotter_officer', name: 'Blotter Officer', displayName: 'Blotter Officer' }
+  6: { id: 6, key: 'blotter_officer', name: 'Blotter Officer', displayName: 'Blotter Officer' },
+  12: { id: 12, key: 'resident', name: 'Resident', displayName: 'Resident' }
 };
 
 // Legacy role mapping for backward compatibility
@@ -157,14 +157,14 @@ export const hasMinimumLevel = (user, minLevel) => {
   return userLevel >= minLevel;
 };
 
-// Role constants for easy reference - SYNCHRONIZED WITH SQL DATABASE
+// Role constants for easy reference - SYNCHRONIZED WITH EXISTING DATABASE DUMP
 export const ROLES = {
-  IT_ADMIN: 1,
+  IT_ADMIN: 5,
   CAPTAIN: 2,
   SECRETARY: 3,
   CLERK: 4,
-  RESIDENT: 6,
-  BLOTTER_OFFICER: 7
+  BLOTTER_OFFICER: 6,
+  RESIDENT: 12
 };
 
 export const ROLE_KEYS = {
