@@ -42,13 +42,14 @@ const OfficerLogin = () => {
     try {
       console.log('🔐 OfficerLogin: Attempting login with credentials');
 
-      const response = await apiRequest('auth/officer-login', {
+      const response = await apiRequest('auth/login', {
         method: 'POST',
         body: formData
       })
 
       if (!response.ok) {
-        throw new Error(`Login request failed with status ${response.status}`);
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Login failed');
       }
 
       const responseData = await response.json()
@@ -60,22 +61,25 @@ const OfficerLogin = () => {
         throw new Error('No authentication token received from server');
       }
 
-      // Store additional user data for compatibility
-      if (user) {
-        localStorage.setItem('user', JSON.stringify(user))
-      }
-
-      // Clear any resident auth data (in case user was logged in as resident)
-      localStorage.removeItem('residentUser')
-      localStorage.removeItem('residentAuthToken')
-
-      // Authenticate user with AuthContext - this now handles token validation internally
-      const loginResult = await login(token)
+      // Authenticate user with AuthContext
+      login(token)
 
       console.log('🔐 OfficerLogin: AuthContext login completed successfully');
 
-      // Navigate to dashboard on success
-      navigate('/dashboard')
+      // Navigate to role-specific dashboard based on user role
+      if (user && user.role) {
+        if (user.role === 'captain') {
+          navigate('/admin/dashboard', { replace: true });
+        } else if (user.role === 'secretary') {
+          navigate('/secretary/dashboard', { replace: true });
+        } else if (user.role === 'clerk') {
+          navigate('/clerk/dashboard', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err) {
       console.error('❌ OfficerLogin: Login error:', err)
 

@@ -1,57 +1,35 @@
 import React from 'react'
 import { Navigate } from 'react-router-dom'
-import { Box, CircularProgress, Typography, Alert } from '@mui/material'
+import { Box, CircularProgress, Typography } from '@mui/material'
 import { useAuth } from '../contexts/AuthContext'
 
 const ProtectedRoute = ({ children, requiredRoles = [] }) => {
-  const { user, loading } = useAuth()
+  const { user, loading, isAuthenticated } = useAuth()
 
-  // Show loading spinner while AuthContext is initializing
+  // Show loading while checking authentication
   if (loading) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100vh',
-          bgcolor: 'background.default'
-        }}
-      >
-        <CircularProgress size={60} sx={{ mb: 2 }} />
-        <Typography variant="h6" color="text.secondary">
-          Verifying authentication...
-        </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
       </Box>
     )
   }
 
-  // Redirect to login if not authenticated
-  if (!user) {
+  // Check JWT token in localStorage
+  const token = localStorage.getItem('authToken')
+  if (!token || !isAuthenticated) {
     return <Navigate to="/login" replace />
   }
 
-  // Check role-based access if required roles are specified
-  if (requiredRoles.length > 0) {
-    // THEMIS ClearPass: Strict numeric role checking only
+  // Check role-based access
+  if (requiredRoles.length > 0 && user) {
     const userRole = user.role
-    const hasRequiredRole = requiredRoles.includes(userRole)
-
-    console.log('🔐 ProtectedRoute access check:', {
-      userRole: userRole,
-      requiredRoles: requiredRoles,
-      hasAccess: hasRequiredRole
-    })
-
-    if (!hasRequiredRole) {
-      // Redirect unauthorized users to home/dashboard
-      return <Navigate to="/" replace />
+    if (!requiredRoles.includes(userRole)) {
+      return <Navigate to="/unauthorized" replace />
     }
   }
 
-  // Render protected content with user context
-  return React.cloneElement(children, { user })
+  return children
 }
 
 export default ProtectedRoute

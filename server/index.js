@@ -48,7 +48,7 @@ function validateEnvironmentVariables() {
 validateEnvironmentVariables();
 
 // Import authentication system
-// const authController = require('./authController');
+const authController = require('./controllers/authController');
 // const clerkController = require('./clerkController');
 const {
   verifyToken,
@@ -1482,8 +1482,8 @@ console.log('🔧 [Route Registration] Clerk routes registered successfully');
 // Public authentication routes (no middleware needed)
 // Support both /auth/... and /api/auth/... paths temporarily for compatibility
 console.log('🔧 [Route Registration] Setting up /api/auth/login');
-// app.post('/api/auth/login', authController.staffLogin); // Primary /api route
-// app.post('/auth/login', authController.residentLogin); // Legacy /auth route
+app.post('/api/auth/login', authController.login); // Primary /api route
+app.post('/auth/login', authController.login); // Legacy /auth route
 
 console.log('🔧 [Route Registration] Setting up THEMIS ResidentID + PIN login');
 // app.post('/api/auth/themis-resident-login', authController.loginResident); // THEMIS ResidentID + PIN login

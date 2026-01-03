@@ -41,11 +41,11 @@ const Login = () => {
     try {
       console.log('🔐 Attempting resident login...')
 
-      // Authenticate with resident login endpoint
-      const response = await apiRequest('auth/resident/login', {
+      // Authenticate with unified login endpoint
+      const response = await apiRequest('auth/login', {
         method: 'POST',
         body: {
-          username: formData.email, // Username can be email or username
+          username: formData.email, // Map email input to username field
           password: formData.password
         }
       })
