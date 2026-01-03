@@ -1,6 +1,8 @@
 // API utility functions with authentication
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+// Dynamic API base URL - supports development and production
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  (import.meta.env.DEV ? 'http://localhost:3001/api' : '/api');
 
 // Get auth token from localStorage - unified JWT authentication
 const getAuthToken = () => {
@@ -125,7 +127,7 @@ export const uploadVerification = (formData) => {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const url = `${API_BASE_URL}residents/verification/upload`;
+  const url = `${API_BASE_URL}/residents/verification/upload`;
   return fetch(url, {
     method: 'POST',
     headers: headers,
