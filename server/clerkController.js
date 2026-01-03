@@ -1,6 +1,8 @@
-const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
-const PDFDocument = require('pdfkit');
 const crypto = require('crypto');
+
+function getKnex() {
+  return require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+}
 
 /**
  * THEMIS CLEARPASS CLERK CONTROLLER
@@ -12,6 +14,7 @@ async function checkClearPassEligibility(residentId) {
   console.log(`🔒 CLEARPASS GATE: Checking eligibility for Resident ID: ${residentId}`);
 
   try {
+    const knex = getKnex();
     // Step A: Query Blotter table for ResidentID
     const blotterRecords = await knex('blotter')
       .where('respondent_id', residentId)
@@ -62,6 +65,7 @@ async function checkClearPassEligibility(residentId) {
 // Generate Barangay Clearance Certificate
 async function generateClearanceCertificate(residentId, purpose, issuedBy) {
   try {
+    const knex = getKnex();
     console.log(`📄 Generating clearance certificate for resident: ${residentId}`);
 
     // Get resident details
@@ -142,6 +146,7 @@ async function generateClearanceCertificate(residentId, purpose, issuedBy) {
 // Clerk Dashboard - Get clearance requests and statistics
 async function getClerkDashboard(req, res) {
   try {
+    const knex = getKnex();
     const clerkId = req.user.id;
 
     // Get recent clearances issued by this clerk
@@ -197,6 +202,7 @@ async function getClerkDashboard(req, res) {
 
 // Issue Clearance - Main ClearPass Function
 async function issueClearance(req, res) {
+  const knex = getKnex();
   const connection = await knex.transaction();
 
   try {
@@ -258,6 +264,7 @@ async function issueClearance(req, res) {
 // Get clearance history for a resident
 async function getClearanceHistory(req, res) {
   try {
+    const knex = getKnex();
     const { residentId } = req.params;
 
     const clearances = await knex('certificates_log')
@@ -285,6 +292,7 @@ async function getClearanceHistory(req, res) {
 // Validate resident for clearance (pre-check ClearPass)
 async function validateForClearance(req, res) {
   try {
+    const knex = getKnex();
     const { resident_id } = req.body;
 
     if (!resident_id) {
@@ -332,6 +340,7 @@ async function validateForClearance(req, res) {
 // Get all clearances for clerk overview
 async function getAllClearances(req, res) {
   try {
+    const knex = getKnex();
     const clearances = await knex('certificates_log')
       .select(
         'certificates_log.*',
@@ -358,6 +367,7 @@ async function getAllClearances(req, res) {
 // Register new resident (basic implementation)
 async function registerResident(req, res) {
   try {
+    const knex = getKnex();
     const { firstName, lastName, mobileNumber, address } = req.body;
 
     if (!firstName || !lastName) {
@@ -395,6 +405,7 @@ async function registerResident(req, res) {
 // Get document issuance overview
 async function getDocumentIssuance(req, res) {
   try {
+    const knex = getKnex();
     // Get recent clearances and their statistics
     const recentDocuments = await knex('certificates_log')
       .select(
@@ -420,6 +431,7 @@ async function getDocumentIssuance(req, res) {
 // Approve clearance request (Secretary override)
 async function approveClearance(req, res) {
   try {
+    const knex = getKnex();
     const { id } = req.params;
     const { approval_notes } = req.body;
     const secretaryId = req.user.id;

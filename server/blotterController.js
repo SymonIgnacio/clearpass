@@ -1,7 +1,9 @@
-const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
-const PDFDocument = require('pdfkit');
 const crypto = require('crypto');
 const { sendIncidentReportNotification } = require('./notificationService');
+
+function getKnex() {
+  return require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+}
 
 /**
  * THEMIS CLEARPASS BLOTTER OFFICER CONTROLLER
@@ -10,6 +12,7 @@ const { sendIncidentReportNotification } = require('./notificationService');
 
 // Create new blotter case - THEMIS Critical Function
 async function createCase(req, res) {
+  const knex = getKnex();
   const trx = await knex.transaction();
 
   try {
@@ -118,6 +121,7 @@ async function createCase(req, res) {
 
 // Update case status - Handle Active -> Resolved transitions (Unblocks resident)
 async function updateCaseStatus(req, res) {
+  const knex = getKnex();
   const trx = await knex.transaction();
 
   try {
@@ -180,6 +184,7 @@ async function updateCaseStatus(req, res) {
 // Get blotter cases for officer dashboard
 async function getOfficerCases(req, res) {
   try {
+    const knex = getKnex();
     const officerId = req.user.id;
     const { status, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
@@ -234,6 +239,8 @@ async function getOfficerCases(req, res) {
 // Generate Monthly Blotter Report PDF
 async function generateMonthlyReport(req, res) {
   try {
+    const knex = getKnex();
+    const PDFDocument = require('pdfkit');
     const { year, month } = req.params;
 
     // Get cases for the specified month
@@ -328,6 +335,7 @@ async function generateMonthlyReport(req, res) {
 // Delete blotter case - SECURE: Only authorized blotter officers can delete
 async function deleteCase(req, res) {
   try {
+    const knex = getKnex();
     const officerId = req.user.id;
     const { id } = req.params; // This should be caseNumber based on route
 
@@ -372,6 +380,7 @@ async function deleteCase(req, res) {
 // Get incident hotspot analytics for AI forecasting
 async function getHotspotAnalytics(req, res) {
   try {
+    const knex = getKnex();
     // Get recent cases for analysis (last 90 days)
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
@@ -429,6 +438,7 @@ async function getHotspotAnalytics(req, res) {
 // THEMIS CLEARPASS: Get resident blotter history for ClearPass validation
 async function getResidentBlotterHistory(req, res) {
   try {
+    const knex = getKnex();
     const { residentId } = req.params;
 
     if (!residentId) {

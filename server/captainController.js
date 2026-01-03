@@ -1,4 +1,6 @@
-const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+function getKnex() {
+  return require('knex')(require('./knexfile')[process.env.NODE_ENV || 'development']);
+}
 
 /**
  * THEMIS CLEARPASS CAPTAIN CONTROLLER
@@ -8,6 +10,7 @@ const knex = require('knex')(require('./knexfile')[process.env.NODE_ENV || 'deve
 // Get executive dashboard with population growth and heatmaps
 async function getExecutiveDashboard(req, res) {
   try {
+    const knex = getKnex();
     // Population statistics
     const [populationStats] = await knex('residents')
       .select(

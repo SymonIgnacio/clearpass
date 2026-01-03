@@ -308,7 +308,15 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '10mb' })); // Limit payload size
+app.use(express.json({ limit: '1mb', strict: true })); // Limit payload size to 1MB
+app.use(express.urlencoded({ extended: true, limit: '1mb', parameterLimit: 1000 })); // Limit URL-encoded data
+app.use((req, res, next) => {
+  const contentLength = parseInt(req.headers['content-length'] || '0');
+  if (contentLength > 1048576) {
+    return res.status(413).json({ error: 'Request entity too large' });
+  }
+  next();
+});
 app.use(requestLogger);
 
 // CSRF Protection completely disabled (moved to production-ready implementation)
