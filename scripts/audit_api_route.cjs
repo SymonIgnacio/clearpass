@@ -9,7 +9,7 @@
  */
 
 const axios = require('axios');
-require('dotenv').config({ path: './server/.env' });
+require('dotenv').config({ path: '../server/.env' });
 
 const BACKEND_PORT = process.env.SERVER_PORT || 3001;
 const FRONTEND_PORT = 5174; // Target frontend port

@@ -314,60 +314,50 @@ function App() {
             <Route path="secretary/dashboard" element={<Dashboard />} />
             <Route path="clerk/dashboard" element={<Dashboard />} />
             <Route path="officer/dashboard" element={<Dashboard />} />
+            <Route path="dashboard" element={<Dashboard />} />
 
             <Route path="residents" element={<Residents />} />
-            <Route
-              path="users"
-              element={
-                <ProtectedRoute requiredRoles={['captain', 'admin']}>
-                  <Users />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="blotter" element={<Blotter />} />
-            <Route
-              path="documents"
-              element={
-                <ProtectedRoute requiredRoles={['captain', 'secretary', 'clerk']}>
-                  <DocumentsDashboard />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="users" element={
+              <ProtectedRoute requiredRoles={[2, 5]}>
+                <Users />
+              </ProtectedRoute>
+            } />
+            <Route path="blotter" element={
+              <ProtectedRoute requiredRoles={[2, 3, 4, 5, 6]}>
+                <Blotter />
+              </ProtectedRoute>
+            } />
+            <Route path="documents" element={
+              <ProtectedRoute requiredRoles={[2, 3, 4, 5, 6]}>
+                <DocumentsDashboard />
+              </ProtectedRoute>
+            } />
 
-            <Route path="census" element={<Census />} />
-            <Route path="events" element={<CommunityEvents />} />
+            <Route path="census" element={
+              <ProtectedRoute requiredRoles={[2, 3, 4, 5, 6]}>
+                <Census />
+              </ProtectedRoute>
+            } />
+            <Route path="events" element={
+              <ProtectedRoute requiredRoles={[2, 3, 5, 6]}>
+                <CommunityEvents />
+              </ProtectedRoute>
+            } />
 
-            <Route path="settings" element={<SuperAdminSettings />} />
+            <Route path="settings" element={
+              <ProtectedRoute requiredRoles={[5]}>
+                <SuperAdminSettings />
+              </ProtectedRoute>
+            } />
 
             {/* Legacy redirects */}
             <Route path="qr-verify" element={<Navigate to="/" replace />} />
             <Route path="qr-verification" element={<Navigate to="/" replace />} />
 
-            {/* AI Routes - Available to all authenticated users */}
-            <Route
-              path="ai-dashboard"
-              element={
-                <ProtectedRoute requiredRoles={Object.values(ROLES)}>
-                  <AIPatrol />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="ai-patrol"
-              element={
-                <ProtectedRoute requiredRoles={Object.values(ROLES)}>
-                  <AIPatrol />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="ronda-analytics"
-              element={
-                <ProtectedRoute requiredRoles={Object.values(ROLES)}>
-                  <RondaAnalytics />
-                </ProtectedRoute>
-              }
-            />
+            {/* AI Routes - Available to authenticated staff */}
+            <Route path="ai-dashboard" element={<AIPatrol />} />
+            <Route path="ai-patrol" element={<AIPatrol />} />
+            <Route path="ronda-analytics" element={<RondaAnalytics />} />
 
                 {/* Backward compatibility redirects */}
                 <Route path="certificates" element={<Navigate to="documents" replace />} />

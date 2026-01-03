@@ -1,5 +1,3 @@
-const axios = require('axios');
-
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:5000';
 
 /**
@@ -8,6 +6,7 @@ const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:5000';
  * @returns {Promise<Object>} Priority result from AI service
  */
 async function callPythonAI(residentData) {
+  const axios = require('axios');
   try {
     const response = await axios.post(`${AI_SERVICE_URL}/api/calculate-priority`, residentData, {
       timeout: 10000, // 10 second timeout
@@ -104,6 +103,7 @@ async function generateNarrative(data) {
  * @returns {Promise<boolean>} True if service is healthy
  */
 async function checkAIServiceHealth() {
+  const axios = require('axios');
   try {
     const response = await axios.get(`${AI_SERVICE_URL}/health`, {
       timeout: 5000

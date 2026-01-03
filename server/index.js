@@ -55,7 +55,7 @@ const {
   checkRole,
   checkHierarchyAccess,
   checkOwnershipOrHierarchy
-} = require('./authMiddleware');
+} = require('./middleware/authMiddleware');
 
 // Import JWT middleware for document requests
 const { verifyToken: verifyTokenJWT } = require('./jwtMiddleware');
@@ -332,12 +332,26 @@ app.use((req, res, next) => {
 
 // Import organized routes
 const themisRoutes = require('./routes');
+const adminRoutes = require('./routes/adminRoutes')(db);
+const residentRoutes = require('./routes/residentRoutes')(db);
+const certificateRoutes = require('./routes/certificateRoutes')(db);
+const blotterRoutes = require('./routes/blotterRoutes')(db);
+const censusRoutes = require('./routes/censusRoutes')(db);
+const userRoutes = require('./routes/userRoutes')(db);
 
 // Apply strict auth rate limiting to authentication endpoints
 app.use('/api/auth', authLimiter);
 
 // Mount THEMIS ClearPass role-based routes at /api
 app.use('/api', themisRoutes);
+
+// Mount modular routes
+app.use('/api/admin', adminRoutes);
+app.use('/api/residents', residentRoutes);
+app.use('/api/certificates', certificateRoutes);
+app.use('/api/blotter', blotterRoutes);
+app.use('/api/census', censusRoutes);
+app.use('/api/users', userRoutes);
 
 // DEBUG: Direct admin route test
 app.get('/api/admin/test', (req, res) => {
@@ -1325,11 +1339,10 @@ app.get('/api/admin/reports/detailed/security', verifyToken, checkRole(['admin']
 
 
 // Apply rate limiting
-// Temporarily disabled for development/testing
-// app.use('/api/certificates', strictLimiter); // Certificate operations are sensitive
-// app.use('/api/residents', apiLimiter);
-// app.use('/api/blotter', apiLimiter);
-// app.use('/api/', apiLimiter);
+app.use('/api/certificates', strictLimiter); // Certificate operations are sensitive
+app.use('/api/residents', apiLimiter);
+app.use('/api/blotter', apiLimiter);
+app.use('/api/', apiLimiter);
 
 // Database connection - Support Railway DATABASE_URL and legacy configuration
 function getDatabaseConfig() {
@@ -3157,14 +3170,15 @@ app.post('/api/certificates', async (req, res) => {
     const certificate_type_name = certTypeRows[0].name;
 
     // CRITICAL BUSINESS RULE: Check blotter before issuing clearance or good moral certificates
-    // As per survey requirements - block issuance for residents with active blotter cases
+    // AUDIT FIX: Also check for empty/null status (404 cases have empty status)
     if (certificate_type_name === 'Barangay Clearance' || certificate_type_name === 'Good Moral') {
       const [blotterCheck] = await connection.execute(`
         SELECT COUNT(*) as active_cases,
                GROUP_CONCAT(case_number) as case_numbers,
                GROUP_CONCAT(incident_type) as incident_types
         FROM blotter
-        WHERE respondent_id = ? AND status = 'Pending'
+        WHERE respondent_id = ? 
+        AND (status IN ('Pending', 'Scheduled for Mediation', 'Ongoing') OR status = '' OR status IS NULL)
       `, [resident_id]);
 
       if (blotterCheck[0].active_cases > 0) {
@@ -3175,7 +3189,7 @@ app.post('/api/certificates', async (req, res) => {
             caseCount: blotterCheck[0].active_cases,
             caseNumbers: blotterCheck[0].case_numbers,
             incidentTypes: blotterCheck[0].incident_types,
-            message: 'Cannot issue clearance certificate while resident has pending blotter cases'
+            message: 'Cannot issue clearance certificate while resident has pending/ongoing blotter cases'
           }
         });
       }

@@ -9,7 +9,7 @@
  */
 
 const axios = require('axios');
-require('dotenv').config({ path: './server/.env' });
+require('dotenv').config({ path: '../server/.env' });
 
 const AI_SERVICE_PORT = 5000;
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || `http://localhost:${AI_SERVICE_PORT}`;

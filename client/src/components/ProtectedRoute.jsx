@@ -23,8 +23,10 @@ const ProtectedRoute = ({ children, requiredRoles = [] }) => {
 
   // Check role-based access
   if (requiredRoles.length > 0 && user) {
-    const userRole = user.role
-    if (!requiredRoles.includes(userRole)) {
+    const userRole = Number(user.role)
+    const hasAccess = requiredRoles.some(role => Number(role) === userRole)
+
+    if (!hasAccess) {
       return <Navigate to="/unauthorized" replace />
     }
   }

@@ -1,27 +1,33 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-const dbConfig = {
+const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'bmw_barangay_batia',
-  port: process.env.DB_PORT || 3306
-};
+  database: process.env.DB_NAME || 'barangay_management',
+  port: process.env.DB_PORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
-async function getConnection() {
+// Export the pool for direct use
+module.exports = pool;
+
+// Also export helper function for backward compatibility
+module.exports.getConnection = async function() {
   try {
-    const connection = await mysql.createConnection(dbConfig);
-    return connection;
+    return await pool.getConnection();
   } catch (error) {
     console.error('Database connection failed:', error);
     throw error;
   }
-}
+};
 
 // Get all residents with sitio information
 async function getResidents() {
-  const connection = await getConnection();
+  const connection = await module.exports.getConnection();
   try {
     const [rows] = await connection.execute(`
       SELECT r.*, s.name as sitio_name, h.Household_Number,
@@ -44,7 +50,7 @@ async function getResidents() {
 
 // Get all blotter records with resident names
 async function getBlotterRecords() {
-  const connection = await getConnection();
+  const connection = await module.exports.getConnection();
   try {
     const [rows] = await connection.execute(`
       SELECT
@@ -62,7 +68,7 @@ async function getBlotterRecords() {
 
 // Get all certificate types
 async function getCertificateTypes() {
-  const connection = await getConnection();
+  const connection = await module.exports.getConnection();
   try {
     const [rows] = await connection.execute(`
       SELECT * FROM certificate_types WHERE is_active = TRUE ORDER BY name
@@ -75,7 +81,7 @@ async function getCertificateTypes() {
 
 // Get certificates with resident and type information
 async function getCertificates() {
-  const connection = await getConnection();
+  const connection = await module.exports.getConnection();
   try {
     const [rows] = await connection.execute(`
       SELECT
@@ -93,7 +99,7 @@ async function getCertificates() {
 
 // Check if resident has active blotter cases (UPDATED for new status enum)
 async function checkBlotterStatus(residentId) {
-  const connection = await getConnection();
+  const connection = await module.exports.getConnection();
   try {
     const [rows] = await connection.execute(`
       SELECT
@@ -118,7 +124,7 @@ async function checkBlotterStatus(residentId) {
 
 // Get dashboard statistics
 async function getDashboardStats() {
-  const connection = await getConnection();
+  const connection = await module.exports.getConnection();
   try {
     const [residents] = await connection.execute('SELECT COUNT(*) as total FROM residents WHERE Residency_Status = "Active"');
     const [certificates] = await connection.execute('SELECT COUNT(*) as total FROM certificates_log WHERE status = "Released"');
@@ -138,7 +144,7 @@ async function getDashboardStats() {
 
 // Create a new certificate
 async function createCertificate(certificateData) {
-  const connection = await getConnection();
+  const connection = await module.exports.getConnection();
   try {
     const {
       resident_id,
@@ -182,7 +188,7 @@ async function createCertificate(certificateData) {
 
 // Create a new blotter record
 async function createBlotterRecord(blotterData) {
-  const connection = await getConnection();
+  const connection = await module.exports.getConnection();
   try {
     const {
       complainant_details,
@@ -225,7 +231,7 @@ async function createBlotterRecord(blotterData) {
 
 // Update blotter record
 async function updateBlotterRecord(caseNumber, updates) {
-  const connection = await getConnection();
+  const connection = await module.exports.getConnection();
   try {
     const allowedFields = ['Status', 'Hearing_Schedule'];
     const updateFields = [];
@@ -257,7 +263,7 @@ async function updateBlotterRecord(caseNumber, updates) {
 
 // Delete blotter record
 async function deleteBlotterRecord(caseNumber) {
-  const connection = await getConnection();
+  const connection = await module.exports.getConnection();
   try {
     await connection.execute('DELETE FROM blotter WHERE Case_Number = ?', [caseNumber]);
     return { success: true, message: 'Blotter record deleted' };
@@ -268,7 +274,7 @@ async function deleteBlotterRecord(caseNumber) {
 
 // Get census statistics by sitio
 async function getCensusStatistics() {
-  const connection = await getConnection();
+  const connection = await module.exports.getConnection();
   try {
     const [stats] = await connection.execute(`
       SELECT
@@ -322,7 +328,7 @@ async function getCensusStatistics() {
 
 // Get census statistics for specific sitio
 async function getSitioCensus(sitioId) {
-  const connection = await getConnection();
+  const connection = await module.exports.getConnection();
   try {
     const [stats] = await connection.execute(`
       SELECT
@@ -350,17 +356,15 @@ async function getSitioCensus(sitioId) {
   }
 }
 
-module.exports = {
-  getResidents,
-  getBlotterRecords,
-  getCertificateTypes,
-  getCertificates,
-  checkBlotterStatus,
-  getDashboardStats,
-  createCertificate,
-  createBlotterRecord,
-  updateBlotterRecord,
-  deleteBlotterRecord,
-  getCensusStatistics,
-  getSitioCensus
-};
+module.exports.getResidents = getResidents;
+module.exports.getBlotterRecords = getBlotterRecords;
+module.exports.getCertificateTypes = getCertificateTypes;
+module.exports.getCertificates = getCertificates;
+module.exports.checkBlotterStatus = checkBlotterStatus;
+module.exports.getDashboardStats = getDashboardStats;
+module.exports.createCertificate = createCertificate;
+module.exports.createBlotterRecord = createBlotterRecord;
+module.exports.updateBlotterRecord = updateBlotterRecord;
+module.exports.deleteBlotterRecord = deleteBlotterRecord;
+module.exports.getCensusStatistics = getCensusStatistics;
+module.exports.getSitioCensus = getSitioCensus;

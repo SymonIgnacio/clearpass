@@ -1,0 +1,55 @@
+// Application Constants
+const RATE_LIMIT = {
+  WINDOW_MS: 15 * 60 * 1000,
+  API_LIMIT: 100,
+  STRICT_LIMIT: 10,
+  AUTH_LIMIT: 5
+};
+
+const PAGINATION = {
+  DEFAULT_PAGE: 1,
+  DEFAULT_LIMIT: 50,
+  MAX_LIMIT: 100
+};
+
+const FILE_UPLOAD = {
+  MAX_SIZE: 10 * 1024 * 1024
+};
+
+const SECURITY = {
+  BCRYPT_SALT_ROUNDS: 10,
+  PASSWORD_MIN_LENGTH: 6
+};
+
+const DATABASE = {
+  CONNECTION_LIMIT: 10,
+  DEFAULT_PORT: 3306
+};
+
+const AGE = {
+  SENIOR_CITIZEN: 60
+};
+
+const INCOME = {
+  LOW: 10000,
+  MEDIUM: 20000
+};
+
+const HTTP_STATUS = {
+  OK: 200,
+  CREATED: 201,
+  BAD_REQUEST: 400,
+  NOT_FOUND: 404,
+  INTERNAL_ERROR: 500
+};
+
+module.exports = {
+  RATE_LIMIT,
+  PAGINATION,
+  FILE_UPLOAD,
+  SECURITY,
+  DATABASE,
+  AGE,
+  INCOME,
+  HTTP_STATUS
+};

@@ -14,8 +14,7 @@ import {
   Avatar,
   Chip,
   Button,
-  Paper,
-  Tooltip
+  Paper
 } from '@mui/material'
 import {
   Dashboard,
@@ -25,19 +24,12 @@ import {
   Assessment,
   SmartToy,
   Security,
-  QrCodeScanner,
   Event,
   Logout,
-  AdminPanelSettings,
-  SupervisorAccount,
   Person,
-  Analytics,
-  DocumentScanner,
-  Settings,
-  Lock
+  Settings
 } from '@mui/icons-material'
 import { useAuth } from '../contexts/AuthContext'
-import { ROLES } from '../utils/roles'
 
 const drawerWidth = 280
 
@@ -45,66 +37,78 @@ const Sidebar = () => {
   const location = useLocation()
   const { user, logout } = useAuth()
 
-  // Menu items with role-based access control - hide items user doesn't have access to
   const allMenuItems = [
     {
       text: 'Dashboard',
       icon: <Dashboard />,
       path: '/',
       description: 'Overview & Analytics',
-      roles: [ROLES.IT_ADMIN, ROLES.SECRETARY, ROLES.CLERK, ROLES.BLOTTER_OFFICER, ROLES.CAPTAIN, ROLES.RESIDENT] // All roles can access
+      roles: [2, 3, 4, 5, 6, 12]
     },
     {
       text: 'User Management',
-      icon: <SupervisorAccount />,
+      icon: <Person />,
       path: '/users',
-      description: 'Manage Staff Accounts & Roles',
-      roles: [ROLES.IT_ADMIN] // IT Admin (1) ONLY
+      description: 'Manage Staff Accounts',
+      roles: [2, 5]
     },
     {
       text: 'Residents',
       icon: <People />,
       path: '/residents',
-      description: 'Resident Records Management',
-      roles: [ROLES.IT_ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.CLERK] // Admin, Captain, Secretary, Clerk
+      description: 'Resident Records',
+      roles: [2, 3, 4, 5]
     },
     {
       text: 'Blotter',
       icon: <Gavel />,
       path: '/blotter',
-      description: 'Incident Reports & Case Management',
-      roles: [ROLES.IT_ADMIN, ROLES.CAPTAIN, ROLES.BLOTTER_OFFICER] // Admin, Captain, Officer (NOT Clerk, NOT Secretary)
+      description: 'Incident Reports',
+      roles: [2, 3, 4, 5, 6]
     },
     {
-      text: 'Document Center',
+      text: 'Documents',
       icon: <Description />,
       path: '/documents',
-      description: 'Certificates & Clearance Processing',
-      roles: [ROLES.IT_ADMIN] // IT Admin (1) ONLY
+      description: 'Certificates & Clearances',
+      roles: [2, 3, 4, 5, 6]
+    },
+    {
+      text: 'Census',
+      icon: <Assessment />,
+      path: '/census',
+      description: 'Population Statistics',
+      roles: [2, 3, 4, 5, 6]
+    },
+    {
+      text: 'Events',
+      icon: <Event />,
+      path: '/events',
+      description: 'Community Programs',
+      roles: [2, 3, 5, 6]
     },
     {
       text: 'AI Hub',
       icon: <SmartToy />,
       path: '/ai-dashboard',
-      description: 'AI Analytics & Assistant',
+      description: 'AI Analytics',
       badge: 'AI',
-      roles: [ROLES.IT_ADMIN, ROLES.SECRETARY, ROLES.CLERK, ROLES.BLOTTER_OFFICER, ROLES.CAPTAIN, ROLES.RESIDENT] // All roles
+      roles: [2, 3, 4, 5, 6, 12]
     },
     {
       text: 'Settings',
       icon: <Settings />,
       path: '/settings',
-      description: 'Account Settings & System Config',
-      roles: [ROLES.IT_ADMIN, ROLES.SECRETARY, ROLES.CLERK, ROLES.BLOTTER_OFFICER, ROLES.CAPTAIN, ROLES.RESIDENT] // All roles
+      description: 'System Configuration',
+      roles: [5]
     }
   ]
 
-  // Filter menu items based on user role - THEMIS ClearPass strict numeric checking
   const menuItems = allMenuItems.filter(item => {
     if (!user || !user.role) return false
-
-    // Strict numeric role checking only
-    return item.roles.includes(user.role)
+    
+    const userRole = Number(user.role)
+    return item.roles.some(role => Number(role) === userRole)
   })
 
   return (
@@ -124,33 +128,14 @@ const Sidebar = () => {
     >
       <Toolbar sx={{ px: 3, py: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-          <Avatar
-            sx={{
-              bgcolor: 'primary.main',
-              mr: 2,
-              width: 40,
-              height: 40
-            }}
-          >
+          <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 40, height: 40 }}>
             <Security sx={{ fontSize: 20 }} />
           </Avatar>
           <Box>
-            <Typography
-              variant="h6"
-              noWrap
-              component="div"
-              sx={{
-                fontWeight: 500,
-                fontSize: '1.125rem',
-                color: 'text.primary'
-              }}
-            >
+            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, fontSize: '1.125rem', color: 'text.primary' }}>
               Barangay MS
             </Typography>
-            <Typography
-              variant="caption"
-              sx={{ color: 'text.secondary', fontSize: '0.75rem' }}
-            >
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
               Management System
             </Typography>
           </Box>
@@ -177,41 +162,23 @@ const Sidebar = () => {
                     backgroundColor: 'primary.main',
                     color: 'primary.contrastText',
                     boxShadow: '0 2px 8px rgba(26, 115, 232, 0.25)',
-                    '& .MuiListItemIcon-root': {
-                      color: 'primary.contrastText',
-                    },
-                    '& .MuiListItemText-primary': {
-                      color: 'primary.contrastText',
-                      fontWeight: 500,
-                    },
-                    '& .MuiListItemText-secondary': {
-                      color: 'rgba(255, 255, 255, 0.7)',
-                    },
+                    '& .MuiListItemIcon-root': { color: 'primary.contrastText' },
+                    '& .MuiListItemText-primary': { color: 'primary.contrastText', fontWeight: 500 },
+                    '& .MuiListItemText-secondary': { color: 'rgba(255, 255, 255, 0.7)' },
                   },
                   '&:hover': {
                     backgroundColor: isActive ? 'primary.main' : 'rgba(26, 115, 232, 0.04)',
-                    '& .MuiListItemIcon-root': {
-                      color: isActive ? 'primary.contrastText' : 'primary.main',
-                    },
+                    '& .MuiListItemIcon-root': { color: isActive ? 'primary.contrastText' : 'primary.main' },
                   },
                 }}
               >
-                <ListItemIcon sx={{
-                  minWidth: 40,
-                  color: isActive ? 'primary.contrastText' : 'text.secondary'
-                }}>
+                <ListItemIcon sx={{ minWidth: 40, color: isActive ? 'primary.contrastText' : 'text.secondary' }}>
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText
                   primary={
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontWeight: isActive ? 500 : 400,
-                          fontSize: '0.875rem'
-                        }}
-                      >
+                      <Typography variant="body2" sx={{ fontWeight: isActive ? 500 : 400, fontSize: '0.875rem' }}>
                         {item.text}
                       </Typography>
                       {item.badge && (
@@ -230,13 +197,7 @@ const Sidebar = () => {
                     </Box>
                   }
                   secondary={
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontSize: '0.75rem',
-                        mt: 0.25
-                      }}
-                    >
+                    <Typography variant="caption" sx={{ fontSize: '0.75rem', mt: 0.25 }}>
                       {item.description}
                     </Typography>
                   }
@@ -249,39 +210,19 @@ const Sidebar = () => {
 
       <Box sx={{ flexGrow: 1 }} />
 
-      {/* User Info Section */}
       {user && (
         <Box sx={{ p: 2, mx: 2 }}>
-          <Paper
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              backgroundColor: 'background.paper',
-              border: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
+          <Paper sx={{ p: 2, borderRadius: 2, backgroundColor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-              <Avatar
-                sx={{
-                  width: 32,
-                  height: 32,
-                  mr: 1.5,
-                  bgcolor: user.role_name === 'Super Admin' ? 'error.main' :
-                           user.role_name === 'Barangay Captain' ? 'warning.main' :
-                           'primary.main'
-                }}
-              >
-                {user.role_name === 'Super Admin' ? <AdminPanelSettings sx={{ fontSize: 16 }} /> :
-                 user.role_name === 'Barangay Captain' ? <SupervisorAccount sx={{ fontSize: 16 }} /> :
-                 <Person sx={{ fontSize: 16 }} />}
+              <Avatar sx={{ width: 32, height: 32, mr: 1.5, bgcolor: 'primary.main' }}>
+                <Person sx={{ fontSize: 16 }} />
               </Avatar>
               <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }} noWrap>
-                  {user.full_name}
+                  {user.username || 'User'}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-                  {user.role_name}
+                  {user.role || 'Staff'}
                 </Typography>
               </Box>
             </Box>
@@ -298,11 +239,7 @@ const Sidebar = () => {
                 fontSize: '0.75rem',
                 fontWeight: 500,
                 textTransform: 'none',
-                '&:hover': {
-                  backgroundColor: 'error.main',
-                  color: 'white',
-                  borderColor: 'error.main',
-                },
+                '&:hover': { backgroundColor: 'error.main', color: 'white', borderColor: 'error.main' },
               }}
             >
               Logout
@@ -310,24 +247,6 @@ const Sidebar = () => {
           </Paper>
         </Box>
       )}
-
-      <Box sx={{ p: 2, mx: 2, mb: 2 }}>
-        <Box
-          sx={{
-            p: 2,
-            borderRadius: 2,
-            backgroundColor: 'rgba(26, 115, 232, 0.04)',
-            border: '1px solid rgba(26, 115, 232, 0.12)',
-          }}
-        >
-          <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-            AI-Powered System
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            Intelligent decision support for barangay administration and community safety.
-          </Typography>
-        </Box>
-      </Box>
     </Drawer>
   )
 }

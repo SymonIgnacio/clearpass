@@ -10,7 +10,7 @@
 
 const mysql = require('mysql2/promise');
 const knex = require('knex');
-require('dotenv').config({ path: './server/.env' });
+require('dotenv').config({ path: '../server/.env' });
 
 // Database configuration function (same as server/knexfile.js)
 function getDatabaseConfig() {

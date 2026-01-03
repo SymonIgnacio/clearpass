@@ -25,8 +25,17 @@ dist-ssr
 
 # Sensitive files - NEVER commit these!
 .env
+.env.*
+server/.env
+server/.env.*
+client/.env
+client/.env.*
 firebase-service-account.json
-.env.local
-.env.production
-.env.development
 Root/clearpass-ed442-firebase-adminsdk-fbsvc-960a3eb789.json
+
+# Environment files (all variations)
+**/.env
+**/.env.local
+**/.env.production
+**/.env.development
+**/.env.test

@@ -15,7 +15,7 @@
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 
-require('dotenv').config({ path: './server/.env' });
+require('dotenv').config({ path: '../server/.env' });
 
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',

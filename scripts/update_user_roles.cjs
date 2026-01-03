@@ -12,7 +12,7 @@
  */
 
 const mysql = require('mysql2/promise');
-require('dotenv').config({ path: './server/.env' });
+require('dotenv').config({ path: '../server/.env' });
 
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',

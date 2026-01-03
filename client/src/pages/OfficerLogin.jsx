@@ -66,20 +66,8 @@ const OfficerLogin = () => {
 
       console.log('🔐 OfficerLogin: AuthContext login completed successfully');
 
-      // Navigate to role-specific dashboard based on user role
-      if (user && user.role) {
-        if (user.role === 'captain') {
-          navigate('/admin/dashboard', { replace: true });
-        } else if (user.role === 'secretary') {
-          navigate('/secretary/dashboard', { replace: true });
-        } else if (user.role === 'clerk') {
-          navigate('/clerk/dashboard', { replace: true });
-        } else {
-          navigate('/dashboard', { replace: true });
-        }
-      } else {
-        navigate('/dashboard', { replace: true });
-      }
+      // Navigate to main dashboard
+      navigate('/', { replace: true });
     } catch (err) {
       console.error('❌ OfficerLogin: Login error:', err)
 

@@ -1,21 +1,4 @@
-const mysql = require('mysql2/promise');
-
-// Database configuration
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'barangay_management',
-  port: process.env.DB_PORT || 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-};
-
-// Get database connection
-async function getDbConnection() {
-  return await mysql.createPool(dbConfig);
-}
+const db = require('./database');
 
 /**
  * THEMIS CLEARPASS ADMIN CONTROLLER
@@ -24,7 +7,7 @@ async function getDbConnection() {
 
 // Get dashboard statistics for IT Admin
 async function getDashboardStats(req, res) {
-  const connection = await getDbConnection();
+  const connection = await db.getConnection();
 
   try {
     // System health metrics
@@ -129,7 +112,7 @@ async function getAiTechnicalView(req, res) {
 
 // Get all users for management
 async function getAllUsers(req, res) {
-  const connection = await getDbConnection();
+  const connection = await db.getConnection();
 
   try {
     const { page = 1, limit = 50, role, status } = req.query;
@@ -187,7 +170,7 @@ async function getAllUsers(req, res) {
 
 // Create new user
 async function createUser(req, res) {
-  const connection = await getDbConnection();
+  const connection = await db.getConnection();
 
   try {
     await connection.beginTransaction();
@@ -237,7 +220,7 @@ async function createUser(req, res) {
 
 // Update user - SECURE: Prevent hierarchy privilege escalation
 async function updateUser(req, res) {
-  const connection = await getDbConnection();
+  const connection = await db.getConnection();
 
   try {
     const { id } = req.params;
@@ -306,11 +289,10 @@ async function updateUser(req, res) {
   }
 }
 
-const puppeteer = require('puppeteer');
-
 // Generate PDF report for blotter cases
 async function generateBlotterPDF(req, res) {
-  const connection = await getDbConnection();
+  const puppeteer = require('puppeteer');
+  const connection = await db.getConnection();
 
   try {
     const { search, status, sitio, dateFrom, dateTo } = req.query;
@@ -504,7 +486,8 @@ async function generateBlotterPDF(req, res) {
 
 // Generate PDF report for residents
 async function generateResidentsPDF(req, res) {
-  const connection = await getDbConnection();
+  const puppeteer = require('puppeteer');
+  const connection = await db.getConnection();
 
   try {
     const { search, gender, sitio, vulnerability, residencyFilter, dateFrom, dateTo } = req.query;
