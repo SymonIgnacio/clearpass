@@ -113,7 +113,8 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
  *               $ref: '#/components/schemas/Error'
  */
 router.post('/auth/officer-login', validateLogin, authController.staffLogin);
-router.post('/auth/register', verifyToken, validateRegister, authController.register);
+// SECURITY: Public registration disabled per business rules - only admin can create users
+// router.post('/auth/register', verifyToken, validateRegister, authController.register);
 router.post('/auth/resident/login', validateLogin, authController.loginResident);
 
 // Note: Resident Signup is DISABLED per security policy.

@@ -269,7 +269,8 @@ function App() {
             <Routes>
               {/* Public routes */}
               <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Register />} />
+              {/* SECURITY: Public signup disabled per business rules */}
+              {/* <Route path="/signup" element={<Register />} /> */}
               <Route path="/officerlogin" element={<OfficerLogin />} />
               <Route path="/verify-account" element={<AccountVerification />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
