@@ -1,215 +1,149 @@
 const swaggerJsdoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express');
 
-// Swagger definition
-const swaggerDefinition = {
-  openapi: '3.0.0',
-  info: {
-    title: 'Barangay Management System API',
-    version: '1.0.0',
-    description: 'Comprehensive API for Barangay Management System with AI-powered decision support',
-    contact: {
-      name: 'Barangay Management Team',
-      email: 'admin@barangay.gov.ph'
-    },
-    license: {
-      name: 'MIT',
-      url: 'https://opensource.org/licenses/MIT'
-    }
-  },
-  servers: [
-    {
-      url: 'http://localhost:3001',
-      description: 'Development server'
-    },
-    {
-      url: 'https://api.barangay.gov.ph',
-      description: 'Production server'
-    }
-  ],
-  components: {
-    securitySchemes: {
-      bearerAuth: {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT'
-      },
-      apiKeyAuth: {
-        type: 'apiKey',
-        in: 'header',
-        name: 'X-API-Key'
-      }
-    },
-    schemas: {
-      Resident: {
-        type: 'object',
-        required: ['first_name', 'last_name', 'sitio_id'],
-        properties: {
-          id: {
-            type: 'integer',
-            description: 'Unique resident identifier'
-          },
-          first_name: {
-            type: 'string',
-            description: 'Resident first name'
-          },
-          last_name: {
-            type: 'string',
-            description: 'Resident last name'
-          },
-          middle_name: {
-            type: 'string',
-            description: 'Resident middle name'
-          },
-          age: {
-            type: 'integer',
-            description: 'Resident age'
-          },
-          gender: {
-            type: 'string',
-            enum: ['Male', 'Female', 'Other'],
-            description: 'Resident gender'
-          },
-          sitio_id: {
-            type: 'integer',
-            description: 'Sitio identifier'
-          },
-          sitio_name: {
-            type: 'string',
-            description: 'Sitio name'
-          },
-          is_senior: {
-            type: 'boolean',
-            description: 'Senior citizen status'
-          },
-          is_pwd: {
-            type: 'boolean',
-            description: 'Person with disability status'
-          },
-          is_single_parent: {
-            type: 'boolean',
-            description: 'Single parent status'
-          },
-          employment_status: {
-            type: 'string',
-            description: 'Employment status'
-          },
-          monthly_income: {
-            type: 'number',
-            description: 'Monthly income'
-          }
-        }
-      },
-      Certificate: {
-        type: 'object',
-        properties: {
-          id: {
-            type: 'integer',
-            description: 'Certificate identifier'
-          },
-          control_no: {
-            type: 'string',
-            description: 'Certificate control number'
-          },
-          resident_id: {
-            type: 'integer',
-            description: 'Associated resident ID'
-          },
-          certificate_type: {
-            type: 'string',
-            description: 'Type of certificate'
-          },
-          purpose: {
-            type: 'string',
-            description: 'Purpose of certificate issuance'
-          },
-          status: {
-            type: 'string',
-            enum: ['approved', 'pending', 'rejected'],
-            description: 'Certificate status'
-          },
-          date_issued: {
-            type: 'string',
-            format: 'date',
-            description: 'Date of issuance'
-          }
-        }
-      },
-      BlotterCase: {
-        type: 'object',
-        properties: {
-          id: {
-            type: 'integer',
-            description: 'Blotter case identifier'
-          },
-          case_number: {
-            type: 'string',
-            description: 'Unique case number'
-          },
-          incident_type: {
-            type: 'string',
-            description: 'Type of incident'
-          },
-          complainant_name: {
-            type: 'string',
-            description: 'Complainant name'
-          },
-          respondent_name: {
-            type: 'string',
-            description: 'Respondent name'
-          },
-          status: {
-            type: 'string',
-            enum: ['Pending', 'Forwarded to Lupon', 'Resolved', 'Dismissed'],
-            description: 'Case status'
-          },
-          severity: {
-            type: 'string',
-            enum: ['Low', 'Medium', 'High', 'Critical'],
-            description: 'Incident severity'
-          }
-        }
-      },
-      Error: {
-        type: 'object',
-        properties: {
-          error: {
-            type: 'string',
-            description: 'Error message'
-          },
-          timestamp: {
-            type: 'string',
-            format: 'date-time',
-            description: 'Error timestamp'
-          },
-          path: {
-            type: 'string',
-            description: 'Request path'
-          }
-        }
-      }
-    }
-  },
-  security: [
-    {
-      bearerAuth: []
-    },
-    {
-      apiKeyAuth: []
-    }
-  ]
-};
-
-// Options for the swagger docs
 const options = {
-  swaggerDefinition,
-  apis: ['./server/index.js'] // Path to the API docs
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'ClearPass Barangay Management System API',
+      version: '1.0.0',
+      description: 'Comprehensive API documentation for ClearPass - A digital management system for Philippine barangays',
+      contact: {
+        name: 'ClearPass Development Team',
+        email: 'support@clearpass.local'
+      }
+    },
+    servers: [
+      {
+        url: 'http://localhost:3001/api',
+        description: 'Development server'
+      },
+      {
+        url: 'https://clearpass.local/api',
+        description: 'Production server'
+      }
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'JWT token obtained from /api/auth/login'
+        }
+      },
+      schemas: {
+        Error: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: false
+            },
+            error: {
+              type: 'object',
+              properties: {
+                code: {
+                  type: 'string',
+                  example: 'VALIDATION_ERROR'
+                },
+                message: {
+                  type: 'string',
+                  example: 'Validation failed'
+                }
+              }
+            },
+            timestamp: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        Resident: {
+          type: 'object',
+          properties: {
+            Resident_ID: {
+              type: 'string',
+              example: 'RES-1234567890-A1B2'
+            },
+            First_Name: {
+              type: 'string',
+              example: 'Juan'
+            },
+            Last_Name: {
+              type: 'string',
+              example: 'Dela Cruz'
+            },
+            Mobile_Number: {
+              type: 'string',
+              example: '09171234567'
+            },
+            Residency_Status: {
+              type: 'string',
+              enum: ['Active', 'Inactive', 'Temporary']
+            }
+          }
+        },
+        Certificate: {
+          type: 'object',
+          properties: {
+            control_no: {
+              type: 'string',
+              example: 'CLR-1234567890-A1B2C3D4'
+            },
+            resident_id: {
+              type: 'string'
+            },
+            certificate_type: {
+              type: 'string',
+              example: 'Barangay Clearance'
+            },
+            purpose: {
+              type: 'string',
+              example: 'Employment'
+            },
+            status: {
+              type: 'string',
+              enum: ['Pending', 'Approved', 'Released', 'Rejected']
+            }
+          }
+        }
+      }
+    },
+    security: [
+      {
+        bearerAuth: []
+      }
+    ],
+    tags: [
+      {
+        name: 'Authentication',
+        description: 'User authentication and authorization'
+      },
+      {
+        name: 'Residents',
+        description: 'Resident management operations'
+      },
+      {
+        name: 'Certificates',
+        description: 'Certificate issuance and management'
+      },
+      {
+        name: 'Blotter',
+        description: 'Incident reporting and case management'
+      },
+      {
+        name: 'Census',
+        description: 'Population statistics and analytics'
+      },
+      {
+        name: 'Admin',
+        description: 'Administrative operations and reports'
+      }
+    ]
+  },
+  apis: ['./routes/*.js', './controllers/*.js']
 };
 
-// Initialize swagger-jsdoc
 const swaggerSpec = swaggerJsdoc(options);
 
-module.exports = {
-  swaggerUi,
-  swaggerSpec
-};
+module.exports = swaggerSpec;

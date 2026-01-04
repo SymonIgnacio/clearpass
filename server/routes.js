@@ -3,8 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const { verifyToken, verifyRole } = require('./middleware/authMiddleware');
 const { asyncHandler } = require('./middleware/errorHandler');
-const db = require('./database'); // Use shared database pool
-// const { enforcePermissions, BUSINESS_RULES } = require('./permissions');
+const db = require('./database');
 
 // Configure multer for photo uploads
 const upload = multer({
@@ -49,7 +48,6 @@ const {
   validateChatbotMessage
 } = require('./middleware/validate');
 const { ROLES } = require('./config/roles');
-const { asyncHandler } = require('./middleware/errorHandler');
 
 /**
  * @swagger

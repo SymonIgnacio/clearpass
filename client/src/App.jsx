@@ -1,41 +1,49 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
-import { Container, Box } from '@mui/material'
-import Dashboard from './pages/Dashboard'
-import ResidentDashboard from './pages/ResidentDashboard'
-import Residents from './pages/Residents'
-import Users from './pages/Users'
-import Blotter from './pages/Blotter'
-import DocumentsDashboard from './pages/DocumentsDashboard'
-import Census from './pages/Census'
-import QRVerification from './pages/QRVerification'
-import CommunityEvents from './pages/CommunityEvents'
-import Settings from './pages/Settings'
-import SuperAdminSettings from './pages/SuperAdminSettings'
-import ResidentSettings from './pages/ResidentSettings'
-import ResidentBlotterReport from './pages/ResidentBlotterReport'
-import SystemLogs from './pages/admin/SystemLogs'
-import Backup from './pages/admin/Backup'
-import AIAnalytics from './pages/admin/AIAnalytics'
+import { Container, Box, CircularProgress } from '@mui/material'
 
-import Unauthorized from './pages/Unauthorized'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import OfficerLogin from './pages/OfficerLogin'
-import AIPatrol from './pages/AIPatrol'
-import RondaAnalytics from './pages/RondaAnalytics'
-
-import AccountVerification from './components/AccountVerification'
+// Eager load critical components
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import ProtectedRoute from './components/ProtectedRoute'
-
 import ErrorBoundary from './components/ErrorBoundary'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { ROLES } from './utils/roles'
+
+// Lazy load pages
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const ResidentDashboard = lazy(() => import('./pages/ResidentDashboard'))
+const Residents = lazy(() => import('./pages/Residents'))
+const Users = lazy(() => import('./pages/Users'))
+const Blotter = lazy(() => import('./pages/Blotter'))
+const DocumentsDashboard = lazy(() => import('./pages/DocumentsDashboard'))
+const Census = lazy(() => import('./pages/Census'))
+const QRVerification = lazy(() => import('./pages/QRVerification'))
+const CommunityEvents = lazy(() => import('./pages/CommunityEvents'))
+const Settings = lazy(() => import('./pages/Settings'))
+const SuperAdminSettings = lazy(() => import('./pages/SuperAdminSettings'))
+const ResidentSettings = lazy(() => import('./pages/ResidentSettings'))
+const ResidentBlotterReport = lazy(() => import('./pages/ResidentBlotterReport'))
+const SystemLogs = lazy(() => import('./pages/admin/SystemLogs'))
+const Backup = lazy(() => import('./pages/admin/Backup'))
+const AIAnalytics = lazy(() => import('./pages/admin/AIAnalytics'))
+const Unauthorized = lazy(() => import('./pages/Unauthorized'))
+const Login = lazy(() => import('./pages/Login'))
+const Register = lazy(() => import('./pages/Register'))
+const OfficerLogin = lazy(() => import('./pages/OfficerLogin'))
+const AIPatrol = lazy(() => import('./pages/AIPatrol'))
+const RondaAnalytics = lazy(() => import('./pages/RondaAnalytics'))
+const AccountVerification = lazy(() => import('./components/AccountVerification'))
+
+// Loading component
+const LoadingFallback = () => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+    <CircularProgress />
+  </Box>
+)
 
 const theme = createTheme({
   palette: {
@@ -270,6 +278,7 @@ function App() {
           <ThemeProvider theme={theme}>
             <CssBaseline />
             <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <Suspense fallback={<LoadingFallback />}>
             <Routes>
               {/* Public routes */}
               <Route path="/login" element={<Login />} />
@@ -393,6 +402,7 @@ function App() {
                 <Route path="document-templates" element={<Navigate to="documents" replace />} />
               </Route>
             </Routes>
+            </Suspense>
           </Router>
         </ThemeProvider>
       </NotificationProvider>

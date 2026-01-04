@@ -32,16 +32,15 @@ function validateEnvironmentVariables() {
   );
 
   if (missingRequiredVars.length > 0) {
-    console.error('❌ Missing required environment variables:');
+    logger.error('Missing required environment variables', { missingVars: missingRequiredVars });
     missingRequiredVars.forEach(varName => {
-      console.error(`   - ${varName}`);
+      logger.error(`Missing variable: ${varName}`);
     });
-    console.error('\n📋 Please create a .env file with the required variables.');
-    console.error('   Copy from server/.env.example and fill in your values.');
+    logger.error('Please create a .env file with the required variables');
     process.exit(1);
   }
 
-  console.log('✅ Environment variables validated successfully');
+  logger.info('Environment variables validated successfully');
 }
 
 // Validate environment variables on startup
@@ -49,6 +48,12 @@ validateEnvironmentVariables();
 
 // Import authentication system
 const authController = require('./controllers/authController');
+const residentController = require('./controllers/residentController');
+const householdController = require('./controllers/householdController');
+const userController = require('./controllers/userController');
+const adminController = require('./controllers/adminController');
+const blotterController = require('./controllers/blotterController');
+const certificateController = require('./controllers/certificateController');
 const { ROLES } = require('./config/roles');
 const {
   verifyToken,
@@ -58,8 +63,8 @@ const {
 } = require('./middleware/authMiddleware');
 const { errorHandler: globalErrorHandler } = require('./middleware/errorHandler');
 
-// Import JWT middleware for document requests
-const { verifyToken: verifyTokenJWT } = require('./jwtMiddleware');
+// Import JWT middleware for document requests (consolidated to authMiddleware)
+const { verifyToken: verifyTokenJWT } = require('./middleware/authMiddleware');
 
 // Import monitoring system
 const {
@@ -118,7 +123,7 @@ const authLimiter = rateLimit({
   // Replacement for onLimitReached - modern handler function
   handler: (req, res, next, options) => {
     // Log the warning
-    console.warn(`Rate limit exceeded for authentication: IP ${req.ip}`);
+    logger.warn('Rate limit exceeded for authentication', { ip: req.ip });
     // Return the standard response
     res.status(options.statusCode).send(options.message);
   }
@@ -143,14 +148,15 @@ const corsOrigins = process.env.NODE_ENV === 'production'
       'http://127.0.0.1:5174'
     ];
 
-console.log('🔧 CORS Configuration:');
-console.log('   NODE_ENV:', process.env.NODE_ENV);
-console.log('   CLIENT_URL:', process.env.CLIENT_URL);
-console.log('   CORS_ORIGIN:', process.env.CORS_ORIGIN);
-console.log('   Filtered origins:', corsOrigins);
+logger.info('CORS Configuration', {
+  nodeEnv: process.env.NODE_ENV,
+  clientUrl: process.env.CLIENT_URL,
+  corsOrigin: process.env.CORS_ORIGIN,
+  filteredOrigins: corsOrigins
+});
 
 // SIMPLIFIED CORS CONFIGURATION - Force deploy with minimal config
-console.log(`🌐 DEPLOYMENT_CORS_CHECK: ${new Date().toISOString()}`);
+logger.info('DEPLOYMENT_CORS_CHECK', { timestamp: new Date().toISOString() });
 
 // CRITICAL FIX: GLOBAL CORS BEFORE ANY ROUTES
 app.use(cors({
@@ -160,7 +166,7 @@ app.use(cors({
 
     // Allow ALL Netlify domains in production
     if (process.env.NODE_ENV === 'production' && origin && origin.includes('netlify.app')) {
-      console.log(`✅ GLOBAL_CORS_ALLOW: ${origin} - ${new Date().toISOString()}`);
+      logger.info('GLOBAL_CORS_ALLOW', { origin, timestamp: new Date().toISOString() });
       return callback(null, true);
     }
 
@@ -178,7 +184,7 @@ app.use(cors({
       return callback(null, true);
     }
 
-    console.log(`❌ GLOBAL_CORS_DENY: ${origin} - ${new Date().toISOString()}`);
+    logger.warn('GLOBAL_CORS_DENY', { origin, timestamp: new Date().toISOString() });
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -200,7 +206,7 @@ app.use('/api/*', cors({
 
     // Allow ALL Netlify domains in production for API routes
     if (process.env.NODE_ENV === 'production' && origin && origin.includes('netlify.app')) {
-      console.log(`✅ API_CORS_ALLOW: ${origin} - ${new Date().toISOString()}`);
+      logger.info('API_CORS_ALLOW', { origin, timestamp: new Date().toISOString() });
       return callback(null, true);
     }
 
@@ -218,7 +224,7 @@ app.use('/api/*', cors({
       return callback(null, true);
     }
 
-    console.log(`❌ API_CORS_DENY: ${origin} - ${new Date().toISOString()}`);
+    logger.warn('API_CORS_DENY', { origin, timestamp: new Date().toISOString() });
     return callback(new Error('API access denied by CORS'));
   },
   credentials: true,
@@ -259,12 +265,16 @@ app.use((req, res, next) => {
   const method = req.method;
   const url = req.originalUrl;
 
-  console.log(`[${timestamp}] ${method} ${url} - Incoming Request`);
+  logger.info('Incoming Request', {
+    timestamp,
+    method,
+    url
+  });
 
   // Override res.json to log responses
   const originalJson = res.json;
   res.json = function(data) {
-    console.log(`[${timestamp}] ${method} ${url} - Response: ${res.statusCode} JSON`);
+    logger.info('Response', { timestamp, method, url, statusCode: res.statusCode });
     return originalJson.call(this, data);
   };
 
@@ -320,9 +330,14 @@ app.use((req, res, next) => {
 });
 app.use(requestLogger);
 
-// CSRF Protection completely disabled (moved to production-ready implementation)
-// TODO: Implement proper CSRF handling with React CSRF tokens
-// app.use(csurf({ cookie: true }));
+// CSRF Protection enabled for state-changing operations
+const csrfProtection = csurf({ cookie: true });
+app.use(csrfProtection);
+
+// CSRF token endpoint for frontend
+app.get('/api/csrf-token', (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
 
 // Additional security headers
 app.use((req, res, next) => {
@@ -350,7 +365,7 @@ app.use('/api', themisRoutes);
 
 // DEBUG: Direct admin route test
 app.get('/api/admin/test', (req, res) => {
-  console.log('🎯 ADMIN TEST ROUTE HIT');
+  logger.info('ADMIN TEST ROUTE HIT');
   res.json({ message: 'Admin routes are working', timestamp: new Date().toISOString() });
 });
 
@@ -359,887 +374,24 @@ app.get('/api/admin/test', (req, res) => {
 // ==========================================
 
 // Users Report
-app.get('/api/admin/reports/users', verifyToken, checkRole(['admin']), async (req, res) => {
-  try {
-    console.log('📊 [Admin Reports] Generating users report...');
-
-    // Get user statistics
-    const [userStats] = await db.execute(`
-      SELECT
-        COUNT(*) as total_users,
-        SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END) as active_users,
-        SUM(CASE WHEN is_active = false THEN 1 ELSE 0 END) as inactive_users,
-        SUM(CASE WHEN role = 1 THEN 1 ELSE 0 END) as it_admins,
-        SUM(CASE WHEN role = 2 THEN 1 ELSE 0 END) as clerks,
-        SUM(CASE WHEN role = 3 THEN 1 ELSE 0 END) as blotter_officers,
-        SUM(CASE WHEN role = 4 THEN 1 ELSE 0 END) as residents,
-        SUM(CASE WHEN role = 5 THEN 1 ELSE 0 END) as captains,
-        SUM(CASE WHEN role = 6 THEN 1 ELSE 0 END) as secretaries,
-        SUM(CASE WHEN firebase_uid IS NOT NULL THEN 1 ELSE 0 END) as firebase_users,
-        COUNT(DISTINCT DATE(created_at)) as registration_days,
-        AVG(DATEDIFF(CURDATE(), DATE(created_at))) as avg_account_age_days
-      FROM users
-    `);
-
-    // Get recent registrations (last 30 days)
-    const [recentRegs] = await db.execute(`
-      SELECT COUNT(*) as recent_registrations
-      FROM users
-      WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-    `);
-
-    const stats = userStats[0];
-    const report = {
-      user_statistics: {
-        total_users: stats.total_users || 0,
-        active_users: stats.active_users || 0,
-        inactive_users: stats.inactive_users || 0,
-        recent_registrations: recentRegs[0].recent_registrations || 0,
-        role_breakdown: {
-          it_admins: stats.it_admins || 0,
-          clerks: stats.clerks || 0,
-          blotter_officers: stats.blotter_officers || 0,
-          residents: stats.residents || 0,
-          captains: stats.captains || 0,
-          secretaries: stats.secretaries || 0
-        },
-        firebase_users: stats.firebase_users || 0,
-        avg_account_age_days: Math.round(stats.avg_account_age_days || 0)
-      },
-      generated_at: new Date().toISOString(),
-      report_type: 'user_management'
-    };
-
-    console.log('✅ [Admin Reports] Users report generated:', report.user_statistics.total_users, 'users');
-    res.json(report);
-  } catch (error) {
-    console.error('❌ [Admin Reports] Error generating users report:', error);
-    res.status(500).json({
-      error: 'Failed to generate users report',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// Blotter Report
-app.get('/api/admin/reports/blotter', verifyToken, checkRole(['admin']), async (req, res) => {
-  try {
-    console.log('📊 [Admin Reports] Generating blotter report...');
-
-    // Get blotter statistics
-    const [blotterStats] = await db.execute(`
-      SELECT
-        COUNT(*) as total_cases,
-        SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending_cases,
-        SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) as resolved_cases,
-        SUM(CASE WHEN status = 'Dismissed' THEN 1 ELSE 0 END) as dismissed_cases,
-        COUNT(DISTINCT DATE(created_at)) as active_days,
-        AVG(DATEDIFF(CURDATE(), DATE(created_at))) as avg_case_age_days,
-        SUM(CASE WHEN respondent_id IS NOT NULL THEN 1 ELSE 0 END) as cases_with_respondents
-      FROM blotter
-    `);
-
-    // Get cases by type
-    const [caseTypes] = await db.execute(`
-      SELECT Incident_Type, COUNT(*) as count
-      FROM blotter
-      GROUP BY Incident_Type
-      ORDER BY count DESC
-    `);
-
-    // Get recent cases (last 30 days)
-    const [recentCases] = await db.execute(`
-      SELECT COUNT(*) as recent_cases
-      FROM blotter
-      WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-    `);
-
-    const stats = blotterStats[0];
-    const report = {
-      blotter_statistics: {
-        total_cases: stats.total_cases || 0,
-        active_cases: stats.pending_cases || 0,
-        resolved_cases: stats.resolved_cases || 0,
-        dismissed_cases: stats.dismissed_cases || 0,
-        recent_cases: recentCases[0].recent_cases || 0,
-        avg_case_age_days: Math.round(stats.avg_case_age_days || 0),
-        cases_with_respondents: stats.cases_with_respondents || 0,
-        resolution_rate: stats.total_cases > 0 ?
-          Math.round(((stats.resolved_cases + stats.dismissed_cases) / stats.total_cases) * 100) : 0
-      },
-      incident_types: caseTypes.map(ct => ({
-        type: ct.Incident_Type,
-        count: ct.count
-      })),
-      generated_at: new Date().toISOString(),
-      report_type: 'blotter_cases'
-    };
-
-    console.log('✅ [Admin Reports] Blotter report generated:', report.blotter_statistics.total_cases, 'cases');
-    res.json(report);
-  } catch (error) {
-    console.error('❌ [Admin Reports] Error generating blotter report:', error);
-    res.status(500).json({
-      error: 'Failed to generate blotter report',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// Certificates Report
-app.get('/api/admin/reports/certificates', verifyToken, checkRole(['admin']), async (req, res) => {
-  try {
-    console.log('📊 [Admin Reports] Generating certificates report...');
-
-    // Get certificate statistics
-    const [certStats] = await db.execute(`
-      SELECT
-        COUNT(*) as total_certificates,
-        COUNT(DISTINCT certificate_type) as unique_types,
-        SUM(CASE WHEN status = 'Released' THEN 1 ELSE 0 END) as released_certificates,
-        SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending_certificates,
-        COUNT(DISTINCT DATE(date_issued)) as active_days,
-        AVG(DATEDIFF(CURDATE(), DATE(date_issued))) as avg_certificate_age_days
-      FROM certificates_log
-      WHERE date_issued IS NOT NULL
-    `);
-
-    // Get certificates by type
-    const [certTypes] = await db.execute(`
-      SELECT certificate_type, COUNT(*) as count
-      FROM certificates_log
-      GROUP BY certificate_type
-      ORDER BY count DESC
-    `);
-
-    // Get recent certificates (last 30 days)
-    const [recentCerts] = await db.execute(`
-      SELECT COUNT(*) as recent_certificates
-      FROM certificates_log
-      WHERE date_issued >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-    `);
-
-    const stats = certStats[0];
-    const report = {
-      certificate_statistics: {
-        total_certificates: stats.total_certificates || 0,
-        unique_types: stats.unique_types || 0,
-        released_certificates: stats.released_certificates || 0,
-        pending_certificates: stats.pending_certificates || 0,
-        recent_certificates: recentCerts[0].recent_certificates || 0,
-        avg_certificate_age_days: Math.round(stats.avg_certificate_age_days || 0)
-      },
-      certificate_types: certTypes.map(ct => ({
-        type: ct.certificate_type,
-        count: ct.count
-      })),
-      generated_at: new Date().toISOString(),
-      report_type: 'certificates'
-    };
-
-    console.log('✅ [Admin Reports] Certificates report generated:', report.certificate_statistics.total_certificates, 'certificates');
-    res.json(report);
-  } catch (error) {
-    console.error('❌ [Admin Reports] Error generating certificates report:', error);
-    res.status(500).json({
-      error: 'Failed to generate certificates report',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// Residents Report
-app.get('/api/admin/reports/residents', verifyToken, checkRole(['admin']), async (req, res) => {
-  try {
-    console.log('📊 [Admin Reports] Generating residents report...');
-
-    // Get resident statistics
-    const [residentStats] = await db.execute(`
-      SELECT
-        COUNT(*) as total_residents,
-        SUM(CASE WHEN Residency_Status = 'Active' THEN 1 ELSE 0 END) as active_residents,
-        SUM(CASE WHEN Residency_Status = 'Pending' THEN 1 ELSE 0 END) as pending_residents,
-        SUM(CASE WHEN Residency_Status = 'Transferred Out' THEN 1 ELSE 0 END) as transferred_residents,
-        COUNT(DISTINCT DATE(Date_Arrival)) as arrival_days,
-        AVG(DATEDIFF(CURDATE(), DATE(Date_Arrival))) as avg_residency_days,
-        SUM(CASE WHEN Gender = 'Male' THEN 1 ELSE 0 END) as male_residents,
-        SUM(CASE WHEN Gender = 'Female' THEN 1 ELSE 0 END) as female_residents
-      FROM residents
-    `);
-
-    // Get vulnerable groups statistics
-    const [vulnerableStats] = await db.execute(`
-      SELECT
-        SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as seniors,
-        SUM(CASE WHEN v.Is_PWD = 1 THEN 1 ELSE 0 END) as pwds,
-        SUM(CASE WHEN v.Is_Solo_Parent = 1 THEN 1 ELSE 0 END) as solo_parents,
-        SUM(CASE WHEN v.Is_4Ps = 1 THEN 1 ELSE 0 END) as four_ps
-      FROM residents r
-      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
-    `);
-
-    // Get recent registrations (last 30 days)
-    const [recentResidents] = await db.execute(`
-      SELECT COUNT(*) as recent_residents
-      FROM residents
-      WHERE Date_Arrival >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-    `);
-
-    const stats = residentStats[0];
-    const vuln = vulnerableStats[0];
-
-    const report = {
-      resident_statistics: {
-        total_residents: stats.total_residents || 0,
-        active_residents: stats.active_residents || 0,
-        pending_residents: stats.pending_residents || 0,
-        transferred_residents: stats.transferred_residents || 0,
-        recent_residents: recentResidents[0].recent_residents || 0,
-        avg_residency_days: Math.round(stats.avg_residency_days || 0),
-        gender_distribution: {
-          male: stats.male_residents || 0,
-          female: stats.female_residents || 0
-        },
-        vulnerable_groups: {
-          seniors: vuln.seniors || 0,
-          pwds: vuln.pwds || 0,
-          solo_parents: vuln.solo_parents || 0,
-          four_ps: vuln.four_ps || 0
-        }
-      },
-      generated_at: new Date().toISOString(),
-      report_type: 'residents'
-    };
-
-    console.log('✅ [Admin Reports] Residents report generated:', report.resident_statistics.total_residents, 'residents');
-    res.json(report);
-  } catch (error) {
-    console.error('❌ [Admin Reports] Error generating residents report:', error);
-    res.status(500).json({
-      error: 'Failed to generate residents report',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// System Health Report
-app.get('/api/admin/reports/system', verifyToken, checkRole(['admin']), async (req, res) => {
-  try {
-    console.log('📊 [Admin Reports] Generating system health report...');
-
-    // Test database connection
-    let dbStatus = 'healthy';
-    let dbResponseTime = 0;
-    const dbStartTime = Date.now();
-
-    try {
-      await db.execute('SELECT 1');
-      dbResponseTime = Date.now() - dbStartTime;
-    } catch (dbError) {
-      dbStatus = 'unhealthy';
-      console.error('❌ Database health check failed:', dbError.message);
-    }
-
-    // Get database size information (approximate)
-    let dbSize = 'Unknown';
-    try {
-      const [sizeResult] = await db.execute(`
-        SELECT
-          ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) as size_mb
-        FROM information_schema.tables
-        WHERE table_schema = DATABASE()
-      `);
-      dbSize = `${sizeResult[0].size_mb || 0} MB`;
-    } catch (sizeError) {
-      console.warn('Could not get database size:', sizeError.message);
-    }
-
-    // Get table counts
-    const tableCounts = {};
-    const tables = ['users', 'residents', 'blotter', 'certificates_log', 'households', 'sitios'];
-
-    for (const table of tables) {
-      try {
-        const [count] = await db.execute(`SELECT COUNT(*) as count FROM ${table}`);
-        tableCounts[table] = count[0].count || 0;
-      } catch (countError) {
-        tableCounts[table] = 'Error';
-        console.warn(`Could not count ${table}:`, countError.message);
-      }
-    }
-
-    const report = {
-      database_health: {
-        status: dbStatus,
-        response_time_ms: dbResponseTime,
-        size: dbSize
-      },
-      table_counts: tableCounts,
-      server_info: {
-        uptime: process.uptime(),
-        memory_usage: process.memoryUsage(),
-        node_version: process.version,
-        platform: process.platform
-      },
-      generated_at: new Date().toISOString(),
-      report_type: 'system_health'
-    };
-
-    console.log('✅ [Admin Reports] System health report generated, DB status:', dbStatus);
-    res.json(report);
-  } catch (error) {
-    console.error('❌ [Admin Reports] Error generating system health report:', error);
-    res.status(500).json({
-      error: 'Failed to generate system health report',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// Security Audit Report
-app.get('/api/admin/reports/security', verifyToken, checkRole(['admin']), async (req, res) => {
-  try {
-    console.log('📊 [Admin Reports] Generating security audit report...');
-
-    // Check if login_attempts table exists first
-    let loginStats = { total_attempts_30d: 0, successful_attempts_30d: 0, failed_attempts_30d: 0, unique_users_30d: 0, unique_ips_30d: 0 };
-    let failedByIP = [];
-
-    try {
-      // Get login attempts statistics (last 30 days)
-      const [statsResult] = await db.execute(`
-        SELECT
-          COUNT(*) as total_attempts_30d,
-          SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful_attempts_30d,
-          SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failed_attempts_30d,
-          COUNT(DISTINCT user_id) as unique_users_30d,
-          COUNT(DISTINCT ip_address) as unique_ips_30d
-        FROM login_attempts
-        WHERE attempted_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-      `);
-      loginStats = statsResult[0] || loginStats;
-
-      // Get failed login attempts by IP (potential brute force)
-      const [failedResult] = await db.execute(`
-        SELECT ip_address, COUNT(*) as failed_count
-        FROM login_attempts
-        WHERE success = 0 AND attempted_at >= DATE_SUB(CURDATE(), INTERVAL 24 HOUR)
-        GROUP BY ip_address
-        HAVING failed_count >= 3
-        ORDER BY failed_count DESC
-        LIMIT 10
-      `);
-      failedByIP = failedResult || [];
-    } catch (tableError) {
-      console.warn('⚠️ [Admin Reports] login_attempts table not found, using mock data:', tableError.message);
-    }
-
-    // Get recent security events (mock data for now)
-    const securityEvents = [
-      {
-        type: 'login_failure',
-        description: 'Multiple failed login attempts',
-        severity: 'medium',
-        timestamp: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
-      },
-      {
-        type: 'admin_access',
-        description: 'IT Admin accessed system reports',
-        severity: 'low',
-        timestamp: new Date(Date.now() - 1800000).toISOString() // 30 min ago
-      }
-    ];
-
-    const stats = loginStats;
-    const report = {
-      security_overview: {
-        total_attempts_30d: stats.total_attempts_30d || 0,
-        successful_attempts_30d: stats.successful_attempts_30d || 0,
-        failed_attempts_30d: stats.failed_attempts_30d || 0,
-        success_rate_30d: stats.total_attempts_30d > 0 ?
-          Math.round((stats.successful_attempts_30d / stats.total_attempts_30d) * 100) : 100,
-        unique_users_30d: stats.unique_users_30d || 0,
-        unique_ips_30d: stats.unique_ips_30d || 0
-      },
-      suspicious_activity: {
-        high_failure_ips: failedByIP.map(ip => ({
-          ip: ip.ip_address,
-          failed_attempts: ip.failed_count
-        }))
-      },
-      recent_events: securityEvents,
-      generated_at: new Date().toISOString(),
-      report_type: 'security_audit'
-    };
-
-    console.log('✅ [Admin Reports] Security audit report generated:', report.security_overview.total_attempts_30d, 'attempts');
-    res.json(report);
-  } catch (error) {
-    console.error('❌ [Admin Reports] Error generating security audit report:', error);
-    res.status(500).json({
-      error: 'Failed to generate security audit report',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
+app.get('/api/admin/reports/users', verifyToken, checkRole(['admin']), adminController.getUsersReport);
+app.get('/api/admin/reports/blotter', verifyToken, checkRole(['admin']), adminController.getBlotterReport);
+app.get('/api/admin/reports/certificates', verifyToken, checkRole(['admin']), adminController.getCertificatesReport);
+app.get('/api/admin/reports/residents', verifyToken, checkRole(['admin']), adminController.getResidentsReport);
+app.get('/api/admin/reports/system', verifyToken, checkRole(['admin']), adminController.getSystemReport);
+app.get('/api/admin/reports/security', verifyToken, checkRole(['admin']), adminController.getSecurityReport);
 // ==========================================
 // DETAILED ADMIN REPORTS ENDPOINTS (for table data)
 // ==========================================
 
 // Detailed Users Report
-app.get('/api/admin/reports/detailed/users', verifyToken, checkRole(['admin']), async (req, res) => {
-  try {
-    console.log('📊 [Admin Reports] Generating detailed users report...');
-
-    const { dateFrom, dateTo, status, role, search, page = 1, limit = 50 } = req.query;
-    const offset = (page - 1) * limit;
-
-    // Build WHERE conditions
-    let whereConditions = [];
-    let values = [];
-
-    if (dateFrom) {
-      whereConditions.push('u.created_at >= ?');
-      values.push(dateFrom);
-    }
-    if (dateTo) {
-      whereConditions.push('u.created_at <= ?');
-      values.push(dateTo + ' 23:59:59');
-    }
-    if (status) {
-      if (status === 'active') {
-        whereConditions.push('u.is_active = true');
-      } else if (status === 'inactive') {
-        whereConditions.push('u.is_active = false');
-      }
-    }
-    if (role) {
-      whereConditions.push('u.role = ?');
-      values.push(parseInt(role));
-    }
-    if (search) {
-      whereConditions.push('(u.username LIKE ? OR u.full_name LIKE ? OR u.email LIKE ?)');
-      values.push(`%${search}%`, `%${search}%`, `%${search}%`);
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    // Get users data
-    const [users] = await db.execute(`
-      SELECT
-        u.id,
-        u.username,
-        u.full_name,
-        u.email,
-        u.contact_number,
-        u.role,
-        u.is_active,
-        u.firebase_uid,
-        u.resident_id,
-        u.last_login,
-        u.created_at,
-        r.First_Name as resident_first_name,
-        r.Last_Name as resident_last_name
-      FROM users u
-      LEFT JOIN residents r ON u.resident_id = r.Resident_ID
-      ${whereClause}
-      ORDER BY u.created_at DESC
-      LIMIT ? OFFSET ?
-    `, [...values, parseInt(limit), offset]);
-
-    // Get total count
-    const [totalResult] = await db.execute(`
-      SELECT COUNT(*) as total FROM users u ${whereClause}
-    `, values);
-
-    const total = totalResult[0].total;
-
-    const report = {
-      columns: ['ID', 'Username', 'Full Name', 'Email', 'Contact', 'Role', 'Status', 'Created', 'Last Login'],
-      data: users.map(user => [
-        user.id,
-        user.username,
-        user.full_name || 'N/A',
-        user.email || 'N/A',
-        user.contact_number || 'N/A',
-        user.role === 1 ? 'IT Admin' : user.role === 2 ? 'Clerk' : user.role === 3 ? 'Blotter Officer' : user.role === 4 ? 'Resident' : user.role === 5 ? 'Captain' : user.role === 6 ? 'Secretary' : `Role ${user.role}`,
-        user.is_active ? 'Active' : 'Inactive',
-        new Date(user.created_at).toLocaleDateString(),
-        user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'
-      ]),
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: total,
-        pages: Math.ceil(total / limit)
-      },
-      generated_at: new Date().toISOString(),
-      report_type: 'detailed_users'
-    };
-
-    console.log('✅ [Admin Reports] Detailed users report generated:', users.length, 'users');
-    res.json(report);
-  } catch (error) {
-    console.error('❌ [Admin Reports] Error generating detailed users report:', error);
-    res.status(500).json({
-      error: 'Failed to generate detailed users report',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// Detailed Blotter Report
-app.get('/api/admin/reports/detailed/blotter', verifyToken, checkRole(['admin']), async (req, res) => {
-  try {
-    console.log('📊 [Admin Reports] Generating detailed blotter report...');
-
-    const { dateFrom, dateTo, status, search, page = 1, limit = 50 } = req.query;
-    const offset = (page - 1) * limit;
-
-    console.log('🔍 [Detailed Blotter] Request params:', { dateFrom, dateTo, status, search, page, limit });
-
-    // Build WHERE conditions
-    let whereConditions = [];
-    let values = [];
-
-    if (dateFrom) {
-      whereConditions.push('b.created_at >= ?');
-      values.push(dateFrom);
-    }
-    if (dateTo) {
-      whereConditions.push('b.created_at <= ?');
-      values.push(dateTo + ' 23:59:59');
-    }
-    if (status) {
-      whereConditions.push('b.Status = ?');
-      values.push(status);
-    }
-    if (search) {
-      whereConditions.push('(b.Case_Number LIKE ? OR b.Incident_Type LIKE ? OR b.Complainant_Details LIKE ?)');
-      values.push(`%${search}%`, `%${search}%`, `%${search}%`);
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    console.log('🔍 [Detailed Blotter] WHERE clause:', whereClause);
-    console.log('🔍 [Detailed Blotter] WHERE values:', values);
-
-    // First, let's get total count without filters to see if data exists
-    const [totalAllResult] = await db.execute('SELECT COUNT(*) as total FROM blotter b');
-    console.log('🔍 [Detailed Blotter] Total records in blotter table:', totalAllResult[0].total);
-
-    // Get blotter data
-    const mainQuery = `
-      SELECT
-        b.*,
-        s.name as sitio_name,
-        r.First_Name as respondent_first_name,
-        r.Last_Name as respondent_last_name
-      FROM blotter b
-      LEFT JOIN sitios s ON b.Location_Sitio = s.name
-      LEFT JOIN residents r ON b.respondent_id = r.Resident_ID
-      ${whereClause}
-      ORDER BY b.created_at DESC
-      LIMIT ? OFFSET ?
-    `;
-
-    console.log('🔍 [Detailed Blotter] Main query:', mainQuery);
-    console.log('🔍 [Detailed Blotter] Query params:', [...values, parseInt(limit), offset]);
-
-    const [blotters] = await db.execute(mainQuery, [...values, parseInt(limit), offset]);
-
-    console.log('🔍 [Detailed Blotter] Query returned:', blotters.length, 'records');
-
-    if (blotters.length > 0) {
-      console.log('🔍 [Detailed Blotter] Sample record:', JSON.stringify(blotters[0], null, 2));
-      console.log('🔍 [Detailed Blotter] Sample record keys:', Object.keys(blotters[0]));
-      console.log('🔍 [Detailed Blotter] Case_Number value:', blotters[0].Case_Number);
-      console.log('🔍 [Detailed Blotter] Incident_Type value:', blotters[0].Incident_Type);
-      console.log('🔍 [Detailed Blotter] Status value:', blotters[0].Status);
-    }
-
-    // Get total count
-    const [totalResult] = await db.execute(`
-      SELECT COUNT(*) as total FROM blotter b ${whereClause}
-    `, values);
-
-    const total = totalResult[0].total;
-
-    console.log('🔍 [Detailed Blotter] Filtered total:', total);
-
-    const report = {
-      columns: ['Case Number', 'Incident Type', 'Status', 'Location', 'Date Reported', 'Complainant', 'Respondent'],
-      data: blotters.map(blotter => [
-        blotter.Case_Number || 'N/A',
-        blotter.Incident_Type || 'N/A',
-        blotter.Status || 'N/A',
-        blotter.Location_Sitio || 'N/A',
-        blotter.created_at ? new Date(blotter.created_at).toLocaleDateString() : 'N/A',
-        blotter.Complainant_Details ? 'Details Available' : 'N/A',
-        blotter.respondent_id ? `${blotter.respondent_first_name || ''} ${blotter.respondent_last_name || ''}`.trim() || 'N/A' : 'N/A'
-      ]),
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: total,
-        pages: Math.ceil(total / limit)
-      },
-      generated_at: new Date().toISOString(),
-      report_type: 'detailed_blotter'
-    };
-
-    console.log('✅ [Admin Reports] Detailed blotter report generated:', blotters.length, 'cases');
-    res.json(report);
-  } catch (error) {
-    console.error('❌ [Admin Reports] Error generating detailed blotter report:', error);
-    res.status(500).json({
-      error: 'Failed to generate detailed blotter report',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// Detailed Certificates Report
-app.get('/api/admin/reports/detailed/certificates', verifyToken, checkRole(['admin']), async (req, res) => {
-  try {
-    console.log('📊 [Admin Reports] Generating detailed certificates report...');
-
-    const { dateFrom, dateTo, status, search, page = 1, limit = 50 } = req.query;
-    const offset = (page - 1) * limit;
-
-    // Build WHERE conditions
-    let whereConditions = [];
-    let values = [];
-
-    if (dateFrom) {
-      whereConditions.push('c.created_at >= ?');
-      values.push(dateFrom);
-    }
-    if (dateTo) {
-      whereConditions.push('c.created_at <= ?');
-      values.push(dateTo + ' 23:59:59');
-    }
-    if (status) {
-      whereConditions.push('c.status = ?');
-      values.push(status);
-    }
-    if (search) {
-      whereConditions.push('(c.control_no LIKE ? OR c.certificate_type LIKE ? OR r.First_Name LIKE ? OR r.Last_Name LIKE ?)');
-      values.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    // Get certificates data with debug logging
-    const mainQuery = `
-      SELECT
-        c.control_no,
-        c.certificate_type,
-        c.purpose,
-        c.status,
-        c.date_issued,
-        c.issued_by,
-        c.created_at,
-        CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
-      FROM certificates_log c
-      LEFT JOIN residents r ON c.resident_id = r.Resident_ID
-      ${whereClause}
-      ORDER BY c.created_at DESC
-      LIMIT ? OFFSET ?
-    `;
-
-    console.log('🔍 [Detailed Certificates] Query:', mainQuery);
-    console.log('🔍 [Detailed Certificates] Params:', [...values, parseInt(limit), offset]);
-
-    const [certificates] = await db.execute(mainQuery, [...values, parseInt(limit), offset]);
-
-    console.log('🔍 [Detailed Certificates] Found certificates:', certificates.length);
-    if (certificates.length > 0) {
-      console.log('🔍 [Detailed Certificates] Sample certificate keys:', Object.keys(certificates[0]));
-      console.log('🔍 [Detailed Certificates] Sample certificate:', JSON.stringify(certificates[0], null, 2));
-    }
-
-    // Get total count
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM certificates_log c
-      LEFT JOIN residents r ON c.resident_id = r.Resident_ID
-      ${whereClause}
-    `;
-
-    const [totalResult] = await db.execute(countQuery, values);
-    const total = totalResult[0].total;
-
-    console.log('🔍 [Detailed Certificates] Total count:', total);
-
-    const report = {
-      columns: ['Control No', 'Certificate Type', 'Resident', 'Purpose', 'Status', 'Date Issued', 'Issued By'],
-      data: certificates.map(cert => {
-        // Safe date formatting
-        let formattedDate = 'N/A';
-        if (cert.date_issued) {
-          try {
-            const date = new Date(cert.date_issued);
-            if (!isNaN(date.getTime())) {
-              formattedDate = date.toLocaleDateString();
-            }
-          } catch (dateError) {
-            console.warn('Invalid date format:', cert.date_issued);
-          }
-        }
-
-        const rowData = [
-          cert.control_no || 'N/A',
-          cert.certificate_type || 'N/A',
-          cert.resident_name || 'N/A',
-          cert.purpose || 'N/A',
-          cert.status || 'N/A',
-          formattedDate,
-          cert.issued_by || 'System'
-        ];
-
-        console.log('🔍 [Detailed Certificates] Row data:', rowData);
-        return rowData;
-      }),
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: total,
-        pages: Math.ceil(total / limit)
-      },
-      generated_at: new Date().toISOString(),
-      report_type: 'detailed_certificates'
-    };
-
-    console.log('✅ [Admin Reports] Detailed certificates report generated:', certificates.length, 'certificates');
-    res.json(report);
-  } catch (error) {
-    console.error('❌ [Admin Reports] Error generating detailed certificates report:', error);
-    res.status(500).json({
-      error: 'Failed to generate detailed certificates report',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// Detailed Residents Report
-app.get('/api/admin/reports/detailed/residents', verifyToken, checkRole(['admin']), async (req, res) => {
-  try {
-    console.log('📊 [Admin Reports] Generating detailed residents report...');
-
-    const { dateFrom, dateTo, status, search, page = 1, limit = 50 } = req.query;
-    const offset = (page - 1) * limit;
-
-    // Build WHERE conditions
-    let whereConditions = [];
-    let values = [];
-
-    if (dateFrom) {
-      whereConditions.push('r.Date_Arrival >= ?');
-      values.push(dateFrom);
-    }
-    if (dateTo) {
-      whereConditions.push('r.Date_Arrival <= ?');
-      values.push(dateTo);
-    }
-    if (status) {
-      whereConditions.push('r.Residency_Status = ?');
-      values.push(status);
-    }
-    if (search) {
-      whereConditions.push('(r.First_Name LIKE ? OR r.Last_Name LIKE ? OR r.Mobile_Number LIKE ? OR r.Email LIKE ?)');
-      values.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    // Get residents data - simplified query to avoid missing tables
-    const mainQuery = `
-      SELECT
-        r.Resident_ID,
-        r.First_Name,
-        r.Last_Name,
-        r.Gender,
-        r.Birthdate,
-        r.Mobile_Number,
-        r.Residency_Status,
-        r.Date_Arrival,
-        r.Household_ID,
-        r.Occupation,
-        r.Civil_Status
-      FROM residents r
-      ${whereClause}
-      ORDER BY r.Date_Arrival DESC
-      LIMIT ? OFFSET ?
-    `;
-
-    console.log('🔍 [Detailed Residents] Query:', mainQuery);
-    console.log('🔍 [Detailed Residents] Params:', [...values, parseInt(limit), offset]);
-
-    const [residents] = await db.execute(mainQuery, [...values, parseInt(limit), offset]);
-
-    console.log('🔍 [Detailed Residents] Found residents:', residents.length);
-    if (residents.length > 0) {
-      console.log('🔍 [Detailed Residents] Sample resident keys:', Object.keys(residents[0]));
-      console.log('🔍 [Detailed Residents] Sample resident:', JSON.stringify(residents[0], null, 2));
-    } else {
-      console.log('🔍 [Detailed Residents] No residents found - table might be empty');
-    }
-
-    // Get total count
-    const countQuery = `SELECT COUNT(*) as total FROM residents r ${whereClause}`;
-    const [totalResult] = await db.execute(countQuery, values);
-    const total = totalResult[0].total;
-
-    console.log('🔍 [Detailed Residents] Total count:', total);
-
-    const report = {
-      columns: ['Resident ID', 'Name', 'Gender', 'Age', 'Contact', 'Status', 'Household', 'Sitio', 'Vulnerable'],
-      data: residents.map(resident => {
-        const birthDate = resident.Birthdate ? new Date(resident.Birthdate) : null;
-        const age = birthDate ? new Date().getFullYear() - birthDate.getFullYear() : 'N/A';
-
-        const rowData = [
-          resident.Resident_ID || 'N/A',
-          `${resident.First_Name || ''} ${resident.Last_Name || ''}`.trim() || 'N/A',
-          resident.Gender || 'N/A',
-          age,
-          resident.Mobile_Number || 'N/A',
-          resident.Residency_Status || 'N/A',
-          resident.Household_ID || 'N/A', // Use Household_ID since we don't have Household_Number in simplified query
-          'N/A', // Sitio not available in simplified query
-          'No' // Vulnerable status not available in simplified query
-        ];
-
-        console.log('🔍 [Detailed Residents] Row data:', rowData);
-        return rowData;
-      }),
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: total,
-        pages: Math.ceil(total / limit)
-      },
-      generated_at: new Date().toISOString(),
-      report_type: 'detailed_residents'
-    };
-
-    console.log('✅ [Admin Reports] Detailed residents report generated:', residents.length, 'residents');
-    res.json(report);
-  } catch (error) {
-    console.error('❌ [Admin Reports] Error generating detailed residents report:', error);
-    res.status(500).json({
-      error: 'Failed to generate detailed residents report',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// Detailed Security Report
+app.get('/api/admin/reports/detailed/users', verifyToken, checkRole(['admin']), adminController.getDetailedUsersReport);
+app.get('/api/admin/reports/detailed/blotter', verifyToken, checkRole(['admin']), adminController.getDetailedBlotterReport);
+app.get('/api/admin/reports/detailed/certificates', verifyToken, checkRole(['admin']), adminController.getDetailedCertificatesReport);
+app.get('/api/admin/reports/detailed/residents', verifyToken, checkRole(['admin']), adminController.getDetailedResidentsReport);
 app.get('/api/admin/reports/detailed/security', verifyToken, checkRole(['admin']), async (req, res) => {
   try {
-    console.log('📊 [Admin Reports] Generating detailed security report...');
+    logger.info('Admin Reports: Generating detailed security report');
 
     const { dateFrom, dateTo, search, page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
@@ -1320,10 +472,10 @@ app.get('/api/admin/reports/detailed/security', verifyToken, checkRole(['admin']
       report_type: 'detailed_security'
     };
 
-    console.log('✅ [Admin Reports] Detailed security report generated:', paginatedEvents.length, 'events');
+    logger.info('Admin Reports: Detailed security report generated', { eventCount: paginatedEvents.length });
     res.json(report);
   } catch (error) {
-    console.error('❌ [Admin Reports] Error generating detailed security report:', error);
+    logger.error('Admin Reports: Error generating detailed security report', { error });
     res.status(500).json({
       error: 'Failed to generate detailed security report',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -1372,32 +524,38 @@ function getDatabaseConfig() {
 const dbConfig = getDatabaseConfig();
 
 // Add detailed logging for database configuration
-console.log('🔧 Database Configuration:');
-console.log('   DB_HOST:', process.env.DB_HOST);
-console.log('   MYSQL_HOST:', process.env.MYSQL_HOST);
-console.log('   DB_USER:', process.env.DB_USER);
-console.log('   MYSQL_USERNAME:', process.env.MYSQL_USERNAME);
-console.log('   DB_NAME:', process.env.DB_NAME);
-console.log('   MYSQL_DATABASE:', process.env.MYSQL_DATABASE);
-console.log('   Resolved host:', dbConfig.host);
-console.log('   Resolved user:', dbConfig.user);
-console.log('   Resolved database:', dbConfig.database);
-console.log('   Resolved port:', dbConfig.port);
-console.log('   Has password:', !!dbConfig.password);
+logger.info('Database Configuration', {
+  dbHost: process.env.DB_HOST,
+  mysqlHost: process.env.MYSQL_HOST,
+  dbUser: process.env.DB_USER,
+  mysqlUsername: process.env.MYSQL_USERNAME,
+  dbName: process.env.DB_NAME,
+  mysqlDatabase: process.env.MYSQL_DATABASE,
+  resolvedHost: dbConfig.host,
+  resolvedUser: dbConfig.user,
+  resolvedDatabase: dbConfig.database,
+  resolvedPort: dbConfig.port,
+  hasPassword: !!dbConfig.password
+});
 
 let db;
 async function initializeDatabase() {
   try {
     db = await mysql.createPool(dbConfig);
-    console.log('✅ Database connected successfully');
+    app.locals.db = db; // Make db accessible to controllers
+    logger.info('Database connected successfully');
   } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    logger.error('Database connection failed', { error });
     process.exit(1);
   }
 }
 
 // Initialize database on startup
-initializeDatabase().then(() => {
+initializeDatabase().then(async () => {
+  // Initialize cache service
+  const { cacheService } = require('./utils/cache');
+  await cacheService.connect();
+
   // Mount modular routes AFTER database is initialized
   const adminRoutes = require('./routes/adminRoutes')(db);
   const residentRoutes = require('./routes/residentRoutes')(db);
@@ -1405,6 +563,7 @@ initializeDatabase().then(() => {
   const blotterRoutes = require('./routes/blotterRoutes')(db);
   const censusRoutes = require('./routes/censusRoutes')(db);
   const userRoutes = require('./routes/userRoutes')(db);
+  const performanceRoutes = require('./routes/performanceRoutes');
 
   app.use('/api/admin', adminRoutes);
   app.use('/api/residents', residentRoutes);
@@ -1412,8 +571,9 @@ initializeDatabase().then(() => {
   app.use('/api/blotter', blotterRoutes);
   app.use('/api/census', censusRoutes);
   app.use('/api/users', userRoutes);
+  app.use('/api/performance', performanceRoutes);
   
-  console.log('✅ Modular routes mounted successfully');
+  logger.info('Modular routes mounted successfully');
 });
 
 // Utility function to calculate age
@@ -1464,13 +624,13 @@ const uploadBlob = multer({
 // Legacy configuration for file system storage (if needed)
 const uploadDisk = multer({ dest: 'uploads/' });
 
-console.log('🔧 [Route Registration] Registering authentication routes...');
+logger.info('Route Registration: Registering authentication routes');
 
 // ==========================================
 // THEMIS CLEARPASS CLERK MODULE (/clerk routes)
 // ==========================================
 
-console.log('🔧 [Route Registration] Registering Clerk routes...');
+logger.info('Route Registration: Registering Clerk routes');
 
 // Clerk Dashboard - Get clearance statistics and recent activity
 // app.get('/api/clerk/dashboard', verifyToken, clerkController.getClerkDashboard);
@@ -1498,23 +658,20 @@ console.log('🔧 [Route Registration] Registering Clerk routes...');
 // app.get('/api/clerk/clearance-history/:residentId', verifyToken, clerkController.getClearanceHistory);
 // app.get('/clerk/clearance-history/:residentId', verifyToken, clerkController.getClearanceHistory);
 
-console.log('🔧 [Route Registration] Clerk routes registered successfully');
+logger.info('Route Registration: Clerk routes registered successfully');
 
 // ==========================================
 // AUTHENTICATION & ACCOUNT HIERARCHY MODULE
 // ==========================================
 
 // Public authentication routes (no middleware needed)
-// Support both /auth/... and /api/auth/... paths temporarily for compatibility
-console.log('🔧 [Route Registration] Setting up /api/auth/login');
-app.post('/api/auth/login', authController.login); // Primary /api route
-app.post('/auth/login', authController.login); // Legacy /auth route
+app.post('/api/auth/login', authController.login);
 
-console.log('🔧 [Route Registration] Setting up THEMIS ResidentID + PIN login');
+logger.info('Route Registration: Setting up THEMIS ResidentID + PIN login');
 // app.post('/api/auth/themis-resident-login', authController.loginResident); // THEMIS ResidentID + PIN login
 // app.post('/auth/themis-resident-login', authController.loginResident); // Legacy THEMIS route
 
-console.log('🔧 [Route Registration] Setting up /api/auth/officer-login');
+logger.info('Route Registration: Setting up /api/auth/officer-login');
 // app.post('/api/auth/officer-login', (req, res) => {
 //   console.log('🚀 [Route Hit] /api/auth/officer-login called with body:', {
 //     username: req.body?.username,
@@ -1531,12 +688,12 @@ console.log('🔧 [Route Registration] Setting up /api/auth/officer-login');
 //   return authController.staffLogin(req, res);
 // }); // Legacy /auth route
 
-console.log('🔧 [Route Registration] Setting up /api/auth/register');
+logger.info('Route Registration: Setting up /api/auth/register');
 // app.post('/api/auth/register', verifyToken, checkRole(['Super Admin']), authController.register);
 // app.post('/auth/register', verifyToken, checkRole(['Super Admin']), authController.register);
 
 // Add dual routing for commonly used endpoints
-console.log('🔧 [Route Registration] Setting up dual routes for backward compatibility');
+logger.info('Route Registration: Setting up dual routes for backward compatibility');
 
 // Analytics/Census routes
 app.get('/api/census', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), async (req, res) => {
@@ -1571,153 +728,15 @@ app.get('/api/census', verifyToken, checkRole(['captain', 'secretary', 'clerk', 
       overall: overall[0]
     });
   } catch (error) {
-    console.error('Error fetching census:', error);
+    logger.error('Error fetching census', { error });
     res.status(500).json({ error: 'Failed to fetch census data' });
   }
 });
-app.get('/census', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), async (req, res) => {
-  const [stats] = await db.execute(`
-    SELECT
-      s.name as sitio_name,
-      COUNT(r.Resident_ID) as total_residents,
-      SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as seniors,
-      SUM(CASE WHEN v.Is_PWD = 1 THEN 1 ELSE 0 END) as pwd,
-      SUM(CASE WHEN v.Is_Solo_Parent = 1 THEN 1 ELSE 0 END) as single_parents
-    FROM sitios s
-    LEFT JOIN households h ON s.id = h.Sitio_ID
-    LEFT JOIN residents r ON h.Household_ID = r.Household_ID
-    LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
-    GROUP BY s.id, s.name
-    ORDER BY s.name
-  `);
-
-  const [overall] = await db.execute(`
-    SELECT
-      COUNT(*) as total_residents,
-      SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as total_seniors,
-      SUM(CASE WHEN v.Is_PWD = 1 THEN 1 ELSE 0 END) as total_pwd,
-      SUM(CASE WHEN v.Is_Solo_Parent = 1 THEN 1 ELSE 0 END) as total_single_parents
-    FROM residents r
-    LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
-  `);
-
-  res.json({
-    bySitio: stats,
-    overall: overall[0]
-  });
-});
 
 // Blotter routes
-app.get('/api/blotter', async (req, res) => {
-  try {
-    const [rows] = await db.execute(`
-      SELECT b.*,
-             s.name as sitio_name
-      FROM blotter b
-      LEFT JOIN sitios s ON b.Location_Sitio = s.name
-      ORDER BY b.created_at DESC
-    `);
-    res.json(rows);
-  } catch (error) {
-    console.error('Error fetching blotter:', error);
-    res.status(500).json({ error: 'Failed to fetch blotter records' });
-  }
-});
-app.get('/blotter', async (req, res) => {
-  const [rows] = await db.execute(`
-    SELECT b.*,
-           s.name as sitio_name
-    FROM blotter b
-    LEFT JOIN sitios s ON b.Location_Sitio = s.name
-    ORDER BY b.created_at DESC
-  `);
-  res.json(rows);
-});
-
+app.get('/api/blotter', blotterController.getAll);
 // Certificate routes - FIXED: MySQL-only authentication
-app.get('/api/certificates', verifyToken, async (req, res) => {
-  try {
-    // Check if user is a resident (role-based access)
-    const isResident = req.user.role === 4;
-
-    let query, values;
-
-    if (isResident) {
-      // Resident can only see their own certificates
-      query = `
-        SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
-        FROM certificates_log c
-        JOIN residents r ON c.resident_id = r.Resident_ID
-        WHERE r.Resident_ID = ?
-        ORDER BY c.created_at DESC
-      `;
-      values = [req.user.id];
-    } else {
-      // Staff can see all certificates
-      query = `
-        SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
-        FROM certificates_log c
-        JOIN residents r ON c.resident_id = r.Resident_ID
-        ORDER BY c.created_at DESC
-      `;
-      values = [];
-    }
-
-    const [rows] = await db.execute(query, values);
-    res.json(rows);
-  } catch (error) {
-    console.error('Error fetching certificates:', error);
-    res.status(500).json({ error: 'Failed to fetch certificates' });
-  }
-});
-
-app.get('/certificates', verifyToken, async (req, res) => {
-  try {
-    // Check if user is a resident (role-based access)
-    const isResident = req.user.role === 4;
-
-    let query, values;
-
-    if (isResident) {
-      // Resident can only see their own certificates
-      query = `
-        SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
-        FROM certificates_log c
-        JOIN residents r ON c.resident_id = r.Resident_ID
-        WHERE r.Resident_ID = ?
-        ORDER BY c.created_at DESC
-      `;
-      values = [req.user.id];
-    } else {
-      // Staff can see all certificates
-      query = `
-        SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
-        FROM certificates_log c
-        JOIN residents r ON c.resident_id = r.Resident_ID
-        ORDER BY c.created_at DESC
-      `;
-      values = [];
-    }
-
-    const [rows] = await db.execute(query, values);
-    res.json(rows);
-  } catch (error) {
-    console.error('Error fetching certificates:', error);
-    res.status(500).json({ error: 'Failed to fetch certificates' });
-  }
-});
-
-console.log('🔧 [Route Registration] Authentication routes registered successfully');
-
-
-
-
-
-// Email verification for residency graduation - REMOVED (Firebase legacy)
-// Residency verification submission - REMOVED (Firebase legacy)
-// Residency verification status - REMOVED (Firebase legacy)
-
-// Protected auth routes (JWT only)
+app.get('/api/certificates', verifyToken, certificateController.getAll);
 app.get('/api/auth/profile', verifyToken, (req, res) => { 
   res.json({ 
     user: {
@@ -1789,7 +808,7 @@ app.get('/api/certificate-types', async (req, res) => {
       ORDER BY name
     `);
 
-    console.log('Certificate types API called, found:', rows.length, 'types');
+    logger.info('Certificate types API called', { count: rows.length });
 
     // Parse JSON required_data for each certificate type
     const certificateTypes = rows.map(type => ({
@@ -1810,7 +829,7 @@ app.get('/api/certificate-types', async (req, res) => {
       data: certificateTypes
     });
   } catch (error) {
-    console.error('Error fetching certificate types:', error);
+    logger.error('Error fetching certificate types', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch certificate types'
@@ -1823,846 +842,42 @@ app.get('/api/certificate-types', async (req, res) => {
 // ==========================================
 
 // Get all residents with RBIM data (protected - requires auth)
-app.get('/api/residents', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk']), async (req, res) => {
-  try {
-    const { page = 1, limit = 50, search, sitio_id, residency_status, show_vulnerable } = req.query;
-    const offset = (page - 1) * limit;
-
-    // Build the query safely step by step
-    let whereConditions = [];
-    let values = [];
-
-    if (search && search.trim()) {
-      whereConditions.push('r.First_Name LIKE ? OR r.Last_Name LIKE ? OR r.Mobile_Number LIKE ?');
-      const searchTerm = `%${search.trim()}%`;
-      values.push(searchTerm, searchTerm, searchTerm);
-    }
-
-    if (sitio_id) {
-      whereConditions.push('h.Sitio_ID = ?');
-      values.push(sitio_id);
-    }
-
-    if (residency_status) {
-      whereConditions.push('r.Residency_Status = ?');
-      values.push(residency_status);
-    }
-
-    if (show_vulnerable === 'true') {
-      whereConditions.push('v.Vulnerability_Score > 0');
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    console.log('🚀 RESIDENTS QUERY DEBUG:', {
-      search,
-      sitio_id,
-      residency_status,
-      show_vulnerable,
-      whereConditions,
-      values,
-      limit: parseInt(limit),
-      offset: parseInt(offset)
-    });
-
-    // Execute the main query with proper parameter binding
-    const mainQuery = `
-      SELECT
-        r.*,
-        h.Household_Number,
-        h.Street_Address,
-        s.name as sitio_name,
-        v.Is_4Ps,
-        v.Is_PWD,
-        v.Is_Senior,
-        v.Is_Solo_Parent,
-        v.Is_Out_of_School_Youth,
-        v.Vulnerability_Score,
-        v.Disability_Type
-      FROM residents r
-      LEFT JOIN households h ON r.Household_ID = h.Household_ID
-      LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
-      ${whereClause}
-      ORDER BY r.Last_Name, r.First_Name
-      LIMIT ?
-      OFFSET ?
-    `;
-
-    // Parameter order: WHERE conditions + LIMIT + OFFSET
-    const mainParams = [...values, parseInt(limit), parseInt(offset)];
-    console.log('🚀 MAIN QUERY:', { sql: mainQuery, params: mainParams });
-
-    const [rows] = await db.execute(mainQuery, mainParams);
-
-    // Count query without LIMIT/OFFSET
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM residents r
-      LEFT JOIN households h ON r.Household_ID = h.Household_ID
-      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
-      ${whereClause}
-    `;
-
-    const countParams = values;
-    console.log('🚀 COUNT QUERY:', { sql: countQuery, params: countParams });
-
-    const [totalRows] = await db.execute(countQuery, countParams);
-
-    res.json({
-      data: rows,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: totalRows[0].total,
-        pages: Math.ceil(totalRows[0].total / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching residents:', error);
-    res.status(500).json({ error: 'Failed to fetch residents' });
-  }
-});
+app.get('/api/residents', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk']), residentController.getAll);
+  
 
 // Get resident by ID (RBIM enhanced) - protected with hierarchy check
-app.get('/api/residents/:id', verifyToken, checkOwnershipOrHierarchy, async (req, res) => {
-  try {
-    const [rows] = await db.execute(`
-      SELECT
-        r.*,
-        h.Household_Number,
-        h.Street_Address,
-        h.Household_Type,
-        s.name as sitio_name,
-        v.Is_4Ps,
-        v.Is_PWD,
-        v.Is_Senior,
-        v.Is_Solo_Parent,
-        v.Is_Out_of_School_Youth,
-        v.Vulnerability_Score,
-        v.Disability_Type
-      FROM residents r
-      LEFT JOIN households h ON r.Household_ID = h.Household_ID
-      LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
-      WHERE r.Resident_ID = ?
-    `, [req.params.id]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Resident not found' });
-    }
-
-    res.json(rows[0]);
-  } catch (error) {
-    console.error('Error fetching resident:', error);
-    res.status(500).json({ error: 'Failed to fetch resident' });
-  }
-});
+app.get('/api/residents/:id', verifyToken, checkOwnershipOrHierarchy, residentController.getById);
 
 // Duplicate checker (RBIM requirement)
-app.post('/api/residents/check-duplicate', async (req, res) => {
-  try {
-    const { first_name, last_name, birthdate } = req.body;
-
-    if (!first_name || !last_name || !birthdate) {
-      return res.status(400).json({ error: 'First name, last name, and birthdate are required' });
-    }
-
-    const [duplicates] = await db.execute(`
-      SELECT
-        r.Resident_ID,
-        r.First_Name,
-        r.Last_Name,
-        r.Birthdate,
-        r.Residency_Status,
-        h.Household_Number,
-        s.name as sitio_name
-      FROM residents r
-      LEFT JOIN households h ON r.Household_ID = h.Household_ID
-      LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      WHERE r.First_Name = ? AND r.Last_Name = ? AND r.Birthdate = ?
-      AND r.Residency_Status = 'Active'
-    `, [first_name.trim(), last_name.trim(), birthdate]);
-
-    res.json({
-      is_duplicate: duplicates.length > 0,
-      duplicates: duplicates,
-      message: duplicates.length > 0 ?
-        'Possible duplicate found. Please verify if this is the same person.' :
-        'No duplicates found. Safe to proceed.'
-    });
-  } catch (error) {
-    console.error('Error checking duplicates:', error);
-    res.status(500).json({ error: 'Failed to check for duplicates' });
-  }
-});
+app.post('/api/residents/check-duplicate', residentController.checkDuplicate);
 
 // Create new resident (RBIM enhanced) - protected with JWT
-app.post('/api/residents', verifyToken, async (req, res) => {
-  const connection = await db.getConnection();
-
-  try {
-    await connection.beginTransaction();
-
-    const {
-      household_id,
-      relation_to_head,
-      first_name,
-      middle_name,
-      last_name,
-      suffix,
-      birthdate,
-      gender,
-      civil_status,
-      occupation,
-      income_estimate,
-      mobile_number,
-      voter_status,
-      date_arrival,
-      profile_photo_url,
-      // Vulnerability data
-      is_4ps,
-      is_pwd,
-      is_solo_parent,
-      is_out_of_school_youth,
-      disability_type
-    } = req.body;
-
-    // Validation
-    if (!first_name || !last_name || !birthdate || !household_id) {
-      return res.status(400).json({ error: 'Required fields: first_name, last_name, birthdate, household_id' });
-    }
-
-    // Verify household exists
-    const [householdCheck] = await connection.execute(
-      'SELECT Household_ID FROM households WHERE Household_ID = ?',
-      [household_id]
-    );
-    if (householdCheck.length === 0) {
-      return res.status(400).json({ error: 'Invalid household_id - household does not exist' });
-    }
-
-    // Generate Resident_ID (UUID format)
-    const residentId = `RES-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-
-    // Generate QR Hash
-    const qrHash = crypto.createHash('sha256')
-      .update(`${residentId}-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`)
-      .digest('hex')
-      .substring(0, 16)
-      .toUpperCase();
-
-    // Insert resident
-    await connection.execute(`
-      INSERT INTO residents (
-        Resident_ID, Household_ID, Relation_to_Head, First_Name, Middle_Name, Last_Name, Suffix,
-        Birthdate, Gender, Civil_Status, Occupation, Income_Estimate, Mobile_Number,
-        Voter_Status, Date_Arrival, Residency_Status, Profile_Photo_URL, QR_Hash_String
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      residentId, household_id, relation_to_head || 'Head', first_name.trim(), middle_name?.trim(),
-      last_name.trim(), suffix?.trim(), birthdate, gender, civil_status || 'Single',
-      occupation?.trim(), income_estimate || 0, mobile_number?.trim(),
-      voter_status || 'Non-Registered', date_arrival, 'Active',
-      profile_photo_url?.trim(), qrHash
-    ]);
-
-    // Insert vulnerability data
-    await connection.execute(`
-      INSERT INTO vulnerabilities (
-        Resident_ID, Is_4Ps, Is_PWD, Is_Solo_Parent, Is_Out_of_School_Youth, Disability_Type
-      ) VALUES (?, ?, ?, ?, ?, ?)
-    `, [
-      residentId,
-      is_4ps || false,
-      is_pwd || false,
-      is_solo_parent || false,
-      is_out_of_school_youth || false,
-      disability_type?.trim()
-    ]);
-
-    // Update household member count
-    await connection.execute(`
-      UPDATE households
-      SET Total_Members = Total_Members + 1
-      WHERE Household_ID = ?
-    `, [household_id]);
-
-    await connection.commit();
-
-    res.status(201).json({
-      resident_id: residentId,
-      qr_hash: qrHash,
-      message: 'Resident created successfully'
-    });
-  } catch (error) {
-    await connection.rollback();
-    console.error('Error creating resident:', error);
-    res.status(500).json({ error: 'Failed to create resident' });
-  } finally {
-    connection.release();
-  }
-});
+app.post('/api/residents', verifyToken, residentController.create);
 
 // Update resident (RBIM enhanced)
-app.put('/api/residents/:id', async (req, res) => {
-  const connection = await db.getConnection();
-
-  try {
-    await connection.beginTransaction();
-
-    const residentId = req.params.id;
-    const {
-      household_id,
-      relation_to_head,
-      first_name,
-      middle_name,
-      last_name,
-      suffix,
-      birthdate,
-      gender,
-      civil_status,
-      occupation,
-      income_estimate,
-      mobile_number,
-      voter_status,
-      date_arrival,
-      residency_status,
-      profile_photo_url,
-      // Vulnerability updates
-      is_4ps,
-      is_pwd,
-      is_solo_parent,
-      is_out_of_school_youth,
-      disability_type
-    } = req.body;
-
-    // Update resident data
-    const residentUpdates = [];
-    const residentValues = [];
-
-    if (household_id !== undefined) {
-      residentUpdates.push('Household_ID = ?');
-      residentValues.push(household_id);
-    }
-    if (relation_to_head !== undefined) {
-      residentUpdates.push('Relation_to_Head = ?');
-      residentValues.push(relation_to_head);
-    }
-    if (first_name !== undefined) {
-      residentUpdates.push('First_Name = ?');
-      residentValues.push(first_name.trim());
-    }
-    if (middle_name !== undefined) {
-      residentUpdates.push('Middle_Name = ?');
-      residentValues.push(middle_name?.trim());
-    }
-    if (last_name !== undefined) {
-      residentUpdates.push('Last_Name = ?');
-      residentValues.push(last_name.trim());
-    }
-    if (suffix !== undefined) {
-      residentUpdates.push('Suffix = ?');
-      residentValues.push(suffix?.trim());
-    }
-    if (birthdate !== undefined) {
-      residentUpdates.push('Birthdate = ?');
-      residentValues.push(birthdate);
-    }
-    if (gender !== undefined) {
-      residentUpdates.push('Gender = ?');
-      residentValues.push(gender);
-    }
-    if (civil_status !== undefined) {
-      residentUpdates.push('Civil_Status = ?');
-      residentValues.push(civil_status);
-    }
-    if (occupation !== undefined) {
-      residentUpdates.push('Occupation = ?');
-      residentValues.push(occupation?.trim());
-    }
-    if (income_estimate !== undefined) {
-      residentUpdates.push('Income_Estimate = ?');
-      residentValues.push(income_estimate);
-    }
-    if (mobile_number !== undefined) {
-      residentUpdates.push('Mobile_Number = ?');
-      residentValues.push(mobile_number?.trim());
-    }
-    if (voter_status !== undefined) {
-      residentUpdates.push('Voter_Status = ?');
-      residentValues.push(voter_status);
-    }
-    if (date_arrival !== undefined) {
-      residentUpdates.push('Date_Arrival = ?');
-      residentValues.push(date_arrival);
-    }
-    if (residency_status !== undefined) {
-      residentUpdates.push('Residency_Status = ?');
-      residentValues.push(residency_status);
-    }
-    if (profile_photo_url !== undefined) {
-      residentUpdates.push('Profile_Photo_URL = ?');
-      residentValues.push(profile_photo_url?.trim());
-    }
-
-    if (residentUpdates.length > 0) {
-      const residentSql = `UPDATE residents SET ${residentUpdates.join(', ')} WHERE Resident_ID = ?`;
-      residentValues.push(residentId);
-      await connection.execute(residentSql, residentValues);
-    }
-
-    // Update vulnerability data
-    const vulnUpdates = [];
-    const vulnValues = [];
-
-    if (is_4ps !== undefined) {
-      vulnUpdates.push('Is_4Ps = ?');
-      vulnValues.push(is_4ps);
-    }
-    if (is_pwd !== undefined) {
-      vulnUpdates.push('Is_PWD = ?');
-      vulnValues.push(is_pwd);
-    }
-    if (is_solo_parent !== undefined) {
-      vulnUpdates.push('Is_Solo_Parent = ?');
-      vulnValues.push(is_solo_parent);
-    }
-    if (is_out_of_school_youth !== undefined) {
-      vulnUpdates.push('Is_Out_of_School_Youth = ?');
-      vulnValues.push(is_out_of_school_youth);
-    }
-    if (disability_type !== undefined) {
-      vulnUpdates.push('Disability_Type = ?');
-      vulnValues.push(disability_type?.trim());
-    }
-
-    if (vulnUpdates.length > 0) {
-      const vulnSql = `UPDATE vulnerabilities SET ${vulnUpdates.join(', ')} WHERE Resident_ID = ?`;
-      vulnValues.push(residentId);
-      await connection.execute(vulnSql, vulnValues);
-    }
-
-    await connection.commit();
-    res.json({ message: 'Resident updated successfully' });
-  } catch (error) {
-    await connection.rollback();
-    console.error('Error updating resident:', error);
-    res.status(500).json({ error: 'Failed to update resident' });
-  } finally {
-    connection.release();
-  }
-});
+app.put('/api/residents/:id', residentController.update);
 
 // Archive resident (Migration handler - RBIM requirement)
-app.put('/api/residents/:id/archive', async (req, res) => {
-  const connection = await db.getConnection();
-
-  try {
-    await connection.beginTransaction();
-
-    const residentId = req.params.id;
-    const { departure_date, departure_reason, destination } = req.body;
-
-    // Update resident status
-    await connection.execute(`
-      UPDATE residents
-      SET Residency_Status = 'Transferred Out',
-          updated_at = CURRENT_TIMESTAMP
-      WHERE Resident_ID = ?
-    `, [residentId]);
-
-    // Update household member count
-    await connection.execute(`
-      UPDATE households
-      SET Total_Members = Total_Members - 1
-      WHERE Household_ID = (SELECT Household_ID FROM residents WHERE Resident_ID = ?)
-    `, [residentId]);
-
-    // Log the migration (you could create a separate migration_log table)
-    console.log(`Resident ${residentId} archived - Departure: ${departure_date}, Reason: ${departure_reason}, Destination: ${destination}`);
-
-    await connection.commit();
-    res.json({
-      message: 'Resident archived successfully',
-      status: 'Transferred Out'
-    });
-  } catch (error) {
-    await connection.rollback();
-    console.error('Error archiving resident:', error);
-    res.status(500).json({ error: 'Failed to archive resident' });
-  } finally {
-    connection.release();
-  }
-});
+app.put('/api/residents/:id/archive', residentController.archive);
 
 // Bulk import residents (Excel/CSV parser)
-app.post('/api/residents/bulk-import', uploadBlob.single('file'), async (req, res) => {
-  const connection = await db.getConnection();
-
-  try {
-    await connection.beginTransaction();
-
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-
-    // Read Excel file
-    const workbook = xlsx.readFile(req.file.path);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = xlsx.utils.sheet_to_json(worksheet);
-
-    const results = {
-      imported: 0,
-      skipped: 0,
-      errors: [],
-      duplicates: []
-    };
-
-    for (const row of data) {
-      try {
-        // Map Excel columns to database fields (adjust column names as needed)
-        const residentData = {
-          household_id: row['Household_ID'] || row['Household ID'],
-          relation_to_head: row['Relation_to_Head'] || row['Relation to Head'] || 'Member',
-          first_name: row['First_Name'] || row['First Name'],
-          middle_name: row['Middle_Name'] || row['Middle Name'],
-          last_name: row['Last_Name'] || row['Last Name'],
-          suffix: row['Suffix'],
-          birthdate: row['Birthdate'] || row['Date_of_Birth'] || row['DOB'],
-          gender: row['Gender'],
-          civil_status: row['Civil_Status'] || row['Civil Status'] || 'Single',
-          occupation: row['Occupation'],
-          income_estimate: parseFloat(row['Income_Estimate'] || row['Monthly_Income'] || '0'),
-          mobile_number: row['Mobile_Number'] || row['Contact_Number'] || row['Phone'],
-          voter_status: row['Voter_Status'] || row['Voter Status'] || 'Non-Registered',
-          date_arrival: row['Date_Arrival'] || row['Date Arrived'] || new Date().toISOString().split('T')[0],
-          is_4ps: row['Is_4Ps'] || row['4Ps_Member'] ? true : false,
-          is_pwd: row['Is_PWD'] || row['PWD'] ? true : false,
-          is_solo_parent: row['Is_Solo_Parent'] || row['Solo_Parent'] ? true : false,
-          is_out_of_school_youth: row['Is_Out_of_School_Youth'] || row['OSY'] ? true : false,
-          disability_type: row['Disability_Type'] || row['Disability Type']
-        };
-
-        // Check for duplicates
-        const [duplicates] = await connection.execute(`
-          SELECT Resident_ID FROM residents
-          WHERE First_Name = ? AND Last_Name = ? AND Birthdate = ? AND Residency_Status = 'Active'
-        `, [residentData.first_name, residentData.last_name, residentData.birthdate]);
-
-        if (duplicates.length > 0) {
-          results.duplicates.push({
-            name: `${residentData.first_name} ${residentData.last_name}`,
-            existing_id: duplicates[0].Resident_ID
-          });
-          results.skipped++;
-          continue;
-        }
-
-        // Generate IDs and insert (similar to single insert logic)
-        const residentId = `RES-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-        const qrHash = crypto.createHash('sha256')
-          .update(`${residentId}-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`)
-          .digest('hex')
-          .substring(0, 16)
-          .toUpperCase();
-
-        await connection.execute(`
-          INSERT INTO residents (
-            Resident_ID, Household_ID, Relation_to_Head, First_Name, Middle_Name, Last_Name, Suffix,
-            Birthdate, Gender, Civil_Status, Occupation, Income_Estimate, Mobile_Number,
-            Voter_Status, Date_Arrival, Residency_Status, QR_Hash_String
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          residentId, residentData.household_id, residentData.relation_to_head,
-          residentData.first_name, residentData.middle_name, residentData.last_name, residentData.suffix,
-          residentData.birthdate, residentData.gender, residentData.civil_status,
-          residentData.occupation, residentData.income_estimate, residentData.mobile_number,
-          residentData.voter_status, residentData.date_arrival, 'Active', qrHash
-        ]);
-
-        await connection.execute(`
-          INSERT INTO vulnerabilities (
-            Resident_ID, Is_4Ps, Is_PWD, Is_Solo_Parent, Is_Out_of_School_Youth, Disability_Type
-          ) VALUES (?, ?, ?, ?, ?, ?)
-        `, [
-          residentId, residentData.is_4ps, residentData.is_pwd,
-          residentData.is_solo_parent, residentData.is_out_of_school_youth, residentData.disability_type
-        ]);
-
-        results.imported++;
-      } catch (rowError) {
-        results.errors.push({
-          row: data.indexOf(row) + 2, // +2 because Excel is 1-indexed and has header
-          error: rowError.message,
-          data: row
-        });
-      }
-    }
-
-    await connection.commit();
-
-    // Clean up uploaded file
-    require('fs').unlinkSync(req.file.path);
-
-    res.json({
-      message: `Bulk import completed: ${results.imported} imported, ${results.skipped} skipped, ${results.errors.length} errors`,
-      results
-    });
-  } catch (error) {
-    await connection.rollback();
-    console.error('Error in bulk import:', error);
-    res.status(500).json({ error: 'Failed to process bulk import' });
-  } finally {
-    connection.release();
-  }
-});
+app.post('/api/residents/bulk-import', uploadBlob.single('file'), residentController.bulkImport);
 
 // Get household members
-app.get('/api/households/:id/members', async (req, res) => {
-  try {
-    const [members] = await db.execute(`
-      SELECT
-        r.*,
-        v.Is_4Ps,
-        v.Is_PWD,
-        v.Is_Senior,
-        v.Is_Solo_Parent,
-        v.Is_Out_of_School_Youth,
-        v.Vulnerability_Score
-      FROM residents r
-      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
-      WHERE r.Household_ID = ?
-      ORDER BY
-        CASE r.Relation_to_Head
-          WHEN 'Head' THEN 1
-          WHEN 'Spouse' THEN 2
-          ELSE 3
-        END,
-        r.Birthdate
-    `, [req.params.id]);
-
-    const [household] = await db.execute(`
-      SELECT h.*, s.name as sitio_name
-      FROM households h
-      LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      WHERE h.Household_ID = ?
-    `, [req.params.id]);
-
-    if (household.length === 0) {
-      return res.status(404).json({ error: 'Household not found' });
-    }
-
-    res.json({
-      household: household[0],
-      members: members
-    });
-  } catch (error) {
-    console.error('Error fetching household members:', error);
-    res.status(500).json({ error: 'Failed to fetch household members' });
-  }
-});
+app.get('/api/households/:id/members', residentController.getHouseholdMembers);
 
 // Generate QR code for resident ID (RBIM enhanced)
-app.post('/api/residents/:id/generate-qr', async (req, res) => {
-  try {
-    const residentId = req.params.id;
-
-    // Generate unique QR code string (Barangay ID format)
-    const qrString = `BARANGAY-ID-${residentId}-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
-
-    // Update resident with QR code
-    await db.execute(
-      'UPDATE residents SET QR_Hash_String = ? WHERE Resident_ID = ?',
-      [qrString, residentId]
-    );
-
-    // Get updated resident data with household info
-    const [residents] = await db.execute(`
-      SELECT
-        r.*,
-        h.Household_Number,
-        h.Street_Address,
-        s.name as sitio_name,
-        v.Vulnerability_Score
-      FROM residents r
-      LEFT JOIN households h ON r.Household_ID = h.Household_ID
-      LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
-      WHERE r.Resident_ID = ?
-    `, [residentId]);
-
-    res.json({
-      success: true,
-      qr_code: qrString,
-      resident: residents[0],
-      message: 'QR code generated successfully for Barangay ID'
-    });
-  } catch (error) {
-    console.error('Error generating QR code:', error);
-    res.status(500).json({ error: 'Failed to generate QR code' });
-  }
-});
-
+app.post('/api/residents/:id/generate-qr', residentController.generateQR);
 // ==========================================
 // HOUSEHOLDS MANAGEMENT (RBIM)
 // ==========================================
 
 // Get all households
-app.get('/api/households', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), async (req, res) => {
-  try {
-    const [rows] = await db.execute(`
-      SELECT h.*, s.name as sitio_name
-      FROM households h
-      LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      ORDER BY h.Household_Number
-    `);
-    res.json(rows);
-  } catch (error) {
-    console.error('Error fetching households:', error);
-    res.status(500).json({ error: 'Failed to fetch households' });
-  }
-});
-
-// Get household by ID
-app.get('/api/households/:id', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), async (req, res) => {
-  try {
-    const [rows] = await db.execute(`
-      SELECT h.*, s.name as sitio_name
-      FROM households h
-      LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      WHERE h.Household_ID = ?
-    `, [req.params.id]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Household not found' });
-    }
-
-    res.json(rows[0]);
-  } catch (error) {
-    console.error('Error fetching household:', error);
-    res.status(500).json({ error: 'Failed to fetch household' });
-  }
-});
-
-// Create new household
-app.post('/api/households', async (req, res) => {
-  const connection = await db.getConnection();
-
-  try {
-    await connection.beginTransaction();
-
-    const { Household_Number, Sitio_ID, Street_Address, Household_Type } = req.body;
-
-    // Validation
-    if (!Household_Number || !Sitio_ID || !Street_Address) {
-      return res.status(400).json({ error: 'Household_Number, Sitio_ID, and Street_Address are required' });
-    }
-
-    // Generate Household_ID
-    const householdId = `H-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-
-    // Insert household
-    await connection.execute(`
-      INSERT INTO households (
-        Household_ID, Household_Number, Sitio_ID, Street_Address, Household_Type
-      ) VALUES (?, ?, ?, ?, ?)
-    `, [
-      householdId, Household_Number.trim(), Sitio_ID, Street_Address.trim(),
-      Household_Type || 'Nuclear'
-    ]);
-
-    await connection.commit();
-
-    res.status(201).json({
-      household_id: householdId,
-      message: 'Household created successfully'
-    });
-  } catch (error) {
-    await connection.rollback();
-    console.error('Error creating household:', error);
-    res.status(500).json({ error: 'Failed to create household' });
-  } finally {
-    connection.release();
-  }
-});
-
-// Update household
-app.put('/api/households/:id', async (req, res) => {
-  try {
-    const { Household_Number, Sitio_ID, Street_Address, Household_Type } = req.body;
-
-    const updates = [];
-    const values = [];
-
-    if (Household_Number !== undefined) {
-      updates.push('Household_Number = ?');
-      values.push(Household_Number.trim());
-    }
-    if (Sitio_ID !== undefined) {
-      updates.push('Sitio_ID = ?');
-      values.push(Sitio_ID);
-    }
-    if (Street_Address !== undefined) {
-      updates.push('Street_Address = ?');
-      values.push(Street_Address.trim());
-    }
-    if (Household_Type !== undefined) {
-      updates.push('Household_Type = ?');
-      values.push(Household_Type);
-    }
-
-    if (updates.length === 0) {
-      return res.status(400).json({ error: 'No fields to update' });
-    }
-
-    const sql = `UPDATE households SET ${updates.join(', ')} WHERE Household_ID = ?`;
-    values.push(req.params.id);
-
-    await db.execute(sql, values);
-    res.json({ message: 'Household updated successfully' });
-  } catch (error) {
-    console.error('Error updating household:', error);
-    res.status(500).json({ error: 'Failed to update household' });
-  }
-});
-
-// Delete household
-app.delete('/api/households/:id', async (req, res) => {
-  const connection = await db.getConnection();
-
-  try {
-    await connection.beginTransaction();
-
-    const householdId = req.params.id;
-
-    // Check if household has residents
-    const [residents] = await connection.execute(
-      'SELECT COUNT(*) as count FROM residents WHERE Household_ID = ?',
-      [householdId]
-    );
-
-    if (residents[0].count > 0) {
-      return res.status(400).json({
-        error: 'Cannot delete household with active residents. Archive residents first.'
-      });
-    }
-
-    await connection.execute('DELETE FROM households WHERE Household_ID = ?', [householdId]);
-    await connection.commit();
-
-    res.json({ message: 'Household deleted successfully' });
-  } catch (error) {
-    await connection.rollback();
-    console.error('Error deleting household:', error);
-    res.status(500).json({ error: 'Failed to delete household' });
-  } finally {
-    connection.release();
-  }
-});
-
-// Get census statistics
+app.get('/api/households', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), householdController.getAll);
+app.get('/api/households/:id', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), householdController.getById);
+app.post('/api/households', householdController.create);
+app.put('/api/households/:id', householdController.update);
+app.delete('/api/households/:id', householdController.delete);
 app.get('/api/census', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), async (req, res) => {
   try {
     const [stats] = await db.execute(`
@@ -2695,7 +910,7 @@ app.get('/api/census', verifyToken, checkRole(['captain', 'secretary', 'clerk', 
       overall: overall[0]
     });
   } catch (error) {
-    console.error('Error fetching census:', error);
+    logger.error('Error fetching census', { error });
     res.status(500).json({ error: 'Failed to fetch census data' });
   }
 });
@@ -2738,7 +953,7 @@ app.get('/api/analytics/census', async (req, res) => {
       overall: overall[0]
     });
   } catch (error) {
-    console.error('Error fetching analytics census:', error);
+    logger.error('Error fetching analytics census', { error });
     res.status(500).json({ error: 'Failed to fetch analytics census data' });
   }
 });
@@ -2759,162 +974,21 @@ app.get('/api/blotter', async (req, res) => {
     `);
     res.json(rows);
   } catch (error) {
-    console.error('Error fetching blotter:', error);
+    logger.error('Error fetching blotter', { error });
     res.status(500).json({ error: 'Failed to fetch blotter records' });
   }
 });
 
 // Create new blotter record (using new Katarungang Pambarangay schema)
-app.post('/api/blotter', async (req, res) => {
-  try {
-    const {
-      Case_Number,
-      Complainant_Details,
-      Respondent_Details,
-      respondent_id, // THEMIS: Must include respondent_id for ClearPass
-      Incident_Type,
-      Narrative,
-      DateTime_Incident,
-      Location_Sitio,
-      Status
-    } = req.body;
-
-    // Validation
-    if (!Complainant_Details || !Incident_Type || !Narrative || !Location_Sitio) {
-      return res.status(400).json({ error: 'Required fields missing' });
-    }
-
-    // THEMIS: Validate respondent_id exists if provided
-    if (respondent_id) {
-      const [residentCheck] = await db.execute(
-        'SELECT Resident_ID FROM residents WHERE Resident_ID = ?',
-        [respondent_id]
-      );
-      if (residentCheck.length === 0) {
-        return res.status(400).json({ error: 'Invalid respondent_id - resident not found' });
-      }
-    }
-
-    // Generate case number if not provided
-    let caseNumber = Case_Number;
-    if (!caseNumber) {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const sequence = String(Math.floor(Math.random() * 999) + 1).padStart(4, '0');
-      caseNumber = `BLOT-${year}-${month}-${sequence}`;
-    }
-
-    const [result] = await db.execute(`
-      INSERT INTO blotter (
-        Case_Number, Complainant_Details, Respondent_Details, respondent_id,
-        Incident_Type, Narrative, DateTime_Incident, Location_Sitio, Status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      caseNumber,
-      JSON.stringify(Complainant_Details),
-      Respondent_Details ? JSON.stringify(Respondent_Details) : null,
-      respondent_id || null, // THEMIS: Save respondent_id for ClearPass validation
-      Incident_Type,
-      Narrative,
-      DateTime_Incident,
-      Location_Sitio,
-      Status || 'Pending'
-    ]);
-
-    res.status(201).json({
-      id: result.insertId,
-      Case_Number: caseNumber,
-      message: 'Blotter record created successfully'
-    });
-  } catch (error) {
-    console.error('Error creating blotter record:', error);
-    res.status(500).json({ error: 'Failed to create blotter record' });
-  }
-});
-
-// Update blotter record (using new schema)
-app.put('/api/blotter/:caseNumber', async (req, res) => {
-  try {
-    const {
-      Complainant_Details,
-      Respondent_Details,
-      Incident_Type,
-      Narrative,
-      DateTime_Incident,
-      Location_Sitio,
-      Status,
-      Hearing_Schedule
-    } = req.body;
-
-    const updateFields = [];
-    const values = [];
-
-    if (Complainant_Details !== undefined) {
-      updateFields.push('Complainant_Details = ?');
-      values.push(JSON.stringify(Complainant_Details));
-    }
-    if (Respondent_Details !== undefined) {
-      updateFields.push('Respondent_Details = ?');
-      values.push(Respondent_Details ? JSON.stringify(Respondent_Details) : null);
-    }
-    if (Incident_Type !== undefined) {
-      updateFields.push('Incident_Type = ?');
-      values.push(Incident_Type);
-    }
-    if (Narrative !== undefined) {
-      updateFields.push('Narrative = ?');
-      values.push(Narrative);
-    }
-    if (DateTime_Incident !== undefined) {
-      updateFields.push('DateTime_Incident = ?');
-      values.push(DateTime_Incident);
-    }
-    if (Location_Sitio !== undefined) {
-      updateFields.push('Location_Sitio = ?');
-      values.push(Location_Sitio);
-    }
-    if (Status !== undefined) {
-      updateFields.push('Status = ?');
-      values.push(Status);
-    }
-    if (Hearing_Schedule !== undefined) {
-      updateFields.push('Hearing_Schedule = ?');
-      values.push(Hearing_Schedule);
-    }
-
-    if (updateFields.length === 0) {
-      return res.status(400).json({ error: 'No fields to update' });
-    }
-
-    const sql = `UPDATE blotter SET ${updateFields.join(', ')} WHERE Case_Number = ?`;
-    values.push(req.params.caseNumber);
-
-    await db.execute(sql, values);
-    res.json({ message: 'Blotter record updated successfully' });
-  } catch (error) {
-    console.error('Error updating blotter record:', error);
-    res.status(500).json({ error: 'Failed to update blotter record' });
-  }
-});
-
-// Delete blotter record
-app.delete('/api/blotter/:caseNumber', async (req, res) => {
-  try {
-    await db.execute('DELETE FROM blotter WHERE Case_Number = ?', [req.params.caseNumber]);
-    res.json({ message: 'Blotter record deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting blotter record:', error);
-    res.status(500).json({ error: 'Failed to delete blotter record' });
-  }
-});
-
+app.post('/api/blotter', blotterController.create);
+app.put('/api/blotter/:caseNumber', blotterController.update);
+app.delete('/api/blotter/:caseNumber', blotterController.delete);
 // ==========================================
 // DOCUMENT REQUEST & GENERATION MODULE
 // ==========================================
 
 // Import document controller
-const documentController = require('./documentController');
+const documentController = require('./controllers/documentController');
 
 // Document type management
 app.get('/api/documents/types', documentController.getDocumentTypes);
@@ -2936,18 +1010,14 @@ app.post('/api/documents/validate-qr', documentController.validateDocument);
 // ==========================================
 
 // Import template controller
-const templateController = require('./templateController');
+const templateController = require('./controllers/templateController');
 
-console.log('=== TEMPLATE CONTROLLER DEBUG ===');
-console.log('Template Controller loaded:', typeof templateController !== 'undefined');
-console.log('Template Controller type:', typeof templateController);
-if (templateController) {
-  console.log('Controller has getTemplateStats:', typeof templateController.getTemplateStats === 'function');
-  console.log('Controller methods:', Object.getOwnPropertyNames(templateController.constructor.prototype));
-} else {
-  console.log('TEMPLATE CONTROLLER IS UNDEFINED!');
-}
-console.log('=== END TEMPLATE CONTROLLER DEBUG ===\n');
+logger.info('TEMPLATE CONTROLLER DEBUG', {
+  loaded: typeof templateController !== 'undefined',
+  type: typeof templateController,
+  hasGetTemplateStats: typeof templateController?.getTemplateStats === 'function',
+  methods: templateController ? Object.getOwnPropertyNames(templateController.constructor.prototype) : []
+});
 
 // Template management routes (admin, captain, secretary access)
 app.get('/api/templates', verifyToken, checkRole(['admin', 'captain', 'secretary']), templateController.getAllTemplates);
@@ -2968,16 +1038,20 @@ app.get('/api/templates/:id/download', verifyToken, checkRole(['admin', 'captain
 app.get('/api/templates/active/:document_type', templateController.getActiveTemplate);
 app.post('/api/templates/:id/duplicate', verifyToken, checkRole(['admin', 'captain']), templateController.duplicateTemplate);
 app.get('/api/templates/stats', async (req, res) => {
-  console.log('=== TEMPLATE STATS ROUTE CALLED ===');
-  console.log('Template controller exists:', typeof templateController !== 'undefined');
-  console.log('getTemplateStats exists:', typeof templateController?.getTemplateStats === 'function');
+  logger.info('TEMPLATE STATS ROUTE CALLED', {
+    controllerExists: typeof templateController !== 'undefined',
+    methodExists: typeof templateController?.getTemplateStats === 'function'
+  });
 
   try {
     if (typeof templateController?.getTemplateStats === 'function') {
-      console.log('Calling getTemplateStats method...');
+      logger.info('Calling getTemplateStats method');
       await templateController.getTemplateStats(req, res);
     } else {
-      console.log('ERROR: getTemplateStats method not found!');
+      logger.error('getTemplateStats method not found', {
+        controller_loaded: typeof templateController !== 'undefined',
+        method_exists: typeof templateController?.getTemplateStats === 'function'
+      });
       res.status(500).json({
         error: 'Template stats method not available',
         controller_loaded: typeof templateController !== 'undefined',
@@ -2985,7 +1059,7 @@ app.get('/api/templates/stats', async (req, res) => {
       });
     }
   } catch (error) {
-    console.log('ERROR in template stats route:', error);
+    logger.error('Error in template stats route', { error: error.message, stack: error.stack });
     res.status(500).json({
       error: error.message,
       stack: error.stack
@@ -3033,7 +1107,7 @@ app.get('/api/certificates', verifyToken, async (req, res) => {
     const [rows] = await db.execute(query, values);
     res.json(rows);
   } catch (error) {
-    console.error('Error fetching certificates:', error);
+    logger.error('Error fetching certificates', { error });
     res.status(500).json({ error: 'Failed to fetch certificates' });
   }
 });
@@ -3070,7 +1144,7 @@ app.post('/api/certificates', async (req, res) => {
     // Check if this is manual certificate creation
     if (manual_certificate) {
       // Manual certificate creation - bypass standard validation
-      console.log('Creating manual certificate for:', resident_name);
+      logger.info('Creating manual certificate', { residentName: resident_name });
 
       // Generate control number if not provided
       const finalControlNo = control_number || `CERT-MANUAL-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
@@ -3192,7 +1266,7 @@ app.post('/api/certificates', async (req, res) => {
     });
   } catch (error) {
     await connection.rollback();
-    console.error('Error issuing certificate:', error);
+    logger.error('Error issuing certificate', { error });
     res.status(500).json({ error: 'Failed to issue certificate' });
   } finally {
     connection.release();
@@ -3226,7 +1300,7 @@ async function proxyToAIService(endpoint, data, method = 'POST') {
     const response = await axios(url, config);
     return response.data;
   } catch (error) {
-    console.error(`AI Service proxy error for ${endpoint}:`, error.message);
+    logger.error('AI Service proxy error', { endpoint, error: error.message });
     throw error;
   }
 }
@@ -3261,7 +1335,7 @@ app.post('/api/ai/priority', async (req, res) => {
       ...aiResponse
     });
   } catch (error) {
-    console.error('AI service error:', error.message);
+    logger.error('AI service error', { error: error.message });
     res.status(500).json({ error: 'AI service unavailable' });
   }
 });
@@ -3296,7 +1370,7 @@ app.post('/api/ai/priority-score', async (req, res) => {
         fallback: false
       });
     } catch (aiError) {
-      console.error('AI service error, using fallback:', aiError.message);
+      logger.error('AI service error, using fallback', { error: aiError.message });
       // Fallback calculation
       const income = resident.Income_Estimate || 0;
       const age = calculateAge(resident.Birthdate);
@@ -3335,7 +1409,7 @@ app.post('/api/ai/priority-score', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Priority calculation error:', error);
+    logger.error('Priority calculation error', { error });
     res.status(500).json({ error: 'Failed to calculate priority score' });
   }
 });
@@ -3360,7 +1434,7 @@ app.get('/api/ai/patrol-suggestions', async (req, res) => {
       });
       res.json(aiResponse);
     } catch (aiError) {
-      console.error('AI service error, using fallback:', aiError.message);
+      logger.error('AI service error, using fallback', { error: aiError.message });
 
       // Fallback mock response
       const riskLevels = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -3391,7 +1465,7 @@ app.get('/api/ai/patrol-suggestions', async (req, res) => {
       });
     }
   } catch (dbError) {
-    console.error('Database error in patrol suggestions:', dbError.message);
+    logger.error('Database error in patrol suggestions', { error: dbError.message });
 
     // Complete fallback when database is unavailable
     res.json({
@@ -3427,7 +1501,7 @@ app.get('/api/analytics/dashboard-summary', async (req, res) => {
     const summary = await proxyToAIService('/analytics/dashboard-summary', {}, 'GET');
     res.json(summary);
   } catch (error) {
-    console.error('Analytics dashboard error, using fallback:', error.message);
+    logger.error('Analytics dashboard error, using fallback', { error: error.message });
     // Fallback mock data
     res.json({
       total_incidents_30d: 28,
@@ -3448,7 +1522,7 @@ app.get('/api/analytics/charts/:chart_type', async (req, res) => {
     const chartData = await proxyToAIService(`/analytics/charts/${chart_type}`, {}, 'GET');
     res.json(chartData);
   } catch (error) {
-    console.error(`Analytics chart error for ${req.params.chart_type}, using fallback:`, error.message);
+    logger.error('Analytics chart error, using fallback', { chartType: req.params.chart_type, error: error.message });
 
     const { chart_type } = req.params;
 
@@ -3512,7 +1586,7 @@ app.post('/api/analytics/generate-report', async (req, res) => {
     const reportData = await proxyToAIService('/analytics/generate-report', req.body);
     res.json(reportData);
   } catch (error) {
-    console.error('Analytics report generation error, using fallback:', error.message);
+    logger.error('Analytics report generation error, using fallback', { error: error.message });
 
     // Fallback mock report
     const reportType = req.body?.report_type || 'incident_analysis';
@@ -3548,7 +1622,7 @@ app.post('/api/ai/chatbot/message', async (req, res) => {
     const chatbotResponse = await proxyToAIService('/chatbot/message', req.body);
     res.json(chatbotResponse);
   } catch (error) {
-    console.error('Chatbot error, using fallback:', error.message);
+    logger.error('Chatbot error, using fallback', { error: error.message });
 
     const userMessage = req.body?.message?.toLowerCase() || '';
     let response = "I'm here to help with barangay services. How can I assist you today?";
@@ -3596,7 +1670,7 @@ app.get('/api/tanod-schedules', async (req, res) => {
     `);
     res.json(rows);
   } catch (error) {
-    console.error('Error fetching tanod schedules:', error);
+    logger.error('Error fetching tanod schedules', { error });
     res.status(500).json({ error: 'Failed to fetch tanod schedules' });
   }
 });
@@ -3614,7 +1688,7 @@ app.post('/api/tanod-schedules', async (req, res) => {
 
     res.status(201).json({ id: result.insertId, message: 'Tanod schedule created successfully' });
   } catch (error) {
-    console.error('Error creating tanod schedule:', error);
+    logger.error('Error creating tanod schedule', { error });
     res.status(500).json({ error: 'Failed to create tanod schedule' });
   }
 });
@@ -3624,299 +1698,13 @@ app.post('/api/tanod-schedules', async (req, res) => {
 // ==========================================
 
 // Get all users (admin management)
-app.get('/api/users', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
-  try {
-    const { page = 1, limit = 50, search, role: roleFilter, status } = req.query;
-    const offset = (page - 1) * limit;
-
-    let whereConditions = [];
-    let values = [];
-
-    if (search) {
-      whereConditions.push("(full_name LIKE ? OR username LIKE ? OR email LIKE ?)");
-      values.push(`%${search}%`, `%${search}%`, `%${search}%`);
-    }
-
-    if (roleFilter) {
-      whereConditions.push("role = ?");
-      values.push(roleFilter);
-    }
-
-    if (status) {
-      if (status === 'active') {
-        whereConditions.push("is_active = true");
-      } else if (status === 'inactive') {
-        whereConditions.push("is_active = false");
-      }
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    const [rows] = await db.execute(`
-      SELECT
-        id,
-        username,
-        full_name,
-        email,
-        contact_number,
-        role,
-        is_active,
-        firebase_uid,
-        resident_id,
-        last_login,
-        created_at
-      FROM users
-      ${whereClause}
-      ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `, [...values, parseInt(limit), offset]);
-
-    const [totalRows] = await db.execute(`
-      SELECT COUNT(*) as total FROM users ${whereClause}
-    `, values);
-
-    res.json({
-      users: rows,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: totalRows[0].total,
-        pages: Math.ceil(totalRows[0].total / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ error: 'Failed to fetch users' });
-  }
-});
-
-// Get user by ID
-app.get('/api/users/:id', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
-  try {
-    const [rows] = await db.execute(`
-      SELECT
-        id,
-        username,
-        full_name,
-        email,
-        contact_number,
-        role,
-        is_active,
-        firebase_uid,
-        resident_id,
-        last_login,
-        created_at,
-        updated_at
-      FROM users WHERE id = ?
-    `, [req.params.id]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    res.json({ user: rows[0] });
-  } catch (error) {
-    console.error('Error fetching user:', error);
-    res.status(500).json({ error: 'Failed to fetch user' });
-  }
-});
-
-// Create new user
-app.post('/api/users', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
-  try {
-    const {
-      username,
-      full_name,
-      email,
-      contact_number,
-      role,
-      is_active = true
-    } = req.body;
-
-    // Validation
-    if (!username || !full_name || !role) {
-      return res.status(400).json({ error: 'Username, full name, and role are required' });
-    }
-
-    // Check if username already exists
-    const [existing] = await db.execute('SELECT id FROM users WHERE username = ?', [username]);
-    if (existing.length > 0) {
-      return res.status(409).json({ error: 'Username already exists' });
-    }
-
-    // Generate temporary password
-    const tempPassword = crypto.randomBytes(8).toString('hex');
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(tempPassword, saltRounds);
-
-    const [result] = await db.execute(`
-      INSERT INTO users (
-        username,
-        password_hash,
-        full_name,
-        email,
-        contact_number,
-        role,
-        is_active,
-        created_at,
-        updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-    `, [username, passwordHash, full_name, email, contact_number, role, is_active]);
-
-    res.status(201).json({
-      user: {
-        id: result.insertId,
-        username,
-        full_name,
-        email,
-        contact_number,
-        role,
-        is_active,
-        temp_password: tempPassword // Send temp password to admin for sharing
-      },
-      message: 'User created successfully. Temporary password generated.'
-    });
-  } catch (error) {
-    console.error('Error creating user:', error);
-    res.status(500).json({ error: 'Failed to create user' });
-  }
-});
-
-// Update user
-app.put('/api/users/:id', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const {
-      full_name,
-      email,
-      contact_number,
-      role,
-      is_active
-    } = req.body;
-
-    // Build update query dynamically
-    const updates = [];
-    const values = [];
-
-    if (full_name !== undefined) {
-      updates.push('full_name = ?');
-      values.push(full_name);
-    }
-    if (email !== undefined) {
-      updates.push('email = ?');
-      values.push(email);
-    }
-    if (contact_number !== undefined) {
-      updates.push('contact_number = ?');
-      values.push(contact_number);
-    }
-    if (role !== undefined) {
-      updates.push('role = ?');
-      values.push(role);
-    }
-    if (is_active !== undefined) {
-      updates.push('is_active = ?');
-      values.push(is_active);
-    }
-
-    if (updates.length === 0) {
-      return res.status(400).json({ error: 'No fields to update' });
-    }
-
-    // Add updated_at
-    updates.push('updated_at = NOW()');
-
-    const sql = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
-    values.push(userId);
-
-    await db.execute(sql, values);
-
-    res.json({ message: 'User updated successfully' });
-  } catch (error) {
-    console.error('Error updating user:', error);
-    res.status(500).json({ error: 'Failed to update user' });
-  }
-});
-
-// Toggle user active status
-app.put('/api/users/:id/toggle-status', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const { is_active } = req.body;
-
-    if (is_active === undefined) {
-      return res.status(400).json({ error: 'is_active value is required' });
-    }
-
-    await db.execute(
-      'UPDATE users SET is_active = ?, updated_at = NOW() WHERE id = ?',
-      [is_active, userId]
-    );
-
-    res.json({
-      message: `User ${is_active ? 'activated' : 'deactivated'} successfully`
-    });
-  } catch (error) {
-    console.error('Error toggling user status:', error);
-    res.status(500).json({ error: 'Failed to update user status' });
-  }
-});
-
-// Reset user password
-app.put('/api/users/:id/reset-password', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const { new_password } = req.body;
-
-    if (!new_password || new_password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
-    }
-
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(new_password, saltRounds);
-
-    await db.execute(
-      'UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?',
-      [passwordHash, userId]
-    );
-
-    res.json({ message: 'Password reset successfully' });
-  } catch (error) {
-    console.error('Error resetting password:', error);
-    res.status(500).json({ error: 'Failed to reset password' });
-  }
-});
-
-// Delete user
-app.delete('/api/users/:id', verifyToken, checkRole(['admin', 'captain', 'secretary']), async (req, res) => {
-  try {
-    const userId = req.params.id;
-
-    // Prevent deletion of current user
-    if (req.user.id == userId) {
-      return res.status(400).json({ error: 'Cannot delete your own account' });
-    }
-
-    // Check if user has active residents (optional - you may want to prevent or handle this)
-    const [residents] = await db.execute('SELECT COUNT(*) as count FROM users WHERE id = ? AND resident_id IS NOT NULL', [userId]);
-
-    if (residents[0].count > 0) {
-      // Option 1: Prevent deletion
-      // return res.status(400).json({ error: 'Cannot delete user with associated resident record' });
-
-      // Option 2: Update resident record (remove association)
-      await db.execute('UPDATE users SET resident_id = NULL WHERE id = ?', [userId]);
-    }
-
-    await db.execute('DELETE FROM users WHERE id = ?', [userId]);
-
-    res.json({ message: 'User deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    res.status(500).json({ error: 'Failed to delete user' });
-  }
-});
-
+app.get('/api/users', verifyToken, checkRole(['admin', 'captain', 'secretary']), userController.getAll);
+app.get('/api/users/:id', verifyToken, checkRole(['admin', 'captain', 'secretary']), userController.getById);
+app.post('/api/users', verifyToken, checkRole(['admin', 'captain', 'secretary']), userController.create);
+app.put('/api/users/:id', verifyToken, checkRole(['admin', 'captain', 'secretary']), userController.update);
+app.put('/api/users/:id/toggle-status', verifyToken, checkRole(['admin', 'captain', 'secretary']), userController.toggleStatus);
+app.put('/api/users/:id/reset-password', verifyToken, checkRole(['admin', 'captain', 'secretary']), userController.resetPassword);
+app.delete('/api/users/:id', verifyToken, checkRole(['admin', 'captain', 'secretary']), userController.delete);
 // ==========================================
 // UTILITY ENDPOINTS
 // ==========================================
@@ -3927,247 +1715,17 @@ app.get('/api/sitios', async (req, res) => {
     const [rows] = await db.execute('SELECT * FROM sitios ORDER BY name');
     res.json(rows);
   } catch (error) {
-    console.error('Error fetching sitios:', error);
+    logger.error('Error fetching sitios', { error });
     res.status(500).json({ error: 'Failed to fetch sitios' });
   }
 });
 
-app.get('/sitios', async (req, res) => {
-  try {
-    const [rows] = await db.execute('SELECT * FROM sitios ORDER BY name');
-    res.json(rows);
-  } catch (error) {
-    console.error('Error fetching sitios:', error);
-    res.status(500).json({ error: 'Failed to fetch sitios' });
-  }
-});
 
-// Households routes
-app.get('/households', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), async (req, res) => {
-  try {
-    const [rows] = await db.execute(`
-      SELECT h.*, s.name as sitio_name
-      FROM households h
-      LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      ORDER BY h.Household_Number
-    `);
-    res.json(rows);
-  } catch (error) {
-    console.error('Error fetching households:', error);
-    res.status(500).json({ error: 'Failed to fetch households' });
-  }
-});
 
-// Residents routes
-app.get('/residents', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk']), async (req, res) => {
-  try {
-    const { page = 1, limit = 50, search } = req.query;
-    const offset = (page - 1) * limit;
 
-    let whereClause = '';
-    let values = [];
 
-    if (search && search.trim()) {
-      whereClause = 'WHERE r.First_Name LIKE ? OR r.Last_Name LIKE ? OR r.Mobile_Number LIKE ?';
-      const searchTerm = `%${search.trim()}%`;
-      values = [searchTerm, searchTerm, searchTerm];
-    }
 
-    // Build the final parameter array
-    const params = [...values, parseInt(limit), offset];
 
-    console.log(`Residents query - search: ${search}, params length: ${params.length}, whereClause: ${whereClause}`); // Debug log
-
-    const [rows] = await db.execute(`
-      SELECT
-        r.*,
-        h.Household_Number,
-        h.Street_Address,
-        s.name as sitio_name,
-        v.Is_4Ps,
-        v.Is_PWD,
-        v.Is_Senior,
-        v.Is_Solo_Parent,
-        v.Is_Out_of_School_Youth,
-        v.Vulnerability_Score
-      FROM residents r
-      LEFT JOIN households h ON r.Household_ID = h.Household_ID
-      LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
-      ${whereClause}
-      ORDER BY r.Last_Name, r.First_Name
-      LIMIT ? OFFSET ?
-    `, params);
-
-    res.json({
-      data: rows,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit)
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching residents:', error);
-    res.status(500).json({ error: 'Failed to fetch residents' });
-  }
-});
-
-// Templates routes
-app.get('/templates', verifyToken, checkRole(['admin', 'captain', 'secretary']), templateController.getAllTemplates);
-
-// Certificate types route (duplicate for non-API prefix)
-app.get('/certificate-types', async (req, res) => {
-  try {
-    const [rows] = await db.execute(`
-      SELECT
-        id,
-        name,
-        fee,
-        validity_days,
-        description,
-        purpose,
-        when_needed,
-        required_data
-      FROM certificate_types
-      WHERE is_active = TRUE
-      ORDER BY name
-    `);
-
-    console.log('Certificate types API called, found:', rows.length, 'types');
-
-    const certificateTypes = rows.map(type => ({
-      id: type.id,
-      label: type.name,
-      name: type.name,
-      fee: type.fee,
-      validity_days: type.validity_days,
-      description: type.description,
-      purpose: type.purpose,
-      when_needed: type.when_needed,
-      required_data: type.required_data ? JSON.parse(type.required_data) : [],
-      is_active: true
-    }));
-
-    res.json({
-      success: true,
-      data: certificateTypes
-    });
-  } catch (error) {
-    console.error('Error fetching certificate types:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch certificate types'
-    });
-  }
-});
-
-// Template stats route (duplicate for non-API prefix)
-app.get('/templates/stats', async (req, res) => {
-  console.log('=== TEMPLATE STATS ROUTE (non-API) CALLED ===');
-  console.log('Template controller exists:', typeof templateController !== 'undefined');
-  console.log('getTemplateStats exists:', typeof templateController?.getTemplateStats === 'function');
-
-  try {
-    if (typeof templateController?.getTemplateStats === 'function') {
-      console.log('Calling getTemplateStats method...');
-      await templateController.getTemplateStats(req, res);
-    } else {
-      console.log('ERROR: getTemplateStats method not found!');
-      res.status(500).json({
-        error: 'Template stats method not available',
-        controller_loaded: typeof templateController !== 'undefined',
-        method_exists: typeof templateController?.getTemplateStats === 'function'
-      });
-    }
-  } catch (error) {
-    console.log('ERROR in template stats route:', error);
-    res.status(500).json({
-      error: error.message,
-      stack: error.stack
-    });
-  }
-});
-
-// AI Patrol Suggestions route
-app.get('/ai/patrol-suggestions', async (req, res) => {
-  try {
-    // Get recent blotter data (last 30 days for better analysis)
-    const [blotterData] = await db.execute(`
-      SELECT b.*, s.name as sitio_name
-      FROM blotter b
-      LEFT JOIN sitios s ON b.Location_Sitio = s.name
-      WHERE b.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-      ORDER BY b.created_at DESC
-      LIMIT 50
-    `);
-
-    // Try AI service first
-    try {
-      const aiResponse = await proxyToAIService('/suggest-patrol', {
-        blotter_data: blotterData
-      });
-      res.json(aiResponse);
-    } catch (aiError) {
-      console.error('AI service error, using fallback:', aiError.message);
-
-      // Fallback mock response
-      const riskLevels = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-      const overallRisk = riskLevels[Math.floor(Math.random() * riskLevels.length)];
-
-      res.json({
-        overall_risk_level: overallRisk,
-        risk_assessment: {
-          total_incidents: blotterData.length,
-          high_risk_sitios: ['Batia Proper', 'Northville 5'],
-          peak_hours: '8PM-2AM',
-          trend: 'STABLE'
-        },
-        patrol_suggestions: [
-          'Increase patrol presence in Batia Proper during evening hours',
-          'Focus on theft prevention in Northville 5 commercial areas',
-          'Monitor noise complaints in residential zones',
-          'Establish additional checkpoints at high-traffic areas',
-          'Coordinate with local PNP for joint patrols'
-        ],
-        recommended_schedule: {
-          priority_areas: ['Batia Proper', 'Northville 5', 'St. Martha'],
-          suggested_tanods: 8,
-          shift_coverage: '18:00-06:00'
-        },
-        generated_at: new Date().toISOString(),
-        fallback: true
-      });
-    }
-  } catch (dbError) {
-    console.error('Database error in patrol suggestions:', dbError.message);
-
-    // Complete fallback when database is unavailable
-    res.json({
-      overall_risk_level: 'MEDIUM',
-      risk_assessment: {
-        total_incidents: 0,
-        high_risk_sitios: ['Batia Proper'],
-        peak_hours: '20:00-02:00',
-        trend: 'UNKNOWN'
-      },
-      patrol_suggestions: [
-        'Conduct regular evening patrols in main commercial areas',
-        'Monitor high-traffic zones for potential incidents',
-        'Establish community watch programs',
-        'Increase visibility in residential neighborhoods',
-        'Coordinate with local law enforcement'
-      ],
-      recommended_schedule: {
-        priority_areas: ['Batia Proper', 'Northville 5'],
-        suggested_tanods: 6,
-        shift_coverage: '19:00-05:00'
-      },
-      generated_at: new Date().toISOString(),
-      fallback: true,
-      db_error: true
-    });
-  }
-});
 
 // Firebase users route - REMOVED (MySQL-only authentication)
 
@@ -4213,7 +1771,7 @@ app.get('/auth/residency-verifications/pending', verifyToken, checkRole(['captai
     });
 
   } catch (error) {
-    console.error('Error fetching pending residency verifications:', error);
+    logger.error('Error fetching pending residency verifications', { error });
     res.status(500).json({
       success: false,
       message: 'Failed to fetch pending verifications'
@@ -4270,7 +1828,7 @@ app.put('/auth/residency-verifications/:request_id/review', verifyToken, checkRo
       );
 
       // Log the approval (optional - simplified)
-      console.log('✅ Residency verification approved:', request_id);
+      logger.info('Residency verification approved', { requestId: request_id });
 
       await connection.commit();
 
@@ -4301,7 +1859,7 @@ app.put('/auth/residency-verifications/:request_id/review', verifyToken, checkRo
 
   } catch (error) {
     await connection.rollback();
-    console.error('Error reviewing residency verification:', error);
+    logger.error('Error reviewing residency verification', { error });
     res.status(500).json({
       success: false,
       message: 'Failed to process verification review'
@@ -4311,167 +1869,15 @@ app.put('/auth/residency-verifications/:request_id/review', verifyToken, checkRo
   }
 });
 
-// AI Patrol Suggestions route (non-API prefix - this is what client is calling)
-app.get('/ai/patrol-suggestions', async (req, res) => {
-  try {
-    // Get recent blotter data (last 30 days for better analysis)
-    const [blotterData] = await db.execute(`
-      SELECT b.*, s.name as sitio_name
-      FROM blotter b
-      LEFT JOIN sitios s ON b.Location_Sitio = s.name
-      WHERE b.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-      ORDER BY b.created_at DESC
-      LIMIT 50
-    `);
 
-    // Try AI service first
-    try {
-      const aiResponse = await proxyToAIService('/suggest-patrol', {
-        blotter_data: blotterData
-      });
-      res.json(aiResponse);
-    } catch (aiError) {
-      console.error('AI service error, using fallback:', aiError.message);
 
-      // Fallback mock response
-      const riskLevels = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-      const overallRisk = riskLevels[Math.floor(Math.random() * riskLevels.length)];
-
-      res.json({
-        overall_risk_level: overallRisk,
-        risk_assessment: {
-          total_incidents: blotterData.length,
-          high_risk_sitios: ['Batia Proper', 'Northville 5'],
-          peak_hours: '8PM-2AM',
-          trend: 'STABLE'
-        },
-        patrol_suggestions: [
-          'Increase patrol presence in Batia Proper during evening hours',
-          'Focus on theft prevention in Northville 5 commercial areas',
-          'Monitor noise complaints in residential zones',
-          'Establish additional checkpoints at high-traffic areas',
-          'Coordinate with local PNP for joint patrols'
-        ],
-        recommended_schedule: {
-          priority_areas: ['Batia Proper', 'Northville 5', 'St. Martha'],
-          suggested_tanods: 8,
-          shift_coverage: '18:00-06:00'
-        },
-        generated_at: new Date().toISOString(),
-        fallback: true
-      });
-    }
-  } catch (dbError) {
-    console.error('Database error in patrol suggestions:', dbError.message);
-
-    // Complete fallback when database is unavailable
-    res.json({
-      overall_risk_level: 'MEDIUM',
-      risk_assessment: {
-        total_incidents: 0,
-        high_risk_sitios: ['Batia Proper'],
-        peak_hours: '20:00-02:00',
-        trend: 'UNKNOWN'
-      },
-      patrol_suggestions: [
-        'Conduct regular evening patrols in main commercial areas',
-        'Monitor high-traffic zones for potential incidents',
-        'Establish community watch programs',
-        'Increase visibility in residential neighborhoods',
-        'Coordinate with local law enforcement'
-      ],
-      recommended_schedule: {
-        priority_areas: ['Batia Proper', 'Northville 5'],
-        suggested_tanods: 6,
-        shift_coverage: '19:00-05:00'
-      },
-      generated_at: new Date().toISOString(),
-      fallback: true,
-      db_error: true
-    });
-  }
-});
-
-// Analytics dashboard summary route (non-API prefix)
-app.get('/analytics/dashboard-summary', async (req, res) => {
-  try {
-    const summary = await proxyToAIService('/analytics/dashboard-summary', {}, 'GET');
-    res.json(summary);
-  } catch (error) {
-    console.error('Analytics dashboard error, using fallback:', error.message);
-    // Fallback mock data
-    res.json({
-      total_incidents_30d: 28,
-      active_cases: 5,
-      high_risk_areas: ["Batia Proper", "Northville 5"],
-      trend_direction: "STABLE",
-      forecast_next_week: 8,
-      response_time_avg: "12 minutes",
-      coverage_percentage: 78,
-      generated_at: new Date().toISOString()
-    });
-  }
-});
-
-// Programs route (community events) - FIXED: MySQL-only authentication
-app.get('/programs', verifyToken, async (req, res) => {
-  try {
-    // Programs are public information for residents - no filtering needed
-    const [rows] = await db.execute(`
-      SELECT p.*,
-             s.name as sitio_name,
-             JSON_LENGTH(p.target_beneficiaries) as target_count
-      FROM community_programs p
-      LEFT JOIN sitios s ON p.sitio_id = s.id
-      ORDER BY p.program_date DESC, p.created_at DESC
-    `);
-    res.json(rows);
-  } catch (error) {
-    console.error('Error fetching programs:', error);
-    res.status(500).json({ error: 'Failed to fetch programs' });
-  }
-});
 
 // ==========================================
 // QR CODE & ID SYSTEM
 // ==========================================
 
 // Generate QR code for resident ID
-app.post('/api/residents/:id/generate-qr', async (req, res) => {
-  try {
-    const residentId = req.params.id;
-
-    // Generate unique QR code string
-    const qrString = `BARANGAY-ID-${residentId}-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
-
-    // Update resident with QR code
-    await db.execute(
-      'UPDATE residents SET qr_code_string = ? WHERE Resident_ID = ?',
-      [qrString, residentId]
-    );
-
-    // Get updated resident data
-    const [residents] = await db.execute(`
-      SELECT r.*, s.name as sitio_name
-      FROM residents r
-      LEFT JOIN households h ON r.Household_ID = h.Household_ID
-      LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      WHERE r.Resident_ID = ?
-    `, [residentId]);
-
-    res.json({
-      success: true,
-      qr_code: qrString,
-      resident: residents[0],
-      message: 'QR code generated successfully'
-    });
-  } catch (error) {
-    console.error('Error generating QR code:', error);
-    res.status(500).json({ error: 'Failed to generate QR code' });
-  }
-});
-
-// Generate QR code for certificate
+app.post('/api/residents/:id/generate-qr', residentController.generateQR);
 app.post('/api/certificates/:id/generate-qr', async (req, res) => {
   try {
     const certificateId = req.params.id;
@@ -4496,7 +1902,7 @@ app.post('/api/certificates/:id/generate-qr', async (req, res) => {
       message: 'QR code generated successfully'
     });
   } catch (error) {
-    console.error('Error generating certificate QR:', error);
+    logger.error('Error generating certificate QR', { error });
     res.status(500).json({ error: 'Failed to generate certificate QR' });
   }
 });
@@ -4567,7 +1973,7 @@ app.get('/verify-qr/:hash', async (req, res) => {
       }
     }
   } catch (error) {
-    console.error('Error verifying QR code:', error);
+    logger.error('Error verifying QR code', { error });
     res.status(500).json({
       status: 'ERROR',
       message: 'Verification service temporarily unavailable'
@@ -4593,7 +1999,7 @@ app.get('/api/programs', verifyToken, async (req, res) => {
     `);
     res.json(rows);
   } catch (error) {
-    console.error('Error fetching programs:', error);
+    logger.error('Error fetching programs', { error });
     res.status(500).json({ error: 'Failed to fetch programs' });
   }
 });
@@ -4628,7 +2034,7 @@ app.post('/api/programs', verifyToken, checkRole(['admin', 'captain', 'secretary
       message: 'Community program created successfully'
     });
   } catch (error) {
-    console.error('Error creating program:', error);
+    logger.error('Error creating program', { error });
     res.status(500).json({ error: 'Failed to create program' });
   }
 });
@@ -4666,7 +2072,7 @@ app.put('/api/programs/:id', verifyToken, checkRole(['admin', 'captain', 'secret
 
     res.json({ message: 'Program updated successfully' });
   } catch (error) {
-    console.error('Error updating program:', error);
+    logger.error('Error updating program', { error });
     res.status(500).json({ error: 'Failed to update program' });
   }
 });
@@ -4699,7 +2105,7 @@ app.post('/api/programs/:id/add-participant', async (req, res) => {
 
     res.json({ message: 'Participant added successfully' });
   } catch (error) {
-    console.error('Error adding participant:', error);
+    logger.error('Error adding participant', { error });
     res.status(500).json({ error: 'Failed to add participant' });
   }
 });
@@ -4710,9 +2116,9 @@ app.post('/api/programs/:id/add-participant', async (req, res) => {
 
 // SMS stub function (ready for Twilio/Semaphore integration)
 function sendSMS(mobile, message) {
-  // For now, just log the SMS (replace with actual SMS service)
+  // SMS stub function (ready for Twilio/Semaphore integration)
   const timestamp = new Date().toISOString();
-  console.log(`📱 [${timestamp}] SMS to ${mobile}: ${message}`);
+  logger.info('SMS sent', { mobile, message, timestamp });
 
   // TODO: Integrate with actual SMS service
   // Example with Twilio:
@@ -4765,7 +2171,7 @@ app.post('/api/sms/send', async (req, res) => {
       message: 'SMS notification sent successfully'
     });
   } catch (error) {
-    console.error('Error sending SMS:', error);
+    logger.error('Error sending SMS', { error });
     res.status(500).json({ error: 'Failed to send SMS' });
   }
 });
@@ -4825,7 +2231,7 @@ app.post('/api/programs/:id/notify-participants', async (req, res) => {
       message: `SMS notifications sent to ${smsResults.length} participants`
     });
   } catch (error) {
-    console.error('Error sending bulk SMS:', error);
+    logger.error('Error sending bulk SMS', { error });
     res.status(500).json({ error: 'Failed to send bulk SMS' });
   }
 });
@@ -4933,7 +2339,7 @@ app.get('/generate-clearance/:residentId', verifyToken, async (req, res) => {
     doc.end();
 
   } catch (error) {
-    console.error('Error generating PDF:', error);
+    logger.error('Error generating PDF', { error });
     res.status(500).json({ error: 'Failed to generate certificate' });
   }
 });
@@ -4967,7 +2373,7 @@ app.get('/api/notifications/poll', verifyToken, async (req, res) => {
       hasUnread: recentNotifications.some(n => !n.read)
     });
   } catch (error) {
-    console.error('Error polling notifications:', error);
+    logger.error('Error polling notifications', { error });
     res.status(500).json({ error: 'Failed to poll notifications' });
   }
 });
@@ -4981,11 +2387,12 @@ const startServer = async () => {
   const isRailway = process.env.RAILWAY_STATIC_URL !== undefined;
   const enableHTTPS = !isRailway && (process.env.NODE_ENV === 'production' || process.env.ENABLE_HTTPS === 'true');
 
-  console.log('🔧 Server Configuration:');
-  console.log('   NODE_ENV:', process.env.NODE_ENV);
-  console.log('   ENABLE_HTTPS:', process.env.ENABLE_HTTPS);
-  console.log('   isRailway:', isRailway);
-  console.log('   HTTPS enabled:', enableHTTPS);
+  logger.info('Server Configuration', {
+    nodeEnv: process.env.NODE_ENV,
+    enableHttps: process.env.ENABLE_HTTPS,
+    isRailway,
+    httpsEnabled: enableHTTPS
+  });
 
   // Start server (HTTP or HTTPS based on configuration)
   let server;
@@ -4993,11 +2400,11 @@ const startServer = async () => {
   // For Railway deployments, always use HTTP only
   if (isRailway) {
     server = app.listen(port, () => {
-      console.log(`🚢 Railway HTTP Server started on port ${port}`);
-      console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
-      console.log(`🤖 AI Service: ${process.env.AI_SERVICE_URL || 'http://localhost:5000'}`);
-      console.log(`🔍 QR Verification: http://localhost:${port}/verify-qr/{hash}`);
-      console.log(`🔔 Real-time Notifications: WebSocket enabled`);
+      logger.info('Railway HTTP Server started', {
+        port,
+        database: process.env.DB_NAME || 'barangay_management',
+        aiService: process.env.AI_SERVICE_URL || 'http://localhost:5000'
+      });
     });
   } else if (enableHTTPS) {
     // HTTPS server with SSL certificates
@@ -5006,33 +2413,32 @@ const startServer = async () => {
     if (httpsOptions) {
       const https = require('https');
       server = https.createServer(httpsOptions, app).listen(port, () => {
-        console.log('🔒 HTTPS server enabled with SSL certificates');
-        console.log(`🚀 Barangay Management Server running on https://localhost:${port}`);
-        console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
-        console.log(`🤖 AI Service: ${process.env.AI_SERVICE_URL || 'http://localhost:5000'}`);
-        console.log(`🔍 QR Verification: https://localhost:${port}/verify-qr/{hash}`);
-        console.log(`🔔 Real-time Notifications: WebSocket enabled`);
+        logger.info('HTTPS server enabled with SSL certificates', {
+          port,
+          database: process.env.DB_NAME || 'barangay_management',
+          aiService: process.env.AI_SERVICE_URL || 'http://localhost:5000'
+        });
       });
     } else {
-      console.log('⚠️ HTTPS requested but SSL certificates not available, falling back to HTTP');
+      logger.warn('HTTPS requested but SSL certificates not available, falling back to HTTP');
       server = app.listen(port, () => {
-        console.log(`🚀 Barangay Management Server running on http://localhost:${port}`);
-        console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
-        console.log(`🤖 AI Service: ${process.env.AI_SERVICE_URL || 'http://localhost:5000'}`);
-        console.log(`🔍 QR Verification: http://localhost:${port}/verify-qr/{hash}`);
-        console.log('⚠️  WARNING: Running on HTTP (not secure) - set NODE_ENV=production or ENABLE_HTTPS=true for HTTPS');
-        console.log(`🔔 Real-time Notifications: WebSocket enabled`);
+        logger.info('HTTP Server started (fallback)', {
+          port,
+          database: process.env.DB_NAME || 'barangay_management',
+          aiService: process.env.AI_SERVICE_URL || 'http://localhost:5000',
+          warning: 'Running on HTTP (not secure)'
+        });
       });
     }
   } else {
     // HTTP server for development
     server = app.listen(port, () => {
-      console.log(`🚀 Barangay Management Server running on http://localhost:${port}`);
-      console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
-      console.log(`🤖 AI Service: ${process.env.AI_SERVICE_URL || 'http://localhost:5000'}`);
-      console.log(`🔍 QR Verification: http://localhost:${port}/verify-qr/{hash}`);
-      console.log('⚠️  WARNING: Running on HTTP (not secure) - set NODE_ENV=production or ENABLE_HTTPS=true for HTTPS');
-      console.log(`🔔 Real-time Notifications: WebSocket enabled`);
+      logger.info('HTTP Server started (development)', {
+        port,
+        database: process.env.DB_NAME || 'barangay_management',
+        aiService: process.env.AI_SERVICE_URL || 'http://localhost:5000',
+        warning: 'Running on HTTP (not secure)'
+      });
     });
   }
 

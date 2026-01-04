@@ -137,7 +137,7 @@ const ResidentSettings = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3001/api/auth/profile', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -205,7 +205,7 @@ const ResidentSettings = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3001/api/auth/change-password', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/change-password`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -392,7 +392,7 @@ const ResidentSettings = ({ user }) => {
                   setVerificationLoading(true);
                   try {
                     const token = localStorage.getItem('authToken');
-                    const response = await fetch('http://localhost:3001/api/auth/verify-email-for-residency', {
+                    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/verify-email-for-residency`, {
                       method: 'POST',
                       headers: {
                         'Authorization': `Bearer ${token}`,
@@ -608,7 +608,7 @@ const ResidentSettings = ({ user }) => {
                           formData.append('notes', residencyVerification.notes);
                           formData.append('proof_document', residencyVerification.selectedFile);
 
-                          const response = await fetch('http://localhost:3001/api/auth/submit-residency-verification', {
+                          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/submit-residency-verification`, {
                             method: 'POST',
                             headers: {
                               'Authorization': `Bearer ${token}`
