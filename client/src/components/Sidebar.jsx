@@ -94,15 +94,19 @@ const Sidebar = () => {
       description: 'AI Analytics',
       badge: 'AI',
       roles: [2, 3, 4, 5, 6, 12]
-    },
-    {
+    }
+  ]
+
+  // SECURITY FIX: Settings only visible to admin (role 5)
+  if (user && Number(user.role) === 5) {
+    allMenuItems.push({
       text: 'Settings',
       icon: <Settings />,
       path: '/settings',
       description: 'System Configuration',
       roles: [5]
-    }
-  ]
+    })
+  }
 
   const menuItems = allMenuItems.filter(item => {
     if (!user || !user.role) return false

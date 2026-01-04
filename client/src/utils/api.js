@@ -1,7 +1,8 @@
 // API utility functions with authentication
 
-// Dynamic API base URL - supports development and production
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+// CONFIG FIX: Remove hardcoded URLs - use environment variable with fallback
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  import.meta.env.VITE_API_BASE_URL || 
   (import.meta.env.DEV ? 'http://localhost:3001/api' : '/api');
 
 // Get auth token from localStorage - unified JWT authentication

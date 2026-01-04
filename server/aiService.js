@@ -1,3 +1,6 @@
+const { spawn } = require('child_process');
+const path = require('path');
+
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:5000';
 
 /**
@@ -32,6 +35,40 @@ async function callPythonAI(residentData) {
       data: fallbackResult
     };
   }
+}
+
+/**
+ * STABILITY FIX: Spawn Python AI service with proper error handling
+ * @returns {Promise<Object>} Spawned process or error
+ */
+function spawnAIService() {
+  return new Promise((resolve, reject) => {
+    try {
+      // Fix path to point to sibling ai_service folder
+      const aiServicePath = path.join(__dirname, '..', 'ai_service', 'smart_suggestions.py');
+      
+      const pythonProcess = spawn('python', [aiServicePath]);
+
+      // Add error listener to prevent crashes
+      pythonProcess.on('error', (error) => {
+        console.error('❌ Failed to start Python AI service:', error.message);
+        reject(new Error(`Python service failed to start: ${error.message}`));
+      });
+
+      pythonProcess.on('spawn', () => {
+        console.log('✅ Python AI service spawned successfully');
+        resolve(pythonProcess);
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+        console.error('Python AI service error:', data.toString());
+      });
+
+    } catch (error) {
+      console.error('❌ Error spawning AI service:', error.message);
+      reject(error);
+    }
+  });
 }
 
 /**
@@ -118,5 +155,6 @@ module.exports = {
   callPythonAI,
   checkAIServiceHealth,
   calculateFallbackPriority,
-  generateNarrative
+  generateNarrative,
+  spawnAIService
 };

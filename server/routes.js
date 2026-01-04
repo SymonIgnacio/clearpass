@@ -108,8 +108,13 @@ const { asyncHandler } = require('./middleware/errorHandler');
  *               $ref: '#/components/schemas/Error'
  */
 router.post('/auth/officer-login', validateLogin, authController.login);
-// SECURITY: Public registration disabled per business rules - only admin can create users
-// router.post('/auth/register', verifyToken, validateRegister, authController.register);
+// SECURITY CRITICAL: Public registration completely disabled - only admin can create users via database
+router.post('/auth/register', (req, res) => {
+    res.status(403).json({ 
+        success: false, 
+        message: 'Public registration is disabled. Contact administrator for account creation.' 
+    });
+});
 router.post('/auth/resident/login', validateLogin, authController.login);
 
 // Note: Resident Signup is DISABLED per security policy.

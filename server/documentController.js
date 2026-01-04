@@ -155,12 +155,16 @@ class DocumentController {
         });
       }
 
-      // THEMIS CLEARPASS: Auto-block logic - Check for active blotter cases
-      const hasActiveBlotter = await this.checkClearPassBlock(resident_id);
-      if (hasActiveBlotter) {
+      // BUSINESS LOGIC FIX: Blotter Block - Check for active/pending blotter cases BEFORE proceeding
+      const [blotterCheck] = await knex('blotter')
+        .count('* as total')
+        .where('respondent_id', resident_id)
+        .whereIn('Status', ['Active', 'Pending', 'Ongoing']);
+
+      if (blotterCheck[0].total > 0) {
         return res.status(403).json({
           success: false,
-          message: 'Derogatory Record Found - Cannot issue clearance. Resident has active blotter cases.',
+          message: 'Certificate request blocked. Resident has active or pending blotter cases.',
           clearpass_status: 'BLOCKED',
           reason: 'Active blotter record found'
         });
