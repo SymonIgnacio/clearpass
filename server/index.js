@@ -49,13 +49,14 @@ validateEnvironmentVariables();
 
 // Import authentication system
 const authController = require('./controllers/authController');
-// const clerkController = require('./clerkController');
+const { ROLES } = require('./config/roles');
 const {
   verifyToken,
   checkRole,
   checkHierarchyAccess,
   checkOwnershipOrHierarchy
 } = require('./middleware/authMiddleware');
+const { errorHandler: globalErrorHandler } = require('./middleware/errorHandler');
 
 // Import JWT middleware for document requests
 const { verifyToken: verifyTokenJWT } = require('./jwtMiddleware');
@@ -340,26 +341,12 @@ app.use((req, res, next) => {
 
 // Import organized routes
 const themisRoutes = require('./routes');
-const adminRoutes = require('./routes/adminRoutes')(db);
-const residentRoutes = require('./routes/residentRoutes')(db);
-const certificateRoutes = require('./routes/certificateRoutes')(db);
-const blotterRoutes = require('./routes/blotterRoutes')(db);
-const censusRoutes = require('./routes/censusRoutes')(db);
-const userRoutes = require('./routes/userRoutes')(db);
 
 // Apply strict auth rate limiting to authentication endpoints
 app.use('/api/auth', authLimiter);
 
 // Mount THEMIS ClearPass role-based routes at /api
 app.use('/api', themisRoutes);
-
-// Mount modular routes
-app.use('/api/admin', adminRoutes);
-app.use('/api/residents', residentRoutes);
-app.use('/api/certificates', certificateRoutes);
-app.use('/api/blotter', blotterRoutes);
-app.use('/api/census', censusRoutes);
-app.use('/api/users', userRoutes);
 
 // DEBUG: Direct admin route test
 app.get('/api/admin/test', (req, res) => {
@@ -1410,7 +1397,24 @@ async function initializeDatabase() {
 }
 
 // Initialize database on startup
-initializeDatabase();
+initializeDatabase().then(() => {
+  // Mount modular routes AFTER database is initialized
+  const adminRoutes = require('./routes/adminRoutes')(db);
+  const residentRoutes = require('./routes/residentRoutes')(db);
+  const certificateRoutes = require('./routes/certificateRoutes')(db);
+  const blotterRoutes = require('./routes/blotterRoutes')(db);
+  const censusRoutes = require('./routes/censusRoutes')(db);
+  const userRoutes = require('./routes/userRoutes')(db);
+
+  app.use('/api/admin', adminRoutes);
+  app.use('/api/residents', residentRoutes);
+  app.use('/api/certificates', certificateRoutes);
+  app.use('/api/blotter', blotterRoutes);
+  app.use('/api/census', censusRoutes);
+  app.use('/api/users', userRoutes);
+  
+  console.log('✅ Modular routes mounted successfully');
+});
 
 // Utility function to calculate age
 function calculateAge(birthdate) {
@@ -1713,35 +1717,21 @@ console.log('🔧 [Route Registration] Authentication routes registered successf
 // Residency verification submission - REMOVED (Firebase legacy)
 // Residency verification status - REMOVED (Firebase legacy)
 
-// Protected auth routes (use Firebase middleware for residents, JWT for staff)
-// Check user auth type and route accordingly
-app.get('/api/auth/profile', (req, res, next) => {
-  // Check for resident Firebase token first
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.split('Bearer ')[1];
-    // Check if it looks like a Firebase ID token (longer than typical JWT)
-    if (token && token.length > 500) {
-      return verifyFirebaseToken(req, res, next); // Resident path
+// Protected auth routes (JWT only)
+app.get('/api/auth/profile', verifyToken, (req, res) => { 
+  res.json({ 
+    user: {
+      id: req.user.id,
+      username: req.user.username,
+      role: req.user.role,
+      role_id: req.user.role_id
     }
-  }
-  // Default to JWT verification for staff
-  return verifyToken(req, res, next);
-}, (req, res) => { res.json({ message: 'Profile temporarily disabled' }); });
+  }); 
+});
 
-app.put('/api/auth/profile', (req, res, next) => {
-  // Check for resident Firebase token first
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.split('Bearer ')[1];
-    // Check if it looks like a Firebase ID token (longer than typical JWT)
-    if (token && token.length > 500) {
-      return verifyFirebaseToken(req, res, next); // Resident path
-    }
-  }
-  // Default to JWT verification for staff
-  return verifyToken(req, res, next);
-}, (req, res) => { res.json({ message: 'Update profile temporarily disabled' }); });
+app.put('/api/auth/profile', verifyToken, (req, res) => { 
+  res.json({ message: 'Update profile temporarily disabled' }); 
+});
 
 app.get('/api/auth/subordinates', verifyToken, (req, res) => { res.json({ message: 'Subordinates temporarily disabled' }); });
 
@@ -3011,40 +3001,24 @@ app.get('/api/templates/stats', async (req, res) => {
 
 
 
-// Get all certificates (supports both resident and staff with dynamic auth)
-app.get('/api/certificates', (req, res, next) => {
-  // Check for resident Firebase token first
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.split('Bearer ')[1];
-    // Check if it looks like a Firebase ID token (longer than typical JWT)
-    if (token && token.length > 500) {
-      return verifyFirebaseToken(req, res, next); // Resident path
-    }
-  }
-  // Default to JWT verification for staff (unrestricted access)
-  return verifyToken(req, res, next);
-}, async (req, res) => {
+// Get all certificates (JWT authentication only)
+app.get('/api/certificates', verifyToken, async (req, res) => {
   try {
-    // Check if user is a resident (Firebase authenticated)
-    const isResident = req.firebaseUser ? true : false;
+    // Check if user is a resident (role-based access)
+    const isResident = req.user.role_id === ROLES.RESIDENT;
 
     let query, values;
 
-    if (isResident && req.firebaseUser) {
+    if (isResident) {
       // Resident can only see their own certificates
       query = `
         SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
         FROM certificates_log c
         JOIN residents r ON c.resident_id = r.Resident_ID
-        WHERE EXISTS (
-          SELECT 1 FROM users u
-          WHERE u.resident_id = r.Resident_ID
-          AND u.firebase_uid = ?
-        )
+        WHERE r.Resident_ID = ?
         ORDER BY c.created_at DESC
       `;
-      values = [req.firebaseUser.uid];
+      values = [req.user.id];
     } else {
       // Staff can see all certificates
       query = `
@@ -3057,20 +3031,10 @@ app.get('/api/certificates', (req, res, next) => {
     }
 
     const [rows] = await db.execute(query, values);
-
-    // Ensure we always return valid JSON array, never empty/null
-    const certificates = rows || [];
-    console.log(`Certificates API: Returning ${certificates.length} certificates for ${isResident ? 'resident' : 'staff'}`);
-
-    res.json(certificates);
+    res.json(rows);
   } catch (error) {
     console.error('Error fetching certificates:', error);
-    // Return valid JSON error response
-    res.status(500).json({
-      error: 'Failed to fetch certificates',
-      message: 'Database query failed',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    res.status(500).json({ error: 'Failed to fetch certificates' });
   }
 });
 
@@ -4978,7 +4942,7 @@ app.get('/generate-clearance/:residentId', verifyToken, async (req, res) => {
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Add error handling middleware
-app.use(errorHandler);
+app.use(globalErrorHandler);
 
 // ==========================================
 // NOTIFICATION REST ENDPOINTS

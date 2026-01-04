@@ -23,7 +23,7 @@ const verifyRole = (allowedRoles) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!allowedRoles.includes(req.user.role_id)) {
       return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
     }
 
@@ -31,4 +31,24 @@ const verifyRole = (allowedRoles) => {
   };
 };
 
-module.exports = { verifyToken, verifyRole };
+// Alias for backward compatibility
+const checkRole = verifyRole;
+
+// Placeholder functions for hierarchy access (to be implemented)
+const checkHierarchyAccess = (req, res, next) => {
+  // TODO: Implement hierarchy-based access control
+  next();
+};
+
+const checkOwnershipOrHierarchy = (req, res, next) => {
+  // TODO: Implement ownership or hierarchy-based access control
+  next();
+};
+
+module.exports = { 
+  verifyToken, 
+  verifyRole, 
+  checkRole, 
+  checkHierarchyAccess, 
+  checkOwnershipOrHierarchy 
+};

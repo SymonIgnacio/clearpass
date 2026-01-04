@@ -44,7 +44,7 @@ async function getResidents() {
     `);
     return rows;
   } finally {
-    await connection.end();
+    connection.release();
   }
 }
 
@@ -62,7 +62,7 @@ async function getBlotterRecords() {
     `);
     return rows;
   } finally {
-    await connection.end();
+    connection.release();
   }
 }
 
@@ -75,7 +75,7 @@ async function getCertificateTypes() {
     `);
     return rows;
   } finally {
-    await connection.end();
+    connection.release();
   }
 }
 
@@ -93,7 +93,7 @@ async function getCertificates() {
     `);
     return rows;
   } finally {
-    await connection.end();
+    connection.release();
   }
 }
 
@@ -118,7 +118,7 @@ async function checkBlotterStatus(residentId) {
       incidentTypes: rows[0].incident_types
     };
   } finally {
-    await connection.end();
+    connection.release();
   }
 }
 
@@ -138,7 +138,7 @@ async function getDashboardStats() {
       totalSitios: sitios[0].total
     };
   } finally {
-    await connection.end();
+    connection.release();
   }
 }
 
@@ -155,7 +155,6 @@ async function createCertificate(certificateData) {
       fee_amount
     } = certificateData;
 
-    // Generate a unique control number
     const control_no = `CERT-${Date.now()}`;
     const date_issued = new Date();
 
@@ -182,7 +181,7 @@ async function createCertificate(certificateData) {
     const [rows] = await connection.execute('SELECT * FROM certificates_log WHERE control_no = ?', [control_no]);
     return rows[0];
   } finally {
-    await connection.end();
+    connection.release();
   }
 }
 
@@ -202,7 +201,6 @@ async function createBlotterRecord(blotterData) {
       recorded_by
     } = blotterData;
 
-    // Generate unique case number
     const case_number = `BLOT-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
 
     const [result] = await connection.execute(`
@@ -225,7 +223,7 @@ async function createBlotterRecord(blotterData) {
     const [rows] = await connection.execute('SELECT * FROM blotter WHERE Case_Number = ?', [case_number]);
     return rows[0];
   } finally {
-    await connection.end();
+    connection.release();
   }
 }
 
@@ -257,7 +255,7 @@ async function updateBlotterRecord(caseNumber, updates) {
     const [rows] = await connection.execute('SELECT * FROM blotter WHERE Case_Number = ?', [caseNumber]);
     return rows[0];
   } finally {
-    await connection.end();
+    connection.release();
   }
 }
 
@@ -268,7 +266,7 @@ async function deleteBlotterRecord(caseNumber) {
     await connection.execute('DELETE FROM blotter WHERE Case_Number = ?', [caseNumber]);
     return { success: true, message: 'Blotter record deleted' };
   } finally {
-    await connection.end();
+    connection.release();
   }
 }
 
@@ -296,7 +294,6 @@ async function getCensusStatistics() {
       ORDER BY s.name
     `);
 
-    // Get overall totals
     const [totals] = await connection.execute(`
       SELECT
         COUNT(*) as total_residents,
@@ -307,7 +304,6 @@ async function getCensusStatistics() {
       WHERE Residency_Status = 'Active'
     `);
 
-    // Get vulnerability totals separately
     const [vulnerabilities] = await connection.execute(`
       SELECT
         SUM(CASE WHEN Is_Senior = TRUE THEN 1 ELSE 0 END) as total_seniors,
@@ -322,7 +318,7 @@ async function getCensusStatistics() {
       overall: { ...totals[0], ...vulnerabilities[0] }
     };
   } finally {
-    await connection.end();
+    connection.release();
   }
 }
 
@@ -352,7 +348,7 @@ async function getSitioCensus(sitioId) {
 
     return stats[0] || null;
   } finally {
-    await connection.end();
+    connection.release();
   }
 }
 

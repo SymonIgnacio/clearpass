@@ -1,15 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const mysql = require('mysql2/promise');
+const db = require('../database');
 require('dotenv').config();
-
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'bmw_barangay_batia',
-  port: process.env.DB_PORT || 3306
-};
 
 const login = async (req, res) => {
   try {
@@ -19,17 +11,13 @@ const login = async (req, res) => {
       return res.status(400).json({ error: 'Username and password required' });
     }
 
-    const connection = await mysql.createConnection(dbConfig);
-
-    const [users] = await connection.execute(
+    const [users] = await db.execute(
       `SELECT u.*, r.role_name, r.hierarchy_level, r.permissions 
        FROM users u 
        LEFT JOIN roles r ON u.role_id = r.id 
        WHERE u.username = ? AND u.is_active = TRUE`,
       [username]
     );
-
-    await connection.end();
 
     if (users.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -87,27 +75,22 @@ const register = async (req, res) => {
       return res.status(400).json({ error: 'Username, password, and role required' });
     }
 
-    const connection = await mysql.createConnection(dbConfig);
-
-    const [existing] = await connection.execute(
+    const [existing] = await db.execute(
       'SELECT id FROM users WHERE username = ?',
       [username]
     );
 
     if (existing.length > 0) {
-      await connection.end();
       return res.status(409).json({ error: 'Username already exists' });
     }
 
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
 
-    await connection.execute(
+    await db.execute(
       'INSERT INTO users (username, password_hash, email, full_name, role_id) VALUES (?, ?, ?, ?, ?)',
       [username, password_hash, email, full_name, role_id]
     );
-
-    await connection.end();
 
     res.status(201).json({ success: true, message: 'User created successfully' });
 
