@@ -525,6 +525,46 @@ async function getResidentBlotterHistory(req, res) {
   }
 }
 
+// RESIDENT ONLINE FILING - Role 4 Requirement
+async function fileOnline(req, res) {
+  const knex = getKnex();
+  const trx = await knex.transaction();
+
+  try {
+    const residentId = req.user.id;
+    const { incident_type, location, date_time, description } = req.body;
+
+    console.log(`📝 RESIDENT FILING: Online complaint from resident ${residentId}`);
+
+    const caseNumber = `BLOT-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 9999) + 1).padStart(4, '0')}`;
+
+    await trx('blotter').insert({
+      Case_Number: caseNumber,
+      Complainant_Details: JSON.stringify({ resident_id: residentId }),
+      Respondent_Details: JSON.stringify({}),
+      Incident_Type: incident_type,
+      Narrative: description,
+      DateTime_Incident: date_time,
+      Location_Sitio: location,
+      Status: 'Pending',
+      created_at: trx.fn.now(),
+      updated_at: trx.fn.now()
+    });
+
+    await trx.commit();
+
+    res.status(201).json({
+      success: true,
+      case_number: caseNumber,
+      message: 'Complaint filed successfully. Our officers will review your case.'
+    });
+  } catch (error) {
+    await trx.rollback();
+    console.error('Online filing error:', error);
+    res.status(500).json({ error: 'Failed to file complaint', details: error.message });
+  }
+}
+
 module.exports = {
   createCase,
   updateCaseStatus,
@@ -532,5 +572,6 @@ module.exports = {
   generateMonthlyReport,
   deleteCase,
   getHotspotAnalytics,
-  getResidentBlotterHistory
+  getResidentBlotterHistory,
+  fileOnline
 };

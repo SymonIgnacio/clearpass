@@ -15,6 +15,10 @@ import CommunityEvents from './pages/CommunityEvents'
 import Settings from './pages/Settings'
 import SuperAdminSettings from './pages/SuperAdminSettings'
 import ResidentSettings from './pages/ResidentSettings'
+import ResidentBlotterReport from './pages/ResidentBlotterReport'
+import SystemLogs from './pages/admin/SystemLogs'
+import Backup from './pages/admin/Backup'
+import AIAnalytics from './pages/admin/AIAnalytics'
 
 import Unauthorized from './pages/Unauthorized'
 import Login from './pages/Login'
@@ -359,6 +363,30 @@ function App() {
             <Route path="ai-dashboard" element={<AIPatrol />} />
             <Route path="ai-patrol" element={<AIPatrol />} />
             <Route path="ronda-analytics" element={<RondaAnalytics />} />
+
+            {/* Resident Routes */}
+            <Route path="resident/blotter-report" element={
+              <ProtectedRoute requiredRoles={[12]}>
+                <ResidentBlotterReport />
+              </ProtectedRoute>
+            } />
+
+            {/* Admin Routes - IT Admin Only */}
+            <Route path="admin/system-logs" element={
+              <ProtectedRoute requiredRoles={[5]}>
+                <SystemLogs />
+              </ProtectedRoute>
+            } />
+            <Route path="admin/backup" element={
+              <ProtectedRoute requiredRoles={[5]}>
+                <Backup />
+              </ProtectedRoute>
+            } />
+            <Route path="admin/ai-analytics" element={
+              <ProtectedRoute requiredRoles={[5]}>
+                <AIAnalytics />
+              </ProtectedRoute>
+            } />
 
                 {/* Backward compatibility redirects */}
                 <Route path="certificates" element={<Navigate to="documents" replace />} />
