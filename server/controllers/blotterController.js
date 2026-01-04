@@ -15,6 +15,11 @@ exports.getAll = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
+  // SECURITY PATCH: Captain Role Read-Only Enforcement
+  if (req.user && (req.user.role_id === 5 || req.user.role === 'Captain')) {
+    return res.status(403).json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
+  }
+
   const db = req.app.locals.db;
   try {
     const { Case_Number, Complainant_Details, Respondent_Details, respondent_id, Incident_Type, Narrative, DateTime_Incident, Location_Sitio, Status } = req.body;
@@ -52,6 +57,11 @@ exports.create = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
+  // SECURITY PATCH: Captain Role Read-Only Enforcement
+  if (req.user && (req.user.role_id === 5 || req.user.role === 'Captain')) {
+    return res.status(403).json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
+  }
+
   const db = req.app.locals.db;
   try {
     const { Complainant_Details, Respondent_Details, Incident_Type, Narrative, DateTime_Incident, Location_Sitio, Status, Hearing_Schedule } = req.body;
@@ -84,6 +94,11 @@ exports.update = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
+  // SECURITY PATCH: Captain Role Read-Only Enforcement
+  if (req.user && (req.user.role_id === 5 || req.user.role === 'Captain')) {
+    return res.status(403).json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
+  }
+
   const db = req.app.locals.db;
   try {
     await db.execute('DELETE FROM blotter WHERE Case_Number = ?', [req.params.caseNumber]);
