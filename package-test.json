@@ -1,0 +1,13 @@
+{
+  "name": "test-runner",
+  "version": "1.0.0",
+  "description": "Automated test execution for Themis BioProfiling",
+  "scripts": {
+    "test:all": "cd server && npm test",
+    "test:security": "cd server && npm test -- --testPathPattern=system-comprehensive.test.js",
+    "test:watch": "cd server && npm run test:watch",
+    "test:coverage": "cd server && npm test -- --coverage",
+    "test:verbose": "cd server && npm test -- --verbose",
+    "test:quick": "cd server && npm test -- --testPathPattern=system-comprehensive.test.js --verbose"
+  }
+}

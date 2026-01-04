@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { ROLES } = require('../config/roles');
 require('dotenv').config();
 
 const verifyToken = (req, res, next) => {
@@ -17,13 +18,28 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-const verifyRole = (allowedRoles) => {
+// Updated to handle both string and numeric role checking
+const checkRole = (allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    if (!allowedRoles.includes(req.user.role_id)) {
+    // Convert string roles to numeric IDs for consistency
+    const roleMap = {
+      'admin': ROLES.ADMIN,
+      'captain': ROLES.CAPTAIN,
+      'secretary': ROLES.SECRETARY,
+      'clerk': ROLES.CLERK,
+      'blotter_officer': ROLES.BLOTTER_OFFICER,
+      'resident': ROLES.RESIDENT
+    };
+
+    const allowedRoleIds = allowedRoles.map(role => 
+      typeof role === 'string' ? roleMap[role.toLowerCase()] : role
+    ).filter(Boolean);
+
+    if (!allowedRoleIds.includes(req.user.role_id)) {
       return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
     }
 
@@ -32,7 +48,7 @@ const verifyRole = (allowedRoles) => {
 };
 
 // Alias for backward compatibility
-const checkRole = verifyRole;
+const verifyRole = checkRole;
 
 // Placeholder functions for hierarchy access (to be implemented)
 const checkHierarchyAccess = (req, res, next) => {
@@ -45,10 +61,14 @@ const checkOwnershipOrHierarchy = (req, res, next) => {
   next();
 };
 
+// For routes that need authentication but no specific role
+const authenticate = verifyToken;
+
 module.exports = { 
   verifyToken, 
   verifyRole, 
   checkRole, 
+  authenticate,
   checkHierarchyAccess, 
   checkOwnershipOrHierarchy 
 };

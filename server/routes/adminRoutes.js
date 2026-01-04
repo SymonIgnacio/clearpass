@@ -2,17 +2,32 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { ROLES } = require('../config/roles');
+const adminController = require('../controllers/adminController');
 
 module.exports = (db) => {
-  router.get('/reports/users', verifyToken, checkRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
-    const [userStats] = await db.execute(`SELECT COUNT(*) as total_users FROM users`);
-    res.json({ user_statistics: userStats[0], generated_at: new Date().toISOString() });
-  }));
-
-  router.get('/reports/blotter', verifyToken, checkRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
-    const [blotterStats] = await db.execute(`SELECT COUNT(*) as total_cases FROM blotter`);
-    res.json({ blotter_statistics: blotterStats[0], generated_at: new Date().toISOString() });
+  // GET user reports
+  router.get('/reports/users', verifyToken, checkRole(['admin']), asyncHandler(adminController.getUsersReport));
+  
+  // GET blotter reports
+  router.get('/reports/blotter', verifyToken, checkRole(['admin']), asyncHandler(adminController.getBlotterReport));
+  
+  // GET certificate reports
+  router.get('/reports/certificates', verifyToken, checkRole(['admin']), asyncHandler(adminController.getCertificatesReport));
+  
+  // GET system statistics
+  router.get('/stats', verifyToken, checkRole(['admin', 'captain']), asyncHandler(async (req, res) => {
+    const [residents] = await db.execute('SELECT COUNT(*) as total FROM residents WHERE Residency_Status = "Active"');
+    const [certificates] = await db.execute('SELECT COUNT(*) as total FROM certificates_log');
+    const [blotter] = await db.execute('SELECT COUNT(*) as total FROM blotter');
+    const [users] = await db.execute('SELECT COUNT(*) as total FROM users');
+    
+    res.json({
+      residents: residents[0].total,
+      certificates: certificates[0].total,
+      blotter_cases: blotter[0].total,
+      users: users[0].total,
+      generated_at: new Date().toISOString()
+    });
   }));
 
   return router;

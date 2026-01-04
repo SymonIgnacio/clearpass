@@ -14,7 +14,11 @@
     "format:check": "prettier --check .",
     "lint:fix:format": "npm run lint:fix && npm run format",
     "security-audit": "npm audit --audit-level high",
-    "security-check": "snyk test || echo 'Snyk not configured'"
+    "security-check": "snyk test || echo 'Snyk not configured'",
+    "db:audit": "node ../scripts/database/audit_schema.js",
+    "db:migrate": "node ../scripts/database/migrate.js",
+    "validate-env": "node ../scripts/validate-env.js",
+    "setup-env": "node ../scripts/validate-env.js generate"
   },
   "keywords": [
     "barangay",
@@ -45,6 +49,7 @@
     "prom-client": "^15.1.0",
     "puppeteer": "^24.33.1",
     "qrcode": "^1.5.4",
+    "redis": "^5.10.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
     "validator": "^13.11.0",

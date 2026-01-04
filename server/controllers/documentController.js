@@ -1,4 +1,4 @@
-const knex = require('./database');
+const knex = require('knex')(require('../knexfile')[process.env.NODE_ENV || 'development']);
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');

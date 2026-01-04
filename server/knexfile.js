@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 // Database configuration function (same as server/index.js and authController.js)
 function getDatabaseConfig() {
   // Prefer Railway's DATABASE_URL if available

@@ -1,1 +1,62 @@
-const express = require('express');\nconst router = express.Router();\nconst { verifyToken, checkRole } = require('../middleware/authMiddleware');\nconst { register } = require('../monitoring');\n\n// Get performance metrics\nrouter.get('/metrics', verifyToken, checkRole(['admin']), async (req, res) => {\n  try {\n    const metrics = await register.metrics();\n    res.set('Content-Type', register.contentType);\n    res.send(metrics);\n  } catch (error) {\n    res.status(500).json({ error: 'Failed to fetch metrics' });\n  }\n});\n\n// Get system health\nrouter.get('/health', async (req, res) => {\n  const health = {\n    status: 'healthy',\n    timestamp: new Date().toISOString(),\n    uptime: process.uptime(),\n    memory: {\n      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),\n      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),\n      percentage: Math.round((process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100)\n    },\n    cpu: process.cpuUsage()\n  };\n  res.json(health);\n});\n\n// Get performance summary\nrouter.get('/summary', verifyToken, checkRole(['admin']), async (req, res) => {\n  try {\n    const db = req.app.locals.db;\n    \n    const [dbStats] = await db.execute('SHOW STATUS LIKE \"Threads_connected\"');\n    const [slowQueries] = await db.execute('SHOW STATUS LIKE \"Slow_queries\"');\n    const [uptime] = await db.execute('SHOW STATUS LIKE \"Uptime\"');\n    \n    const summary = {\n      application: {\n        uptime: process.uptime(),\n        memory: process.memoryUsage(),\n        nodeVersion: process.version\n      },\n      database: {\n        connections: dbStats[0]?.Value || 0,\n        slowQueries: slowQueries[0]?.Value || 0,\n        uptime: uptime[0]?.Value || 0\n      },\n      timestamp: new Date().toISOString()\n    };\n    \n    res.json(summary);\n  } catch (error) {\n    res.status(500).json({ error: 'Failed to fetch performance summary' });\n  }\n});\n\nmodule.exports = router;\n
+const express = require('express');
+const router = express.Router();
+const { verifyToken, checkRole } = require('../middleware/authMiddleware');
+const { register } = require('../monitoring');
+
+// Get performance metrics
+router.get('/metrics', verifyToken, checkRole(['admin']), async (req, res) => {
+  try {
+    const metrics = await register.metrics();
+    res.set('Content-Type', register.contentType);
+    res.send(metrics);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch metrics' });
+  }
+});
+
+// Get system health
+router.get('/health', async (req, res) => {
+  const health = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+      percentage: Math.round((process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100)
+    },
+    cpu: process.cpuUsage()
+  };
+  res.json(health);
+});
+
+// Get performance summary
+router.get('/summary', verifyToken, checkRole(['admin']), async (req, res) => {
+  try {
+    const db = req.app.locals.db;
+    
+    const [dbStats] = await db.execute('SHOW STATUS LIKE "Threads_connected"');
+    const [slowQueries] = await db.execute('SHOW STATUS LIKE "Slow_queries"');
+    const [uptime] = await db.execute('SHOW STATUS LIKE "Uptime"');
+    
+    const summary = {
+      application: {
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        nodeVersion: process.version
+      },
+      database: {
+        connections: dbStats[0]?.Value || 0,
+        slowQueries: slowQueries[0]?.Value || 0,
+        uptime: uptime[0]?.Value || 0
+      },
+      timestamp: new Date().toISOString()
+    };
+    
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch performance summary' });
+  }
+});
+
+module.exports = router;
