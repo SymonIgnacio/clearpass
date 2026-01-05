@@ -50,14 +50,14 @@ const Sidebar = () => {
       icon: <Person />,
       path: '/users',
       description: 'Manage Staff Accounts',
-      roles: [2, 5]
+      roles: [5]
     },
     {
       text: 'Residents',
       icon: <People />,
       path: '/residents',
       description: 'Resident Records',
-      roles: [2, 3, 4, 5]
+      roles: [2, 3, 4, 5, 6]
     },
     {
       text: 'Blotter',

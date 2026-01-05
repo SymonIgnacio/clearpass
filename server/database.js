@@ -12,16 +12,16 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
-// Export the pool for direct use
-module.exports = pool;
-
-// Also export helper methods
-module.exports.getConnection = function() {
-  return pool.getConnection();
-};
-
-module.exports.execute = function(sql, params) {
-  return pool.execute(sql, params);
+// Database helper methods
+const db = {
+  // Direct pool access
+  pool: pool,
+  
+  // Get connection from pool
+  getConnection: () => pool.getConnection(),
+  
+  // Execute query
+  execute: (sql, params) => pool.execute(sql, params)
 };
 
 // Get all residents with sitio information
@@ -351,15 +351,17 @@ async function getSitioCensus(sitioId) {
   }
 }
 
-module.exports.getResidents = getResidents;
-module.exports.getBlotterRecords = getBlotterRecords;
-module.exports.getCertificateTypes = getCertificateTypes;
-module.exports.getCertificates = getCertificates;
-module.exports.checkBlotterStatus = checkBlotterStatus;
-module.exports.getDashboardStats = getDashboardStats;
-module.exports.createCertificate = createCertificate;
-module.exports.createBlotterRecord = createBlotterRecord;
-module.exports.updateBlotterRecord = updateBlotterRecord;
-module.exports.deleteBlotterRecord = deleteBlotterRecord;
-module.exports.getCensusStatistics = getCensusStatistics;
-module.exports.getSitioCensus = getSitioCensus;
+db.getResidents = getResidents;
+db.getBlotterRecords = getBlotterRecords;
+db.getCertificateTypes = getCertificateTypes;
+db.getCertificates = getCertificates;
+db.checkBlotterStatus = checkBlotterStatus;
+db.getDashboardStats = getDashboardStats;
+db.createCertificate = createCertificate;
+db.createBlotterRecord = createBlotterRecord;
+db.updateBlotterRecord = updateBlotterRecord;
+db.deleteBlotterRecord = deleteBlotterRecord;
+db.getCensusStatistics = getCensusStatistics;
+db.getSitioCensus = getSitioCensus;
+
+module.exports = db;

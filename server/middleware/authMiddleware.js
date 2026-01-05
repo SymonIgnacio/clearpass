@@ -39,7 +39,10 @@ const checkRole = (allowedRoles) => {
       typeof role === 'string' ? roleMap[role.toLowerCase()] : role
     ).filter(Boolean);
 
-    if (!allowedRoleIds.includes(req.user.role_id)) {
+    // Check both role_id and role fields for compatibility
+    const userRole = req.user.role_id || req.user.role;
+    
+    if (!allowedRoleIds.includes(userRole)) {
       return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
     }
 

@@ -46,9 +46,12 @@ import {
   Download
 } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
+import { useAuth } from '../contexts/AuthContext'
+import dashboardAPI from '../utils/dashboardAPI'
 
-const Dashboard = ({ user }) => {
+const Dashboard = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   // ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP LEVEL
   const [activeTab, setActiveTab] = useState(0)
@@ -82,8 +85,9 @@ const Dashboard = ({ user }) => {
     search: ''
   })
 
-  // Check if user is IT Admin (role 1) - COMPUTED VALUE
-  const isITAdmin = user?.role === 1
+  // Check if user is IT Admin (role 5) - FIXED ROLE ID
+  const isITAdmin = user?.role === 5 || user?.role === '5'
+  const userRole = Number(user?.role)
 
   const tabs = [
     { label: 'Overview', icon: <Analytics /> },
@@ -91,10 +95,37 @@ const Dashboard = ({ user }) => {
   ]
 
   useEffect(() => {
-    fetchStats()
-    fetchCertificates()
-    fetchBlotterCases()
-  }, [])
+    if (user && userRole) {
+      fetchRoleSpecificData()
+    }
+  }, [user, userRole])
+
+  const fetchRoleSpecificData = async () => {
+    try {
+      setLoading(true)
+      
+      // Fetch role-specific dashboard data
+      const dashboardData = await dashboardAPI.getDashboard(userRole)
+      setStats(dashboardData)
+      
+      // Fetch role-specific documents/certificates
+      const documentsData = await dashboardAPI.getDocuments(userRole)
+      setCertificates(Array.isArray(documentsData) ? documentsData : [])
+      
+      // Fetch role-specific blotter data
+      const blotterData = await dashboardAPI.getBlotter(userRole)
+      setBlotterCases(Array.isArray(blotterData) ? blotterData : [])
+      
+    } catch (error) {
+      console.error('Error fetching role-specific data:', error)
+      // Fallback to generic data
+      await fetchStats()
+      await fetchCertificates()
+      await fetchBlotterCases()
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleQuickAction = (action) => {
     switch (action) {

@@ -1,662 +1,457 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
+  Box,
   Grid,
   Card,
   CardContent,
   Typography,
-  Box,
-  Alert,
   Button,
-  CircularProgress,
   Avatar,
   Chip,
-  IconButton,
-  Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  TextField,
-  FormControl,
-  FormLabel,
+  LinearProgress,
+  Alert,
+  Paper,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
   Divider,
-  Paper
-} from '@mui/material'
+  IconButton,
+  Tooltip
+} from '@mui/material';
 import {
   Person,
   Description,
+  Gavel,
+  Notifications,
   CheckCircle,
+  Pending,
+  Error,
   Warning,
-  AccountCircle,
+  Add,
   Refresh,
-  Assignment,
-  Phone,
-  Email,
-  PhotoCamera
-} from '@mui/icons-material'
-import { apiRequest } from '../utils/api'
+  Logout,
+  Settings,
+  Home,
+  Campaign
+} from '@mui/icons-material';
+import { useAuth } from '../contexts/AuthContext';
 
-const ResidentDashboard = ({ user }) => {
-  const navigate = useNavigate()
-  const [dashboardData, setDashboardData] = useState(null)
-  const [requests, setRequests] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  // Modal states
-  const [clearanceModal, setClearanceModal] = useState(false)
-  const [qrModal, setQrModal] = useState(false)
-  const [profileModal, setProfileModal] = useState(false)
-  const [verificationModal, setVerificationModal] = useState(false)
-
-  // Form states
-  const [clearanceForm, setClearanceForm] = useState({
-    clearanceType: '',
-    purpose: ''
-  })
-  const [qrCode, setQrCode] = useState('')
-  const [photoFile, setPhotoFile] = useState(null)
-  const [verificationFile, setVerificationFile] = useState(null)
+const ResidentDashboard = () => {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
+  const [requests, setRequests] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [stats, setStats] = useState({
+    pending_requests: 0,
+    completed_requests: 0,
+    profile_completion: 0
+  });
 
   useEffect(() => {
-    fetchDashboardData()
-    fetchMyRequests()
-  }, [])
+    if (user && user.type === 'resident') {
+      fetchDashboardData();
+    }
+  }, [user]);
 
   const fetchDashboardData = async () => {
     try {
-      const response = await apiRequest('resident/dashboard')
-      const data = await response.json()
-      setDashboardData(data)
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error)
-      setError('Failed to load dashboard data.')
-    }
-  }
-
-  const fetchMyRequests = async () => {
-    try {
-      const response = await apiRequest('resident/requests')
-      const data = await response.json()
-      setRequests(Array.isArray(data) ? data : [])
-    } catch (error) {
-      console.error('Error fetching requests:', error)
-      setRequests([]) // Ensure it's always an array
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleRequestClearance = async () => {
-    if (!clearanceForm.clearanceType || !clearanceForm.purpose) {
-      setError('Please fill in all required fields.')
-      return
-    }
-
-    try {
-      const response = await apiRequest('resident/request-clearance', {
-        method: 'POST',
+      setLoading(true);
+      
+      // Fetch resident profile
+      const profileResponse = await fetch('/api/resident-auth/profile', {
         headers: {
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const profileData = await profileResponse.json();
+      if (profileData.success) {
+        setProfile(profileData.profile);
+        calculateProfileCompletion(profileData.profile);
+      }
+
+      // Fetch certificate requests
+      const requestsResponse = await fetch('/api/certificates?resident_id=' + user.id, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const requestsData = await requestsResponse.json();
+      setRequests(Array.isArray(requestsData) ? requestsData.slice(0, 5) : []);
+
+      // Calculate stats
+      const pending = Array.isArray(requestsData) ? requestsData.filter(r => r.status === 'Pending').length : 0;
+      const completed = Array.isArray(requestsData) ? requestsData.filter(r => r.status === 'Released').length : 0;
+      
+      setStats({
+        pending_requests: pending,
+        completed_requests: completed,
+        profile_completion: calculateProfileCompletion(profileData.profile)
+      });
+
+      // Mock announcements (to be replaced with real API)
+      setAnnouncements([
+        {
+          id: 1,
+          title: 'New Online Services Available',
+          message: 'You can now request certificates and file complaints online.',
+          date: new Date().toISOString(),
+          type: 'info'
         },
-        body: JSON.stringify(clearanceForm)
-      })
+        {
+          id: 2,
+          title: 'Barangay Assembly Meeting',
+          message: 'Monthly assembly meeting scheduled for next week.',
+          date: new Date().toISOString(),
+          type: 'event'
+        }
+      ]);
 
-      const data = await response.json()
-
-      if (response.ok) {
-        setQrCode(data.qr_code)
-        setClearanceModal(false)
-        setQrModal(true)
-        fetchMyRequests() // Refresh requests
-      } else {
-        setError(data.error || 'Failed to submit request.')
-      }
     } catch (error) {
-      console.error('Error requesting clearance:', error)
-      setError('Failed to submit clearance request.')
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  const handlePhotoUpload = async () => {
-    if (!photoFile) {
-      setError('Please select a photo file.')
-      return
+  const calculateProfileCompletion = (profile) => {
+    if (!profile) return 0;
+    
+    const fields = [
+      'First_Name', 'Last_Name', 'email', 'Mobile_Number', 
+      'Birthdate', 'Gender', 'Civil_Status'
+    ];
+    
+    const completed = fields.filter(field => profile[field] && profile[field] !== '').length;
+    const percentage = Math.round((completed / fields.length) * 100);
+    
+    return percentage;
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'Pending': return <Pending color="warning" />;
+      case 'Processing': return <Pending color="info" />;
+      case 'Released': return <CheckCircle color="success" />;
+      case 'Rejected': return <Error color="error" />;
+      default: return <Pending color="disabled" />;
     }
+  };
 
-    const formData = new FormData()
-    formData.append('photo', photoFile)
-
-    try {
-      const response = await apiRequest('resident/profile/update-photo', {
-        method: 'POST',
-        body: formData
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setProfileModal(false)
-        setPhotoFile(null)
-        fetchDashboardData() // Refresh profile data
-        alert('Profile photo updated successfully!')
-      } else {
-        setError(data.error || 'Failed to update photo.')
-      }
-    } catch (error) {
-      console.error('Error updating photo:', error)
-      setError('Failed to update profile photo.')
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Pending': return 'warning';
+      case 'Processing': return 'info';
+      case 'Released': return 'success';
+      case 'Rejected': return 'error';
+      default: return 'default';
     }
-  }
+  };
 
-  const handleVerificationUpload = async () => {
-    if (!verificationFile) {
-      setError('Please select a verification file.')
-      return
-    }
-
-    const formData = new FormData()
-    formData.append('verification', verificationFile)
-
-    try {
-      const response = await apiRequest('resident/upload-verification', {
-        method: 'POST',
-        body: formData
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setVerificationModal(false)
-        setVerificationFile(null)
-        fetchDashboardData() // Refresh profile data to show new status
-        alert('Verification file uploaded successfully! Your account is now under review.')
-      } else {
-        setError(data.error || 'Failed to upload verification file.')
-      }
-    } catch (error) {
-      console.error('Error uploading verification:', error)
-      setError('Failed to upload verification file.')
-    }
-  }
-
-  const getStatusCard = () => {
-    if (!dashboardData) return null
-
-    const { status, blocking_case } = dashboardData
-
-    if (status === 'CLEARED') {
-      return (
-        <Card sx={{
-          background: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)',
-          border: '2px solid #4caf50',
-          mb: 3
-        }}>
-          <CardContent sx={{ p: 4, textAlign: 'center' }}>
-            <CheckCircle sx={{ fontSize: 64, color: '#4caf50', mb: 2 }} />
-            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, color: '#2e7d32' }}>
-              You are Cleared
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Your barangay record is clean. You can proceed with clearance requests.
-            </Typography>
-          </CardContent>
-        </Card>
-      )
-    } else {
-      return (
-        <Card sx={{
-          background: 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)',
-          border: '2px solid #f44336',
-          mb: 3
-        }}>
-          <CardContent sx={{ p: 4, textAlign: 'center' }}>
-            <Warning sx={{ fontSize: 64, color: '#f44336', mb: 2 }} />
-            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, color: '#c62828' }}>
-              Accountability Detected
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-              {blocking_case || 'You have active cases that prevent clearance requests.'}
-            </Typography>
-            <Typography variant="body2" color="error">
-              Please visit the Barangay Hall to resolve this matter.
-            </Typography>
-          </CardContent>
-        </Card>
-      )
-    }
-  }
-
-  const quickActions = [
-    {
-      icon: <Description />,
-      title: 'Request Clearance',
-      description: 'Apply for barangay certificates and clearances',
-      color: '#1a73e8',
-      action: 'request_clearance',
-      disabled: dashboardData?.status === 'BLOCKED'
-    },
-    {
-      icon: <Person />,
-      title: 'My Profile',
-      description: 'View and update your personal information',
-      color: '#34a853',
-      action: 'my_profile'
-    },
-    {
-      icon: <Assignment />,
-      title: 'Track Requests',
-      description: 'Check status of your document requests',
-      color: '#fbbc04',
-      action: 'track_requests'
-    }
-  ]
+  const handleLogout = () => {
+    logout();
+    navigate('/resident/login');
+  };
 
   if (loading) {
     return (
-      <Box sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '400px'
-      }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <Box sx={{ textAlign: 'center' }}>
-          <CircularProgress size={60} sx={{ mb: 2 }} />
+          <LinearProgress sx={{ mb: 2, width: 200 }} />
           <Typography variant="h6" color="text.secondary">
-            Loading your dashboard...
+            Loading Dashboard...
           </Typography>
         </Box>
       </Box>
-    )
+    );
   }
 
   return (
-    <Box sx={{ maxWidth: '1200px', mx: 'auto', p: 2 }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" sx={{ fontWeight: 600, mb: 1 }}>
-          Resident Portal
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Manage your barangay services and track your requests
-        </Typography>
-      </Box>
+      <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 56, height: 56 }}>
+              <Home sx={{ fontSize: 28 }} />
+            </Avatar>
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Welcome, {profile?.First_Name || 'Resident'}!
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Barangay ClearPass Resident Portal
+              </Typography>
+            </Box>
+          </Box>
+          
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title="Refresh">
+              <IconButton onClick={fetchDashboardData}>
+                <Refresh />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Settings">
+              <IconButton onClick={() => navigate('/resident/profile')}>
+                <Settings />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Logout">
+              <IconButton onClick={handleLogout} color="error">
+                <Logout />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
+      </Paper>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-          {error}
-        </Alert>
-      )}
+      <Box sx={{ p: 3 }}>
+        <Grid container spacing={3}>
+          {/* Profile Summary */}
+          <Grid item xs={12} md={4}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Person sx={{ mr: 1, color: 'primary.main' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Profile Summary
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ textAlign: 'center', mb: 3 }}>
+                  <Avatar sx={{ 
+                    width: 80, 
+                    height: 80, 
+                    mx: 'auto', 
+                    mb: 2,
+                    bgcolor: 'primary.main',
+                    fontSize: '2rem'
+                  }}>
+                    {profile?.First_Name?.charAt(0)}{profile?.Last_Name?.charAt(0)}
+                  </Avatar>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {profile?.First_Name} {profile?.Last_Name}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {profile?.email}
+                  </Typography>
+                  <Chip 
+                    label={profile?.Residency_Status || 'Pending Verification'}
+                    color={profile?.Residency_Status === 'Active' ? 'success' : 'warning'}
+                    size="small"
+                    sx={{ mt: 1 }}
+                  />
+                </Box>
 
-      {/* Status Card */}
-      {getStatusCard()}
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2">Profile Completion</Typography>
+                    <Typography variant="body2">{stats.profile_completion}%</Typography>
+                  </Box>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={stats.profile_completion}
+                    sx={{ borderRadius: 1, height: 8 }}
+                  />
+                </Box>
 
-      {/* Quick Actions Grid */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {quickActions.map((action, index) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
-            <Card
-              sx={{
-                height: '100%',
-                cursor: action.disabled ? 'not-allowed' : 'pointer',
-                opacity: action.disabled ? 0.6 : 1,
-                transition: 'all 0.2s ease',
-                '&:hover': action.disabled ? {} : {
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
-                }
-              }}
-              onClick={() => {
-                if (action.disabled) return
-
-                switch (action.action) {
-                  case 'request_clearance':
-                    setClearanceModal(true)
-                    break
-                  case 'my_profile':
-                    setProfileModal(true)
-                    break
-                  case 'track_requests':
-                    // Scroll to requests section
-                    document.getElementById('requests-section')?.scrollIntoView({ behavior: 'smooth' })
-                    break
-                  default:
-                    break
-                }
-              }}
-            >
-              <CardContent sx={{ p: 3, textAlign: 'center' }}>
-                <Avatar sx={{
-                  bgcolor: action.color,
-                  width: 64,
-                  height: 64,
-                  mx: 'auto',
-                  mb: 2,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                }}>
-                  {action.icon}
-                </Avatar>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                  {action.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {action.description}
-                </Typography>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={() => navigate('/resident/profile')}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Update Profile
+                </Button>
               </CardContent>
             </Card>
           </Grid>
-        ))}
-      </Grid>
 
-      {/* Profile Summary */}
-      {dashboardData?.profile && (
-        <Card sx={{ mb: 4 }}>
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-              <Avatar
-                src={dashboardData.profile.photo_url}
-                sx={{ width: 60, height: 60, mr: 3 }}
-              >
-                {dashboardData.profile.name?.charAt(0) || 'R'}
-              </Avatar>
-              <Box>
-                <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                  {dashboardData.profile.name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Resident ID: {dashboardData.profile.resident_id}
-                </Typography>
-              </Box>
-            </Box>
-
+          {/* Quick Stats */}
+          <Grid item xs={12} md={8}>
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Phone sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />
-                  <Typography variant="body2">
-                    {dashboardData.profile.contact_number || 'Not provided'}
-                  </Typography>
-                </Box>
+              <Grid item xs={12} sm={4}>
+                <Card>
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <Pending sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
+                    <Typography variant="h4" sx={{ fontWeight: 600, color: 'warning.main' }}>
+                      {stats.pending_requests}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Pending Requests
+                    </Typography>
+                  </CardContent>
+                </Card>
               </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Email sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />
-                  <Typography variant="body2">
-                    {dashboardData.profile.email || 'Not provided'}
-                  </Typography>
-                </Box>
+              <Grid item xs={12} sm={4}>
+                <Card>
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <CheckCircle sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
+                    <Typography variant="h4" sx={{ fontWeight: 600, color: 'success.main' }}>
+                      {stats.completed_requests}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Completed
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Card>
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <Description sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
+                    <Typography variant="h4" sx={{ fontWeight: 600, color: 'info.main' }}>
+                      {requests.length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Requests
+                    </Typography>
+                  </CardContent>
+                </Card>
               </Grid>
             </Grid>
 
-            {/* Account Verification Section */}
-            <Divider sx={{ my: 2 }} />
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                  Account Verification
+            {/* Quick Actions */}
+            <Card>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                  Quick Actions
                 </Typography>
-                {user?.account_status === 'Verified' && (
-                  <Typography variant="body2" color="success.main" sx={{ display: 'flex', alignItems: 'center' }}>
-                    <CheckCircle sx={{ mr: 1, fontSize: 16 }} />
-                    Account Verified
-                  </Typography>
-                )}
-                {user?.account_status === 'Pending Verification' && (
-                  <Typography variant="body2" color="warning.main" sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Warning sx={{ mr: 1, fontSize: 16 }} />
-                    Under Review
-                  </Typography>
-                )}
-                {(user?.account_status === 'Unverified' || user?.account_status === 'Unregistered') && (
-                  <Typography variant="body2" color="error.main" sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Warning sx={{ mr: 1, fontSize: 16 }} />
-                    Verification Required
-                  </Typography>
-                )}
-              </Box>
-              {(user?.account_status === 'Unverified' || user?.account_status === 'Unregistered') && (
-                <Button
-                  variant="contained"
-                  startIcon={<Description />}
-                  onClick={() => setVerificationModal(true)}
-                >
-                  Upload ID
-                </Button>
-              )}
-            </Box>
-          </CardContent>
-        </Card>
-      )}
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      startIcon={<Description />}
+                      onClick={() => navigate('/resident/request-clearance')}
+                      sx={{ py: 1.5, borderRadius: 2 }}
+                    >
+                      Request Certificate
+                    </Button>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      startIcon={<Gavel />}
+                      onClick={() => navigate('/resident/blotter-report')}
+                      sx={{ py: 1.5, borderRadius: 2 }}
+                    >
+                      File Complaint
+                    </Button>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
 
-      {/* Recent Requests */}
-      <Card id="requests-section">
-        <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-            Recent Requests
-          </Typography>
+          {/* Recent Requests */}
+          <Grid item xs={12} md={6}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Recent Requests
+                  </Typography>
+                  <Button 
+                    size="small" 
+                    onClick={() => navigate('/resident/requests')}
+                  >
+                    View All
+                  </Button>
+                </Box>
 
-          {requests.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Assignment sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="body1" color="text.secondary">
-                No requests yet
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Your document requests will appear here
-              </Typography>
-            </Box>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {requests.slice(0, 5).map((request, index) => (
-                <Paper key={index} sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                        {request.certificate_type} Clearance
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Request ID: {request.control_no}
-                      </Typography>
-                    </Box>
-                    <Chip
-                      label={request.status}
-                      color={
-                        request.status === 'Approved' ? 'success' :
-                        request.status === 'Pending' ? 'warning' :
-                        request.status === 'Released' ? 'info' : 'default'
-                      }
-                      size="small"
-                    />
+                {requests.length > 0 ? (
+                  <List>
+                    {requests.map((request, index) => (
+                      <React.Fragment key={request.id || index}>
+                        <ListItem sx={{ px: 0 }}>
+                          <ListItemIcon>
+                            {getStatusIcon(request.status)}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={request.certificate_type || 'Certificate Request'}
+                            secondary={
+                              <Box>
+                                <Typography variant="body2" color="text.secondary">
+                                  {request.purpose || 'General Purpose'}
+                                </Typography>
+                                <Chip 
+                                  label={request.status || 'Pending'}
+                                  color={getStatusColor(request.status)}
+                                  size="small"
+                                  sx={{ mt: 0.5 }}
+                                />
+                              </Box>
+                            }
+                          />
+                        </ListItem>
+                        {index < requests.length - 1 && <Divider />}
+                      </React.Fragment>
+                    ))}
+                  </List>
+                ) : (
+                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <Description sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                      No requests yet
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={() => navigate('/resident/request-clearance')}
+                    >
+                      Make Your First Request
+                    </Button>
                   </Box>
-                </Paper>
-              ))}
-            </Box>
-          )}
-        </CardContent>
-      </Card>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
 
-      {/* Clearance Request Modal */}
-      <Dialog open={clearanceModal} onClose={() => setClearanceModal(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Request Clearance</DialogTitle>
-        <DialogContent>
-          <FormControl component="fieldset" sx={{ mt: 2 }}>
-            <FormLabel component="legend">Clearance Type</FormLabel>
-            <RadioGroup
-              value={clearanceForm.clearanceType}
-              onChange={(e) => setClearanceForm({ ...clearanceForm, clearanceType: e.target.value })}
-            >
-              <FormControlLabel value="Barangay" control={<Radio />} label="Barangay Clearance" />
-              <FormControlLabel value="Indigency" control={<Radio />} label="Certificate of Indigency" />
-              <FormControlLabel value="Residency" control={<Radio />} label="Certificate of Residency" />
-            </RadioGroup>
-          </FormControl>
+          {/* Announcements */}
+          <Grid item xs={12} md={6}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Campaign sx={{ mr: 1, color: 'primary.main' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Announcements
+                  </Typography>
+                </Box>
 
-          <TextField
-            fullWidth
-            label="Purpose"
-            multiline
-            rows={3}
-            value={clearanceForm.purpose}
-            onChange={(e) => setClearanceForm({ ...clearanceForm, purpose: e.target.value })}
-            sx={{ mt: 3 }}
-            placeholder="Please specify the purpose of this clearance request..."
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setClearanceModal(false)}>Cancel</Button>
-          <Button
-            onClick={handleRequestClearance}
-            variant="contained"
-            disabled={!clearanceForm.clearanceType || !clearanceForm.purpose}
-          >
-            Submit Request
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* QR Code Modal */}
-      <Dialog open={qrModal} onClose={() => setQrModal(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ textAlign: 'center' }}>Request Submitted Successfully!</DialogTitle>
-        <DialogContent sx={{ textAlign: 'center' }}>
-          <Typography variant="body1" sx={{ mb: 3 }}>
-            Show this QR code to the barangay clerk to process your request.
-          </Typography>
-
-          {qrCode && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-              <img
-                src={qrCode}
-                alt="QR Code"
-                style={{ maxWidth: '200px', maxHeight: '200px' }}
-              />
-            </Box>
-          )}
-
-          <Typography variant="body2" color="text.secondary">
-            Your request has been recorded and is now pending approval.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setQrModal(false)} variant="contained">
-            Done
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Profile Update Modal */}
-      <Dialog open={profileModal} onClose={() => setProfileModal(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Update Profile Photo</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            You can update your profile photo once every 6 months.
-          </Typography>
-
-          <Box sx={{ textAlign: 'center' }}>
-            <input
-              accept="image/*"
-              style={{ display: 'none' }}
-              id="photo-upload"
-              type="file"
-              onChange={(e) => setPhotoFile(e.target.files[0])}
-            />
-            <label htmlFor="photo-upload">
-              <Button
-                variant="outlined"
-                component="span"
-                startIcon={<PhotoCamera />}
-                sx={{ mb: 2 }}
-              >
-                Choose Photo
-              </Button>
-            </label>
-
-            {photoFile && (
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  Selected: {photoFile.name}
-                </Typography>
-                <img
-                  src={URL.createObjectURL(photoFile)}
-                  alt="Preview"
-                  style={{
-                    maxWidth: '200px',
-                    maxHeight: '200px',
-                    borderRadius: '8px',
-                    border: '1px solid #e0e0e0'
-                  }}
-                />
-              </Box>
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setProfileModal(false)}>Cancel</Button>
-          <Button
-            onClick={handlePhotoUpload}
-            variant="contained"
-            disabled={!photoFile}
-          >
-            Upload Photo
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Verification Upload Modal */}
-      <Dialog open={verificationModal} onClose={() => setVerificationModal(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Upload Verification Document</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Please upload a valid ID or proof of residency to verify your account. Accepted formats: JPEG, PNG, GIF, PDF (max 10MB).
-          </Typography>
-
-          <Box sx={{ textAlign: 'center' }}>
-            <input
-              accept="image/*,.pdf"
-              style={{ display: 'none' }}
-              id="verification-upload"
-              type="file"
-              onChange={(e) => setVerificationFile(e.target.files[0])}
-            />
-            <label htmlFor="verification-upload">
-              <Button
-                variant="outlined"
-                component="span"
-                startIcon={<Description />}
-                sx={{ mb: 2 }}
-              >
-                Choose File
-              </Button>
-            </label>
-
-            {verificationFile && (
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  Selected: {verificationFile.name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Size: {(verificationFile.size / 1024 / 1024).toFixed(2)} MB
-                </Typography>
-              </Box>
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setVerificationModal(false)}>Cancel</Button>
-          <Button
-            onClick={handleVerificationUpload}
-            variant="contained"
-            disabled={!verificationFile}
-          >
-            Submit for Review
-          </Button>
-        </DialogActions>
-      </Dialog>
+                <List>
+                  {announcements.map((announcement, index) => (
+                    <React.Fragment key={announcement.id}>
+                      <ListItem sx={{ px: 0 }}>
+                        <ListItemText
+                          primary={announcement.title}
+                          secondary={
+                            <Box>
+                              <Typography variant="body2" sx={{ mb: 1 }}>
+                                {announcement.message}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {new Date(announcement.date).toLocaleDateString()}
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                      </ListItem>
+                      {index < announcements.length - 1 && <Divider />}
+                    </React.Fragment>
+                  ))}
+                </List>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Box>
     </Box>
-  )
-}
+  );
+};
 
-export default ResidentDashboard
+export default ResidentDashboard;

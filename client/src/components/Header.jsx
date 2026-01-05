@@ -2,6 +2,7 @@ import React from 'react'
 import { AppBar, Toolbar, Typography, Box, Chip, IconButton, Menu, MenuItem } from '@mui/material'
 import { Security, AccountCircle, Logout } from '@mui/icons-material'
 import { useAuth } from '../contexts/AuthContext'
+import NotificationBell from './NotificationBell'
 
 const Header = () => {
   const [anchorEl, setAnchorEl] = React.useState(null)
@@ -32,6 +33,7 @@ const Header = () => {
 
         {user && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <NotificationBell />
             <Box sx={{ textAlign: 'right' }}>
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                 Welcome, {user.full_name}

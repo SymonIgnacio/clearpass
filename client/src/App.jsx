@@ -26,6 +26,14 @@ const CommunityEvents = lazy(() => import('./pages/CommunityEvents'))
 const Settings = lazy(() => import('./pages/Settings'))
 const SuperAdminSettings = lazy(() => import('./pages/SuperAdminSettings'))
 const ResidentSettings = lazy(() => import('./pages/ResidentSettings'))
+const CertificateRequest = lazy(() => import('./pages/CertificateRequest'))
+const RequestHistory = lazy(() => import('./pages/RequestHistory'))
+const AdminBackup = lazy(() => import('./pages/AdminBackup'))
+const ResidentAnnouncements = lazy(() => import('./pages/ResidentAnnouncements'))
+const ClerkAIInsights = lazy(() => import('./pages/ClerkAIInsights'))
+const CaseDetail = lazy(() => import('./pages/CaseDetail'))
+const ResidentProfile = lazy(() => import('./pages/ResidentProfile'))
+const ComplaintHistory = lazy(() => import('./pages/ComplaintHistory'))
 const ResidentBlotterReport = lazy(() => import('./pages/ResidentBlotterReport'))
 const SystemLogs = lazy(() => import('./pages/admin/SystemLogs'))
 const Backup = lazy(() => import('./pages/admin/Backup'))
@@ -34,8 +42,14 @@ const Unauthorized = lazy(() => import('./pages/Unauthorized'))
 const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
 const OfficerLogin = lazy(() => import('./pages/OfficerLogin'))
+const ResidentLogin = lazy(() => import('./pages/ResidentLogin'))
+const ResidentRegister = lazy(() => import('./pages/ResidentRegister'))
 const AIPatrol = lazy(() => import('./pages/AIPatrol'))
 const RondaAnalytics = lazy(() => import('./pages/RondaAnalytics'))
+const OfficerNewCase = lazy(() => import('./pages/OfficerNewCase'))
+const OfficerAttendance = lazy(() => import('./pages/OfficerAttendance'))
+const OfficerReports = lazy(() => import('./pages/OfficerReports'))
+const SecretarySettings = lazy(() => import('./pages/SecretarySettings'))
 const AccountVerification = lazy(() => import('./components/AccountVerification'))
 
 // Loading component
@@ -282,6 +296,8 @@ function App() {
             <Routes>
               {/* Public routes */}
               <Route path="/login" element={<Login />} />
+              <Route path="/resident/login" element={<ResidentLogin />} />
+              <Route path="/resident/register" element={<ResidentRegister />} />
               {/* SECURITY: Public signup disabled per business rules */}
               {/* <Route path="/signup" element={<Register />} /> */}
               <Route path="/officerlogin" element={<OfficerLogin />} />
@@ -373,10 +389,32 @@ function App() {
             <Route path="ai-patrol" element={<AIPatrol />} />
             <Route path="ronda-analytics" element={<RondaAnalytics />} />
 
-            {/* Resident Routes */}
-            <Route path="resident/blotter-report" element={
-              <ProtectedRoute requiredRoles={[12]}>
-                <ResidentBlotterReport />
+            {/* Clerk Routes */}
+            <Route path="clerk/ai-insights" element={
+              <ProtectedRoute requiredRoles={[4]}>
+                <ClerkAIInsights />
+              </ProtectedRoute>
+            } />
+
+            {/* Officer Routes */}
+            <Route path="officer/case/:caseId" element={
+              <ProtectedRoute requiredRoles={[6]}>
+                <CaseDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="officer/new-case" element={
+              <ProtectedRoute requiredRoles={[6]}>
+                <OfficerNewCase />
+              </ProtectedRoute>
+            } />
+            <Route path="officer/attendance" element={
+              <ProtectedRoute requiredRoles={[6]}>
+                <OfficerAttendance />
+              </ProtectedRoute>
+            } />
+            <Route path="officer/reports" element={
+              <ProtectedRoute requiredRoles={[6]}>
+                <OfficerReports />
               </ProtectedRoute>
             } />
 
@@ -388,12 +426,57 @@ function App() {
             } />
             <Route path="admin/backup" element={
               <ProtectedRoute requiredRoles={[5]}>
-                <Backup />
+                <AdminBackup />
               </ProtectedRoute>
             } />
             <Route path="admin/ai-analytics" element={
               <ProtectedRoute requiredRoles={[5]}>
                 <AIAnalytics />
+              </ProtectedRoute>
+            } />
+
+            {/* Resident Routes */}
+            <Route path="resident/dashboard" element={
+              <ProtectedRoute requiredRoles={[12]}>
+                <ResidentDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="resident/request-certificate" element={
+              <ProtectedRoute requiredRoles={[12]}>
+                <CertificateRequest />
+              </ProtectedRoute>
+            } />
+            <Route path="resident/requests" element={
+              <ProtectedRoute requiredRoles={[12]}>
+                <RequestHistory />
+              </ProtectedRoute>
+            } />
+            <Route path="resident/blotter-report" element={
+              <ProtectedRoute requiredRoles={[12]}>
+                <ResidentBlotterReport />
+              </ProtectedRoute>
+            } />
+            <Route path="resident/profile" element={
+              <ProtectedRoute requiredRoles={[12]}>
+                <ResidentProfile />
+              </ProtectedRoute>
+            } />
+            <Route path="resident/complaints" element={
+              <ProtectedRoute requiredRoles={[12]}>
+                <ComplaintHistory />
+              </ProtectedRoute>
+            } />
+
+            <Route path="resident/announcements" element={
+              <ProtectedRoute requiredRoles={[12]}>
+                <ResidentAnnouncements />
+              </ProtectedRoute>
+            } />
+
+            {/* Secretary Routes */}
+            <Route path="secretary/settings" element={
+              <ProtectedRoute requiredRoles={[3]}>
+                <SecretarySettings />
               </ProtectedRoute>
             } />
 

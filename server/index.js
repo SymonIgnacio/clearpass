@@ -34,9 +34,13 @@ const adminController = require('./controllers/adminController');
 const { verifyToken, checkRole } = require('./middleware/authMiddleware');
 const { errorHandler } = require('./middleware/errorHandler');
 const { validateLogin } = require('./middleware/validation');
+const { auditMiddleware } = require('./middleware/auditLogger');
 
 const app = express();
 const port = process.env.SERVER_PORT || 3001;
+const http = require('http');
+const server = http.createServer(app);
+const WebSocketService = require('./services/websocketService');
 
 // Rate limiting
 const authLimiter = rateLimit({
@@ -94,6 +98,9 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(apiLimiter);
 
+// Audit logging middleware (before routes)
+app.use(auditMiddleware({ auditAll: false }));
+
 // Database connection (standardized)
 const db = require('./database');
 app.locals.db = db;
@@ -117,12 +124,33 @@ app.post('/api/auth/login', authLimiter, validateLogin, authController.login);
 app.use('/api/residents', require('./routes/residentRoutes')(db));
 app.use('/api/blotter', require('./routes/blotterRoutes')(db));
 app.use('/api/certificates', require('./routes/certificateRoutes')(db));
+app.use('/api/certificate-requests', require('./routes/certificateRequestRoutes')(db));
+app.use('/api/blotter-complaints', require('./routes/blotterComplaintRoutes')(db));
+app.use('/api/resident-profile', require('./routes/residentProfileRoutes')(db));
+app.use('/api/case-management', require('./routes/caseManagementRoutes')(db));
+app.use('/api/ai-analytics', require('./routes/aiAnalyticsRoutes')(db));
+app.use('/api/system-admin', require('./routes/systemAdminRoutes')(db));
 app.use('/api/documents', require('./routes/documentRoutes')(db));
 app.use('/api/ai', require('./routes/aiRoutes')(db));
 app.use('/api/users', require('./routes/userRoutes')(db));
 app.use('/api/admin', adminLimiter, require('./routes/adminRoutes')(db));
 app.use('/api/notifications', require('./routes/notificationRoutes')(db));
 app.use('/api/announcements', require('./routes/announcementRoutes')(db));
+
+// Role-based routes
+app.use('/api/clerk', require('./routes/clerkRoutes')(db));
+app.use('/api/captain', require('./routes/captainRoutes')(db));
+app.use('/api/secretary', require('./routes/secretaryRoutes')(db));
+app.use('/api/officer', require('./routes/officerRoutes')(db));
+
+// Resident authentication routes
+app.use('/api/resident-auth', require('./routes/residentAuthRoutes')(db));
+
+// Shared/legacy routes for backward compatibility
+app.use('/api', require('./routes/sharedRoutes')(db));
+
+// Mount comprehensive routes.js for additional endpoints
+app.use('/api', require('./routes'));
 
 // Legacy household route (to be moved to modular)
 app.get('/api/households', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), householdController.getAll);
@@ -144,9 +172,48 @@ app.use(errorHandler);
 async function startServer() {
   await initializeDatabase();
   
-  app.listen(port, () => {
+  // Initialize WebSocket service
+  const wsService = new WebSocketService(server);
+  global.wsService = wsService;
+  
+  // Helper function to create notifications
+  const createNotification = async (userId, title, message, type = 'info', priority = 'normal', data = null) => {
+    try {
+      const NotificationController = require('./controllers/notificationController');
+      const notificationController = new NotificationController(app.locals.db);
+      const notification = await notificationController.createNotification(userId, title, message, type, priority, data);
+      
+      // Send via WebSocket
+      wsService.sendToUser(userId, {
+        type: 'notification',
+        data: notification
+      });
+      
+      return notification;
+    } catch (error) {
+      console.error('Error creating notification:', error);
+    }
+  };
+  
+  // Helper function to create bulk notifications
+  const createBulkNotification = async (userIds, title, message, type = 'info', priority = 'normal', data = null) => {
+    try {
+      const NotificationController = require('./controllers/notificationController');
+      const notificationController = new NotificationController(app.locals.db);
+      return await notificationController.createBulkNotification(userIds, title, message, type, priority, data);
+    } catch (error) {
+      console.error('Error creating bulk notification:', error);
+    }
+  };
+  
+  // Make notification helpers globally available
+  global.createNotification = createNotification;
+  global.createBulkNotification = createBulkNotification;
+  
+  server.listen(port, () => {
     console.log(`Server started on port ${port}`);
     console.log(`Database: ${process.env.DB_NAME || 'barangay_management'}`);
+    console.log(`WebSocket: ws://localhost:${port}/ws`);
     console.log(`Health check: http://localhost:${port}/health`);
   });
 }

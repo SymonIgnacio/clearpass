@@ -33,8 +33,11 @@ import { Add, Event, People, Edit, PersonAdd, Sms } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
 import { canManageEvents } from '../utils/roles'
 import { safeJsonParseArray } from '../utils/apiHelpers'
+import { useAuth } from '../contexts/AuthContext'
+import dashboardAPI from '../utils/dashboardAPI'
 
-const CommunityEvents = ({ user }) => {
+const CommunityEvents = () => {
+  const { user } = useAuth()
   const [events, setEvents] = useState([])
   const [residents, setResidents] = useState([])
   const [sitios, setSitios] = useState([])
@@ -61,20 +64,11 @@ const CommunityEvents = ({ user }) => {
 
   const fetchEvents = async () => {
     try {
-      const response = await apiRequest('programs').catch((err) => {
-        console.error('Programs API failed:', err);
-        return { data: [] };
-      });
-      const data = response.json
-        ? await response.json().catch((err) => {
-            console.error('Failed to parse programs JSON:', err);
-            return [];
-          })
-        : response.data || response || [];
-      setEvents(Array.isArray(data) ? data : []);
+      const data = await dashboardAPI.getPrograms()
+      setEvents(Array.isArray(data) ? data : [])
     } catch (error) {
-      console.error('Error fetching events:', error);
-      setEvents([]);
+      console.error('Error fetching events:', error)
+      setEvents([])
     }
   }
 
