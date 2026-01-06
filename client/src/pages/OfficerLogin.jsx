@@ -42,29 +42,10 @@ const OfficerLogin = () => {
     try {
       console.log('🔐 OfficerLogin: Attempting login with credentials');
 
-      const response = await apiRequest('auth/login', {
-        method: 'POST',
-        body: formData
-      })
+      // Use the AuthContext login method which handles cookie-based auth
+      await login(formData)
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Login failed');
-      }
-
-      const responseData = await response.json()
-      const { token, user } = responseData
-
-      console.log('🔐 OfficerLogin: Received token and user data from server');
-
-      if (!token) {
-        throw new Error('No authentication token received from server');
-      }
-
-      // Authenticate user with AuthContext
-      login(token)
-
-      console.log('🔐 OfficerLogin: AuthContext login completed successfully');
+      console.log('🔐 OfficerLogin: Login completed successfully');
 
       // Navigate to main dashboard
       navigate('/', { replace: true });
@@ -88,18 +69,6 @@ const OfficerLogin = () => {
           errorMessage = 'Authentication failed. Please contact support.'
         } else {
           errorMessage = `Login failed: ${err.message}`
-        }
-      }
-
-      // Try to get error details from response if available
-      if (err.response) {
-        try {
-          const errorData = await err.response.json()
-          if (errorData.error) {
-            errorMessage = errorData.error
-          }
-        } catch (parseError) {
-          console.warn('Could not parse error response:', parseError)
         }
       }
 

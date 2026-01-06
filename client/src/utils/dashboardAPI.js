@@ -1,4 +1,4 @@
-import api from './api';
+import { api } from './api';
 
 // Role-specific dashboard endpoints
 const DASHBOARD_ENDPOINTS = {
@@ -16,7 +16,8 @@ export const dashboardAPI = {
   getDashboard: async (userRole) => {
     const endpoint = DASHBOARD_ENDPOINTS[userRole] || '/api/admin/stats';
     const response = await api.get(endpoint);
-    return response.data;
+    const data = await response.json();
+    return data;
   },
 
   // Get residents data (role-specific access)
@@ -30,7 +31,8 @@ export const dashboardAPI = {
     };
     const endpoint = endpoints[userRole] || '/api/residents';
     const response = await api.get(endpoint, { params });
-    return response.data;
+    const data = await response.json();
+    return data;
   },
 
   // Get blotter data (role-specific access)
@@ -44,7 +46,8 @@ export const dashboardAPI = {
     };
     const endpoint = endpoints[userRole] || '/api/blotter';
     const response = await api.get(endpoint, { params });
-    return response.data;
+    const data = await response.json();
+    return data;
   },
 
   // Get documents/certificates (role-specific access)
@@ -58,19 +61,22 @@ export const dashboardAPI = {
     };
     const endpoint = endpoints[userRole] || '/api/certificates';
     const response = await api.get(endpoint, { params });
-    return response.data;
+    const data = await response.json();
+    return data;
   },
 
   // Get programs/events
   getPrograms: async () => {
-    const response = await api.get('/api/programs');
-    return response.data;
+    const response = await api.get('programs');
+    const data = await response.json();
+    return data;
   },
 
   // Get census data
   getCensus: async () => {
     const response = await api.get('/api/census');
-    return response.data;
+    const data = await response.json();
+    return data;
   },
 
   // Get AI analytics (role-specific)
@@ -81,7 +87,8 @@ export const dashboardAPI = {
     };
     const endpoint = endpoints[userRole] || '/api/ai/analytics';
     const response = await api.get(endpoint);
-    return response.data;
+    const data = await response.json();
+    return data;
   }
 };
 

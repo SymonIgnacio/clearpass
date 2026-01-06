@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Card, CardContent, Typography, Button, List, ListItem, ListItemText, Alert } from '@mui/material';
-import api from '../../utils/api';
+import { api } from '../../utils/api';
 
 const Backup = () => {
   const [backups, setBackups] = useState([]);
@@ -14,7 +14,8 @@ const Backup = () => {
   const fetchBackups = async () => {
     try {
       const response = await api.get('/admin/backups');
-      setBackups(response.data.backups || []);
+      const data = await response.json();
+      setBackups(data.backups || []);
     } catch (error) {
       console.error('Failed to fetch backups:', error);
     }

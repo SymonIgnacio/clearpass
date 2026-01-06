@@ -53,6 +53,8 @@ import {
 } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
 
+import WriteProtected from '../components/WriteProtected'
+
 const Residents = () => {
   const [residents, setResidents] = useState([])
   const [households, setHouseholds] = useState([])
@@ -86,7 +88,8 @@ const Residents = () => {
     is_pwd: false,
     is_solo_parent: false,
     is_out_of_school_youth: false,
-    disability_type: ''
+    disability_type: '',
+    documents: {}
   })
 
   const [householdFormData, setHouseholdFormData] = useState({
@@ -192,6 +195,32 @@ const Residents = () => {
     }
   }
 
+  const handleDocumentUpload = (event, documentType) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB')
+      return
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
+    if (!allowedTypes.includes(file.type)) {
+      alert('Only JPG, PNG, and PDF files are allowed')
+      return
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      documents: {
+        ...prev.documents,
+        [documentType]: file
+      }
+    }))
+  }
+
   const handleOpenDialog = (resident = null) => {
     if (resident) {
       setEditing(resident)
@@ -215,7 +244,8 @@ const Residents = () => {
         is_pwd: resident.Is_PWD || false,
         is_solo_parent: resident.Is_Solo_Parent || false,
         is_out_of_school_youth: resident.Is_Out_of_School_Youth || false,
-        disability_type: resident.Disability_Type || ''
+        disability_type: resident.Disability_Type || '',
+        documents: {}
       })
     } else {
       setEditing(null)
@@ -231,6 +261,7 @@ const Residents = () => {
         civil_status: 'Single',
         occupation: '',
         income_estimate: 0,
+        email: '',
         mobile_number: '',
         voter_status: 'Non-Registered',
         date_arrival: new Date().toISOString().split('T')[0],
@@ -238,7 +269,8 @@ const Residents = () => {
         is_pwd: false,
         is_solo_parent: false,
         is_out_of_school_youth: false,
-        disability_type: ''
+        disability_type: '',
+        documents: {}
       })
     }
     setDuplicateCheck(null)
@@ -285,13 +317,50 @@ const Residents = () => {
       return
     }
 
+    // Validate vulnerability documents
+    const vulnerabilityChecks = [
+      { field: 'is_4ps', docType: '4ps', name: '4Ps Member' },
+      { field: 'is_pwd', docType: 'pwd', name: 'PWD' },
+      { field: 'is_solo_parent', docType: 'solo_parent', name: 'Solo Parent' },
+      { field: 'is_out_of_school_youth', docType: 'osy', name: 'Out of School Youth' }
+    ]
+
+    for (const check of vulnerabilityChecks) {
+      if (formData[check.field] && !formData.documents[check.docType]) {
+        alert(`Please upload supporting document for ${check.name} status.`)
+        return
+      }
+    }
+
     try {
       const endpoint = editing ? `residents/${editing.Resident_ID}` : 'residents'
       const method = editing ? 'put' : 'post'
 
-      const response = await apiRequest(endpoint, {
-        method,
-        body: formData
+      // Create FormData for file uploads
+      const submitData = new FormData()
+      
+      // Add all form fields
+      Object.keys(formData).forEach(key => {
+        if (key !== 'documents') {
+          submitData.append(key, formData[key])
+        }
+      })
+
+      // Add document files
+      Object.keys(formData.documents).forEach(docType => {
+        if (formData.documents[docType]) {
+          submitData.append(`document_${docType}`, formData.documents[docType])
+        }
+      })
+
+      // Use fetch directly for FormData
+      const token = localStorage.getItem('authToken')
+      const response = await fetch(`/api/${endpoint}`, {
+        method: method.toUpperCase(),
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: submitData
       })
 
       if (response.ok) {
@@ -513,15 +582,21 @@ Keep these credentials secure and provide them to the resident privately.`
           <Button variant="outlined" startIcon={<Refresh />} onClick={() => fetchResidents()}>
             Refresh
           </Button>
-          <Button variant="outlined" startIcon={<CloudUpload />} onClick={() => setOpenBulkImport(true)}>
-            Bulk Import
-          </Button>
-          <Button variant="outlined" startIcon={<FamilyRestroom />} onClick={() => setOpenHousehold(true)}>
-            Add Household
-          </Button>
-          <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()}>
-            Add Resident
-          </Button>
+          <WriteProtected>
+            <Button variant="outlined" startIcon={<CloudUpload />} onClick={() => setOpenBulkImport(true)}>
+              Bulk Import
+            </Button>
+          </WriteProtected>
+          <WriteProtected>
+            <Button variant="outlined" startIcon={<FamilyRestroom />} onClick={() => setOpenHousehold(true)}>
+              Add Household
+            </Button>
+          </WriteProtected>
+          <WriteProtected>
+            <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()}>
+              Add Resident
+            </Button>
+          </WriteProtected>
         </Box>
       </Box>
 
@@ -868,10 +943,19 @@ Keep these credentials secure and provide them to the resident privately.`
       )}
 
       {/* Add/Edit Resident Dialog */}
-      <Dialog open={open} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>{editing ? 'Edit Resident' : 'Add New Resident'}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
+      <Dialog open={open} onClose={handleCloseDialog} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ 
+          bgcolor: 'primary.main', 
+          color: 'white', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1 
+        }}>
+          <People />
+          {editing ? 'Edit Resident Information' : 'Add New Resident'}
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Box sx={{ pt: 1 }}>
             {/* Duplicate Check */}
             {!editing && formData.first_name && formData.last_name && formData.birthdate && (
               <Box sx={{ mb: 3 }}>
@@ -895,249 +979,432 @@ Keep these credentials secure and provide them to the resident privately.`
               </Box>
             )}
 
-            <Grid container spacing={2}>
-              <Grid xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Household</InputLabel>
-                  <Select
-                    value={formData.household_id}
-                    onChange={(e) => setFormData({...formData, household_id: e.target.value})}
-                    label="Household"
-                    required
-                  >
-                    {households.map((household) => (
-                      <MenuItem key={household.Household_ID} value={household.Household_ID}>
-                        {household.Household_Number} - {household.Street_Address}
+            {/* Household Information Section */}
+            <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+              <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
+                Household Information
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid xs={12} sm={8}>
+                  <FormControl fullWidth size="medium">
+                    <InputLabel>Household *</InputLabel>
+                    <Select
+                      value={formData.household_id || ''}
+                      onChange={(e) => setFormData({...formData, household_id: e.target.value})}
+                      label="Household *"
+                      required
+                    >
+                      <MenuItem value="">
+                        <em>Select a household</em>
                       </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Relation to Head</InputLabel>
-                  <Select
-                    value={formData.relation_to_head}
-                    onChange={(e) => setFormData({...formData, relation_to_head: e.target.value})}
-                    label="Relation to Head"
-                  >
-                    <MenuItem value="Head">Head</MenuItem>
-                    <MenuItem value="Spouse">Spouse</MenuItem>
-                    <MenuItem value="Child">Child</MenuItem>
-                    <MenuItem value="Relative">Relative</MenuItem>
-                    <MenuItem value="Boarder">Boarder</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="First Name"
-                  value={formData.first_name}
-                  onChange={(e) => setFormData({...formData, first_name: e.target.value})}
-                  required
-                />
-              </Grid>
-              <Grid xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Middle Name"
-                  value={formData.middle_name}
-                  onChange={(e) => setFormData({...formData, middle_name: e.target.value})}
-                />
-              </Grid>
-              <Grid xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Last Name"
-                  value={formData.last_name}
-                  onChange={(e) => setFormData({...formData, last_name: e.target.value})}
-                  required
-                />
-              </Grid>
-
-              <Grid xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Birthdate"
-                  type="date"
-                  value={formData.birthdate}
-                  onChange={(e) => setFormData({...formData, birthdate: e.target.value})}
-                  required
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Gender</InputLabel>
-                  <Select
-                    value={formData.gender}
-                    onChange={(e) => setFormData({...formData, gender: e.target.value})}
-                    label="Gender"
-                  >
-                    <MenuItem value="Male">Male</MenuItem>
-                    <MenuItem value="Female">Female</MenuItem>
-                    <MenuItem value="Other">Other</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Civil Status</InputLabel>
-                  <Select
-                    value={formData.civil_status}
-                    onChange={(e) => setFormData({...formData, civil_status: e.target.value})}
-                    label="Civil Status"
-                  >
-                    <MenuItem value="Single">Single</MenuItem>
-                    <MenuItem value="Married">Married</MenuItem>
-                    <MenuItem value="Widowed">Widowed</MenuItem>
-                    <MenuItem value="Separated">Separated</MenuItem>
-                    <MenuItem value="Divorced">Divorced</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Voter Status</InputLabel>
-                  <Select
-                    value={formData.voter_status}
-                    onChange={(e) => setFormData({...formData, voter_status: e.target.value})}
-                    label="Voter Status"
-                  >
-                    <MenuItem value="Registered">Registered</MenuItem>
-                    <MenuItem value="Non-Registered">Non-Registered</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Occupation"
-                  value={formData.occupation}
-                  onChange={(e) => setFormData({...formData, occupation: e.target.value})}
-                />
-              </Grid>
-              <Grid xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Monthly Income"
-                  type="number"
-                  value={formData.income_estimate}
-                  onChange={(e) => setFormData({...formData, income_estimate: parseFloat(e.target.value) || 0})}
-                />
-              </Grid>
-
-              <Grid xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Email Address"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  required
-                  placeholder="resident@example.com"
-                />
-              </Grid>
-              <Grid xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Mobile Number"
-                  value={formData.mobile_number}
-                  onChange={(e) => setFormData({...formData, mobile_number: e.target.value})}
-                />
-              </Grid>
-
-              <Grid xs={12}>
-                <TextField
-                  fullWidth
-                  label="Date of Arrival"
-                  type="date"
-                  value={formData.date_arrival}
-                  onChange={(e) => setFormData({...formData, date_arrival: e.target.value})}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-
-              <Grid xs={12}>
-                <Typography variant="h6" sx={{ mb: 2 }}>Vulnerabilities</Typography>
-                <Grid container spacing={2}>
-                  <Grid xs={6} sm={3}>
-                    <FormControl fullWidth>
-                      <InputLabel>4Ps Member</InputLabel>
-                      <Select
-                        value={formData.is_4ps}
-                        onChange={(e) => setFormData({...formData, is_4ps: e.target.value === 'true'})}
-                        label="4Ps Member"
-                      >
-                        <MenuItem value={false}>No</MenuItem>
-                        <MenuItem value={true}>Yes</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid xs={6} sm={3}>
-                    <FormControl fullWidth>
-                      <InputLabel>PWD</InputLabel>
-                      <Select
-                        value={formData.is_pwd}
-                        onChange={(e) => setFormData({...formData, is_pwd: e.target.value === 'true'})}
-                        label="PWD"
-                      >
-                        <MenuItem value={false}>No</MenuItem>
-                        <MenuItem value={true}>Yes</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid xs={6} sm={3}>
-                    <FormControl fullWidth>
-                      <InputLabel>Solo Parent</InputLabel>
-                      <Select
-                        value={formData.is_solo_parent}
-                        onChange={(e) => setFormData({...formData, is_solo_parent: e.target.value === 'true'})}
-                        label="Solo Parent"
-                      >
-                        <MenuItem value={false}>No</MenuItem>
-                        <MenuItem value={true}>Yes</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid xs={6} sm={3}>
-                    <FormControl fullWidth>
-                      <InputLabel>OSY</InputLabel>
-                      <Select
-                        value={formData.is_out_of_school_youth}
-                        onChange={(e) => setFormData({...formData, is_out_of_school_youth: e.target.value === 'true'})}
-                        label="OSY"
-                      >
-                        <MenuItem value={false}>No</MenuItem>
-                        <MenuItem value={true}>Yes</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
+                      {households.map((household) => (
+                        <MenuItem key={household.Household_ID} value={household.Household_ID}>
+                          {household.Household_Number} - {household.Street_Address} ({household.sitio_name})
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid xs={12} sm={4}>
+                  <FormControl fullWidth size="medium">
+                    <InputLabel>Relation to Head</InputLabel>
+                    <Select
+                      value={formData.relation_to_head || 'Head'}
+                      onChange={(e) => setFormData({...formData, relation_to_head: e.target.value})}
+                      label="Relation to Head"
+                    >
+                      <MenuItem value="Head">Head of Household</MenuItem>
+                      <MenuItem value="Spouse">Spouse</MenuItem>
+                      <MenuItem value="Child">Child</MenuItem>
+                      <MenuItem value="Parent">Parent</MenuItem>
+                      <MenuItem value="Sibling">Sibling</MenuItem>
+                      <MenuItem value="Relative">Other Relative</MenuItem>
+                      <MenuItem value="Boarder">Boarder</MenuItem>
+                    </Select>
+                  </FormControl>
                 </Grid>
               </Grid>
+            </Paper>
 
-              {formData.is_pwd && (
-                <Grid xs={12}>
+            {/* Personal Information Section */}
+            <Paper sx={{ p: 2, mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
+                Personal Information
+              </Typography>
+              <Grid container spacing={2}>
+
+                <Grid xs={12} sm={3}>
                   <TextField
                     fullWidth
-                    label="Disability Type"
-                    value={formData.disability_type}
-                    onChange={(e) => setFormData({...formData, disability_type: e.target.value})}
-                    placeholder="e.g., Mobility Impairment, Visual Impairment, etc."
+                    label="First Name *"
+                    value={formData.first_name || ''}
+                    onChange={(e) => setFormData({...formData, first_name: e.target.value})}
+                    required
+                    size="medium"
                   />
                 </Grid>
-              )}
-            </Grid>
+                <Grid xs={12} sm={3}>
+                  <TextField
+                    fullWidth
+                    label="Middle Name"
+                    value={formData.middle_name || ''}
+                    onChange={(e) => setFormData({...formData, middle_name: e.target.value})}
+                    size="medium"
+                  />
+                </Grid>
+                <Grid xs={12} sm={3}>
+                  <TextField
+                    fullWidth
+                    label="Last Name *"
+                    value={formData.last_name || ''}
+                    onChange={(e) => setFormData({...formData, last_name: e.target.value})}
+                    required
+                    size="medium"
+                  />
+                </Grid>
+                <Grid xs={12} sm={3}>
+                  <TextField
+                    fullWidth
+                    label="Suffix"
+                    value={formData.suffix || ''}
+                    onChange={(e) => setFormData({...formData, suffix: e.target.value})}
+                    placeholder="Jr., Sr., III"
+                    size="medium"
+                  />
+                </Grid>
+
+                <Grid xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="Birthdate *"
+                    type="date"
+                    value={formData.birthdate || ''}
+                    onChange={(e) => setFormData({...formData, birthdate: e.target.value})}
+                    required
+                    InputLabelProps={{ shrink: true }}
+                    size="medium"
+                  />
+                </Grid>
+                <Grid xs={12} sm={4}>
+                  <FormControl fullWidth size="medium">
+                    <InputLabel>Gender</InputLabel>
+                    <Select
+                      value={formData.gender || 'Male'}
+                      onChange={(e) => setFormData({...formData, gender: e.target.value})}
+                      label="Gender"
+                    >
+                      <MenuItem value="Male">Male</MenuItem>
+                      <MenuItem value="Female">Female</MenuItem>
+                      <MenuItem value="Other">Other</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid xs={12} sm={4}>
+                  <FormControl fullWidth size="medium">
+                    <InputLabel>Civil Status</InputLabel>
+                    <Select
+                      value={formData.civil_status || 'Single'}
+                      onChange={(e) => setFormData({...formData, civil_status: e.target.value})}
+                      label="Civil Status"
+                    >
+                      <MenuItem value="Single">Single</MenuItem>
+                      <MenuItem value="Married">Married</MenuItem>
+                      <MenuItem value="Widowed">Widowed</MenuItem>
+                      <MenuItem value="Separated">Separated</MenuItem>
+                      <MenuItem value="Divorced">Divorced</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </Paper>
+
+            {/* Contact & Status Information */}
+            <Paper sx={{ p: 2, mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
+                Contact & Status Information
+              </Typography>
+              <Grid container spacing={2}>
+
+                <Grid xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Email Address *"
+                    type="email"
+                    value={formData.email || ''}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    required
+                    placeholder="resident@example.com"
+                    size="medium"
+                  />
+                </Grid>
+                <Grid xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Mobile Number"
+                    value={formData.mobile_number || ''}
+                    onChange={(e) => setFormData({...formData, mobile_number: e.target.value})}
+                    placeholder="09XXXXXXXXX"
+                    size="medium"
+                  />
+                </Grid>
+                <Grid xs={12} sm={6}>
+                  <FormControl fullWidth size="medium">
+                    <InputLabel>Voter Status</InputLabel>
+                    <Select
+                      value={formData.voter_status || 'Non-Registered'}
+                      onChange={(e) => setFormData({...formData, voter_status: e.target.value})}
+                      label="Voter Status"
+                    >
+                      <MenuItem value="Registered">Registered Voter</MenuItem>
+                      <MenuItem value="Non-Registered">Not Registered</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Date of Arrival"
+                    type="date"
+                    value={formData.date_arrival || new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setFormData({...formData, date_arrival: e.target.value})}
+                    InputLabelProps={{ shrink: true }}
+                    size="medium"
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
+
+            {/* Employment Information */}
+            <Paper sx={{ p: 2, mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
+                Employment Information
+              </Typography>
+              <Grid container spacing={2}>
+
+                <Grid xs={12} sm={8}>
+                  <TextField
+                    fullWidth
+                    label="Occupation"
+                    value={formData.occupation || ''}
+                    onChange={(e) => setFormData({...formData, occupation: e.target.value})}
+                    placeholder="e.g., Teacher, Farmer, Student, Unemployed"
+                    size="medium"
+                  />
+                </Grid>
+                <Grid xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="Monthly Income (₱)"
+                    type="number"
+                    value={formData.income_estimate || 0}
+                    onChange={(e) => setFormData({...formData, income_estimate: parseFloat(e.target.value) || 0})}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">₱</InputAdornment>,
+                    }}
+                    size="medium"
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
+
+            {/* Vulnerabilities Section */}
+            <Paper sx={{ p: 2, mb: 2, bgcolor: 'warning.50', border: '1px solid', borderColor: 'warning.200' }}>
+              <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>Vulnerabilities & Special Categories</Typography>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  <strong>Document Verification Required:</strong> All vulnerability declarations require supporting documents (JPG, PNG, PDF - max 5MB)
+                </Typography>
+              </Alert>
+              <Grid container spacing={2}>
+                <Grid xs={6} sm={3}>
+                  <FormControl fullWidth size="medium">
+                    <InputLabel>4Ps Member</InputLabel>
+                    <Select
+                      value={formData.is_4ps ? 'true' : 'false'}
+                      onChange={(e) => setFormData({...formData, is_4ps: e.target.value === 'true'})}
+                      label="4Ps Member"
+                    >
+                      <MenuItem value="false">No</MenuItem>
+                      <MenuItem value="true">Yes</MenuItem>
+                    </Select>
+                  </FormControl>
+                  {formData.is_4ps && (
+                    <Box sx={{ mt: 1 }}>
+                      <input
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        style={{ display: 'none' }}
+                        id="4ps-document"
+                        type="file"
+                        onChange={(e) => handleDocumentUpload(e, '4ps')}
+                      />
+                      <label htmlFor="4ps-document">
+                        <Button
+                          variant="outlined"
+                          component="span"
+                          size="small"
+                          fullWidth
+                          startIcon={<CloudUpload />}
+                        >
+                          Upload 4Ps ID
+                        </Button>
+                      </label>
+                      {formData.documents?.['4ps'] && (
+                        <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
+                          ✓ Document uploaded
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                </Grid>
+                <Grid xs={6} sm={3}>
+                  <FormControl fullWidth size="medium">
+                    <InputLabel>PWD</InputLabel>
+                    <Select
+                      value={formData.is_pwd ? 'true' : 'false'}
+                      onChange={(e) => setFormData({...formData, is_pwd: e.target.value === 'true'})}
+                      label="PWD"
+                    >
+                      <MenuItem value="false">No</MenuItem>
+                      <MenuItem value="true">Yes</MenuItem>
+                    </Select>
+                  </FormControl>
+                  {formData.is_pwd && (
+                    <Box sx={{ mt: 1 }}>
+                      <input
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        style={{ display: 'none' }}
+                        id="pwd-document"
+                        type="file"
+                        onChange={(e) => handleDocumentUpload(e, 'pwd')}
+                      />
+                      <label htmlFor="pwd-document">
+                        <Button
+                          variant="outlined"
+                          component="span"
+                          size="small"
+                          fullWidth
+                          startIcon={<CloudUpload />}
+                        >
+                          Upload PWD ID
+                        </Button>
+                      </label>
+                      {formData.documents?.['pwd'] && (
+                        <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
+                          ✓ Document uploaded
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                </Grid>
+                <Grid xs={6} sm={3}>
+                  <FormControl fullWidth size="medium">
+                    <InputLabel>Solo Parent</InputLabel>
+                    <Select
+                      value={formData.is_solo_parent ? 'true' : 'false'}
+                      onChange={(e) => setFormData({...formData, is_solo_parent: e.target.value === 'true'})}
+                      label="Solo Parent"
+                    >
+                      <MenuItem value="false">No</MenuItem>
+                      <MenuItem value="true">Yes</MenuItem>
+                    </Select>
+                  </FormControl>
+                  {formData.is_solo_parent && (
+                    <Box sx={{ mt: 1 }}>
+                      <input
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        style={{ display: 'none' }}
+                        id="solo-parent-document"
+                        type="file"
+                        onChange={(e) => handleDocumentUpload(e, 'solo_parent')}
+                      />
+                      <label htmlFor="solo-parent-document">
+                        <Button
+                          variant="outlined"
+                          component="span"
+                          size="small"
+                          fullWidth
+                          startIcon={<CloudUpload />}
+                        >
+                          Upload Solo Parent ID
+                        </Button>
+                      </label>
+                      {formData.documents?.['solo_parent'] && (
+                        <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
+                          ✓ Document uploaded
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                </Grid>
+                <Grid xs={6} sm={3}>
+                  <FormControl fullWidth size="medium">
+                    <InputLabel>OSY</InputLabel>
+                    <Select
+                      value={formData.is_out_of_school_youth ? 'true' : 'false'}
+                      onChange={(e) => setFormData({...formData, is_out_of_school_youth: e.target.value === 'true'})}
+                      label="OSY"
+                    >
+                      <MenuItem value="false">No</MenuItem>
+                      <MenuItem value="true">Yes</MenuItem>
+                    </Select>
+                  </FormControl>
+                  {formData.is_out_of_school_youth && (
+                    <Box sx={{ mt: 1 }}>
+                      <input
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        style={{ display: 'none' }}
+                        id="osy-document"
+                        type="file"
+                        onChange={(e) => handleDocumentUpload(e, 'osy')}
+                      />
+                      <label htmlFor="osy-document">
+                        <Button
+                          variant="outlined"
+                          component="span"
+                          size="small"
+                          fullWidth
+                          startIcon={<CloudUpload />}
+                        >
+                          Upload Certificate
+                        </Button>
+                      </label>
+                      {formData.documents?.['osy'] && (
+                        <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
+                          ✓ Document uploaded
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                </Grid>
+                {formData.is_pwd && (
+                  <Grid xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Disability Type"
+                      value={formData.disability_type || ''}
+                      onChange={(e) => setFormData({...formData, disability_type: e.target.value})}
+                      placeholder="e.g., Mobility Impairment, Visual Impairment, Hearing Impairment, etc."
+                      size="medium"
+                      sx={{ mt: 2 }}
+                    />
+                  </Grid>
+                )}
+              </Grid>
+            </Paper>
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained">
-            {editing ? 'Update' : 'Add'} Resident
+        <DialogActions sx={{ p: 3, bgcolor: 'grey.50', gap: 1 }}>
+          <Button onClick={handleCloseDialog} variant="outlined" size="large">
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            variant="contained" 
+            size="large"
+            startIcon={editing ? <Edit /> : <Add />}
+            sx={{ minWidth: 140 }}
+          >
+            {editing ? 'Update Resident' : 'Add Resident'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -37,12 +37,31 @@ Modules, Pages, and Access
 ________________________________________
 ROLE 4: Residents (Expanded Capabilities)
 Purpose
-Enable residents to digitally access barangay services, self-register, apply for beneficiary status, request certificates, and safely file blotter complaints, including vulnerable cases.
+Enable residents to digitally access barangay services, self-register with document verification, apply for beneficiary status with proof requirements, request certificates, and safely file blotter complaints, including vulnerable cases.
+
+Document Verification Requirements
+• All vulnerability declarations (4Ps, PWD, Solo Parent, OSY) require supporting documents
+• Accepted formats: JPG, PNG, PDF (max 5MB per file)
+• Required documents by category:
+  - 4Ps: Pantawid ID or Certificate from DSWD
+  - PWD: PWD ID or Medical Certificate
+  - Solo Parent: Solo Parent ID or Court Documents
+  - OSY: School Certificate or Barangay Certification
+• Documents are reviewed and verified by Secretary before approval
+
+Open Registration System
+• Residents can self-register online without pre-existing household assignment
+• Registration requires valid government-issued ID upload for identity verification
+• Accepted IDs: National ID, Driver's License, Passport, Voter's ID, SSS/GSIS ID
+• All registrations are pending verification until Secretary approval
+• Verified residents gain full access to barangay services
+
 Modules, Pages, and Access
-• Resident Registration (/resident/register) – Submit personal details and valid ID
+• Resident Registration (/resident/register) – Submit personal details, valid ID, and supporting documents
+• Document Upload Interface – Secure file upload with preview and validation
 • Resident Login (/resident/login) – Secure access to the resident portal
 • Resident Dashboard (/resident/dashboard) – View request status, profile, and announcements
-• Profile & Identity Verification (/resident/profile) – Manage personal data and ID uploads
+• Profile & Identity Verification (/resident/profile) – Manage personal data and document uploads
 • Blotter Complaint Filing (/resident/blotter-report) – File digital complaints without face-to-face interaction
 Vulnerability Support (Integrated):
 Residents may declare vulnerability during blotter filing, such as:
@@ -73,13 +92,22 @@ Modules, Pages, and Access
 ________________________________________
 ROLE 6: Barangay Secretary
 Purpose
-Primary administrative authority responsible for resident validation, beneficiary approval, clearance supervision, and blotter oversight.
+Primary administrative authority responsible for resident validation, document verification, beneficiary approval with proof review, clearance supervision, and blotter oversight.
+
+Document Verification Authority
+• Review and approve/reject resident registration applications
+• Verify authenticity of uploaded government IDs and supporting documents
+• Approve vulnerability status based on submitted proof documents
+• Maintain document audit trail for all verifications
+• Flag suspicious or fraudulent document submissions
+
 Core Restrictions
 . Cannot encode blotter cases
 Modules, Pages, and Access
-• Secretary Dashboard (/secretary/dashboard) – Overview of operations and records
-• Resident Records Oversight (/secretary/residents) – Validate resident registrations
-• Beneficiary Validation (/secretary/beneficiaries) – Approve PWD, Senior, and other statuses
+• Secretary Dashboard (/secretary/dashboard) – Overview of operations and pending verifications
+• Resident Records Oversight (/secretary/residents) – Validate resident registrations and documents
+• Document Verification Queue (/secretary/document-verification) – Review uploaded documents
+• Beneficiary Validation (/secretary/beneficiaries) – Approve PWD, Senior, and other statuses with proof
 • Blotter Oversight (/secretary/blotters) – Monitor cases, including vulnerable ones
 • Clearance Oversight (/secretary/clearances) – Supervise and override approvals
 • Reports & Analytics (/secretary/reports) – Generate administrative reports
@@ -92,4 +120,13 @@ Capabilities
 • Certificate demand prediction
 • Crime hotspot identification
 • Beneficiary and vulnerability service demand analysis
+• Document verification fraud detection patterns
+• Registration approval workflow optimization
+
+System Security & Compliance
+• All uploaded documents are encrypted and stored securely
+• Document access is logged and audited
+• GDPR-compliant data handling for personal documents
+• Automatic document retention and disposal policies
+• Multi-factor authentication for document verification roles
 

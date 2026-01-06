@@ -1,116 +1,82 @@
 # ClearPass - Barangay Management System
 
-## Project Purpose
-ClearPass is a comprehensive digital management system designed for Philippine barangays (local government units). It modernizes and streamlines administrative operations, document processing, and resident services through an integrated web platform with AI-powered capabilities.
+## Project Overview
 
-## Value Proposition
-- **Digital Transformation**: Replaces manual paper-based processes with efficient digital workflows
-- **AI Integration**: Leverages OCR, chatbot, and smart analytics for intelligent automation
-- **Security-First**: Implements role-based access control, audit trails, and data protection
-- **Scalability**: Built to handle growing barangay populations and expanding service requirements
-- **Accessibility**: Web-based platform accessible from any device with modern browser
+ClearPass is a comprehensive digital barangay management system that modernizes local government operations through role-based access control, AI-powered analytics, and streamlined citizen services. The system transforms traditional paper-based processes into efficient digital workflows while maintaining security and accountability.
 
-## Key Features
+## Core Value Proposition
 
-### Document Management
-- Certificate generation (Barangay Clearance, Indigency, Residency, Business Permits)
-- Template-based document creation with customizable fields
-- Digital signatures and QR code verification
-- Document request tracking and approval workflows
-- PDF generation with professional formatting
+- **Digital Transformation**: Converts manual barangay operations into automated, trackable digital processes
+- **Role-Based Security**: Implements strict RBAC with 6 distinct user roles and specific access permissions
+- **AI-Enhanced Operations**: Provides predictive analytics for crime patterns, certificate demand, and population forecasting
+- **Citizen Empowerment**: Enables residents to self-register, request services, and file complaints digitally
+- **Operational Efficiency**: Streamlines certificate processing, blotter management, and administrative oversight
+
+## Key Features & Capabilities
+
+### Administrative Management
+- **User & Role Management**: Complete RBAC system with IT Admin, Captain, Secretary, Clerk, Blotter Officer, and Resident roles
+- **System Monitoring**: Real-time health checks, audit trails, and performance metrics
+- **Document Processing**: Automated certificate generation with template management
+- **Backup & Restore**: Data continuity and disaster recovery capabilities
 
 ### Resident Services
-- Household registration and management
-- Resident profile management with verification
-- Document request submission and status tracking
-- Self-service portal for residents
-- Mobile-responsive interface
+- **Self-Registration**: Digital resident onboarding with ID verification
+- **Certificate Requests**: Online applications for barangay clearances and documents
+- **Profile Management**: Residents can update personal information and track request status
+- **Announcement System**: Official barangay communications and notifications
 
-### Blotter & Incident Management
-- Incident reporting and case tracking
-- Participant management (complainants, respondents, witnesses)
-- Case status workflows (Pending, Under Investigation, Resolved, Closed)
-- Analytics and reporting on incident trends
-- Document attachment support
+### Blotter Management
+- **Digital Case Filing**: Online complaint submission with vulnerability support
+- **Case Investigation**: Complete case lifecycle management with evidence tracking
+- **Hearing Management**: QR-based attendance logging for hearings
+- **Priority Handling**: Special processing for vulnerable populations (women, children, PWD, seniors)
 
-### User Management & Security
-- Role-based access control (Admin, Captain, Clerk, Resident)
-- Hierarchical permission system
-- Secure authentication with JWT tokens
-- Password hashing with bcrypt
-- Login attempt tracking and rate limiting
-- Session management
+### AI Analytics & Insights
+- **Crime Pattern Analysis**: Identifies hotspots and trends for proactive policing
+- **Demand Forecasting**: Predicts certificate requests and service demand
+- **Population Analytics**: Demographic insights and growth projections
+- **Risk Assessment**: Identifies high-risk areas and vulnerable populations
 
-### AI-Powered Features
-- OCR engine for document digitization
-- Chatbot for resident inquiries and FAQs
-- Smart field extraction from documents
-- Predictive analytics for incident forecasting
-- Automated suggestions and recommendations
+### Security & Compliance
+- **JWT Authentication**: Secure token-based access control
+- **Audit Logging**: Complete activity tracking and security monitoring
+- **Data Protection**: Encrypted storage and secure file handling
+- **Rate Limiting**: API protection against abuse and attacks
 
-### Analytics & Reporting
-- Population demographics and statistics
-- Document request analytics
-- Incident trend analysis
-- Performance metrics and monitoring
-- Real-time dashboards with charts
+## Target Users & Use Cases
 
-### Administrative Tools
-- Staff user management
-- System configuration and settings
-- Audit logging and activity tracking
-- Database migrations and seeding
-- Health monitoring and performance metrics
+### Government Staff
+- **IT Administrators**: System maintenance, user management, security oversight
+- **Barangay Officials**: Executive oversight, policy decisions, governance reporting
+- **Administrative Staff**: Resident validation, document processing, case management
+- **Field Officers**: Blotter investigations, community policing, evidence collection
 
-## Target Users
+### Citizens
+- **Residents**: Service requests, profile management, complaint filing
+- **Vulnerable Populations**: Protected complaint filing with confidentiality
+- **Business Owners**: Certificate applications for permits and clearances
+- **Community Leaders**: Access to announcements and public information
 
-### Barangay Officials
-- **Barangay Captain**: Full system oversight, approvals, analytics
-- **Barangay Clerk**: Document processing, resident management, daily operations
-- **Admin Users**: System configuration, user management, technical maintenance
+## Technical Architecture
 
-### Residents
-- Submit document requests
-- Track request status
-- Update household information
-- Access barangay services online
-- View announcements and programs
+### Full-Stack Implementation
+- **Frontend**: React 19 with Vite, Material-UI components, responsive design
+- **Backend**: Node.js/Express with RESTful APIs and WebSocket support
+- **Database**: MySQL with Knex.js ORM and migration system
+- **AI Service**: Python-based analytics engine with forecasting capabilities
+- **Security**: Helmet, CORS, XSS protection, rate limiting
 
-### Technical Staff
-- System administrators
-- Database administrators
-- Support personnel
-- Developers and maintainers
+### Deployment Ready
+- **Docker Support**: Containerized deployment configuration
+- **CI/CD Pipeline**: GitHub Actions for automated testing and deployment
+- **Environment Management**: Comprehensive configuration system
+- **Monitoring**: Health checks, performance metrics, error tracking
 
-## Use Cases
+## System Status
 
-### Primary Workflows
-1. **Certificate Issuance**: Resident requests → Clerk processes → Captain approves → Certificate generated
-2. **Resident Registration**: Application submission → Verification → Account creation → Household linking
-3. **Incident Reporting**: Report filed → Investigation → Resolution → Case closure
-4. **Document Processing**: Template selection → Field population → Review → PDF generation
-5. **Analytics Review**: Data collection → Visualization → Insights → Decision making
-
-### Administrative Operations
-- User account provisioning and role assignment
-- Template management for certificates
-- System health monitoring
-- Database maintenance and backups
-- Security audit reviews
-
-### AI-Enhanced Operations
-- Bulk document scanning and data extraction
-- Automated chatbot responses to common queries
-- Predictive analytics for resource planning
-- Smart suggestions for document processing
-- Trend analysis for incident patterns
-
-## Technical Capabilities
-- RESTful API architecture
-- Real-time WebSocket notifications
-- Responsive Material-UI frontend
-- MySQL database with Knex ORM
-- Python-based AI microservices
-- Comprehensive test coverage
-- Performance monitoring and optimization
-- Security hardening and compliance
+**Version**: 2.7.1  
+**Status**: Production Ready  
+**Database Records**: 53 residents, 613 blotter cases, 160 certificates  
+**User Roles**: 6 distinct roles with granular permissions  
+**API Endpoints**: 50+ secured endpoints with role-based access

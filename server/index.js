@@ -21,6 +21,18 @@ function validateEnvironmentVariables() {
 
 validateEnvironmentVariables();
 
+const cookieParser = require('cookie-parser');
+const csrf = require('csurf');
+
+// CSRF protection setup
+const csrfProtection = csrf({
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  }
+});
+
 // Import controllers
 const authController = require('./controllers/authController');
 const residentController = require('./controllers/residentController');
@@ -37,7 +49,7 @@ const { validateLogin } = require('./middleware/validation');
 const { auditMiddleware } = require('./middleware/auditLogger');
 
 const app = express();
-const port = process.env.SERVER_PORT || 3001;
+const port = process.env.SERVER_PORT || 3002;
 const http = require('http');
 const server = http.createServer(app);
 const WebSocketService = require('./services/websocketService');
@@ -69,11 +81,12 @@ const apiLimiter = rateLimit({
 
 // CORS configuration
 const corsOrigins = process.env.NODE_ENV === 'production'
-  ? ['https://glistening-lamington-a9e2b7.netlify.app']
-  : ['http://localhost:3001', 'http://localhost:5173'];
+  ? [process.env.FRONTEND_URL || 'https://glistening-lamington-a9e2b7.netlify.app']
+  : ['http://localhost:3002', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
 
 app.use(cors({
   origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
     if (process.env.NODE_ENV === 'production' && origin && origin.includes('netlify.app')) {
@@ -84,19 +97,33 @@ app.use(cors({
       return callback(null, true);
     }
     
+    // Allow localhost with any port for development
+    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    console.warn('CORS blocked origin:', origin);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token']
 }));
 
 // Security middleware
 app.use(helmet());
+app.use(cookieParser());
 app.use(xssClean());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(apiLimiter);
+
+// CSRF protection for state-changing operations (excluding login for now)
+// app.use('/api/auth/login', csrfProtection);
+app.use('/api/auth/logout', csrfProtection);
+app.use('/api/residents', csrfProtection);
+app.use('/api/blotter', csrfProtection);
+app.use('/api/certificates', csrfProtection);
 
 // Audit logging middleware (before routes)
 app.use(auditMiddleware({ auditAll: false }));
@@ -119,6 +146,15 @@ async function initializeDatabase() {
 
 // Mount routes
 app.post('/api/auth/login', authLimiter, validateLogin, authController.login);
+app.post('/api/auth/logout', authController.logout);
+
+// CSRF token endpoint
+app.get('/api/csrf-token', csrfProtection, (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
+
+// Add auth/me endpoint for authentication check
+app.get('/api/auth/me', verifyToken, authController.me);
 
 // Load and mount modular routes
 app.use('/api/residents', require('./routes/residentRoutes')(db));
@@ -151,6 +187,12 @@ app.use('/api', require('./routes/sharedRoutes')(db));
 
 // Mount comprehensive routes.js for additional endpoints
 app.use('/api', require('./routes'));
+
+// Programs route
+app.use('/api/programs', require('./routes/programRoutes')(db));
+
+// Sitios route
+app.use('/api/sitios', require('./routes/sitioRoutes')(db));
 
 // Legacy household route (to be moved to modular)
 app.get('/api/households', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), householdController.getAll);

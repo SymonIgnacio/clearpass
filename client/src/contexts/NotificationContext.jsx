@@ -3,15 +3,17 @@ import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext();
 
-export const useNotifications = () => {
+// Named export for the hook
+export function useNotifications() {
   const context = useContext(NotificationContext);
   if (!context) {
     throw new Error('useNotifications must be used within a NotificationProvider');
   }
   return context;
-};
+}
 
-export const NotificationProvider = ({ children }) => {
+// Named export for the provider
+export function NotificationProvider({ children }) {
   const { user, token } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);

@@ -97,8 +97,8 @@ const Sidebar = () => {
     }
   ]
 
-  // SECURITY FIX: Settings only visible to admin (role 5)
-  if (user && Number(user.role) === 5) {
+  // SECURITY FIX: Use correct database role IDs
+  if (user && Number(user.role_id) === 5) {
     allMenuItems.push({
       text: 'Settings',
       icon: <Settings />,
@@ -109,9 +109,9 @@ const Sidebar = () => {
   }
 
   const menuItems = allMenuItems.filter(item => {
-    if (!user || !user.role) return false
+    if (!user || !user.role_id) return false
     
-    const userRole = Number(user.role)
+    const userRole = Number(user.role_id)
     return item.roles.some(role => Number(role) === userRole)
   })
 

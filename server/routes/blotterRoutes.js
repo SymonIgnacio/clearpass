@@ -8,11 +8,23 @@ module.exports = (db) => {
   // GET all blotter records
   router.get('/', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'blotter_officer']), asyncHandler(blotterController.getAll));
   
-  // POST create blotter entry
-  router.post('/', verifyToken, checkRole(['admin', 'secretary', 'clerk', 'blotter_officer']), asyncHandler(blotterController.create));
+  // POST create blotter entry - ONLY Blotter Officer
+  router.post('/', verifyToken, checkRole(['blotter_officer']), asyncHandler(async (req, res) => {
+    const result = await blotterController.create(req, res);
+    
+    // Audit log
+    if (req.app.locals.db) {
+      await req.app.locals.db.execute(
+        'INSERT INTO audit_log (user_id, user_role, action, resource, ip_address, result) VALUES (?, ?, ?, ?, ?, ?)',
+        [req.user.id, 'blotter_officer', 'CREATE', 'blotter_case', req.ip, 'SUCCESS']
+      );
+    }
+    
+    return result;
+  }));
   
-  // PUT update blotter entry
-  router.put('/:caseNumber', verifyToken, checkRole(['admin', 'secretary', 'clerk', 'blotter_officer']), asyncHandler(blotterController.update));
+  // PUT update blotter entry - ONLY Blotter Officer
+  router.put('/:caseNumber', verifyToken, checkRole(['blotter_officer']), asyncHandler(blotterController.update));
   
   // DELETE blotter entry
   router.delete('/:caseNumber', verifyToken, checkRole(['admin', 'secretary']), asyncHandler(blotterController.delete));

@@ -1,4 +1,17 @@
 const { body, param, query, validationResult } = require('express-validator');
+const xss = require('xss');
+
+// XSS sanitization middleware
+const sanitizeInput = (req, res, next) => {
+  if (req.body) {
+    for (const key in req.body) {
+      if (typeof req.body[key] === 'string') {
+        req.body[key] = xss(req.body[key]);
+      }
+    }
+  }
+  next();
+};
 
 // Handle validation errors
 const handleValidationErrors = (req, res, next) => {
@@ -67,7 +80,7 @@ const validateId = [
 // Search query validation
 const validateSearch = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be 1-100'),
+  query('limit').optional().isInt({ min: 1, max: 1000 }).withMessage('Limit must be 1-1000'),
   query('search').optional().trim().isLength({ max: 100 }).withMessage('Search term max 100 chars'),
   handleValidationErrors
 ];
@@ -80,5 +93,6 @@ module.exports = {
   validateLogin,
   validateId,
   validateSearch,
-  handleValidationErrors
+  handleValidationErrors,
+  sanitizeInput
 };

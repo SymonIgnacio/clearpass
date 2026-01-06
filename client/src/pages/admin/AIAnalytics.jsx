@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Card, CardContent, Typography, Grid, LinearProgress } from '@mui/material';
-import api from '../../utils/api';
+import { api } from '../../utils/api';
 
 const AIAnalytics = () => {
   const [metrics, setMetrics] = useState({
@@ -18,6 +18,7 @@ const AIAnalytics = () => {
   const fetchMetrics = async () => {
     try {
       const response = await api.get('/admin/ai-metrics');
+      const data = await response.json();
       setMetrics(response.data.metrics || metrics);
     } catch (error) {
       console.error('Failed to fetch AI metrics:', error);

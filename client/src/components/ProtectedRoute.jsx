@@ -15,15 +15,14 @@ const ProtectedRoute = ({ children, requiredRoles = [] }) => {
     )
   }
 
-  // Check JWT token in localStorage
-  const token = localStorage.getItem('authToken')
-  if (!token || !isAuthenticated) {
+  // Check authentication status
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />
   }
 
   // Check role-based access
   if (requiredRoles.length > 0 && user) {
-    const userRole = Number(user.role)
+    const userRole = Number(user.role_id || user.role)
     const hasAccess = requiredRoles.some(role => Number(role) === userRole)
 
     if (!hasAccess) {

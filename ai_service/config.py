@@ -5,7 +5,10 @@ class Config:
 
     # Flask configuration
     DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
-    PORT = int(os.environ.get('PORT', 5000))
+    try:
+        PORT = int(os.environ.get('PORT', 5000))
+    except (ValueError, TypeError):
+        PORT = 5000
 
     # CORS settings
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:3001,http://localhost:5173').split(',')

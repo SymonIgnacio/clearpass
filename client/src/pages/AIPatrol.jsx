@@ -26,7 +26,7 @@ const AIPatrol = () => {
   const fetchPatrolSuggestions = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/ai/patrol-suggestions')
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3002/api'}/ai/patrol-suggestions`)
       if (response.ok) {
         const data = await response.json()
         setPatrolSuggestions(data)

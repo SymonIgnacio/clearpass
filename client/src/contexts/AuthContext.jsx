@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import { clearCsrfToken } from '../utils/csrf';
 
 // Helper function to decode JWT payload
 const decodeJWT = (token) => {
@@ -57,110 +58,96 @@ const decodeJWT = (token) => {
 
 const AuthContext = createContext();
 
-export const useAuth = () => {
+// Named export for the hook
+export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}
 
-export const AuthProvider = ({ children }) => {
+// Named export for the provider
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Check for existing token on mount
+  // Check for existing authentication via API call
   useEffect(() => {
+    let isMounted = true;
+    
     const checkAuth = async () => {
-      const token = localStorage.getItem('authToken');
-
-      if (token) {
-        const decoded = decodeJWT(token);
-        if (decoded) {
-          // Check if token is expired
-          const currentTime = Date.now() / 1000;
-          if (decoded.exp && decoded.exp > currentTime) {
-            setUser(decoded);
-            setIsAuthenticated(true);
-            console.log('✅ AuthContext: User restored from localStorage');
-          } else {
-            console.log('❌ AuthContext: Token expired, clearing');
-            localStorage.removeItem('authToken');
-          }
+      try {
+        console.log('🔐 AuthContext: Checking authentication status');
+        const response = await api.get('/auth/me');
+        if (response.ok && isMounted) {
+          const userData = await response.json();
+          console.log('🔐 AuthContext: User authenticated:', userData.user?.username);
+          setUser(userData.user || userData);
+          setIsAuthenticated(true);
+        } else if (response.status === 401 && isMounted) {
+          console.log('🔐 AuthContext: No valid authentication found');
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.log('🔐 AuthContext: Authentication check failed:', error.message);
+        if (isMounted) {
+          setUser(null);
+          setIsAuthenticated(false);
         }
       }
 
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     };
 
     checkAuth();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // Update isAuthenticated when user changes
-  useEffect(() => {
-    setIsAuthenticated(!!user);
-  }, [user]);
-
-  const login = (token) => {
+  const login = async (credentials) => {
     try {
-      if (!token || typeof token !== 'string') {
-        throw new Error('Invalid token: Token must be a non-empty string');
-      }
-
-      // Store token first
-      localStorage.setItem('authToken', token);
-
-      // Attempt to decode the token
-      const decoded = decodeJWT(token);
-
-      if (decoded) {
-        // Validate essential fields in the decoded token
-        if (!decoded.id && !decoded.user_id) {
-          console.warn('⚠️ AuthContext: Token missing user ID field');
-          // Still allow login but log warning
-        }
-
-        setUser(decoded);
+      console.log('🔐 AuthContext: Starting login process');
+      
+      const response = await api.post('/auth/login', credentials);
+      
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('🔐 AuthContext: Login successful, user data:', userData);
+        
+        setUser(userData.user || userData);
         setIsAuthenticated(true);
-        console.log('✅ AuthContext: User logged in successfully');
-        return decoded;
+        return userData;
       } else {
-        // Token couldn't be decoded, but we'll still store it
-        // This allows the app to function and potentially re-validate later
-        console.warn('⚠️ AuthContext: Token could not be decoded, but login proceeding');
-
-        // Create a minimal user object from the token string
-        // This is a fallback to prevent complete login failure
-        const fallbackUser = {
-          id: 'unknown',
-          username: 'unknown',
-          role: 'unknown',
-          token_stored: true,
-          decoded: false
-        };
-
-        setUser(fallbackUser);
-        setIsAuthenticated(true);
-        console.log('⚠️ AuthContext: Login completed with fallback user object');
-        return fallbackUser;
+        const errorData = await response.json().catch(() => ({ error: 'Login failed' }));
+        console.error('🔐 AuthContext: Login failed with status:', response.status, errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
     } catch (error) {
-      console.error('❌ AuthContext: Login failed:', error);
-
-      // Clean up on failure
-      localStorage.removeItem('authToken');
+      console.error('🔐 AuthContext: Login error:', error);
       setUser(null);
       setIsAuthenticated(false);
-
       throw error;
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('authToken');
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    }
+    
+    clearCsrfToken();
+    localStorage.clear();
     setUser(null);
-    console.log('✅ AuthContext: User logged out');
+    setIsAuthenticated(false);
   };
 
   const checkAuth = async () => {

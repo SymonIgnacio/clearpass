@@ -77,6 +77,8 @@ const INCIDENT_CATEGORIES = {
 
 const SITIOS = ['Batia Proper', 'Northville 5', 'St. Martha', 'AFP/PNP']
 
+import WriteProtected from '../components/WriteProtected'
+
 const Blotter = () => {
   const [blotterCases, setBlotterCases] = useState([])
   const [residents, setResidents] = useState([])
@@ -396,9 +398,11 @@ const Blotter = () => {
           <Button variant="outlined" startIcon={<Refresh />} onClick={fetchBlotterCases}>
             Refresh
           </Button>
-          <Button variant="contained" startIcon={<Add />} onClick={() => setOpenWizard(true)}>
-            File a Complaint
-          </Button>
+          <WriteProtected>
+            <Button variant="contained" startIcon={<Add />} onClick={() => setOpenWizard(true)}>
+              File a Complaint
+            </Button>
+          </WriteProtected>
         </Box>
       </Box>
 

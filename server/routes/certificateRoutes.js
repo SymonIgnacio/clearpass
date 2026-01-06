@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken, checkRole } = require('../middleware/authMiddleware');
+const { verifyToken, checkRole, enforceReadOnly } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
 const certificateController = require('../controllers/certificateController');
 
@@ -25,7 +25,7 @@ module.exports = (db) => {
   }));
   
   // POST generate certificate
-  router.post('/', verifyToken, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(async (req, res) => {
+  router.post('/', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(async (req, res) => {
     const { resident_id, certificate_type, purpose, fee_amount } = req.body;
     
     if (!resident_id || !certificate_type) {

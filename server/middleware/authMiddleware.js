@@ -3,7 +3,7 @@ const { ROLES } = require('../config/roles');
 require('dotenv').config();
 
 const verifyToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  const token = req.cookies.authToken || req.headers.authorization?.split(' ')[1];
 
   if (!token) {
     return res.status(401).json({ error: 'Access denied. No token provided.' });
@@ -18,31 +18,36 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// Updated to handle both string and numeric role checking
+// Updated to handle both role names and IDs
 const checkRole = (allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Convert string roles to numeric IDs for consistency
-    const roleMap = {
-      'admin': ROLES.ADMIN,
-      'captain': ROLES.CAPTAIN,
-      'secretary': ROLES.SECRETARY,
-      'clerk': ROLES.CLERK,
-      'blotter_officer': ROLES.BLOTTER_OFFICER,
-      'resident': ROLES.RESIDENT
-    };
-
-    const allowedRoleIds = allowedRoles.map(role => 
-      typeof role === 'string' ? roleMap[role.toLowerCase()] : role
-    ).filter(Boolean);
-
-    // Check both role_id and role fields for compatibility
-    const userRole = req.user.role_id || req.user.role;
+    const userRoleId = req.user.role_id;
+    const userRoleName = req.user.role;
     
-    if (!allowedRoleIds.includes(userRole)) {
+    // Convert role names to IDs for comparison
+    const roleNameToId = {
+      'admin': 5,
+      'captain': 2,
+      'secretary': 3,
+      'clerk': 4,
+      'blotter_officer': 6,
+      'officer': 6,
+      'resident': 12
+    };
+    
+    // Build list of allowed role IDs
+    const allowedRoleIds = allowedRoles.map(role => {
+      if (typeof role === 'number') {
+        return role;
+      }
+      return roleNameToId[role.toLowerCase()] || null;
+    }).filter(id => id !== null);
+    
+    if (!allowedRoleIds.includes(userRoleId)) {
       return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
     }
 
@@ -67,11 +72,23 @@ const checkOwnershipOrHierarchy = (req, res, next) => {
 // For routes that need authentication but no specific role
 const authenticate = verifyToken;
 
+// Captain read-only enforcement middleware
+const enforceReadOnly = (req, res, next) => {
+  if (req.user && (req.user.role_id === 2 || req.user.role === 'Captain')) {
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Access denied. Captains have read-only access.' 
+    });
+  }
+  next();
+};
+
 module.exports = { 
   verifyToken, 
   verifyRole, 
   checkRole, 
   authenticate,
+  enforceReadOnly,
   checkHierarchyAccess, 
   checkOwnershipOrHierarchy 
 };

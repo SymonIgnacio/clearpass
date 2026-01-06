@@ -32,6 +32,14 @@ module.exports = (db) => {
       search
     } = req.query;
 
+    // Input validation
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 25));
+    
+    if (search && search.length > 100) {
+      return res.status(400).json({ error: 'Search term too long' });
+    }
+
     let whereConditions = [];
     let values = [];
 
@@ -67,7 +75,7 @@ module.exports = (db) => {
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-    const offset = (page - 1) * limit;
+    const offset = (pageNum - 1) * limitNum;
 
     // Get total count
     const [countResult] = await db.execute(
@@ -79,16 +87,16 @@ module.exports = (db) => {
     // Get logs with pagination
     const [logs] = await db.execute(
       `SELECT * FROM audit_logs ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-      [...values, parseInt(limit), parseInt(offset)]
+      [...values, limitNum, offset]
     );
 
     res.json({
       success: true,
       logs,
       total,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      pages: Math.ceil(total / limit)
+      page: pageNum,
+      limit: limitNum,
+      pages: Math.ceil(total / limitNum)
     });
   }));
 

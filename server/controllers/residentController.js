@@ -1,5 +1,40 @@
 const crypto = require('crypto');
 const xlsx = require('xlsx');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../uploads/documents');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only JPG, PNG, and PDF files are allowed'), false);
+  }
+};
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 exports.getAll = async (req, res) => {
   const db = req.app.locals.db;
@@ -155,13 +190,13 @@ exports.create = async (req, res) => {
 
     const {
       household_id, relation_to_head, first_name, middle_name, last_name, suffix,
-      birthdate, gender, civil_status, occupation, income_estimate, mobile_number,
+      birthdate, gender, civil_status, occupation, income_estimate, email, mobile_number,
       voter_status, date_arrival, profile_photo_url,
       is_4ps, is_pwd, is_solo_parent, is_out_of_school_youth, disability_type
     } = req.body || {};
 
-    if (!first_name || !last_name || !birthdate || !household_id) {
-      return res.status(400).json({ error: 'Required fields: first_name, last_name, birthdate, household_id' });
+    if (!first_name || !last_name || !birthdate || !household_id || !email) {
+      return res.status(400).json({ error: 'Required fields: first_name, last_name, birthdate, household_id, email' });
     }
 
     const [householdCheck] = await connection.execute(
@@ -177,19 +212,29 @@ exports.create = async (req, res) => {
       .update(`${residentId}-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`)
       .digest('hex').substring(0, 16).toUpperCase();
 
+    // Generate temporary password for resident login
+    const tempPassword = crypto.randomBytes(8).toString('hex');
+    const hashedPassword = crypto.createHash('sha256').update(tempPassword).digest('hex');
+
     await connection.execute(`
       INSERT INTO residents (
         Resident_ID, Household_ID, Relation_to_Head, First_Name, Middle_Name, Last_Name, Suffix,
-        Birthdate, Gender, Civil_Status, Occupation, Income_Estimate, Mobile_Number,
+        Birthdate, Gender, Civil_Status, Occupation, Income_Estimate, Email, Mobile_Number,
         Voter_Status, Date_Arrival, Residency_Status, Profile_Photo_URL, QR_Hash_String
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       residentId, household_id, relation_to_head || 'Head', first_name.trim(), middle_name?.trim(),
       last_name.trim(), suffix?.trim(), birthdate, gender, civil_status || 'Single',
-      occupation?.trim(), income_estimate || 0, mobile_number?.trim(),
+      occupation?.trim(), income_estimate || 0, email.trim(), mobile_number?.trim(),
       voter_status || 'Non-Registered', date_arrival, 'Active',
       profile_photo_url?.trim(), qrHash
     ]);
+
+    // Create user account for resident
+    await connection.execute(`
+      INSERT INTO users (username, email, password, role, resident_id, is_active)
+      VALUES (?, ?, ?, 'resident', ?, 1)
+    `, [email.trim(), email.trim(), hashedPassword, residentId]);
 
     await connection.execute(`
       INSERT INTO vulnerabilities (
@@ -198,6 +243,21 @@ exports.create = async (req, res) => {
     `, [residentId, is_4ps || false, is_pwd || false, is_solo_parent || false,
         is_out_of_school_youth || false, disability_type?.trim()]);
 
+    // Handle document uploads
+    if (req.files) {
+      for (const [fieldName, files] of Object.entries(req.files)) {
+        if (fieldName.startsWith('document_')) {
+          const docType = fieldName.replace('document_', '');
+          const file = Array.isArray(files) ? files[0] : files;
+          
+          await connection.execute(`
+            INSERT INTO resident_documents (resident_id, document_type, file_path, file_name, verification_status)
+            VALUES (?, ?, ?, ?, 'pending')
+          `, [residentId, docType, file.path, file.originalname]);
+        }
+      }
+    }
+
     await connection.execute(`
       UPDATE households SET Total_Members = Total_Members + 1 WHERE Household_ID = ?
     `, [household_id]);
@@ -205,7 +265,9 @@ exports.create = async (req, res) => {
     await connection.commit();
 
     res.status(201).json({
-      resident_id: residentId,
+      resident_code: residentId,
+      user_email: email.trim(),
+      temp_password: tempPassword,
       qr_hash: qrHash,
       message: 'Resident created successfully'
     });
@@ -375,3 +437,106 @@ exports.getHouseholdMembers = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch household members' });
   }
 };
+
+exports.openRegister = async (req, res) => {
+  const db = req.app.locals.db;
+  if (!db) {
+    return res.status(500).json({ error: 'Database connection not available' });
+  }
+
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const {
+      first_name, middle_name, last_name, suffix, birthdate, gender, civil_status,
+      occupation, income_estimate, email, mobile_number, street_address, sitio,
+      voter_status, is_4ps, is_pwd, is_solo_parent, is_out_of_school_youth, disability_type
+    } = req.body || {};
+
+    if (!first_name || !last_name || !birthdate || !email || !street_address || !sitio) {
+      return res.status(400).json({ error: 'Required fields: first_name, last_name, birthdate, email, street_address, sitio' });
+    }
+
+    if (!req.files || !req.files.government_id) {
+      return res.status(400).json({ error: 'Government ID upload is required' });
+    }
+
+    // Check for existing email
+    const [existingUser] = await connection.execute(
+      'SELECT email FROM users WHERE email = ?',
+      [email.trim()]
+    );
+    if (existingUser.length > 0) {
+      return res.status(400).json({ error: 'Email address already registered' });
+    }
+
+    const applicationId = `APP-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    const tempPassword = crypto.randomBytes(8).toString('hex');
+    const hashedPassword = crypto.createHash('sha256').update(tempPassword).digest('hex');
+
+    // Create pending registration record
+    await connection.execute(`
+      INSERT INTO resident_applications (
+        application_id, first_name, middle_name, last_name, suffix, birthdate, gender,
+        civil_status, occupation, income_estimate, email, mobile_number, street_address,
+        sitio, voter_status, is_4ps, is_pwd, is_solo_parent, is_out_of_school_youth,
+        disability_type, status, temp_password, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())
+    `, [
+      applicationId, first_name.trim(), middle_name?.trim(), last_name.trim(), suffix?.trim(),
+      birthdate, gender, civil_status || 'Single', occupation?.trim(), income_estimate || 0,
+      email.trim(), mobile_number?.trim(), street_address.trim(), sitio.trim(),
+      voter_status || 'Non-Registered', is_4ps || false, is_pwd || false,
+      is_solo_parent || false, is_out_of_school_youth || false, disability_type?.trim()
+    ]);
+
+    // Handle document uploads
+    if (req.files) {
+      // Government ID
+      if (req.files.government_id) {
+        const govIdFile = Array.isArray(req.files.government_id) ? req.files.government_id[0] : req.files.government_id;
+        await connection.execute(`
+          INSERT INTO application_documents (application_id, document_type, file_path, file_name, verification_status)
+          VALUES (?, 'government_id', ?, ?, 'pending')
+        `, [applicationId, govIdFile.path, govIdFile.originalname]);
+      }
+
+      // Vulnerability documents
+      for (const [fieldName, files] of Object.entries(req.files)) {
+        if (fieldName.startsWith('document_')) {
+          const docType = fieldName.replace('document_', '');
+          const file = Array.isArray(files) ? files[0] : files;
+          
+          await connection.execute(`
+            INSERT INTO application_documents (application_id, document_type, file_path, file_name, verification_status)
+            VALUES (?, ?, ?, ?, 'pending')
+          `, [applicationId, docType, file.path, file.originalname]);
+        }
+      }
+    }
+
+    await connection.commit();
+
+    res.status(201).json({
+      application_id: applicationId,
+      message: 'Registration application submitted successfully. You will receive an email notification once verified.'
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error processing open registration:', error);
+    res.status(500).json({ error: 'Failed to process registration application' });
+  } finally {
+    connection.release();
+  }
+};
+
+// Export multer upload middleware
+exports.uploadMiddleware = upload.fields([
+  { name: 'government_id', maxCount: 1 },
+  { name: 'document_4ps', maxCount: 1 },
+  { name: 'document_pwd', maxCount: 1 },
+  { name: 'document_solo_parent', maxCount: 1 },
+  { name: 'document_osy', maxCount: 1 }
+]);

@@ -1,399 +1,266 @@
-# Technology Stack
+# ClearPass - Technology Stack & Development Setup
 
-## Programming Languages
+## Programming Languages & Versions
 
-### JavaScript/Node.js
-- **Version**: Node.js 18.0.0+ (LTS recommended)
-- **Package Manager**: npm 9.0.0+
-- **Module System**: ES Modules (type: "module")
-- **Usage**: Backend API, frontend application, build tools
+### Frontend Technologies
+- **JavaScript (ES2022)**: Modern ECMAScript features with async/await
+- **JSX**: React component syntax with functional components
+- **CSS3**: Modern styling with Flexbox and Grid
+- **HTML5**: Semantic markup with accessibility features
 
-### Python
-- **Version**: Python 3.x
-- **Usage**: AI services (OCR, chatbot, analytics)
-- **Key Libraries**: See AI Services section
+### Backend Technologies
+- **Node.js (v18+)**: Server-side JavaScript runtime
+- **JavaScript (ES Modules)**: Modern module system with import/export
+- **SQL**: Database queries and schema definitions
+- **Python (3.8+)**: AI service and analytics engine
 
-### SQL
-- **Dialect**: MySQL 8.0
-- **Query Builder**: Knex.js 3.1.0
-- **Usage**: Database schema, migrations, queries
+## Core Frameworks & Libraries
 
-## Frontend Stack
+### Frontend Stack
+- **React 19.1.1**: Component-based UI library with hooks
+- **React Router DOM 7.9.6**: Client-side routing and navigation
+- **Material-UI 7.3.5**: Component library with design system
+- **Vite 4.5.0**: Build tool with hot module replacement
+- **Tailwind CSS 3.4.0**: Utility-first CSS framework
 
-### Core Framework
-- **React**: 18.2.0
-- **React DOM**: 18.2.0
-- **React Router**: 6.8.0
+### Backend Stack
+- **Express.js 4.19.2**: Web application framework
+- **Knex.js 3.1.0**: SQL query builder and migration tool
+- **MySQL2 3.15.3**: Database driver with connection pooling
+- **bcryptjs 3.0.3**: Password hashing and authentication
+- **jsonwebtoken**: JWT token generation and validation
 
-### UI Framework
-- **Material-UI (MUI)**: 7.3.5
-  - @mui/material
-  - @mui/icons-material
-  - @mui/x-data-grid
-- **Emotion**: 11.14.0 (CSS-in-JS for MUI)
+### Security & Middleware
+- **Helmet 7.2.0**: Security headers and protection
+- **CORS 2.8.5**: Cross-origin resource sharing
+- **express-rate-limit 7.5.1**: API rate limiting
+- **xss-clean 0.1.4**: XSS attack prevention
+- **validator 13.11.0**: Input validation and sanitization
 
-### Styling
-- **Tailwind CSS**: 3.4.0
-- **PostCSS**: 8.5.0
-- **Autoprefixer**: 10.4.19
-
-### Data Visualization
-- **Recharts**: 2.8.0
-
-### HTTP Client
-- **Axios**: 1.6.0
-
-### Build Tool
-- **Vite**: 4.5.0
-- **@vitejs/plugin-react**: 4.3.0
+## Build Systems & Tools
 
 ### Development Tools
-- **ESLint**: 8.57.0
-  - eslint-plugin-react
-  - eslint-plugin-react-hooks
-  - eslint-plugin-react-refresh
-  - eslint-config-prettier
-  - eslint-plugin-prettier
-- **Prettier**: 3.2.5
-- **Vitest**: 0.34.0 (testing)
-- **jsdom**: 22.1.0 (DOM testing)
+- **ESLint 9.36.0**: Code linting and style enforcement
+- **Prettier**: Code formatting and consistency
+- **Concurrently 9.2.1**: Parallel script execution
+- **Autoprefixer 10.4.22**: CSS vendor prefix automation
 
-## Backend Stack
-
-### Core Framework
-- **Express.js**: 4.18.2
-- **Node.js**: 18.0.0+
-
-### Database
-- **MySQL2**: 3.6.0 (MySQL driver)
-- **Knex.js**: 3.1.0 (Query builder & migrations)
-
-### Authentication & Security
-- **jsonwebtoken**: 9.0.0 (JWT tokens)
-- **bcrypt**: 5.1.1 (password hashing)
-- **bcryptjs**: 2.4.3 (alternative bcrypt)
-- **helmet**: 7.1.0 (security headers)
-- **cors**: 2.8.5 (CORS handling)
-- **express-rate-limit**: 7.5.1 (rate limiting)
-- **csurf**: 1.2.2 (CSRF protection)
-- **xss-clean**: 0.1.4 (XSS sanitization)
-- **validator**: 13.11.0 (input validation)
-- **express-validator**: 7.3.1
-
-### File Handling
-- **multer**: 1.4.5-lts.1 (file uploads)
-- **puppeteer**: 24.33.1 (PDF generation)
-- **pdfkit**: 0.17.2 (PDF creation)
-- **qrcode**: 1.5.4 (QR code generation)
-- **xlsx**: 0.18.5 (Excel files)
-
-### Logging & Monitoring
-- **winston**: 3.19.0 (logging)
-- **prom-client**: 15.1.0 (Prometheus metrics)
-
-### Communication
-- **ws**: 8.16.0 (WebSocket)
-- **axios**: 1.13.2 (HTTP client)
-- **nodemailer**: 7.0.12 (email)
-
-### Documentation
-- **swagger-jsdoc**: 6.2.8
-- **swagger-ui-express**: 5.0.0
-
-### Development Tools
-- **nodemon**: 3.0.0 (auto-restart)
-- **dotenv**: 16.3.0 (environment variables)
-- **ESLint**: 8.56.0
-- **Prettier**: 3.2.5
-- **Jest**: 29.7.0 (testing)
-- **supertest**: 6.3.3 (API testing)
-- **snyk**: 1.1291.1 (security scanning)
-
-## AI Services Stack
-
-### Python Dependencies
-```
-# Core AI Libraries
-- OCR engine libraries
-- NLP frameworks
-- Machine learning libraries
-- Data processing tools
-
-# Configuration
-- python-dotenv (environment variables)
-- requests (HTTP client)
-```
-
-### AI Capabilities
-- OCR text extraction
-- Chatbot intent recognition
-- Field extraction
-- Predictive analytics
-- Blotter trend analysis
-
-## Database Technology
-
-### MySQL Configuration
-- **Version**: 8.0+
-- **Storage Engine**: InnoDB
-- **Character Set**: utf8mb4
-- **Collation**: utf8mb4_unicode_ci
-
-### Migration System
-- **Tool**: Knex.js migrations
-- **Location**: server/migrations/
-- **Naming**: Timestamp-based (YYYYMMDDHHMMSS_description.js)
-
-### Key Tables
-- users, residents, households
-- certificates, document_requests, templates
-- blotter_entries, blotter_participants
-- notifications, login_attempts
-- AI-related tables
-
-## Development Commands
-
-### Root Level
-```bash
-# Install all dependencies
-npm run install:all
-
-# Run all services concurrently
-npm run dev:all
-
-# Frontend only
-npm run dev
-
-# Backend only
-npm start
-
-# Build production
-npm run build
-
-# Run tests
-npm test
-npm run test:watch
-npm run test:coverage
-
-# Linting
-npm run lint
-```
-
-### Server Commands
-```bash
-cd server
-
-# Development with auto-restart
-npm run dev
-
-# Production
-npm start
-
-# Testing
-npm test
-npm run test:watch
-
-# Code quality
-npm run lint
-npm run lint:fix
-npm run format
-npm run format:check
-npm run lint:fix:format
-
-# Security
-npm run security-audit
-npm run security-check
-```
-
-### Client Commands
-```bash
-cd client
-
-# Development server
-npm run dev
-
-# Production build
-npm run build
-
-# Preview production build
-npm run preview
-
-# Code quality
-npm run lint
-npm run lint:fix
-npm run format
-npm run format:check
-npm run lint:fix:format
-```
-
-### AI Service Commands
-```bash
-cd ai_service
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run service
-python smart_suggestions.py
-```
-
-### Database Commands
-```bash
-cd server
-
-# Run migrations
-npx knex migrate:latest
-
-# Rollback migration
-npx knex migrate:rollback
-
-# Run seeds
-npx knex seed:run
-
-# Create migration
-npx knex migrate:make migration_name
-
-# Create seed
-npx knex seed:make seed_name
-```
-
-## Build Systems
-
-### Frontend Build (Vite)
-- **Dev Server**: Hot Module Replacement (HMR)
-- **Build Output**: Optimized static files
-- **Code Splitting**: Automatic route-based splitting
-- **Asset Optimization**: Minification, tree-shaking
-
-### Backend Build
-- **No Build Step**: Direct Node.js execution
-- **Module System**: ES Modules
-- **Environment**: Development vs Production configs
-
-## Environment Configuration
-
-### Required Environment Variables
-
-#### Server (.env)
-```
-# Database
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=
-DB_NAME=clearpass_db
-DB_PORT=3306
-
-# JWT
-JWT_SECRET=your_jwt_secret_key
-JWT_EXPIRES_IN=24h
-
-# Server
-PORT=5000
-NODE_ENV=development
-
-# AI Service
-AI_SERVICE_URL=http://localhost:5001
-```
-
-#### Client (.env)
-```
-VITE_API_URL=http://localhost:5000/api
-VITE_WS_URL=ws://localhost:5000
-```
-
-#### AI Service (.env)
-```
-PORT=5001
-DATABASE_URL=mysql://user:pass@localhost:3306/clearpass_db
-```
-
-## Version Requirements
-
-### Node.js Engines
+### Build Configuration
 ```json
 {
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
+  "type": "module",
+  "scripts": {
+    "dev": "npm run dev --prefix client",
+    "start": "node server/index.js",
+    "build": "npm run build --prefix client",
+    "dev:all": "concurrently \"cd client && npm run dev\" \"cd server && npm run dev\" \"cd ai_service && python smart_suggestions.py\""
   }
 }
 ```
 
-### Browser Support
-- Chrome/Edge: Last 2 versions
-- Firefox: Last 2 versions
-- Safari: Last 2 versions
-- No IE support
+### Vite Configuration (client/vite.config.js)
+- **React Plugin**: JSX transformation and fast refresh
+- **Development Server**: Hot reload on port 5173
+- **Build Optimization**: Code splitting and minification
+- **Asset Handling**: Static file processing and optimization
 
-## Development Tools
+## Database Technology
 
-### Code Quality
-- **ESLint**: JavaScript linting
-- **Prettier**: Code formatting
-- **EditorConfig**: Editor consistency
+### MySQL Configuration
+- **Version**: MySQL 8.0+
+- **Connection Pooling**: Multiple concurrent connections
+- **Transaction Support**: ACID compliance for data integrity
+- **Charset**: utf8mb4 for full Unicode support
 
-### Testing
-- **Jest**: Unit and integration tests
-- **Supertest**: API endpoint testing
-- **Vitest**: Frontend component testing
+### Knex.js Migration System
+```javascript
+// knexfile.js configuration
+{
+  development: {
+    client: 'mysql2',
+    connection: {
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME
+    },
+    migrations: {
+      directory: './migrations'
+    },
+    seeds: {
+      directory: './seeds'
+    }
+  }
+}
+```
 
-### Version Control
-- **Git**: Source control
-- **GitHub**: Repository hosting
-- **.gitignore**: Excludes node_modules, .env, logs
+## Development Commands
 
-### CI/CD
-- **GitHub Actions**: Automated workflows
-- **Configuration**: .github/workflows/ci-cd.yml
+### Installation & Setup
+```bash
+# Install all dependencies
+npm run install:all
+
+# Setup environment files
+npm run setup-env
+
+# Run database migrations
+npm run db:migrate
+
+# Complete setup process
+npm run setup
+```
+
+### Development Workflow
+```bash
+# Start all services
+npm run dev:all
+
+# Start individual services
+cd client && npm run dev    # Frontend on :5173
+cd server && npm run dev    # Backend on :3002
+cd ai_service && python smart_suggestions.py  # AI service
+
+# Build for production
+npm run build
+
+# Run tests
+npm run test
+npm run test:coverage
+```
+
+### Database Management
+```bash
+# Run migrations
+cd server && npx knex migrate:latest
+
+# Rollback migrations
+cd server && npx knex migrate:rollback
+
+# Run seeds
+cd server && npx knex seed:run
+
+# Database audit
+npm run db:audit
+```
+
+### System Maintenance
+```bash
+# Health check
+npm run health-check
+
+# System validation
+npm run test:system
+
+# Verify completion
+npm run verify:completion
+
+# Environment validation
+npm run validate-env
+```
+
+## AI Service Dependencies
+
+### Python Requirements (ai_service/requirements.txt)
+```
+pandas>=1.5.0
+numpy>=1.24.0
+scikit-learn>=1.2.0
+flask>=2.3.0
+requests>=2.28.0
+python-dotenv>=1.0.0
+```
+
+### AI Service Configuration
+- **Flask Server**: HTTP API for analytics requests
+- **Machine Learning**: Scikit-learn for predictive models
+- **Data Processing**: Pandas for data manipulation
+- **Environment**: Python-dotenv for configuration
+
+## Environment Configuration
+
+### Required Environment Variables
+```bash
+# Database Configuration
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=barangay_management
+
+# JWT Configuration
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=24h
+
+# Server Configuration
+PORT=3002
+NODE_ENV=development
+
+# AI Service Configuration
+AI_SERVICE_URL=http://localhost:5000
+PYTHON_PATH=/usr/bin/python3
+```
+
+### Development vs Production
+- **Development**: Hot reload, detailed logging, debug mode
+- **Production**: Minified builds, error logging, security headers
+- **Testing**: Isolated database, mock services, coverage reports
+
+## Deployment Technologies
+
+### Docker Support
+```dockerfile
+# Multi-stage build for production
+FROM node:18-alpine AS builder
+FROM node:18-alpine AS production
+```
+
+### CI/CD Pipeline (.github/workflows/ci-cd.yml)
+- **GitHub Actions**: Automated testing and deployment
+- **Build Stages**: Install, test, build, deploy
+- **Environment Management**: Secrets and configuration
+- **Quality Gates**: Linting, testing, security checks
 
 ## Performance Optimization
 
-### Frontend
-- Code splitting with React.lazy()
-- Memoization with React.memo()
-- Virtual scrolling for large lists
-- Image optimization
-- Bundle size optimization
+### Frontend Optimization
+- **Code Splitting**: Dynamic imports for route-based chunks
+- **Tree Shaking**: Unused code elimination
+- **Asset Optimization**: Image compression and lazy loading
+- **Caching Strategy**: Browser caching for static assets
 
-### Backend
-- Database query optimization
-- Connection pooling
-- Response caching
-- Compression middleware
-- Rate limiting
+### Backend Optimization
+- **Connection Pooling**: Database connection management
+- **Query Optimization**: Efficient database operations
+- **Compression**: Gzip compression for responses
+- **Rate Limiting**: API abuse prevention
 
-### Database
-- Strategic indexing
-- Query optimization
-- Connection pooling
-- Prepared statements
+## Security Implementation
 
-## Security Tools
+### Authentication & Authorization
+- **JWT Tokens**: Stateless authentication
+- **Password Hashing**: bcrypt with salt rounds
+- **Role-Based Access**: Granular permission system
+- **Session Management**: Token expiration and refresh
 
-### Dependencies
-- helmet (HTTP headers)
-- xss-clean (XSS prevention)
-- express-rate-limit (DDoS protection)
-- validator (input sanitization)
-- bcrypt (password hashing)
-- jsonwebtoken (authentication)
+### Data Protection
+- **Input Validation**: Server-side validation for all inputs
+- **SQL Injection Prevention**: Parameterized queries
+- **XSS Protection**: Content sanitization
+- **CSRF Protection**: Token-based request validation
 
-### Security Scanning
-- npm audit (dependency vulnerabilities)
-- Snyk (security monitoring)
-- ESLint security plugins
+## Testing Framework
 
-## Deployment Stack
+### Frontend Testing
+- **Jest**: Unit testing framework
+- **React Testing Library**: Component testing utilities
+- **Coverage Reports**: Code coverage analysis
 
-### Production Requirements
-- Node.js 18+ runtime
-- MySQL 8.0+ database
-- Python 3.x for AI services
-- HTTPS/SSL certificates
-- Reverse proxy (nginx/Apache)
-- Process manager (PM2)
+### Backend Testing
+- **Node.js Test Runner**: Built-in testing capabilities
+- **Supertest**: HTTP assertion library
+- **Database Testing**: Isolated test database
 
-### Containerization
-- Docker support available
-- Dockerfile in ai_service/
-- Multi-container orchestration ready
+### Integration Testing
+- **API Testing**: End-to-end API validation
+- **System Testing**: Complete workflow verification
+- **Performance Testing**: Load and stress testing

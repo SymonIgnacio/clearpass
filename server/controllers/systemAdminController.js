@@ -256,6 +256,7 @@ class SystemAdminController {
     }
   }
 
+  async getResidentAnnouncements(req, res) {
     try {
       const { page = 1, limit = 10 } = req.query;
       const offset = (page - 1) * limit;

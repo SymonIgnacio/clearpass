@@ -117,36 +117,53 @@ def calculate_priority():
 
 @app.route('/suggest-patrol', methods=['POST'])
 def suggest_patrol():
-    """
-    AI-powered patrol deployment suggestions based on blotter data.
-
-    Returns patrol recommendations and risk assessment.
-    """
+    """AI-powered patrol deployment suggestions based on real blotter data."""
     try:
         data = request.get_json()
         blotter_data = data.get('blotter_data', [])
-
-        # For now, return mock data based on blotter data length
-        response_data = MOCK_PATROL_DATA.copy()
-        response_data["generated_at"] = datetime.now().isoformat()
-        response_data["risk_assessment"]["total_incidents"] = len(blotter_data)
-
-        # Adjust risk level based on incident count
-        if len(blotter_data) > 20:
-            response_data["overall_risk_level"] = "HIGH"
-            response_data["patrol_suggestions"].insert(0, "URGENT: Deploy maximum patrol resources immediately")
-        elif len(blotter_data) > 10:
-            response_data["overall_risk_level"] = "MEDIUM"
+        
+        # Analyze real data
+        from smart_suggestions import analyze_crime_patterns
+        analysis = analyze_crime_patterns(blotter_data)
+        
+        if 'error' in analysis:
+            return jsonify({**MOCK_PATROL_DATA, "fallback": True})
+        
+        # Generate recommendations based on real data
+        hotspots = analysis.get('hotspots', {})
+        peak_hours = analysis.get('peak_hours', {})
+        
+        suggestions = []
+        if hotspots:
+            top_area = max(hotspots.items(), key=lambda x: x[1])[0]
+            suggestions.append(f"Increase patrol presence in {top_area} (highest incident area)")
+        
+        if peak_hours:
+            peak_hour = max(peak_hours.items(), key=lambda x: x[1])[0]
+            suggestions.append(f"Deploy additional units during {peak_hour}:00-{peak_hour+1}:00 hours")
+        
+        # Determine risk level
+        total_incidents = analysis.get('total_incidents', 0)
+        if total_incidents > 20:
+            risk_level = "HIGH"
+        elif total_incidents > 10:
+            risk_level = "MEDIUM"
         else:
-            response_data["overall_risk_level"] = "LOW"
-            response_data["patrol_suggestions"] = [
-                "Maintain regular patrol schedule",
-                "Monitor community reports",
-                "Conduct routine security checks"
-            ]
-
-        return jsonify(response_data)
-
+            risk_level = "LOW"
+        
+        return jsonify({
+            "overall_risk_level": risk_level,
+            "risk_assessment": {
+                "total_incidents": total_incidents,
+                "high_risk_sitios": list(hotspots.keys())[:3],
+                "peak_hours": f"{max(peak_hours.keys()) if peak_hours else 'N/A'}:00",
+                "trend": "ANALYZED"
+            },
+            "patrol_suggestions": suggestions or ["Maintain regular patrol schedule"],
+            "generated_at": datetime.now().isoformat(),
+            "fallback": False
+        })
+        
     except Exception as e:
         return jsonify({"error": str(e), "fallback": True, **MOCK_PATROL_DATA}), 500
 

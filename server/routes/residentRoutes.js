@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken, checkRole } = require('../middleware/authMiddleware');
+const { verifyToken, checkRole, enforceReadOnly } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { validateResident, validateId, validateSearch } = require('../middleware/validation');
+const { validateResident, validateId, validateSearch, sanitizeInput } = require('../middleware/validation');
 const residentController = require('../controllers/residentController');
 
 module.exports = (db) => {
@@ -29,17 +29,20 @@ module.exports = (db) => {
   // GET resident by ID
   router.get('/:id', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk']), validateId, asyncHandler(residentController.getById));
   
-  // POST create resident
-  router.post('/', verifyToken, checkRole(['admin', 'secretary', 'clerk']), validateResident, asyncHandler(residentController.create));
+  // POST create resident with documents
+  router.post('/', verifyToken, enforceReadOnly, residentController.uploadMiddleware, sanitizeInput, checkRole(['admin', 'secretary', 'clerk']), validateResident, asyncHandler(residentController.create));
+  
+  // POST open registration (no auth required)
+  router.post('/open-register', residentController.uploadMiddleware, sanitizeInput, asyncHandler(residentController.openRegister));
   
   // POST check duplicate
-  router.post('/check-duplicate', verifyToken, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(residentController.checkDuplicate));
+  router.post('/check-duplicate', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(residentController.checkDuplicate));
   
   // PUT update resident
-  router.put('/:id', verifyToken, checkRole(['admin', 'secretary', 'clerk']), validateId, asyncHandler(residentController.update));
+  router.put('/:id', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary', 'clerk']), validateId, asyncHandler(residentController.update));
   
   // DELETE (archive) resident
-  router.delete('/:id', verifyToken, checkRole(['admin', 'secretary']), validateId, asyncHandler(residentController.archive));
+  router.delete('/:id', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary']), validateId, asyncHandler(residentController.archive));
   
   // POST generate QR code
   router.post('/:id/qr', verifyToken, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(residentController.generateQR));

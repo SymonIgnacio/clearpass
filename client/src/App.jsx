@@ -13,7 +13,14 @@ import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { ROLES } from './utils/roles'
 
-// Lazy load pages
+// Import critical pages directly to avoid dynamic import issues
+import Login from './pages/Login'
+import ResidentLogin from './pages/ResidentLogin'
+import ResidentRegister from './pages/ResidentRegister'
+import OfficerLogin from './pages/OfficerLogin'
+import Unauthorized from './pages/Unauthorized'
+
+// Lazy load non-critical pages
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const ResidentDashboard = lazy(() => import('./pages/ResidentDashboard'))
 const Residents = lazy(() => import('./pages/Residents'))
@@ -38,12 +45,7 @@ const ResidentBlotterReport = lazy(() => import('./pages/ResidentBlotterReport')
 const SystemLogs = lazy(() => import('./pages/admin/SystemLogs'))
 const Backup = lazy(() => import('./pages/admin/Backup'))
 const AIAnalytics = lazy(() => import('./pages/admin/AIAnalytics'))
-const Unauthorized = lazy(() => import('./pages/Unauthorized'))
-const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
-const OfficerLogin = lazy(() => import('./pages/OfficerLogin'))
-const ResidentLogin = lazy(() => import('./pages/ResidentLogin'))
-const ResidentRegister = lazy(() => import('./pages/ResidentRegister'))
 const AIPatrol = lazy(() => import('./pages/AIPatrol'))
 const RondaAnalytics = lazy(() => import('./pages/RondaAnalytics'))
 const OfficerNewCase = lazy(() => import('./pages/OfficerNewCase'))

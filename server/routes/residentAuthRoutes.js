@@ -2,12 +2,31 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
 
+// Rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 5, // 5 attempts per window
+  message: { error: 'Too many authentication attempts, try again later' },
+  standardHeaders: 'draft-7',
+  legacyHeaders: false
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: 3, // 3 registrations per hour
+  message: { error: 'Too many registration attempts, try again later' },
+  standardHeaders: 'draft-7',
+  legacyHeaders: false
+});
+
 module.exports = (db) => {
   // Resident login endpoint
-  router.post('/login', asyncHandler(async (req, res) => {
+  router.post('/login', authLimiter, asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -67,7 +86,7 @@ module.exports = (db) => {
   }));
 
   // Resident registration endpoint
-  router.post('/register', asyncHandler(async (req, res) => {
+  router.post('/register', registerLimiter, asyncHandler(async (req, res) => {
     const {
       first_name,
       middle_name,
@@ -102,8 +121,9 @@ module.exports = (db) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Generate resident ID
-    const residentId = `RES-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+    // Generate resident ID using crypto
+    const randomBytes = crypto.randomBytes(4);
+    const residentId = `RES-${Date.now()}-${randomBytes.toString('hex').toUpperCase()}`;
 
     const connection = await db.getConnection();
     try {

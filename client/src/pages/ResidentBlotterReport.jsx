@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Card, CardContent, Typography, TextField, Button, MenuItem, Alert } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../utils/api';
+import { apiRequest } from '../utils/api';
 
 const ResidentBlotterReport = () => {
   const { user } = useAuth();
@@ -40,21 +40,23 @@ const ResidentBlotterReport = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const payload = new FormData();
-      payload.append('incident_type', formData.incident_type);
-      payload.append('location', formData.location);
-      payload.append('date_time', formData.date_time);
-      payload.append('description', formData.description);
-      if (formData.evidence) {
-        payload.append('evidence', formData.evidence);
-      }
-
-      await api.post('/blotter/file-online', payload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const response = await apiRequest('/blotter-complaints/submit', {
+        method: 'POST',
+        body: {
+          incident_type: formData.incident_type,
+          location: formData.location,
+          date_time: formData.date_time,
+          description: formData.description
+        }
       });
 
-      setMessage({ type: 'success', text: 'Complaint filed successfully. Case is now under review.' });
-      setFormData({ incident_type: '', location: '', date_time: '', description: '', evidence: null });
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Complaint filed successfully. Case is now under review.' });
+        setFormData({ incident_type: '', location: '', date_time: '', description: '', evidence: null });
+      } else {
+        const error = await response.json();
+        setMessage({ type: 'error', text: error.message || 'Failed to file complaint' });
+      }
     } catch (error) {
       setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to file complaint' });
     } finally {

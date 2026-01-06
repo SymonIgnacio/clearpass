@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+
 exports.getAll = async (req, res) => {
   const db = req.app.locals.db;
   try {
@@ -40,7 +42,9 @@ exports.create = async (req, res) => {
       const now = new Date();
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, '0');
-      const sequence = String(Math.floor(Math.random() * 999) + 1).padStart(4, '0');
+      // Use cryptographically secure random number
+      const randomBytes = crypto.randomBytes(2);
+      const sequence = String(randomBytes.readUInt16BE(0) % 9999 + 1).padStart(4, '0');
       caseNumber = `BLOT-${year}-${month}-${sequence}`;
     }
 
