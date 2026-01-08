@@ -34,6 +34,7 @@ const verificationUpload = multer({
 
 // Controllers
 const authController = require('./controllers/authController');
+const adminController = require('./controllers/adminController');
 
 // Import validation middleware
 const {
@@ -105,7 +106,13 @@ const { ROLES } = require('./config/roles');
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+// Auth routes
+router.post('/auth/login', validateLogin, authController.login);
 router.post('/auth/officer-login', validateLogin, authController.login);
+router.post('/auth/resident/login', validateLogin, authController.login);
+router.post('/auth/logout', authController.logout);
+router.get('/auth/me', verifyToken, authController.me);
+
 // SECURITY CRITICAL: Public registration completely disabled - only admin can create users via database
 router.post('/auth/register', (req, res) => {
     res.status(403).json({ 
@@ -113,7 +120,6 @@ router.post('/auth/register', (req, res) => {
         message: 'Public registration is disabled. Contact administrator for account creation.' 
     });
 });
-router.post('/auth/resident/login', validateLogin, authController.login);
 
 // Note: Resident Signup is DISABLED per security policy.
 
@@ -136,6 +142,38 @@ router.get('/admin/dashboard',
         certificates: certificates[0].total
     });
 }));
+
+// Admin stats endpoint (used by dashboard)
+router.get('/admin/stats',
+    verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
+    const [users] = await db.execute('SELECT COUNT(*) as total FROM users WHERE is_active = true');
+    const [residents] = await db.execute('SELECT COUNT(*) as total FROM residents WHERE Residency_Status = "Active"');
+    const [blotter] = await db.execute('SELECT COUNT(*) as total FROM blotter WHERE Status IN ("Pending", "Ongoing")');
+    const [certificates] = await db.execute('SELECT COUNT(*) as total FROM certificates_log WHERE status = "Released"');
+    const [seniors] = await db.execute('SELECT COUNT(*) as total FROM vulnerabilities WHERE Is_Senior = 1');
+    const [pwd] = await db.execute('SELECT COUNT(*) as total FROM vulnerabilities WHERE Is_PWD = 1');
+    const [singleParents] = await db.execute('SELECT COUNT(*) as total FROM vulnerabilities WHERE Is_Solo_Parent = 1');
+    
+    res.json({
+        overall: {
+            total_residents: residents[0].total,
+            total_seniors: seniors[0].total,
+            total_pwd: pwd[0].total,
+            total_single_parents: singleParents[0].total
+        },
+        users: users[0].total,
+        active_blotter: blotter[0].total,
+        certificates: certificates[0].total
+    });
+}));
+
+// Admin reports endpoints
+router.get('/admin/reports/users', verifyToken, verifyRole([ROLES.ADMIN]), adminController.getUsersReport);
+router.get('/admin/reports/blotter', verifyToken, verifyRole([ROLES.ADMIN]), adminController.getBlotterReport);
+router.get('/admin/reports/certificates', verifyToken, verifyRole([ROLES.ADMIN]), adminController.getCertificatesReport);
+router.get('/admin/reports/residents', verifyToken, verifyRole([ROLES.ADMIN]), adminController.getResidentsReport);
+router.get('/admin/reports/system', verifyToken, verifyRole([ROLES.ADMIN]), adminController.getSystemReport);
+router.get('/admin/reports/security', verifyToken, verifyRole([ROLES.ADMIN]), adminController.getSecurityReport);
 router.post('/admin/residents/import',
     verifyToken, verifyRole([ROLES.ADMIN, ROLES.CLERK]), (req, res) => { res.status(501).json({ message: 'Bulk import feature coming soon' }); }); // Admin + Clerk per requirements
 router.get('/admin/ai-analytics',
@@ -170,6 +208,12 @@ router.get('/admin/reports/pdf/residents',
 // =========================================================================
 // ROLE 2: CLERK ROUTES (ClearPass Operator)
 // =========================================================================
+router.get('/clerk/dashboard',
+    verifyToken, verifyRole([ROLES.CLERK]), asyncHandler(async (req, res) => {
+    const [residents] = await db.execute('SELECT COUNT(*) as total FROM residents WHERE Residency_Status = "Active"');
+    const [certificates] = await db.execute('SELECT COUNT(*) as total FROM certificates_log WHERE certificate_type IN ("Barangay Clearance", "Good Moral")');
+    res.json({ residents: residents[0].total, certificates: certificates[0].total });
+}));
 router.get('/clerk/clearances',
     verifyToken, verifyRole([ROLES.CLERK]), asyncHandler(async (req, res) => {
     const [certs] = await db.execute(`
@@ -191,6 +235,12 @@ router.get('/clerk/documents',
 // =========================================================================
 // ROLE 3: BLOTTER OFFICER ROUTES (Encoder)
 // =========================================================================
+router.get('/officer/dashboard',
+    verifyToken, verifyRole([ROLES.BLOTTER_OFFICER]), asyncHandler(async (req, res) => {
+    const [activeCases] = await db.execute('SELECT COUNT(*) as total FROM blotter WHERE Status IN ("Pending", "Ongoing")');
+    const [resolvedCases] = await db.execute('SELECT COUNT(*) as total FROM blotter WHERE Status = "Amicably Settled"');
+    res.json({ active_cases: activeCases[0].total, resolved_cases: resolvedCases[0].total });
+}));
 router.post('/officer/cases',
     verifyToken, verifyRole([ROLES.BLOTTER_OFFICER]), (req, res) => { res.status(501).json({ message: 'Use /api/blotter endpoint instead' }); });
 router.put('/officer/cases/:caseNumber/resolve',
@@ -242,6 +292,13 @@ router.get('/captain/dashboard',
 // =========================================================================
 // ROLE 6: SECRETARY ROUTES (Overseer)
 // =========================================================================
+router.get('/secretary/dashboard',
+    verifyToken, verifyRole([ROLES.SECRETARY]), asyncHandler(async (req, res) => {
+    const [residents] = await db.execute('SELECT COUNT(*) as total FROM residents WHERE Residency_Status = "Active"');
+    const [blotter] = await db.execute('SELECT COUNT(*) as total FROM blotter WHERE Status IN ("Pending", "Ongoing")');
+    const [certificates] = await db.execute('SELECT COUNT(*) as total FROM certificates_log');
+    res.json({ residents: residents[0].total, active_blotter: blotter[0].total, certificates: certificates[0].total });
+}));
 router.get('/secretary/clearances',
     verifyToken, verifyRole([ROLES.SECRETARY]), asyncHandler(async (req, res) => {
     const [certs] = await db.execute(`
@@ -262,8 +319,64 @@ router.get('/secretary/clearances',
 // router.get('/secretary/settings', verifyToken, verifyRole([6]), clerkController.getSettingsManagement);
 
 // =========================================================================
+// GENERIC DASHBOARD ENDPOINT (All Roles)
+// =========================================================================
+router.get('/dashboard',
+    verifyToken, asyncHandler(async (req, res) => {
+    const userRole = req.user.role;
+    
+    // Get basic stats for all roles
+    const [residents] = await db.execute('SELECT COUNT(*) as total FROM residents WHERE Residency_Status = "Active"');
+    const [blotter] = await db.execute('SELECT COUNT(*) as total FROM blotter WHERE Status IN ("Pending", "Ongoing")');
+    const [certificates] = await db.execute('SELECT COUNT(*) as total FROM certificates_log');
+    const [seniors] = await db.execute('SELECT COUNT(*) as total FROM vulnerabilities WHERE Is_Senior = 1');
+    const [pwd] = await db.execute('SELECT COUNT(*) as total FROM vulnerabilities WHERE Is_PWD = 1');
+    const [singleParents] = await db.execute('SELECT COUNT(*) as total FROM vulnerabilities WHERE Is_Solo_Parent = 1');
+    
+    const dashboardData = {
+        overall: {
+            total_residents: residents[0].total,
+            total_seniors: seniors[0].total,
+            total_pwd: pwd[0].total,
+            total_single_parents: singleParents[0].total
+        },
+        residents: residents[0].total,
+        active_blotter: blotter[0].total,
+        certificates: certificates[0].total,
+        role: userRole
+    };
+    
+    // Add role-specific data
+    if (userRole === ROLES.ADMIN) {
+        const [users] = await db.execute('SELECT COUNT(*) as total FROM users WHERE is_active = true');
+        dashboardData.users = users[0].total;
+    }
+    
+    res.json(dashboardData);
+}));
+
+// =========================================================================
 // AI CHATBOT ROUTES (Available to all authenticated users)
 // =========================================================================
+
+// AI patrol suggestions endpoint
+router.get('/ai/patrol-suggestions',
+    verifyToken, asyncHandler(async (req, res) => {
+    // Mock AI patrol suggestions for now
+    res.json({
+        overall_risk_level: 'MEDIUM',
+        risk_assessment: {
+            total_incidents: 15,
+            peak_hours: '8PM-12AM'
+        },
+        patrol_suggestions: [
+            'Increase patrol frequency in Sitio 1 during evening hours',
+            'Focus on residential areas with recent incident reports',
+            'Coordinate with community leaders for enhanced visibility'
+        ]
+    });
+}));
+
 router.post('/ai/chatbot/log',
     verifyToken, asyncHandler(async (req, res) => {
     const {
@@ -359,12 +472,6 @@ router.post('/ai/chatbot/message',
 // SHARED/LEGACY ROUTES (Maintained for Frontend Compatibility)
 // =========================================================================
 
-// Firebase users - Admin and Captain access for oversight
-router.get('/auth/firebase-users',
-    verifyToken, verifyRole([ROLES.ADMIN, ROLES.CAPTAIN]), async (req, res) => {
-    res.json([]); // Return empty array - no firebase users in current system
-});
-
 // Residency verifications - Admin access only
 router.get('/auth/residency-verifications/pending',
     verifyToken, verifyRole([ROLES.ADMIN]), async (req, res) => {
@@ -424,9 +531,18 @@ router.get('/certificate-types',
     }
 });
 
-// Blotter Cases - Read access for staff roles (Admin, Clerk, Blotter Officer, Captain)
+// Certificates - Read access for staff roles
+router.get('/certificates',
+    verifyToken, verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.CLERK]), asyncHandler(async (req, res) => {
+    const [certificates] = await db.execute(
+        'SELECT * FROM certificates_log ORDER BY created_at DESC'
+    );
+    res.json(certificates);
+}));
+
+// Blotter Cases - Read access for staff roles
 router.get('/blotter',
-    verifyToken, verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.ADMIN]), asyncHandler(async (req, res) => {
+    verifyToken, verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.CLERK, ROLES.BLOTTER_OFFICER]), asyncHandler(async (req, res) => {
     const [blotterCases] = await db.execute(
         'SELECT * FROM blotter ORDER BY DateTime_Incident DESC'
     );
@@ -462,12 +578,36 @@ router.get('/census',
         LEFT JOIN residents r ON h.Household_ID = r.Household_ID
         GROUP BY s.id, s.name
     `);
-    res.json(stats);
+    
+    // Also get overall stats for dashboard
+    const [residents] = await db.execute('SELECT COUNT(*) as total FROM residents WHERE Residency_Status = "Active"');
+    const [seniors] = await db.execute('SELECT COUNT(*) as total FROM vulnerabilities WHERE Is_Senior = 1');
+    const [pwd] = await db.execute('SELECT COUNT(*) as total FROM vulnerabilities WHERE Is_PWD = 1');
+    const [singleParents] = await db.execute('SELECT COUNT(*) as total FROM vulnerabilities WHERE Is_Solo_Parent = 1');
+    
+    res.json({
+        sitio_stats: stats,
+        overall: {
+            total_residents: residents[0].total,
+            total_seniors: seniors[0].total,
+            total_pwd: pwd[0].total,
+            total_single_parents: singleParents[0].total
+        }
+    });
+}));
+
+// Users - Read access for admin roles
+router.get('/users',
+    verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
+    const [users] = await db.execute(
+        'SELECT id, username, full_name, email, role_id, is_active, created_at FROM users ORDER BY role_id, username'
+    );
+    res.json(users);
 }));
 
 // Residents - Read access for staff roles (Admin, Clerk, Captain, Secretary)
 router.get('/residents',
-    verifyToken, verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.ADMIN, ROLES.SECRETARY]), asyncHandler(async (req, res) => {
+    verifyToken, verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.CLERK]), asyncHandler(async (req, res) => {
     const { search, sitio_id, residency_status, show_vulnerable, dateFrom, dateTo, gender } = req.query;
 
     // Build WHERE conditions

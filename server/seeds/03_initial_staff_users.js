@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const { ROLES } = require('../config/roles');
 
 exports.seed = async function(knex) {
   // First, delete any existing staff users to avoid conflicts
@@ -16,7 +17,7 @@ exports.seed = async function(knex) {
       password_hash: hashedPassword,
       full_name: 'Super Administrator',
       email: 'superadmin@barangay.local',
-      role: 'admin',
+      role_id: ROLES.ADMIN,
       is_active: true,
       created_at: knex.fn.now()
     },
@@ -25,7 +26,7 @@ exports.seed = async function(knex) {
       password_hash: hashedPassword,
       full_name: 'Barangay Captain',
       email: 'captain@barangay.local',
-      role: 'captain',
+      role_id: ROLES.CAPTAIN,
       is_active: true,
       created_at: knex.fn.now()
     },
@@ -34,7 +35,7 @@ exports.seed = async function(knex) {
       password_hash: hashedPassword,
       full_name: 'Barangay Secretary',
       email: 'secretary@barangay.local',
-      role: 'secretary',
+      role_id: ROLES.SECRETARY,
       is_active: true,
       created_at: knex.fn.now()
     },
@@ -43,15 +44,15 @@ exports.seed = async function(knex) {
       password_hash: hashedPassword,
       full_name: 'Barangay Clerk',
       email: 'clerk@barangay.local',
-      role: 'clerk',
+      role_id: ROLES.CLERK,
       is_active: true,
       created_at: knex.fn.now()
     }
   ]);
 
   console.log('✅ Staff users seeded successfully');
-  console.log('Username: superadmin, Password: admin123');
-  console.log('Username: captain, Password: admin123');
-  console.log('Username: secretary, Password: admin123');
-  console.log('Username: clerk, Password: admin123');
+  console.log('Username: superadmin, Password: admin123, Role: Admin (5)');
+  console.log('Username: captain, Password: admin123, Role: Captain (2)');
+  console.log('Username: secretary, Password: admin123, Role: Secretary (3)');
+  console.log('Username: clerk, Password: admin123, Role: Clerk (4)');
 };

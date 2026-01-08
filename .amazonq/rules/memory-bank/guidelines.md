@@ -1,275 +1,151 @@
-# ClearPass - Development Guidelines & Standards
+# ClearPass Development Guidelines
 
-## Code Quality Standards Analysis
+## Code Quality Standards
 
-### Formatting & Style Conventions
+### JavaScript/Node.js Standards
+- **ES2020+ Features**: Use modern JavaScript features including async/await, destructuring, and arrow functions
+- **Module System**: Frontend uses ES modules (`export default`), backend uses CommonJS (`module.exports`)
+- **Variable Naming**: Use camelCase for variables and functions, PascalCase for React components
+- **Unused Variables**: Variables with uppercase patterns (^[A-Z_]) are allowed to remain unused (configuration constants)
 
-**JavaScript/JSX Formatting**
-- **Semicolons**: Consistent use of semicolons in server-side code, optional in client-side React
-- **Quotes**: Single quotes for strings in configuration, mixed usage in components
-- **Indentation**: 2-space indentation consistently applied across all files
-- **Line Length**: Generally kept under 120 characters with logical line breaks
-- **Trailing Commas**: Used in object literals and arrays for cleaner diffs
+### Code Formatting (Prettier Configuration)
+- **Semicolons**: Always use semicolons (`semi: true`)
+- **Quotes**: Single quotes for JavaScript (`singleQuote: true`), single quotes for JSX (`jsxSingleQuote: true`)
+- **Line Width**: 100 characters maximum (`printWidth: 100`)
+- **Indentation**: 2 spaces, no tabs (`tabWidth: 2`, `useTabs: false`)
+- **Trailing Commas**: ES5 style trailing commas (`trailingComma: 'es5'`)
+- **Bracket Spacing**: Space inside object brackets (`bracketSpacing: true`)
+- **Arrow Functions**: Avoid parentheses around single parameters (`arrowParens: 'avoid'`)
+- **Line Endings**: Unix-style line endings (`endOfLine: 'lf'`)
 
-**React Component Structure**
-- **Functional Components**: Exclusively uses React functional components with hooks
-- **Import Organization**: Material-UI imports grouped together, utility imports separate
-- **Component Naming**: PascalCase for components, camelCase for functions and variables
-- **Props Destructuring**: Consistent destructuring of props in component parameters
+### ESLint Configuration Patterns
+- **File-Specific Rules**: Different configurations for client, server, tests, and config files
+- **Global Ignores**: Exclude `dist`, `node_modules`, `build`, `.git`, and Python files
+- **Environment Globals**: Properly configured globals for browser, Node.js, and Jest environments
+- **React Rules**: Use recommended React Hooks and React Refresh configurations
+- **No Undefined Variables**: Disabled for CommonJS files where globals are explicitly defined
 
-**Node.js Backend Structure**
-- **Module Exports**: Uses `module.exports = new ClassName()` pattern for controllers
-- **Async/Await**: Consistent use of async/await over promises for better readability
-- **Error Handling**: Structured try-catch blocks with detailed error logging
-- **Database Queries**: Knex.js query builder with consistent method chaining
+## Structural Conventions
 
-### Naming Conventions
+### File Organization
+- **Configuration Files**: Use `.js` extension for config files (not `.json` when logic is needed)
+- **Module Exports**: Use `export default` for ES modules, `module.exports` for CommonJS
+- **File Extensions**: `.jsx` for React components, `.js` for utilities and Node.js files
+- **Directory Structure**: Separate client, server, and service concerns into distinct directories
 
-**Variables & Functions**
-- **camelCase**: Standard for JavaScript variables and functions (`loadAllData`, `handleCreateTemplate`)
-- **UPPER_SNAKE_CASE**: Constants and environment variables (`COLORS`, `NODE_ENV`)
-- **kebab-case**: CSS classes and file paths (`barangay-clearance`, `document-type`)
-- **PascalCase**: React components and class names (`DocumentsDashboard`, `DocumentController`)
+### Import/Export Patterns
+```javascript
+// ES Module (Frontend)
+import js from '@eslint/js'
+import globals from 'globals'
+export default defineConfig([...])
 
-**Database & API Patterns**
-- **snake_case**: Database column names (`resident_id`, `document_type`, `created_at`)
-- **Prefixed IDs**: Structured ID formats (`REQ-${timestamp}-${random}`, `DOC-${timestamp}`)
-- **RESTful Endpoints**: Standard REST patterns (`/api/residents`, `/api/certificates`)
-- **Status Values**: Consistent status naming (`pending`, `approved`, `completed`)
+// CommonJS (Backend)
+const { healthCheck } = require('./healthCheck')
+module.exports = { healthCheck }
+```
 
-**File & Directory Structure**
-- **Descriptive Names**: Clear, purpose-driven file names (`documentController.js`, `validate.js`)
-- **Grouped Organization**: Related files grouped in logical directories (`controllers/`, `middleware/`)
-- **Extension Consistency**: `.js` for Node.js, `.jsx` for React components, `.py` for Python
+### Configuration Object Structure
+- **Nested Configuration**: Use object nesting for related settings (colors, theme extensions)
+- **Semantic Naming**: Use descriptive names for configuration sections
+- **Default Exports**: Export configuration objects as default exports
+- **Type Annotations**: Include JSDoc type hints for configuration objects
 
-## Architectural Patterns
+## Design System Patterns
 
-### React Frontend Patterns
+### Color System (Tailwind Configuration)
+- **Semantic Colors**: Define primary, secondary, error, warning, success, and gray color palettes
+- **Shade Variations**: Use 50-950 shade scale for comprehensive color variations
+- **Consistent Naming**: Follow standard color naming conventions (50 = lightest, 950 = darkest)
+- **Brand Colors**: Primary uses blue tones, secondary uses green tones
 
-**State Management**
-- **useState Hook**: Local component state for form data and UI state
-- **useEffect Hook**: Side effects and data fetching with dependency arrays
-- **Context API**: Global state for authentication and notifications
-- **Controlled Components**: Form inputs controlled by React state
+### Typography Standards
+- **Font Stack**: Google Sans as primary, with Roboto and system font fallbacks
+- **Font Family**: `['\"Google Sans\"', 'Roboto', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif']`
 
-**Component Composition**
-- **Container/Presentational**: Clear separation between data logic and UI rendering
-- **Higher-Order Components**: ProtectedRoute wrapper for authentication
-- **Render Props**: Conditional rendering based on user roles and permissions
-- **Custom Hooks**: Reusable logic extraction (implied but not shown in samples)
+### Animation and Effects
+- **Custom Animations**: Define reusable animations (fade-in, slide-up, bounce-gentle)
+- **Shadow System**: Use semantic shadow names (soft, medium, large) with consistent opacity values
+- **Border Radius**: Extend default radius with custom values (4xl = 2rem)
+- **Responsive Design**: Use extended breakpoint system including 'xs' (475px)
 
-**API Integration**
-- **Centralized API Client**: `apiRequest` utility function for consistent HTTP calls
-- **Error Handling**: Structured error responses with user-friendly messages
-- **Loading States**: UI feedback during async operations with loading indicators
-- **Optimistic Updates**: Immediate UI updates followed by server synchronization
+## API and Backend Patterns
 
-### Backend Architecture Patterns
+### Health Check Implementation
+- **Structured Response**: Return consistent health check objects with status, timestamp, and uptime
+- **Multiple Checks**: Implement database, memory, and disk checks as separate components
+- **Error Handling**: Graceful degradation with specific error messages for failed checks
+- **Performance Metrics**: Include response times and resource usage in health checks
 
-**Controller Pattern**
-- **Class-Based Controllers**: Organized methods within controller classes
-- **Single Responsibility**: Each controller handles one domain (documents, validation)
-- **Dependency Injection**: Database connection injected through constructor
-- **Method Organization**: CRUD operations grouped logically within controllers
+### Database Interaction Patterns
+```javascript
+// Health check database pattern
+try {
+  const start = Date.now();
+  await db.execute('SELECT 1');
+  checks.checks.database = {
+    status: 'healthy',
+    responseTime: Date.now() - start
+  };
+} catch (error) {
+  checks.status = 'unhealthy';
+  checks.checks.database = {
+    status: 'unhealthy',
+    error: error.message
+  };
+}
+```
 
-**Middleware Chain**
-- **Validation Middleware**: Input validation using express-validator
-- **Authentication Middleware**: JWT token verification and user context
-- **Error Handling**: Centralized error processing with consistent response format
-- **Sanitization**: XSS protection and input cleaning before processing
-
-**Database Interaction**
-- **Query Builder**: Knex.js for type-safe database queries
-- **Transaction Support**: Database transactions for data consistency
-- **Migration System**: Version-controlled schema changes
-- **Connection Pooling**: Efficient database connection management
-
-## Security Implementation Patterns
-
-### Input Validation & Sanitization
-
-**Server-Side Validation**
-- **express-validator**: Comprehensive validation chains for all endpoints
-- **XSS Protection**: Input sanitization using `xss` library
-- **Type Validation**: Strict type checking for all input parameters
-- **Length Limits**: Maximum length constraints on all text fields
-
-**Client-Side Validation**
-- **Form Validation**: Real-time validation feedback in React forms
-- **Required Fields**: Clear indication of mandatory form fields
-- **Format Validation**: Email, phone number, and ID format validation
-- **User Feedback**: Immediate validation error messages
-
-### Authentication & Authorization
-
-**JWT Implementation**
-- **Token-Based Auth**: Stateless authentication using JWT tokens
-- **Role-Based Access**: Granular permissions based on user roles
-- **Token Storage**: Secure token storage in localStorage
-- **Automatic Refresh**: Token renewal for extended sessions
-
-**Permission Checking**
-- **Route Protection**: Authentication required for all protected endpoints
-- **Role Verification**: User role validation before sensitive operations
-- **UI Conditional Rendering**: Interface elements shown based on permissions
-- **API Access Control**: Backend enforcement of role-based restrictions
-
-## Error Handling Patterns
-
-### Frontend Error Management
-
-**User-Friendly Messages**
-- **Alert Dialogs**: Simple alert() calls for immediate user feedback
-- **Error States**: Loading and error state management in components
-- **Fallback UI**: Graceful degradation when data loading fails
-- **Retry Mechanisms**: User ability to retry failed operations
-
-**Logging & Debugging**
-- **Console Logging**: Detailed console.log statements for debugging
-- **Error Boundaries**: React error boundaries for component error catching
-- **Development Aids**: Debug information in development mode
-- **Network Error Handling**: Specific handling for API communication failures
-
-### Backend Error Processing
-
-**Structured Error Responses**
-- **Consistent Format**: Standardized error response structure
-- **HTTP Status Codes**: Appropriate status codes for different error types
-- **Error Details**: Detailed error information for debugging
-- **User Messages**: Clean, user-friendly error messages
-
-**Logging Strategy**
-- **Audit Logging**: Comprehensive audit trail for all operations
-- **Error Logging**: Detailed error logging with stack traces
-- **Performance Logging**: Operation timing and performance metrics
-- **Security Logging**: Authentication and authorization events
-
-## Testing Patterns
-
-### Python Test Structure
-
-**Test Organization**
-- **Fixture-Based**: pytest fixtures for reusable test data
-- **Mock Objects**: Comprehensive mocking for external dependencies
-- **Class-Based Tests**: Organized test classes for related functionality
-- **Descriptive Names**: Clear, descriptive test method names
-
-**Test Coverage**
-- **Edge Cases**: Testing boundary conditions and edge cases
-- **Error Scenarios**: Testing error conditions and exception handling
-- **Data Validation**: Testing with various data inputs and formats
-- **Integration Testing**: Testing component interactions
-
-## API Design Standards
-
-### RESTful Conventions
-
-**Endpoint Structure**
-- **Resource-Based URLs**: Clear resource identification in URLs
-- **HTTP Methods**: Appropriate use of GET, POST, PUT, DELETE
-- **Status Codes**: Consistent HTTP status code usage
-- **Response Format**: Standardized JSON response structure
-
-**Request/Response Patterns**
-- **Pagination**: Consistent pagination parameters and responses
-- **Filtering**: Query parameter-based filtering and sorting
-- **Bulk Operations**: Support for batch operations where appropriate
-- **Versioning**: API versioning strategy for backward compatibility
-
-### Data Validation
-
-**Input Validation**
-- **Schema Validation**: Structured validation rules for all inputs
-- **Business Logic Validation**: Domain-specific validation rules
-- **Cross-Field Validation**: Validation across multiple form fields
-- **Async Validation**: Server-side validation for unique constraints
-
-**Output Formatting**
-- **Consistent Structure**: Standardized response object structure
-- **Data Transformation**: Consistent data formatting for client consumption
-- **Null Handling**: Graceful handling of null and undefined values
-- **Date Formatting**: Consistent date/time formatting across responses
-
-## Performance Optimization Patterns
-
-### Frontend Optimization
-
-**React Performance**
-- **Component Memoization**: Strategic use of React.memo for expensive components
-- **Lazy Loading**: Dynamic imports for code splitting
-- **State Optimization**: Minimal state updates and efficient re-renders
-- **Bundle Optimization**: Webpack/Vite optimization for smaller bundles
-
-**Data Loading**
-- **Parallel Requests**: Promise.all for concurrent API calls
-- **Caching Strategy**: Client-side caching of frequently accessed data
-- **Pagination**: Efficient data loading with pagination
-- **Debouncing**: Input debouncing for search and filter operations
-
-### Backend Optimization
-
-**Database Performance**
-- **Query Optimization**: Efficient database queries with proper indexing
-- **Connection Pooling**: Database connection pool management
-- **Transaction Optimization**: Minimal transaction scope for better performance
-- **Bulk Operations**: Batch processing for multiple record operations
-
-**Caching Strategy**
-- **Response Caching**: Caching of frequently requested data
-- **Session Management**: Efficient session storage and retrieval
-- **Static Asset Caching**: Proper caching headers for static resources
-- **Database Query Caching**: Query result caching for expensive operations
-
-## Code Documentation Standards
-
-### Inline Documentation
-
-**Comment Style**
-- **JSDoc Format**: Structured documentation comments for functions
-- **Inline Comments**: Explanatory comments for complex logic
-- **TODO Comments**: Clear marking of future improvements
-- **Business Logic Comments**: Explanation of domain-specific rules
-
-**Code Self-Documentation**
-- **Descriptive Names**: Self-explanatory variable and function names
-- **Small Functions**: Single-purpose functions with clear responsibilities
-- **Consistent Patterns**: Repeated patterns for similar operations
-- **Type Hints**: Clear parameter and return type documentation
-
-### API Documentation
-
-**Endpoint Documentation**
-- **Parameter Description**: Clear description of all parameters
-- **Response Examples**: Sample responses for different scenarios
-- **Error Codes**: Documentation of possible error conditions
-- **Usage Examples**: Practical examples of API usage
+### Memory Monitoring
+- **Heap Usage Monitoring**: Check if heap usage exceeds 90% of total heap
+- **Memory Formatting**: Display memory usage in MB for readability
+- **Status Thresholds**: Use 'healthy', 'warning', and 'unhealthy' status levels
 
 ## Development Workflow Standards
 
-### Code Organization
+### Environment Configuration
+- **File-Specific Settings**: Different ESLint rules for different file types and environments
+- **Global Variables**: Explicitly define globals for each environment (browser, Node.js, Jest)
+- **Source Type**: Specify 'module' for ES modules, 'commonjs' for Node.js files
+- **ECMAScript Version**: Use 'latest' for modern JavaScript features
 
-**File Structure**
-- **Logical Grouping**: Related functionality grouped in directories
-- **Separation of Concerns**: Clear separation between different layers
-- **Consistent Naming**: Predictable file and directory naming conventions
-- **Import Organization**: Consistent import statement organization
+### Testing Standards
+- **Test Globals**: Define Jest globals (describe, it, test, expect, beforeEach, etc.)
+- **Test File Patterns**: Use `**/__tests__/**/*.js` and `**/*.test.js` patterns
+- **Environment Setup**: Separate configuration for test files with appropriate globals
 
-**Version Control**
-- **Commit Messages**: Descriptive commit messages with context
-- **Branch Strategy**: Feature branches for new development
-- **Code Reviews**: Peer review process for all changes
-- **Documentation Updates**: Documentation updated with code changes
+### Build Tool Configuration
+- **PostCSS Setup**: Minimal configuration with Tailwind and Autoprefixer plugins
+- **Content Scanning**: Include all relevant file patterns for CSS purging
+- **Plugin Integration**: Use default plugin configurations unless customization is needed
 
-### Quality Assurance
+## Security and Performance Practices
 
-**Code Standards**
-- **Linting Rules**: ESLint configuration for code consistency
-- **Formatting Rules**: Prettier configuration for code formatting
-- **Type Checking**: Static type checking where applicable
-- **Security Scanning**: Regular security vulnerability scanning
+### Code Quality Enforcement
+- **Linting Rules**: Enforce consistent code quality across different file types
+- **Unused Variable Handling**: Allow configuration constants to remain unused
+- **Global Scope Management**: Explicitly define global variables to prevent undefined errors
 
-**Testing Requirements**
-- **Unit Tests**: Comprehensive unit test coverage
-- **Integration Tests**: Testing of component interactions
-- **End-to-End Tests**: Full workflow testing
-- **Performance Tests**: Load and performance testing
+### Performance Monitoring
+- **Resource Tracking**: Monitor memory usage, response times, and system uptime
+- **Health Endpoints**: Implement comprehensive health checking for system monitoring
+- **Error Reporting**: Provide detailed error information for debugging
+
+### Configuration Management
+- **Environment Separation**: Different configurations for development, testing, and production
+- **Secure Defaults**: Use secure default configurations for all tools and frameworks
+- **Validation**: Implement configuration validation to catch errors early
+
+## Documentation Standards
+
+### Code Comments
+- **Minimal Comments**: Write self-documenting code that reduces need for comments
+- **Configuration Comments**: Use JSDoc-style comments for configuration objects
+- **Type Hints**: Include type information in comments where beneficial
+
+### File Headers
+- **Configuration Files**: Include type annotations for IDE support
+- **Module Purpose**: Clear indication of file purpose through naming and structure
+- **Dependencies**: Explicit import statements showing all dependencies
+
+This guidelines document reflects the actual patterns found in the ClearPass codebase and should be followed for consistency across all development work.

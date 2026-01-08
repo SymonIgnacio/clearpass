@@ -253,10 +253,10 @@ async function startServer() {
   global.createBulkNotification = createBulkNotification;
   
   server.listen(port, () => {
-    console.log(`Server started on port ${port}`);
-    console.log(`Database: ${process.env.DB_NAME || 'barangay_management'}`);
-    console.log(`WebSocket: ws://localhost:${port}/ws`);
-    console.log(`Health check: http://localhost:${port}/health`);
+    console.log(`🚀 ClearPass Server started on port ${port}`);
+    console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
+    console.log(`🔌 WebSocket: ws://localhost:${port}/ws`);
+    console.log(`❤️ Health check: http://localhost:${port}/health`);
   });
 }
 

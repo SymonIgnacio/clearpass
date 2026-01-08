@@ -1,177 +1,207 @@
-# ClearPass - Project Structure & Architecture
+# ClearPass Project Structure
 
-## Directory Organization
+## Root Directory Organization
 
-### Root Level Structure
 ```
 clearpass/
 ├── client/          # React frontend application
 ├── server/          # Node.js backend API
-├── ai_service/      # Python AI analytics engine
-├── database/        # SQL schemas and migrations
-├── tests/           # Test suites and sample data
-├── scripts/         # Automation and maintenance scripts
-├── docs/            # Documentation and guides
-├── logs/            # Application logs
-└── uploads/         # File storage directory
+├── ai_service/      # Python AI/ML service
+├── database/        # SQL schema and migrations
+├── docs/           # Project documentation
+├── scripts/        # Utility and maintenance scripts
+├── tests/          # Test suites and sample data
+├── logs/           # Application logs
+└── uploads/        # File storage directory
 ```
 
-## Core Components & Relationships
+## Frontend Structure (client/)
 
-### Frontend Architecture (client/)
+### Core Application
+- `src/App.jsx` - Main application component with routing
+- `src/main.jsx` - Application entry point and React DOM rendering
+- `src/index.css` - Global styles and Tailwind imports
+
+### Component Architecture
 ```
-client/
-├── src/
-│   ├── components/     # Reusable UI components
-│   │   ├── Header.jsx
-│   │   ├── Sidebar.jsx
-│   │   ├── ProtectedRoute.jsx
-│   │   └── NotificationBell.jsx
-│   ├── contexts/       # React context providers
-│   │   ├── AuthContext.jsx
-│   │   └── NotificationContext.jsx
-│   ├── pages/          # Route-specific components
-│   │   ├── admin/      # Admin-specific pages
-│   │   ├── Dashboard.jsx
-│   │   ├── Login.jsx
-│   │   └── [role-specific pages]
-│   ├── utils/          # Helper functions and API clients
-│   │   ├── api.js
-│   │   ├── permissions.js
-│   │   └── roles.js
-│   └── App.jsx         # Main application component
-├── public/             # Static assets
-└── package.json        # Dependencies and scripts
+src/components/
+├── AccountVerification.jsx    # User account validation
+├── BantayChatbot.jsx         # AI assistant interface
+├── ErrorBoundary.jsx         # Error handling wrapper
+├── Header.jsx                # Navigation header
+├── NotificationBell.jsx      # Real-time notifications
+├── ProtectedRoute.jsx        # Route access control
+├── Sidebar.jsx               # Navigation sidebar
+└── WriteProtected.jsx        # Write permission wrapper
 ```
 
-### Backend Architecture (server/)
+### Context Management
 ```
-server/
-├── controllers/        # Business logic handlers
-│   ├── authController.js
-│   ├── residentController.js
-│   ├── blotterController.js
-│   ├── certificateController.js
-│   └── [role-specific controllers]
-├── middleware/         # Request processing middleware
-│   ├── authMiddleware.js
-│   ├── validate.js
-│   ├── errorHandler.js
-│   └── logger.js
-├── routes/            # API endpoint definitions
-│   ├── adminRoutes.js
-│   ├── residentRoutes.js
-│   ├── blotterRoutes.js
-│   └── [role-specific routes]
-├── migrations/        # Database schema changes
-├── seeds/            # Initial data population
-├── config/           # Configuration constants
-├── utils/            # Helper utilities
-└── index.js          # Server entry point
+src/contexts/
+├── AuthContext.jsx           # Authentication state management
+└── NotificationContext.jsx   # Notification system state
 ```
 
-### AI Service Architecture (ai_service/)
+### Page Components
 ```
-ai_service/
-├── smart_suggestions.py    # Main AI service
-├── suggestion_engine.py    # Analytics engine
-├── config.py              # AI configuration
-├── requirements.txt       # Python dependencies
-└── test_ai_service.py     # AI service tests
+src/pages/
+├── admin/                    # Administrative interfaces
+│   ├── AIAnalytics.jsx      # AI insights dashboard
+│   ├── Backup.jsx           # System backup management
+│   └── SystemLogs.jsx       # Audit log viewer
+├── Dashboard.jsx            # Main dashboard
+├── Login.jsx               # Authentication interface
+├── Residents.jsx           # Resident management
+├── Blotter.jsx            # Case management
+├── Certificates.jsx       # Document processing
+└── [role-specific pages]  # Role-based interfaces
+```
+
+### Utility Functions
+```
+src/utils/
+├── api.js                   # API client configuration
+├── apiHelpers.js           # API utility functions
+├── csrf.js                 # CSRF token management
+├── dashboardAPI.js         # Dashboard data fetching
+├── permissions.js          # Permission checking utilities
+└── roles.js               # Role definition constants
+```
+
+## Backend Structure (server/)
+
+### Core Server Files
+- `index.js` - Express server setup and middleware configuration
+- `database.js` - Database connection and query utilities
+- `routes.js` - Main route aggregation
+- `knexfile.js` - Database configuration
+
+### Controller Layer
+```
+controllers/
+├── authController.js           # Authentication logic
+├── residentController.js       # Resident CRUD operations
+├── blotterController.js        # Case management logic
+├── certificateController.js    # Document generation
+├── adminController.js          # Administrative functions
+├── userController.js           # User management
+└── [specialized controllers]   # Feature-specific logic
+```
+
+### Route Layer
+```
+routes/
+├── adminRoutes.js             # Administrative endpoints
+├── residentRoutes.js          # Resident management APIs
+├── blotterRoutes.js           # Case management APIs
+├── certificateRoutes.js       # Document processing APIs
+├── userRoutes.js              # User management APIs
+└── [feature-specific routes]  # Specialized endpoints
+```
+
+### Middleware Layer
+```
+middleware/
+├── authMiddleware.js          # JWT authentication
+├── validation.js              # Input validation
+├── errorHandler.js            # Error processing
+├── logger.js                  # Request logging
+├── performanceMetrics.js      # Performance monitoring
+└── healthCheck.js             # System health endpoints
+```
+
+### Database Layer
+```
+migrations/                    # Database schema evolution
+├── 20250101000000_initial_schema.js
+├── 20250102000000_account_hierarchy.js
+└── [timestamped migrations]
+
+seeds/                         # Initial data population
+├── 01_initial_data.js
+├── 02_hierarchy_setup.js
+└── 03_initial_staff_users.js
+```
+
+## AI Service Structure (ai_service/)
+
+### Core AI Components
+- `smart_suggestions.py` - Main AI service server
+- `suggestion_engine.py` - ML algorithms and models
+- `config.py` - AI service configuration
+- `requirements.txt` - Python dependencies
+
+### AI Capabilities
+- Document auto-completion suggestions
+- Case pattern analysis and predictions
+- Form validation and data verification
+- Intelligent report generation
+
+## Database Architecture
+
+### Core Tables
+- `users` - System user accounts and authentication
+- `residents` - Resident profiles and demographic data
+- `blotter_cases` - Incident reports and case management
+- `certificates` - Generated documents and requests
+- `document_templates` - Certificate templates and formats
+
+### Supporting Tables
+- `roles` - User role definitions and permissions
+- `notifications` - System notifications and alerts
+- `audit_logs` - System activity tracking
+- `login_attempts` - Security monitoring
+- `file_storage` - Document and image storage
+
+## Configuration Management
+
+### Environment Configuration
+- `.env` files for environment-specific settings
+- Separate configurations for development, testing, production
+- Database connection strings and API keys
+- Security tokens and encryption keys
+
+### Build Configuration
+- `package.json` - Node.js dependencies and scripts
+- `vite.config.js` - Frontend build configuration
+- `tailwind.config.js` - CSS framework configuration
+- `eslint.config.js` - Code quality rules
+
+## Development Scripts
+
+### Database Management
+```
+scripts/database/
+├── migrations/              # Database migration utilities
+├── seeds/                   # Data seeding scripts
+├── fixes/                   # Schema repair scripts
+└── audit_schema.js         # Database validation
+```
+
+### System Maintenance
+```
+scripts/
+├── health-check.js          # System health validation
+├── verify-completion.js     # Feature completeness check
+├── system-status.cjs        # Overall system status
+└── validate-env.cjs         # Environment validation
 ```
 
 ## Architectural Patterns
 
+### MVC Architecture
+- **Models**: Database schemas and data access layers
+- **Views**: React components and user interfaces
+- **Controllers**: Business logic and API endpoints
+
 ### Role-Based Access Control (RBAC)
-- **6 Distinct Roles**: IT Admin, Captain, Secretary, Clerk, Blotter Officer, Resident
-- **Granular Permissions**: Each role has specific endpoint access
-- **Middleware Enforcement**: Authentication and authorization at route level
-- **Context-Aware UI**: Components render based on user permissions
+- Hierarchical permission system
+- Route-level access control
+- Component-level permission checking
+- API endpoint authorization
 
-### API Design Patterns
-- **RESTful Architecture**: Standard HTTP methods and status codes
-- **Resource-Based URLs**: `/api/residents`, `/api/blotter`, `/api/certificates`
-- **Consistent Response Format**: Standardized JSON responses with error handling
-- **Middleware Chain**: Authentication → Validation → Business Logic → Response
-
-### Database Design Patterns
-- **Migration-Based Schema**: Version-controlled database changes
-- **Seed Data Management**: Consistent initial data across environments
-- **Audit Trail**: Comprehensive logging of all data modifications
-- **Soft Deletes**: Data preservation with archive functionality
-
-### Frontend Patterns
-- **Context-Based State**: Global state management with React Context
-- **Protected Routes**: Authentication-aware routing system
-- **Component Composition**: Reusable UI components with props
-- **Responsive Design**: Mobile-first approach with Tailwind CSS
-
-## Component Relationships
-
-### Authentication Flow
-```
-Login → AuthController → JWT Token → AuthContext → Protected Routes
-```
-
-### Data Flow Pattern
-```
-UI Component → API Call → Route Handler → Controller → Database → Response
-```
-
-### Role Permission Flow
-```
-User Login → Role Assignment → Middleware Check → Component Access → API Access
-```
-
-### Notification System
-```
-Backend Event → WebSocket → NotificationContext → UI Update
-```
-
-## Integration Points
-
-### Client-Server Communication
-- **REST API**: Primary data exchange mechanism
-- **WebSocket**: Real-time notifications and updates
-- **File Upload**: Multipart form data for document handling
-- **Authentication**: JWT token-based security
-
-### Database Integration
-- **Knex.js ORM**: Query builder and migration management
-- **MySQL Connection**: Pooled connections for performance
-- **Transaction Support**: ACID compliance for critical operations
-- **Backup Integration**: Automated backup and restore capabilities
-
-### AI Service Integration
-- **HTTP API**: Communication between Node.js and Python services
-- **Data Pipeline**: Structured data flow for analytics processing
-- **Prediction Engine**: Forecasting and pattern recognition
-- **Real-time Analytics**: Live data processing and insights
-
-## Configuration Management
-
-### Environment Variables
-- **Database Configuration**: Connection strings and credentials
-- **JWT Secrets**: Authentication token signing keys
-- **API Keys**: External service integration
-- **Feature Flags**: Environment-specific functionality
-
-### Build System
-- **Vite**: Frontend build tool with hot reload
-- **Node.js**: Backend runtime with ES modules
-- **Docker**: Containerization for deployment
-- **CI/CD**: GitHub Actions for automated deployment
-
-## Scalability Considerations
-
-### Horizontal Scaling
-- **Stateless API**: Session-free backend design
-- **Database Pooling**: Connection management for concurrent users
-- **Load Balancing**: Multiple server instance support
-- **Caching Strategy**: Performance optimization for frequent queries
-
-### Vertical Scaling
-- **Efficient Queries**: Optimized database operations
-- **Memory Management**: Proper resource cleanup
-- **File Storage**: Organized upload and template management
-- **Log Rotation**: Automated log file management
+### Service-Oriented Design
+- Modular service separation (Web, API, AI)
+- Independent deployment capabilities
+- Microservice communication patterns
+- Scalable architecture foundation

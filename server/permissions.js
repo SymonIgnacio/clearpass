@@ -21,9 +21,6 @@ const THEMIS_PERMISSIONS = {
       'GET /api/monitoring/metrics': true,
       'GET /api/monitoring/logs': true,
 
-      // Firebase user management
-      'GET /api/auth/firebase-users': true,
-
       // Admin dashboard and settings
       'GET /api/admin/dashboard': true,
       'GET /api/admin/ai-analytics': true,

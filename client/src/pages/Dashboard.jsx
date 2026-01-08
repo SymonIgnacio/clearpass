@@ -96,32 +96,53 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (user && userRole) {
+      console.log('🎯 Dashboard: Starting data fetch for user role:', userRole, 'User:', user)
       fetchRoleSpecificData()
+    } else if (user === null) {
+      // User is explicitly null (not authenticated)
+      console.log('🎯 Dashboard: User not authenticated, redirecting...')
+      setLoading(false)
+    } else {
+      console.log('🎯 Dashboard: Waiting for user authentication...', { user: !!user, userRole, userObject: user })
+      // Set a timeout to prevent infinite loading if auth fails
+      const timeout = setTimeout(() => {
+        console.warn('🎯 Dashboard: Auth timeout, loading empty data')
+        setStats({ overall: { total_residents: 0, total_seniors: 0, total_pwd: 0, total_single_parents: 0 } })
+        setCertificates([])
+        setBlotterCases([])
+        setLoading(false)
+      }, 5000)
+      
+      return () => clearTimeout(timeout)
     }
   }, [user, userRole])
 
   const fetchRoleSpecificData = async () => {
     try {
       setLoading(true)
+      console.log('📊 Dashboard: Fetching dashboard data for role:', userRole)
       
-      // Fetch role-specific dashboard data
-      const dashboardData = await dashboardAPI.getDashboard(userRole)
-      setStats(dashboardData)
+      const response = await apiRequest('dashboard')
       
-      // Fetch role-specific documents/certificates
-      const documentsData = await dashboardAPI.getDocuments(userRole)
-      setCertificates(Array.isArray(documentsData) ? documentsData : [])
+      if (response.ok) {
+        const dashboardData = await response.json()
+        console.log('📊 Dashboard: Received data:', dashboardData)
+        setStats(dashboardData)
+      } else {
+        throw new Error(`Dashboard API failed: ${response.status}`)
+      }
       
-      // Fetch role-specific blotter data
-      const blotterData = await dashboardAPI.getBlotter(userRole)
-      setBlotterCases(Array.isArray(blotterData) ? blotterData : [])
+      // Fetch certificates
+      await fetchCertificates()
+      
+      // Fetch blotter cases
+      await fetchBlotterCases()
       
     } catch (error) {
-      console.error('Error fetching role-specific data:', error)
-      // Fallback to generic data
-      await fetchStats()
-      await fetchCertificates()
-      await fetchBlotterCases()
+      console.error('❌ Dashboard: Error fetching data:', error)
+      setStats({ overall: { total_residents: 0, total_seniors: 0, total_pwd: 0, total_single_parents: 0 } })
+      setCertificates([])
+      setBlotterCases([])
     } finally {
       setLoading(false)
     }
@@ -165,8 +186,13 @@ const Dashboard = () => {
   const fetchCertificates = async () => {
     try {
       const response = await apiRequest('certificates')
-      const data = await response.json()
-      setCertificates(data || [])
+      if (response.ok) {
+        const data = await response.json()
+        setCertificates(data || [])
+      } else {
+        console.warn('Certificates API failed:', response.status)
+        setCertificates([])
+      }
     } catch (error) {
       console.error('Error fetching certificates:', error)
       setCertificates([])
@@ -176,8 +202,13 @@ const Dashboard = () => {
   const fetchBlotterCases = async () => {
     try {
       const response = await apiRequest('blotter')
-      const data = await response.json()
-      setBlotterCases(Array.isArray(data) ? data : [])
+      if (response.ok) {
+        const data = await response.json()
+        setBlotterCases(Array.isArray(data) ? data : [])
+      } else {
+        console.warn('Blotter API failed:', response.status)
+        setBlotterCases([])
+      }
     } catch (error) {
       console.error('Error fetching blotter cases:', error)
       setBlotterCases([])
@@ -201,7 +232,7 @@ const Dashboard = () => {
   const statCards = [
     {
       title: 'Total Population',
-      value: stats?.overall?.total_residents || 0,
+      value: stats?.overall?.total_residents || stats?.residents || 0,
       subtitle: 'Registered Residents',
       icon: <People sx={{ fontSize: 32 }} />,
       color: '#1a73e8',
@@ -211,7 +242,7 @@ const Dashboard = () => {
     },
     {
       title: 'Active Cases',
-      value: Array.isArray(blotterCases) ? blotterCases.filter(case_ => (case_.status || case_.Status) === 'Pending').length : 0,
+      value: stats?.active_blotter || (Array.isArray(blotterCases) ? blotterCases.filter(case_ => (case_.status || case_.Status) === 'Pending').length : 0),
       subtitle: 'Ongoing Investigations',
       icon: <Gavel sx={{ fontSize: 32 }} />,
       color: '#ea4335',
@@ -221,7 +252,7 @@ const Dashboard = () => {
     },
     {
       title: 'Certificates Issued',
-      value: certificates.length,
+      value: stats?.certificates || certificates.length,
       subtitle: 'Total Certificates',
       icon: <Description sx={{ fontSize: 32 }} />,
       color: '#34a853',
@@ -837,7 +868,7 @@ const Dashboard = () => {
           />
           <Tooltip title="Refresh Data">
             <IconButton
-              onClick={fetchStats}
+              onClick={fetchRoleSpecificData}
               sx={{
                 borderRadius: 2,
                 border: '1px solid #e8eaed',
