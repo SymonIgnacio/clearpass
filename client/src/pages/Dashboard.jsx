@@ -85,9 +85,9 @@ const Dashboard = () => {
     search: ''
   })
 
-  // Check if user is IT Admin (role 5) - FIXED ROLE ID
-  const isITAdmin = user?.role === 5 || user?.role === '5' || user?.role_id === 5 || user?.role_id === '5'
-  const userRole = user?.role_id || user?.role || (user?.username === 'superadmin' ? 5 : null)
+  // Check if user is IT Admin (THEMIS role 1)
+  const isITAdmin = user?.role === 1 || user?.role === '1'
+  const userRole = user?.role || (user?.username === 'superadmin' ? 1 : null)
   const userRoleNumber = Number(userRole)
 
   const tabs = [

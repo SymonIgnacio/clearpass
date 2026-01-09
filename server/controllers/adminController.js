@@ -1,13 +1,13 @@
 // IT Admin User Management - All Users
 exports.getAllUsers = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   try {
     const [users] = await db.execute(`
-      SELECT u.id, u.username, u.full_name, u.email, u.role_id, u.is_active, u.created_at,
-             COALESCE(r.role_name, CONCAT('Role ', u.role_id)) as role_name
+      SELECT u.id, u.username, u.full_name, u.email, u.role, u.is_active, u.created_at,
+             COALESCE(r.role_name, CONCAT('Role ', u.role)) as role_name
       FROM users u 
-      LEFT JOIN roles r ON u.role_id = r.id
-      ORDER BY u.role_id, u.username
+      LEFT JOIN roles r ON u.role = r.id
+      ORDER BY u.role, u.username
     `);
     res.json(users);
   } catch (error) {
@@ -17,7 +17,7 @@ exports.getAllUsers = async (req, res) => {
 };
 
 exports.createUser = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   const { username, email, first_name, last_name, role_id, password, is_active = true } = req.body;
   
   try {
@@ -38,7 +38,7 @@ exports.createUser = async (req, res) => {
 };
 
 exports.updateUser = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   const { id } = req.params;
   const { username, email, first_name, last_name, role_id, password, is_active } = req.body;
   
@@ -68,7 +68,7 @@ exports.updateUser = async (req, res) => {
 };
 
 exports.deleteUser = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   const { id } = req.params;
   
   try {
@@ -82,15 +82,15 @@ exports.deleteUser = async (req, res) => {
 
 // IT Admin Staff Management
 exports.getAllStaff = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   try {
     const [staff] = await db.execute(`
-      SELECT u.id, u.username, u.full_name, u.email, u.role_id, u.is_active, u.created_at,
-             COALESCE(r.role_name, CONCAT('Role ', u.role_id)) as role_name
+      SELECT u.id, u.username, u.full_name, u.email, u.role, u.is_active, u.created_at,
+             COALESCE(r.role_name, CONCAT('Role ', u.role)) as role_name
       FROM users u 
-      LEFT JOIN roles r ON u.role_id = r.id
-      WHERE u.role_id != 12 
-      ORDER BY u.role_id, u.username
+      LEFT JOIN roles r ON u.role = r.id
+      WHERE u.role != 4 
+      ORDER BY u.role, u.username
     `);
     res.json(staff);
   } catch (error) {
@@ -100,7 +100,7 @@ exports.getAllStaff = async (req, res) => {
 };
 
 exports.createStaff = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   const { username, email, first_name, last_name, role_id, password, is_active = true } = req.body;
   
   try {
@@ -121,7 +121,7 @@ exports.createStaff = async (req, res) => {
 };
 
 exports.updateStaff = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   const { id } = req.params;
   const { username, email, first_name, last_name, role_id, password, is_active } = req.body;
   
@@ -151,7 +151,7 @@ exports.updateStaff = async (req, res) => {
 };
 
 exports.deleteStaff = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   const { id } = req.params;
   
   try {
@@ -165,7 +165,7 @@ exports.deleteStaff = async (req, res) => {
 
 // Secretary User Management - Residency & Vulnerability Verification
 exports.getResidentsForVerification = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   try {
     const [residents] = await db.execute(`
       SELECT r.*, h.Household_Number, s.name as sitio_name,
@@ -184,7 +184,7 @@ exports.getResidentsForVerification = async (req, res) => {
 };
 
 exports.verifyResident = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   const { id } = req.params;
   const { verification_type } = req.body;
   
@@ -208,7 +208,7 @@ exports.verifyResident = async (req, res) => {
 };
 
 exports.getAllRoles = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   try {
     console.log('Fetching roles from database...');
     const [roles] = await db.execute('SELECT * FROM roles ORDER BY hierarchy_level');
@@ -221,7 +221,7 @@ exports.getAllRoles = async (req, res) => {
 };
 
 exports.getUsersReport = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   try {
     const [userStats] = await db.execute(`
       SELECT COUNT(*) as total_users, SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END) as active_users,
@@ -232,7 +232,6 @@ exports.getUsersReport = async (req, res) => {
         SUM(CASE WHEN role = 4 THEN 1 ELSE 0 END) as residents,
         SUM(CASE WHEN role = 5 THEN 1 ELSE 0 END) as captains,
         SUM(CASE WHEN role = 6 THEN 1 ELSE 0 END) as secretaries,
-        SUM(CASE WHEN firebase_uid IS NOT NULL THEN 1 ELSE 0 END) as firebase_users,
         AVG(DATEDIFF(CURDATE(), DATE(created_at))) as avg_account_age_days
       FROM users
     `);
@@ -269,7 +268,7 @@ exports.getUsersReport = async (req, res) => {
 };
 
 exports.getBlotterReport = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   try {
     const [blotterStats] = await db.execute(`
       SELECT COUNT(*) as total_cases,
@@ -312,7 +311,7 @@ exports.getBlotterReport = async (req, res) => {
 };
 
 exports.getCertificatesReport = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   try {
     const [certStats] = await db.execute(`
       SELECT COUNT(*) as total_certificates, COUNT(DISTINCT certificate_type) as unique_types,
@@ -351,7 +350,7 @@ exports.getCertificatesReport = async (req, res) => {
 };
 
 exports.getResidentsReport = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   try {
     const [residentStats] = await db.execute(`
       SELECT COUNT(*) as total_residents,
@@ -399,7 +398,7 @@ exports.getResidentsReport = async (req, res) => {
 };
 
 exports.getSystemReport = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   try {
     let dbStatus = 'healthy', dbResponseTime = 0;
     const dbStartTime = Date.now();
@@ -444,7 +443,7 @@ exports.getSystemReport = async (req, res) => {
 };
 
 exports.getSecurityReport = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   try {
     let loginStats = { total_attempts_30d: 0, successful_attempts_30d: 0, failed_attempts_30d: 0, unique_users_30d: 0, unique_ips_30d: 0 };
     let failedByIP = [];
@@ -489,7 +488,7 @@ exports.getSecurityReport = async (req, res) => {
 };
 
 exports.getDetailedUsersReport = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   try {
     const { dateFrom, dateTo, status, role, search, page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
@@ -527,7 +526,7 @@ exports.getDetailedUsersReport = async (req, res) => {
 };
 
 exports.getDetailedBlotterReport = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   try {
     const { dateFrom, dateTo, status, search, page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
@@ -564,7 +563,7 @@ exports.getDetailedBlotterReport = async (req, res) => {
 };
 
 exports.getDetailedCertificatesReport = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   try {
     const { dateFrom, dateTo, status, search, page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
@@ -601,7 +600,7 @@ exports.getDetailedCertificatesReport = async (req, res) => {
 };
 
 exports.getDetailedResidentsReport = async (req, res) => {
-  const db = req.app.locals.db;
+  const db = require('../database');
   try {
     const { dateFrom, dateTo, status, search, page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;

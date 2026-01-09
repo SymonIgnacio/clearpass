@@ -1,58 +1,92 @@
-// CLEARPASS RBAC: Client-side permissions matching database role IDs
+// CLEARPASS RBAC: Updated to match System Requirements
 export const PERMISSIONS = {
-  // IT Admin (Role 5) - Tech/Infra only
+  // IT Admin (Role 1) - FULL SYSTEM ACCESS
   IT_ADMIN: {
-    USER_PROVISIONING: true,
-    BULK_IMPORT: true,
-    SYSTEM_MONITORING: true,
-    FIREBASE_USERS: true
+    FULL_SYSTEM_ACCESS: true,
+    USER_MANAGEMENT: true,
+    SYSTEM_LOGS: true,
+    SYSTEM_CONFIG: true,
+    BACKUP_RESTORE: true,
+    AI_ANALYTICS_TECHNICAL: true,
+    VIEW_ALL_RESIDENTS: true,
+    VIEW_ALL_BLOTTER: true,
+    VIEW_ALL_CERTIFICATES: true,
+    VIEW_ALL_DOCUMENTS: true
   },
 
-  // Captain (Role 2) - Read-Only Analytics
+  // Captain (Role 2) - Executive Read-Only
   CAPTAIN: {
-    ANALYTICS: true,
-    DASHBOARD: true,
-    REPORTS: true,
+    EXECUTIVE_DASHBOARD: true,
+    RESIDENT_STATISTICS: true,
+    BLOTTER_MONITORING: true,
+    CLEARANCE_TRENDS: true,
+    REPORTS_ANALYTICS: true,
+    AI_EXECUTIVE_INSIGHTS: true,
     READ_RESIDENTS: true,
     READ_BLOTTER: true,
     READ_CERTIFICATES: true
   },
 
-  // Secretary (Role 3) - Ops/Approver
+  // Secretary (Role 3) - Administrative Authority
   SECRETARY: {
-    DOCUMENTS: true,
-    APPROVE_CLEARANCES: true,  // APPROVE/DENY only
+    SECRETARY_DASHBOARD: true,
+    RESIDENT_RECORDS_OVERSIGHT: true,
+    DOCUMENT_VERIFICATION: true,
+    BENEFICIARY_VALIDATION: true,
+    BLOTTER_OVERSIGHT: true,
+    CLEARANCE_OVERSIGHT: true,
+    REPORTS_ANALYTICS: true,
+    AI_RISK_INSIGHTS: true,
+    ADMIN_SETTINGS: true,
     MANAGE_RESIDENTS: true,
-    EVENTS: true,
-    CERTIFICATE_TYPES: true
+    APPROVE_REGISTRATIONS: true,
+    VERIFY_DOCUMENTS: true
   },
 
-  // Clerk (Role 4) - Fulfillment/Issuer
+  // Clerk (Role 4) - Certificate Processing
   CLERK: {
-    ISSUE_CERTIFICATES: true,  // PROCESS & RELEASE
-    VIEW_DOCUMENTS: true,
-    LIMITED_RESIDENT_ACCESS: true
+    CLERK_DASHBOARD: true,
+    RESIDENT_VERIFICATION: true,
+    CLEARANCE_PROCESSING: true,
+    DOCUMENT_ISSUANCE: true,
+    NOTIFICATIONS: true,
+    AI_WORKLOAD_INSIGHTS: true,
+    VIEW_RESIDENTS: true,
+    PROCESS_CERTIFICATES: true
   },
 
-  // Blotter Officer (Role 6) - Case Manager
+  // Blotter Officer (Role 6) - Case Management Authority
   BLOTTER_OFFICER: {
-    FULL_BLOTTER_CRUD: true,
-    BLOTTER_ANALYTICS: true
+    BLOTTER_DASHBOARD: true,
+    RESIDENT_COMPLAINTS: true,
+    NEW_CASE_ENCODING: true,
+    CASE_REVIEW: true,
+    HEARING_ATTENDANCE: true,
+    BLOTTER_REPORTS: true,
+    AI_CRIME_ANALYTICS: true,
+    FULL_BLOTTER_CRUD: true
   },
 
-  // Resident (Role 12) - End User
+  // Resident (Role 12) - Self-Service
   RESIDENT: {
+    RESIDENT_REGISTRATION: true,
+    RESIDENT_LOGIN: true,
+    RESIDENT_DASHBOARD: true,
+    PROFILE_VERIFICATION: true,
+    BLOTTER_COMPLAINT_FILING: true,
+    CLEARANCE_REQUESTS: true,
+    REQUEST_HISTORY: true,
+    ANNOUNCEMENTS: true,
     OWN_PROFILE: true,
     REQUEST_CLEARANCE: true,
-    VIEW_CERTIFICATES: true,
-    SUBMIT_VERIFICATION: true
+    VIEW_OWN_CERTIFICATES: true
   }
 };
 
 /**
- * THEMIS RBAC: Check if user has permission for a specific action
- * @param {string} permission - Permission key (e.g., 'ANALYTICS', 'ISSUE_CERTIFICATES')
- * @param {object} user - User object with role property (numeric 0-5)
+ * Check if user has permission for a specific action
+ * @param {string} permission - Permission key
+ * @param {object} user - User object with role property
  * @returns {boolean} - True if user has permission
  */
 export const hasPermission = (permission, user) => {
@@ -61,8 +95,8 @@ export const hasPermission = (permission, user) => {
   const roleId = typeof user.role === 'string' ? parseInt(user.role) : user.role;
 
   switch (roleId) {
-    case 5: // IT Admin
-      return PERMISSIONS.IT_ADMIN[permission] || false;
+    case 1: // IT Admin - FULL ACCESS TO EVERYTHING
+      return PERMISSIONS.IT_ADMIN[permission] || true; // IT Admin can access everything
     case 2: // Captain
       return PERMISSIONS.CAPTAIN[permission] || false;
     case 3: // Secretary
@@ -122,7 +156,7 @@ export const getRoleName = (user) => {
   const roleId = typeof user?.role === 'string' ? parseInt(user.role) : user?.role;
 
   switch (roleId) {
-    case 5: return 'IT Admin';
+    case 1: return 'IT Admin';
     case 2: return 'Captain';
     case 3: return 'Secretary';
     case 4: return 'Clerk';
@@ -139,7 +173,7 @@ export const getRoleName = (user) => {
  */
 export const isStaff = (user) => {
   const roleId = typeof user?.role === 'string' ? parseInt(user.role) : user?.role;
-  return [2, 3, 4, 5, 6].includes(roleId); // Staff roles: Captain, Secretary, Clerk, IT Admin, Blotter Officer
+  return [1, 2, 3, 4, 6].includes(roleId); // Staff roles: IT Admin, Captain, Secretary, Clerk, Blotter Officer
 };
 
 /**

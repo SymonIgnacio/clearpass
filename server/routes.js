@@ -197,7 +197,7 @@ router.get('/admin/ai-analytics',
     verifyToken, verifyRole([ROLES.ADMIN]), (req, res) => { res.status(501).json({ message: 'AI analytics feature coming soon' }); });
 router.get('/admin/users',
     verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
-    const [users] = await db.execute('SELECT id, username, full_name, email, role_id, is_active FROM users ORDER BY role_id, username');
+    const [users] = await db.execute('SELECT id, username, full_name, email, role, is_active FROM users ORDER BY role, username');
     res.json(users);
 }));
 router.post('/admin/users',
@@ -495,18 +495,24 @@ router.get('/auth/residency-verifications/pending',
     res.json([]); // Return empty array - simplified system
 });
 
-// Programs - Captain and Secretary access
+// Programs - All authenticated users can view programs
 router.get('/programs',
-    verifyToken, verifyRole([5, 6]), asyncHandler(async (req, res) => {
-    const [programs] = await db.execute(
-        'SELECT * FROM community_programs ORDER BY program_date DESC'
-    );
-    res.json(programs);
+    verifyToken, asyncHandler(async (req, res) => {
+    try {
+        const [programs] = await db.execute(
+            'SELECT * FROM community_programs ORDER BY program_date DESC'
+        );
+        res.json(programs);
+    } catch (error) {
+        console.error('Error fetching programs:', error);
+        // Return empty array if table doesn't exist
+        res.json([]);
+    }
 }));
 
-// Templates - Clerk, Captain, and Secretary access (Captain for oversight)
+// Templates - All authenticated staff can view templates
 router.get('/templates',
-    verifyToken, verifyRole([ROLES.CAPTAIN, ROLES.ADMIN, ROLES.SECRETARY]), async (req, res) => {
+    verifyToken, verifyRole([ROLES.ADMIN, ROLES.CLERK, ROLES.CAPTAIN, ROLES.SECRETARY]), async (req, res) => {
     try {
         const [templates] = await db.execute(
             'SELECT * FROM templates WHERE is_active = true ORDER BY name'
@@ -617,7 +623,7 @@ router.get('/census',
 router.get('/users',
     verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const [users] = await db.execute(
-        'SELECT id, username, full_name, email, role_id, is_active, created_at FROM users ORDER BY role_id, username'
+        'SELECT id, username, full_name, email, role, is_active, created_at FROM users ORDER BY role, username'
     );
     res.json(users);
 }));

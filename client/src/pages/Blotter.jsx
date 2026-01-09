@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -78,11 +78,13 @@ const INCIDENT_CATEGORIES = {
 const SITIOS = ['Batia Proper', 'Northville 5', 'St. Martha', 'AFP/PNP']
 
 import WriteProtected from '../components/WriteProtected'
+import SmartComplainantInput from '../components/SmartComplainantInput'
 
 const Blotter = () => {
   const [blotterCases, setBlotterCases] = useState([])
   const [residents, setResidents] = useState([])
   const [sitios, setSitios] = useState([])
+  const [loading, setLoading] = useState(true)
   const [openWizard, setOpenWizard] = useState(false)
   const [openSummonsDialog, setOpenSummonsDialog] = useState(false)
   const [openResolutionDialog, setOpenResolutionDialog] = useState(false)
@@ -92,8 +94,8 @@ const Blotter = () => {
   // Wizard states
   const [activeStep, setActiveStep] = useState(0)
   const [wizardData, setWizardData] = useState({
-    complainantDetails: { name: '', address: '', contact: '', idProof: '' },
-    respondentDetails: { name: '', address: '', alias: '', contact: '' },
+    complainantDetails: { name: '', address: '', contact: '', idProof: '', isResident: false, residentId: null },
+    respondentDetails: { name: '', address: '', alias: '', contact: '', isResident: false, residentId: null },
     incidentType: '',
     narrative: '',
     locationSitio: '',
@@ -115,18 +117,24 @@ const Blotter = () => {
   })
 
   useEffect(() => {
-    fetchBlotterCases()
-    fetchResidents()
-    fetchSitios()
+    const loadData = async () => {
+      setLoading(true)
+      await Promise.all([
+        fetchBlotterCases(),
+        fetchResidents(),
+        fetchSitios()
+      ])
+      setLoading(false)
+    }
+    loadData()
   }, [])
 
-  const fetchBlotterCases = async () => {
+  const fetchBlotterCases = useCallback(async () => {
     try {
       const response = await apiRequest('blotter')
 
       if (!response.ok) {
         console.error('Blotter API error:', response.status, response.statusText)
-        alert(`Error loading blotter data: ${response.status} ${response.statusText}`)
         return
       }
 
@@ -134,18 +142,16 @@ const Blotter = () => {
 
       if (!Array.isArray(data)) {
         console.error('Blotter API returned non-array data:', typeof data)
-        alert('Error: API returned unexpected data format')
         return
       }
 
       setBlotterCases(data)
     } catch (error) {
       console.error('Error fetching blotter cases:', error)
-      alert(`Error loading blotter cases: ${error.message}`)
     }
-  }
+  }, [])
 
-  const fetchResidents = async () => {
+  const fetchResidents = useCallback(async () => {
     try {
       const response = await apiRequest('residents')
       const data = await response.json()
@@ -153,9 +159,9 @@ const Blotter = () => {
     } catch (error) {
       console.error('Error fetching residents:', error)
     }
-  }
+  }, [])
 
-  const fetchSitios = async () => {
+  const fetchSitios = useCallback(async () => {
     try {
       const response = await apiRequest('sitios')
       const data = await response.json()
@@ -163,7 +169,7 @@ const Blotter = () => {
     } catch (error) {
       console.error('Error fetching sitios:', error)
     }
-  }
+  }, [])
 
   const generateCaseNumber = () => {
     const now = new Date()
@@ -188,7 +194,9 @@ const Blotter = () => {
       const payload = {
         Case_Number: caseNumber,
         Complainant_Details: JSON.stringify(wizardData.complainantDetails),
+        complainant_resident_id: wizardData.complainantDetails.residentId,
         Respondent_Details: wizardData.respondentDetails.name ? JSON.stringify(wizardData.respondentDetails) : null,
+        respondent_resident_id: wizardData.respondentDetails.residentId,
         Incident_Type: wizardData.incidentType,
         Narrative: wizardData.narrative,
         DateTime_Incident: wizardData.dateTimeIncident,
@@ -206,8 +214,8 @@ const Blotter = () => {
         setOpenWizard(false)
         setActiveStep(0)
         setWizardData({
-          complainantDetails: { name: '', address: '', contact: '', idProof: '' },
-          respondentDetails: { name: '', address: '', alias: '', contact: '' },
+          complainantDetails: { name: '', address: '', contact: '', idProof: '', isResident: false, residentId: null },
+          respondentDetails: { name: '', address: '', alias: '', contact: '', isResident: false, residentId: null },
           incidentType: '',
           narrative: '',
           locationSitio: '',
@@ -346,16 +354,19 @@ const Blotter = () => {
     }
   }
 
-  // Filtered and searched blotter cases
+  // Filtered and searched blotter cases - optimized with debouncing
   const filteredBlotterCases = useMemo(() => {
+    if (!blotterCases.length) return []
+    
     return blotterCases.filter((case_) => {
       // Helper function to safely get name from complainant/respondent details
       const getName = (details) => {
+        if (!details) return ''
         try {
           if (typeof details === 'string') {
-            return JSON.parse(details || '{}').name || ''
+            return JSON.parse(details).name || ''
           } else if (typeof details === 'object') {
-            return details?.name || ''
+            return details.name || ''
           }
           return ''
         } catch (e) {
@@ -546,6 +557,11 @@ const Blotter = () => {
       </Paper>
 
       <TableContainer component={Paper}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <Typography>Loading blotter cases...</Typography>
+          </Box>
+        ) : (
         <Table>
           <TableHead>
             <TableRow>
@@ -658,6 +674,7 @@ const Blotter = () => {
             })}
           </TableBody>
         </Table>
+        )}
       </TableContainer>
 
       {/* 3-Step Wizard Dialog */}
@@ -683,16 +700,35 @@ const Blotter = () => {
                 <CardContent>
                   <Typography variant="subtitle1" sx={{ mb: 2 }}>Complainant Details</Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Full Name"
-                        value={wizardData.complainantDetails.name}
-                        onChange={(e) => setWizardData({
-                          ...wizardData,
-                          complainantDetails: { ...wizardData.complainantDetails, name: e.target.value }
-                        })}
-                        required
+                    <Grid item xs={12}>
+                      <SmartComplainantInput
+                        value={wizardData.complainantDetails}
+                        onChange={(complainantData) => {
+                          if (complainantData) {
+                            setWizardData({
+                              ...wizardData,
+                              complainantDetails: {
+                                ...wizardData.complainantDetails,
+                                name: complainantData.name,
+                                address: complainantData.address || wizardData.complainantDetails.address,
+                                contact: complainantData.mobile || wizardData.complainantDetails.contact,
+                                isResident: complainantData.isResident,
+                                residentId: complainantData.residentId
+                              }
+                            });
+                          } else {
+                            setWizardData({
+                              ...wizardData,
+                              complainantDetails: {
+                                ...wizardData.complainantDetails,
+                                name: '',
+                                isResident: false,
+                                residentId: null
+                              }
+                            });
+                          }
+                        }}
+                        label="Complainant Name"
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
@@ -739,15 +775,35 @@ const Blotter = () => {
                 <CardContent>
                   <Typography variant="subtitle1" sx={{ mb: 2 }}>Respondent Details (Optional)</Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Full Name"
-                        value={wizardData.respondentDetails.name}
-                        onChange={(e) => setWizardData({
-                          ...wizardData,
-                          respondentDetails: { ...wizardData.respondentDetails, name: e.target.value }
-                        })}
+                    <Grid item xs={12}>
+                      <SmartComplainantInput
+                        value={wizardData.respondentDetails}
+                        onChange={(respondentData) => {
+                          if (respondentData) {
+                            setWizardData({
+                              ...wizardData,
+                              respondentDetails: {
+                                ...wizardData.respondentDetails,
+                                name: respondentData.name,
+                                address: respondentData.address || wizardData.respondentDetails.address,
+                                contact: respondentData.mobile || wizardData.respondentDetails.contact,
+                                isResident: respondentData.isResident,
+                                residentId: respondentData.residentId
+                              }
+                            });
+                          } else {
+                            setWizardData({
+                              ...wizardData,
+                              respondentDetails: {
+                                ...wizardData.respondentDetails,
+                                name: '',
+                                isResident: false,
+                                residentId: null
+                              }
+                            });
+                          }
+                        }}
+                        label="Respondent Name"
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>

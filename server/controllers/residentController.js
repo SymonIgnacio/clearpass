@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const xlsx = require('xlsx');
 const path = require('path');
 const fs = require('fs');
+const db = require('../database');
 
 // Simple file upload handling without multer for now
 const ensureUploadDir = () => {
@@ -19,7 +20,6 @@ const uploadMiddleware = (req, res, next) => {
 };
 
 exports.getAll = async (req, res) => {
-  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -95,7 +95,6 @@ exports.getAll = async (req, res) => {
 };
 
 exports.getById = async (req, res) => {
-  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -124,7 +123,6 @@ exports.getById = async (req, res) => {
 };
 
 exports.checkDuplicate = async (req, res) => {
-  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -160,7 +158,6 @@ exports.checkDuplicate = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
-  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -253,7 +250,6 @@ exports.create = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -324,7 +320,6 @@ exports.update = async (req, res) => {
 };
 
 exports.archive = async (req, res) => {
-  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -358,7 +353,6 @@ exports.archive = async (req, res) => {
 };
 
 exports.generateQR = async (req, res) => {
-  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -377,7 +371,6 @@ exports.generateQR = async (req, res) => {
 };
 
 exports.getHouseholdMembers = async (req, res) => {
-  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -411,7 +404,6 @@ exports.getHouseholdMembers = async (req, res) => {
 };
 
 exports.openRegister = async (req, res) => {
-  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }

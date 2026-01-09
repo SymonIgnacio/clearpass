@@ -18,36 +18,35 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// Updated to handle both role names and IDs
+// Role name to ID mapping (Database Aligned)
+const ROLE_MAP = {
+  'admin': 1,
+  'it_admin': 1,
+  'captain': 2,
+  'secretary': 3,
+  'clerk': 4,
+  'blotter_officer': 6,
+  'resident': 12
+};
+
+// THEMIS CLEARPASS Role Verification
 const checkRole = (allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const userRoleId = req.user.role_id;
-    const userRoleName = req.user.role;
+    const userRole = req.user.role || req.user.role_id; // Support both role and role_id
     
-    // Convert role names to IDs for comparison
-    const roleNameToId = {
-      'admin': 5,
-      'captain': 2,
-      'secretary': 3,
-      'clerk': 4,
-      'blotter_officer': 6,
-      'officer': 6,
-      'resident': 12
-    };
-    
-    // Build list of allowed role IDs
-    const allowedRoleIds = allowedRoles.map(role => {
-      if (typeof role === 'number') {
-        return role;
+    // Convert string roles to numeric IDs if needed
+    const normalizedRoles = allowedRoles.map(role => {
+      if (typeof role === 'string') {
+        return ROLE_MAP[role.toLowerCase()] || role;
       }
-      return roleNameToId[role.toLowerCase()] || null;
-    }).filter(id => id !== null);
+      return role;
+    });
     
-    if (!allowedRoleIds.includes(userRoleId)) {
+    if (!normalizedRoles.includes(userRole)) {
       return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
     }
 
@@ -72,9 +71,10 @@ const checkOwnershipOrHierarchy = (req, res, next) => {
 // For routes that need authentication but no specific role
 const authenticate = verifyToken;
 
-// Captain read-only enforcement middleware
+// Captain read-only enforcement middleware (Database Role 2)
 const enforceReadOnly = (req, res, next) => {
-  if (req.user && (req.user.role_id === 2 || req.user.role === 'Captain')) {
+  const userRole = req.user && (req.user.role || req.user.role_id);
+  if (userRole === 2 && req.method !== 'GET') { // Captain is role 2 in database
     return res.status(403).json({ 
       success: false, 
       message: 'Access denied. Captains have read-only access.' 
@@ -90,5 +90,6 @@ module.exports = {
   authenticate,
   enforceReadOnly,
   checkHierarchyAccess, 
-  checkOwnershipOrHierarchy 
+  checkOwnershipOrHierarchy,
+  ROLE_MAP 
 };

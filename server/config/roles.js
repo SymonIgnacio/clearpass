@@ -1,26 +1,26 @@
-// Role ID Constants
+// CLEARPASS Role Hierarchy (Database Aligned)
 const ROLES = {
-  CAPTAIN: 2,
-  SECRETARY: 3,
-  CLERK: 4,
-  ADMIN: 5,
-  BLOTTER_OFFICER: 6,
-  RESIDENT: 12
+  ADMIN: 1,           // IT Admin (System & Technical Authority)
+  CAPTAIN: 2,         // Barangay Captain (Executive - Read Only)
+  SECRETARY: 3,       // Barangay Secretary
+  CLERK: 4,           // Administrative Clearance Clerks
+  BLOTTER_OFFICER: 6, // Blotter Officer
+  RESIDENT: 12        // Residents
 };
 
-// Role name mapping
+// Role name mapping (Database Aligned)
 const ROLE_NAMES = {
+  1: 'IT Admin',
   2: 'Captain',
   3: 'Secretary',
   4: 'Clerk',
-  5: 'Admin',
   6: 'Blotter Officer',
   12: 'Resident'
 };
 
 // Helper function to check if user has role
 const hasRole = (user, allowedRoles) => {
-  return allowedRoles.includes(user.role_id);
+  return allowedRoles.includes(user.role);
 };
 
 module.exports = { ROLES, ROLE_NAMES, hasRole };

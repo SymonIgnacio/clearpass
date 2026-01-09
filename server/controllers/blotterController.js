@@ -1,7 +1,7 @@
 const crypto = require('crypto');
+const db = require('../database');
 
 exports.getAll = async (req, res) => {
-  const db = req.app.locals.db;
   try {
     const [rows] = await db.execute(`
       SELECT b.*, s.name as sitio_name
@@ -17,23 +17,44 @@ exports.getAll = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
-  // SECURITY PATCH: Captain Role Read-Only Enforcement
-  if (req.user && (req.user.role_id === 5 || req.user.role === 'Captain')) {
+  // SECURITY PATCH: Captain Role Read-Only Enforcement (Database Role 2)
+  if (req.user && req.user.role === 2) {
     return res.status(403).json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
   }
 
-  const db = req.app.locals.db;
   try {
-    const { Case_Number, Complainant_Details, Respondent_Details, respondent_id, Incident_Type, Narrative, DateTime_Incident, Location_Sitio, Status } = req.body;
+    const { 
+      Case_Number, 
+      Complainant_Details, 
+      complainant_resident_id,
+      Respondent_Details, 
+      respondent_resident_id,
+      respondent_id, // Keep for backward compatibility
+      Incident_Type, 
+      Narrative, 
+      DateTime_Incident, 
+      Location_Sitio, 
+      Status 
+    } = req.body;
 
     if (!Complainant_Details || !Incident_Type || !Narrative || !Location_Sitio) {
       return res.status(400).json({ error: 'Required fields missing' });
     }
 
-    if (respondent_id) {
-      const [residentCheck] = await db.execute('SELECT Resident_ID FROM residents WHERE Resident_ID = ?', [respondent_id]);
+    // Validate complainant resident ID if provided
+    if (complainant_resident_id) {
+      const [complainantCheck] = await db.execute('SELECT Resident_ID FROM residents WHERE Resident_ID = ?', [complainant_resident_id]);
+      if (complainantCheck.length === 0) {
+        return res.status(400).json({ error: 'Invalid complainant_resident_id - resident not found' });
+      }
+    }
+
+    // Validate respondent resident ID if provided (use new field or fallback to old)
+    const finalRespondentId = respondent_resident_id || respondent_id;
+    if (finalRespondentId) {
+      const [residentCheck] = await db.execute('SELECT Resident_ID FROM residents WHERE Resident_ID = ?', [finalRespondentId]);
       if (residentCheck.length === 0) {
-        return res.status(400).json({ error: 'Invalid respondent_id - resident not found' });
+        return res.status(400).json({ error: 'Invalid respondent_resident_id - resident not found' });
       }
     }
 
@@ -49,9 +70,33 @@ exports.create = async (req, res) => {
     }
 
     const [result] = await db.execute(`
-      INSERT INTO blotter (Case_Number, Complainant_Details, Respondent_Details, respondent_id, Incident_Type, Narrative, DateTime_Incident, Location_Sitio, Status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [caseNumber, JSON.stringify(Complainant_Details), Respondent_Details ? JSON.stringify(Respondent_Details) : null, respondent_id || null, Incident_Type, Narrative, DateTime_Incident, Location_Sitio, Status || 'Pending']);
+      INSERT INTO blotter (
+        Case_Number, 
+        Complainant_Details, 
+        complainant_resident_id,
+        Respondent_Details, 
+        respondent_resident_id,
+        respondent_id, 
+        Incident_Type, 
+        Narrative, 
+        DateTime_Incident, 
+        Location_Sitio, 
+        Status
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      caseNumber, 
+      JSON.stringify(Complainant_Details), 
+      complainant_resident_id || null,
+      Respondent_Details ? JSON.stringify(Respondent_Details) : null, 
+      finalRespondentId || null,
+      finalRespondentId || null, // Keep for backward compatibility
+      Incident_Type, 
+      Narrative, 
+      DateTime_Incident, 
+      Location_Sitio, 
+      Status || 'Pending'
+    ]);
 
     res.status(201).json({ id: result.insertId, Case_Number: caseNumber, message: 'Blotter record created successfully' });
   } catch (error) {
@@ -61,12 +106,11 @@ exports.create = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-  // SECURITY PATCH: Captain Role Read-Only Enforcement
-  if (req.user && (req.user.role_id === 5 || req.user.role === 'Captain')) {
+  // SECURITY PATCH: Captain Role Read-Only Enforcement (Database Role 2)
+  if (req.user && req.user.role === 2) {
     return res.status(403).json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
   }
 
-  const db = req.app.locals.db;
   try {
     const { Complainant_Details, Respondent_Details, Incident_Type, Narrative, DateTime_Incident, Location_Sitio, Status, Hearing_Schedule } = req.body;
 
@@ -98,12 +142,11 @@ exports.update = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
-  // SECURITY PATCH: Captain Role Read-Only Enforcement
-  if (req.user && (req.user.role_id === 5 || req.user.role === 'Captain')) {
+  // SECURITY PATCH: Captain Role Read-Only Enforcement (Database Role 2)
+  if (req.user && req.user.role === 2) {
     return res.status(403).json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
   }
 
-  const db = req.app.locals.db;
   try {
     await db.execute('DELETE FROM blotter WHERE Case_Number = ?', [req.params.caseNumber]);
     res.json({ message: 'Blotter record deleted successfully' });

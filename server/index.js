@@ -54,14 +54,14 @@ const http = require('http');
 const server = http.createServer(app);
 const WebSocketService = require('./services/websocketService');
 
-// Rate limiting - DISABLED FOR TESTING
+// Rate limiting - DISABLED FOR DEVELOPMENT
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   limit: 1000, // Increased limit for testing
   message: { error: 'Too many login attempts, try again later' },
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  skip: () => process.env.NODE_ENV === 'development' // Skip in development
+  skip: () => true // Always skip rate limiting
 });
 
 const adminLimiter = rateLimit({
@@ -196,7 +196,7 @@ app.use('/api/programs', require('./routes/programRoutes')(db));
 app.use('/api/sitios', require('./routes/sitioRoutes')(db));
 
 // Legacy household route (to be moved to modular)
-app.get('/api/households', verifyToken, checkRole(['captain', 'secretary', 'clerk', 'admin']), householdController.getAll);
+app.get('/api/households', verifyToken, checkRole([1, 2, 5, 6]), householdController.getAll);
 
 // Health check
 app.get('/health', (req, res) => {

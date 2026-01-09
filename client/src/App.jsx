@@ -352,34 +352,34 @@ function App() {
 
             <Route path="residents" element={<Residents />} />
             <Route path="users" element={
-              <ProtectedRoute requiredRoles={[2, 5]}>
+              <ProtectedRoute requiredRoles={[1, 2, 5]}>
                 <Users />
               </ProtectedRoute>
             } />
             <Route path="blotter" element={
-              <ProtectedRoute requiredRoles={[2, 3, 4, 5, 6]}>
+              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6]}>
                 <Blotter />
               </ProtectedRoute>
             } />
             <Route path="documents" element={
-              <ProtectedRoute requiredRoles={[2, 3, 4, 5, 6]}>
+              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6]}>
                 <DocumentsDashboard />
               </ProtectedRoute>
             } />
 
             <Route path="census" element={
-              <ProtectedRoute requiredRoles={[2, 3, 4, 5, 6]}>
+              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6]}>
                 <Census />
               </ProtectedRoute>
             } />
             <Route path="events" element={
-              <ProtectedRoute requiredRoles={[2, 3, 5, 6]}>
+              <ProtectedRoute requiredRoles={[1, 2, 3, 5, 6]}>
                 <CommunityEvents />
               </ProtectedRoute>
             } />
 
             <Route path="settings" element={
-              <ProtectedRoute requiredRoles={[5]}>
+              <ProtectedRoute requiredRoles={[1]}>
                 <SuperAdminSettings />
               </ProtectedRoute>
             } />
@@ -395,101 +395,101 @@ function App() {
 
             {/* Clerk Routes */}
             <Route path="clerk/ai-insights" element={
-              <ProtectedRoute requiredRoles={[4]}>
+              <ProtectedRoute requiredRoles={[2]}>
                 <ClerkAIInsights />
               </ProtectedRoute>
             } />
 
             {/* Officer Routes */}
             <Route path="officer/case/:caseId" element={
-              <ProtectedRoute requiredRoles={[6]}>
+              <ProtectedRoute requiredRoles={[3]}>
                 <CaseDetail />
               </ProtectedRoute>
             } />
             <Route path="officer/new-case" element={
-              <ProtectedRoute requiredRoles={[6]}>
+              <ProtectedRoute requiredRoles={[3]}>
                 <OfficerNewCase />
               </ProtectedRoute>
             } />
             <Route path="officer/attendance" element={
-              <ProtectedRoute requiredRoles={[6]}>
+              <ProtectedRoute requiredRoles={[3]}>
                 <OfficerAttendance />
               </ProtectedRoute>
             } />
             <Route path="officer/reports" element={
-              <ProtectedRoute requiredRoles={[6]}>
+              <ProtectedRoute requiredRoles={[3]}>
                 <OfficerReports />
               </ProtectedRoute>
             } />
 
             {/* Admin Routes - IT Admin Only */}
             <Route path="admin/staff" element={
-              <ProtectedRoute requiredRoles={[5]}>
+              <ProtectedRoute requiredRoles={[1]}>
                 <StaffManagement />
               </ProtectedRoute>
             } />
             <Route path="admin/users" element={
-              <ProtectedRoute requiredRoles={[5]}>
+              <ProtectedRoute requiredRoles={[1]}>
                 <Users />
               </ProtectedRoute>
             } />
             <Route path="admin/system-logs" element={
-              <ProtectedRoute requiredRoles={[5]}>
+              <ProtectedRoute requiredRoles={[1]}>
                 <SystemLogs />
               </ProtectedRoute>
             } />
             <Route path="admin/backup" element={
-              <ProtectedRoute requiredRoles={[5]}>
+              <ProtectedRoute requiredRoles={[1]}>
                 <AdminBackup />
               </ProtectedRoute>
             } />
             <Route path="admin/ai-analytics" element={
-              <ProtectedRoute requiredRoles={[5]}>
+              <ProtectedRoute requiredRoles={[1]}>
                 <AIAnalytics />
               </ProtectedRoute>
             } />
 
             {/* Resident Routes */}
             <Route path="resident/dashboard" element={
-              <ProtectedRoute requiredRoles={[12]}>
+              <ProtectedRoute requiredRoles={[4]}>
                 <ResidentDashboard />
               </ProtectedRoute>
             } />
             <Route path="resident/request-certificate" element={
-              <ProtectedRoute requiredRoles={[12]}>
+              <ProtectedRoute requiredRoles={[4]}>
                 <CertificateRequest />
               </ProtectedRoute>
             } />
             <Route path="resident/requests" element={
-              <ProtectedRoute requiredRoles={[12]}>
+              <ProtectedRoute requiredRoles={[4]}>
                 <RequestHistory />
               </ProtectedRoute>
             } />
             <Route path="resident/blotter-report" element={
-              <ProtectedRoute requiredRoles={[12]}>
+              <ProtectedRoute requiredRoles={[4]}>
                 <ResidentBlotterReport />
               </ProtectedRoute>
             } />
             <Route path="resident/profile" element={
-              <ProtectedRoute requiredRoles={[12]}>
+              <ProtectedRoute requiredRoles={[4]}>
                 <ResidentProfile />
               </ProtectedRoute>
             } />
             <Route path="resident/complaints" element={
-              <ProtectedRoute requiredRoles={[12]}>
+              <ProtectedRoute requiredRoles={[4]}>
                 <ComplaintHistory />
               </ProtectedRoute>
             } />
 
             <Route path="resident/announcements" element={
-              <ProtectedRoute requiredRoles={[12]}>
+              <ProtectedRoute requiredRoles={[4]}>
                 <ResidentAnnouncements />
               </ProtectedRoute>
             } />
 
             {/* Secretary Routes */}
             <Route path="secretary/settings" element={
-              <ProtectedRoute requiredRoles={[3]}>
+              <ProtectedRoute requiredRoles={[6]}>
                 <SecretarySettings />
               </ProtectedRoute>
             } />

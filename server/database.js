@@ -25,19 +25,17 @@ const db = {
   execute: (sql, params) => pool.execute(sql, params)
 };
 
-// Get all residents with sitio information
+// Get all residents with sitio information (OPTIMIZED)
 async function getResidents() {
   const connection = await pool.getConnection();
   try {
     const [rows] = await connection.execute(`
-      SELECT r.*, s.name as sitio_name, h.Household_Number,
+      SELECT r.*, h.Household_Number, s.name as sitio_name,
              v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent, v.Is_Out_of_School_Youth,
              v.Vulnerability_Score
       FROM residents r
-      LEFT JOIN sitios s ON r.Household_ID IN (
-        SELECT Household_ID FROM households WHERE Sitio_ID = s.id
-      )
       LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
       LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
       WHERE r.Residency_Status = 'Active'
       ORDER BY r.Last_Name, r.First_Name

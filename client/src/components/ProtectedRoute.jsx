@@ -22,7 +22,7 @@ const ProtectedRoute = ({ children, requiredRoles = [] }) => {
 
   // Check role-based access
   if (requiredRoles.length > 0 && user) {
-    const userRole = Number(user.role_id || user.role)
+    const userRole = Number(user.role) // THEMIS hierarchy (1-6)
     const hasAccess = requiredRoles.some(role => Number(role) === userRole)
 
     if (!hasAccess) {

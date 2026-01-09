@@ -1,13 +1,26 @@
 ROLE 1: IT Admin (System & Technical Authority)
 Purpose
-Responsible for maintaining system availability, security, configuration, and RBAC enforcement. This role does not participate in any barangay operational transactions.
-Modules, Pages, and Access
+Responsible for maintaining system availability, security, configuration, and RBAC enforcement. This role has FULL ACCESS to all system modules and data for technical maintenance and troubleshooting purposes, but does not participate in operational barangay transactions.
+
+Full System Access
+• Complete access to all modules, pages, and data across the entire system
+• Can view and access any page that other roles can access
+• Full administrative privileges for system maintenance and support
+• Emergency access to all operational data when needed for technical issues
+
+Primary Modules, Pages, and Access
 • IT Admin Dashboard (/admin/dashboard) – Monitor system health, usage, uptime, and logs
 • User & Role Management (/admin/users) – Manage staff accounts and role assignments
 • System Logs & Audit Trail (/admin/logs) – Review security and activity records
 • System Configuration (/admin/settings) – Configure SMS, QR rules, and sessions
 • Backup & Restore (/admin/backup) – Ensure data continuity
 • AI Analytics (Technical View) (/admin/ai-analytics) – Monitor AI model accuracy (read-only)
+
+Additional Access for System Maintenance
+• Can access all Secretary, Captain, Clerk, and Blotter Officer modules when needed
+• Full read access to resident data, blotter cases, and certificate records
+• Can troubleshoot and maintain any part of the system
+• Override access for emergency system maintenance
 ________________________________________
 ROLE 2: Administrative Clearance Clerks
 Purpose

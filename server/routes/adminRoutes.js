@@ -1,26 +1,86 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken, checkRole } = require('../middleware/authMiddleware');
+const { verifyToken, verifyRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { ROLES } = require('../config/roles');
 const adminController = require('../controllers/adminController');
 
 module.exports = (db) => {
+  // User Management
+  router.get('/users', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
+    const [users] = await db.execute(`
+      SELECT u.id, u.username, u.full_name, u.email, u.contact_number, u.position, 
+             u.role, u.is_active, u.created_at, u.last_login,
+             CASE u.role
+               WHEN 1 THEN 'IT Admin'
+               WHEN 2 THEN 'Captain' 
+               WHEN 3 THEN 'Secretary'
+               WHEN 4 THEN 'Clerk'
+               WHEN 6 THEN 'Blotter Officer'
+               WHEN 12 THEN 'Resident'
+               ELSE 'Unknown'
+             END as role_name
+      FROM users u
+      ORDER BY u.role, u.created_at DESC
+    `);
+    
+    res.json(users);
+  }));
+
+  // Residents Verification Queue
+  router.get('/residents-verification', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
+    const [residents] = await db.execute(`
+      SELECT r.*, s.name as sitio_name, h.Household_Number
+      FROM residents r
+      LEFT JOIN sitios s ON r.Sitio_ID = s.id
+      LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      WHERE r.Residency_Status = 'Pending' 
+         OR (r.Is_4Ps = 1 OR r.Is_PWD = 1 OR r.Is_Senior = 1 OR r.Is_Solo_Parent = 1 OR r.Is_Out_of_School_Youth = 1)
+         AND r.verified_at IS NULL
+      ORDER BY r.created_at DESC
+    `);
+    
+    res.json(residents);
+  }));
+
+  // Verify Resident
+  router.post('/verify-resident/:id', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { verification_type } = req.body;
+    
+    if (verification_type === 'residency') {
+      await db.execute(
+        'UPDATE residents SET Residency_Status = "Active", verified_at = NOW() WHERE Resident_ID = ?',
+        [id]
+      );
+      res.json({ message: 'Residency verified successfully' });
+    } else if (verification_type === 'vulnerability') {
+      await db.execute(
+        'UPDATE residents SET verified_at = NOW() WHERE Resident_ID = ?',
+        [id]
+      );
+      res.json({ message: 'Vulnerability status verified successfully' });
+    } else {
+      res.status(400).json({ message: 'Invalid verification type' });
+    }
+  }));
+
   // Summary reports
-  router.get('/reports/users', verifyToken, checkRole(['admin']), asyncHandler(adminController.getUsersReport));
-  router.get('/reports/blotter', verifyToken, checkRole(['admin']), asyncHandler(adminController.getBlotterReport));
-  router.get('/reports/certificates', verifyToken, checkRole(['admin']), asyncHandler(adminController.getCertificatesReport));
-  router.get('/reports/residents', verifyToken, checkRole(['admin']), asyncHandler(adminController.getResidentsReport));
-  router.get('/reports/system', verifyToken, checkRole(['admin']), asyncHandler(adminController.getSystemReport));
-  router.get('/reports/security', verifyToken, checkRole(['admin']), asyncHandler(adminController.getSecurityReport));
+  router.get('/reports/users', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getUsersReport));
+  router.get('/reports/blotter', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getBlotterReport));
+  router.get('/reports/certificates', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getCertificatesReport));
+  router.get('/reports/residents', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getResidentsReport));
+  router.get('/reports/system', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getSystemReport));
+  router.get('/reports/security', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getSecurityReport));
   
   // Detailed reports (with pagination and filters)
-  router.get('/reports/detailed/users', verifyToken, checkRole(['admin']), asyncHandler(adminController.getDetailedUsersReport));
-  router.get('/reports/detailed/blotter', verifyToken, checkRole(['admin']), asyncHandler(adminController.getDetailedBlotterReport));
-  router.get('/reports/detailed/certificates', verifyToken, checkRole(['admin']), asyncHandler(adminController.getDetailedCertificatesReport));
-  router.get('/reports/detailed/residents', verifyToken, checkRole(['admin']), asyncHandler(adminController.getDetailedResidentsReport));
+  router.get('/reports/detailed/users', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getDetailedUsersReport));
+  router.get('/reports/detailed/blotter', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getDetailedBlotterReport));
+  router.get('/reports/detailed/certificates', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getDetailedCertificatesReport));
+  router.get('/reports/detailed/residents', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getDetailedResidentsReport));
   
   // System Logs & Audit Trail
-  router.get('/logs', verifyToken, checkRole(['admin']), asyncHandler(async (req, res) => {
+  router.get('/logs', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const {
       page = 1,
       limit = 25,
@@ -101,7 +161,7 @@ module.exports = (db) => {
   }));
 
   // Export logs as CSV
-  router.get('/logs/export', verifyToken, checkRole(['admin']), asyncHandler(async (req, res) => {
+  router.get('/logs/export', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const {
       event_type,
       user_role,
@@ -167,7 +227,7 @@ module.exports = (db) => {
   }));
   
   // System statistics
-  router.get('/stats', verifyToken, checkRole(['admin', 'captain']), asyncHandler(async (req, res) => {
+  router.get('/stats', verifyToken, verifyRole([ROLES.ADMIN, ROLES.CAPTAIN]), asyncHandler(async (req, res) => {
     const [residents] = await db.execute('SELECT COUNT(*) as total FROM residents WHERE Residency_Status = "Active"');
     const [certificates] = await db.execute('SELECT COUNT(*) as total FROM certificates_log');
     const [blotter] = await db.execute('SELECT COUNT(*) as total FROM blotter');

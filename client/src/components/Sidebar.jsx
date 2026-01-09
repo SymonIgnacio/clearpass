@@ -43,82 +43,123 @@ const Sidebar = () => {
       icon: <Dashboard />,
       path: '/',
       description: 'Overview & Analytics',
-      roles: [2, 3, 4, 5, 6, 12]
+      roles: [1, 2, 3, 4, 6, 12] // All roles
     },
-    {
-      text: 'Staff Management',
-      icon: <Person />,
-      path: '/admin/staff',
-      description: 'Manage Staff Accounts',
-      roles: [5]
-    },
+    // IT Admin (Role 1) - FULL SYSTEM ACCESS
     {
       text: 'User Management',
       icon: <Security />,
       path: '/admin/users',
-      description: 'Manage All Users',
-      roles: [5]
+      description: 'Manage Staff Accounts',
+      roles: [1] // IT Admin only
     },
+    {
+      text: 'System Logs',
+      icon: <Assessment />,
+      path: '/admin/logs',
+      description: 'Audit Trail & Security',
+      roles: [1] // IT Admin only
+    },
+    {
+      text: 'System Config',
+      icon: <Settings />,
+      path: '/admin/settings',
+      description: 'SMS, QR, Sessions',
+      roles: [1] // IT Admin only
+    },
+    {
+      text: 'Backup & Restore',
+      icon: <Security />,
+      path: '/admin/backup',
+      description: 'Data Continuity',
+      roles: [1] // IT Admin only
+    },
+    // Secretary (Role 3) - Administrative Authority
     {
       text: 'Residents',
       icon: <People />,
       path: '/residents',
       description: 'Resident Records',
-      roles: [2, 3, 4, 5, 6]
+      roles: [1, 2, 3] // IT Admin, Captain (read), Secretary (full)
     },
+    {
+      text: 'Document Verification',
+      icon: <Description />,
+      path: '/secretary/document-verification',
+      description: 'Review Uploaded Docs',
+      roles: [1, 3] // IT Admin, Secretary
+    },
+    {
+      text: 'Beneficiary Validation',
+      icon: <Person />,
+      path: '/secretary/beneficiaries',
+      description: 'Approve PWD, Senior Status',
+      roles: [1, 3] // IT Admin, Secretary
+    },
+    // Blotter Officer (Role 6) - Case Management
     {
       text: 'Blotter',
       icon: <Gavel />,
       path: '/blotter',
-      description: 'Incident Reports',
-      roles: [2, 3, 4, 5, 6]
+      description: 'Case Management',
+      roles: [1, 3, 6] // IT Admin, Secretary (oversight), Blotter Officer (full)
     },
     {
-      text: 'Documents',
+      text: 'New Case Encoding',
+      icon: <Gavel />,
+      path: '/officer/new-case',
+      description: 'Encode Validated Complaints',
+      roles: [1, 6] // IT Admin, Blotter Officer only
+    },
+    // Clerk (Role 4) - Certificate Processing
+    {
+      text: 'Clearance Processing',
       icon: <Description />,
-      path: '/documents',
-      description: 'Certificates & Clearances',
-      roles: [2, 3, 4, 5, 6]
+      path: '/clerk/clearances',
+      description: 'Process Certificate Requests',
+      roles: [1, 4] // IT Admin, Clerk
     },
     {
-      text: 'Census',
+      text: 'Document Issuance',
+      icon: <Description />,
+      path: '/clerk/documents',
+      description: 'Generate & Release Certificates',
+      roles: [1, 4] // IT Admin, Clerk
+    },
+    // Captain (Role 2) - Executive Read-Only
+    {
+      text: 'Reports & Analytics',
       icon: <Assessment />,
-      path: '/census',
-      description: 'Population Statistics',
-      roles: [2, 3, 4, 5, 6]
+      path: '/reports',
+      description: 'Governance Reports',
+      roles: [1, 2, 3] // IT Admin, Captain, Secretary
     },
+    // AI Analytics - Role-specific
     {
-      text: 'Events',
-      icon: <Event />,
-      path: '/events',
-      description: 'Community Programs',
-      roles: [2, 3, 5, 6]
-    },
-    {
-      text: 'AI Hub',
+      text: 'AI Analytics',
       icon: <SmartToy />,
-      path: '/ai-dashboard',
-      description: 'AI Analytics',
+      path: '/ai-analytics',
+      description: 'AI Insights & Predictions',
       badge: 'AI',
-      roles: [2, 3, 4, 5, 6, 12]
+      roles: [1, 2, 3, 4, 6] // All staff roles
     }
   ]
 
-  // SECURITY FIX: Use correct database role IDs
-  if (user && Number(user.role_id) === 5) {
+  // THEMIS: IT Admin gets Settings
+  if (user && Number(user.role) === 1) {
     allMenuItems.push({
       text: 'Settings',
       icon: <Settings />,
       path: '/settings',
       description: 'System Configuration',
-      roles: [5]
+      roles: [1]
     })
   }
 
   const menuItems = allMenuItems.filter(item => {
-    if (!user || !user.role_id) return false
+    if (!user || !user.role) return false
     
-    const userRole = Number(user.role_id)
+    const userRole = Number(user.role)
     return item.roles.some(role => Number(role) === userRole)
   })
 
@@ -233,7 +274,7 @@ const Sidebar = () => {
                   {user.username || 'User'}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-                  {user.role || 'Staff'}
+                  {user.role_name || 'Staff'}
                 </Typography>
               </Box>
             </Box>
