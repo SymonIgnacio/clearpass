@@ -46,10 +46,17 @@ const Sidebar = () => {
       roles: [2, 3, 4, 5, 6, 12]
     },
     {
-      text: 'User Management',
+      text: 'Staff Management',
       icon: <Person />,
-      path: '/users',
+      path: '/admin/staff',
       description: 'Manage Staff Accounts',
+      roles: [5]
+    },
+    {
+      text: 'User Management',
+      icon: <Security />,
+      path: '/admin/users',
+      description: 'Manage All Users',
       roles: [5]
     },
     {

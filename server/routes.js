@@ -167,6 +167,23 @@ router.get('/admin/stats',
     });
 }));
 
+// User Management Routes (IT Admin - All Users Management)
+router.get('/admin/users', verifyToken, verifyRole([ROLES.ADMIN]), adminController.getAllUsers);
+router.post('/admin/users', verifyToken, verifyRole([ROLES.ADMIN]), adminController.createUser);
+router.put('/admin/users/:id', verifyToken, verifyRole([ROLES.ADMIN]), adminController.updateUser);
+router.delete('/admin/users/:id', verifyToken, verifyRole([ROLES.ADMIN]), adminController.deleteUser);
+router.get('/admin/roles', verifyToken, verifyRole([ROLES.ADMIN]), adminController.getAllRoles);
+
+// Staff Management Routes
+router.get('/admin/staff', verifyToken, verifyRole([ROLES.ADMIN]), adminController.getAllStaff);
+router.post('/admin/staff', verifyToken, verifyRole([ROLES.ADMIN]), adminController.createStaff);
+router.put('/admin/staff/:id', verifyToken, verifyRole([ROLES.ADMIN]), adminController.updateStaff);
+router.delete('/admin/staff/:id', verifyToken, verifyRole([ROLES.ADMIN]), adminController.deleteStaff);
+
+// Verification Management Routes (Secretary & IT Admin)
+router.get('/admin/residents-verification', verifyToken, verifyRole([ROLES.SECRETARY, ROLES.ADMIN]), adminController.getResidentsForVerification);
+router.post('/admin/verify-resident/:id', verifyToken, verifyRole([ROLES.SECRETARY, ROLES.ADMIN]), adminController.verifyResident);
+
 // Admin reports endpoints
 router.get('/admin/reports/users', verifyToken, verifyRole([ROLES.ADMIN]), adminController.getUsersReport);
 router.get('/admin/reports/blotter', verifyToken, verifyRole([ROLES.ADMIN]), adminController.getBlotterReport);

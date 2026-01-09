@@ -1,27 +1,36 @@
 {
-  "name": "clearpass-tests",
+  "name": "clearpass-comprehensive-tests",
   "version": "1.0.0",
-  "description": "Test suite for ClearPass Barangay Management System",
+  "description": "Comprehensive role-based functionality tests for ClearPass system",
+  "main": "comprehensive-role-tests.js",
   "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:security": "jest --testPathPattern=security"
+    "test": "node run-tests.js",
+    "test:admin": "node -e \"require('./comprehensive-role-tests').testAdminRole()\"",
+    "test:clerk": "node -e \"require('./comprehensive-role-tests').testClerkRole()\"",
+    "test:officer": "node -e \"require('./comprehensive-role-tests').testOfficerRole()\"",
+    "test:resident": "node -e \"require('./comprehensive-role-tests').testResidentRole()\"",
+    "test:captain": "node -e \"require('./comprehensive-role-tests').testCaptainRole()\"",
+    "test:secretary": "node -e \"require('./comprehensive-role-tests').testSecretaryRole()\"",
+    "test:security": "node -e \"require('./comprehensive-role-tests').testSecurity()\"",
+    "test:system": "node -e \"require('./comprehensive-role-tests').testSystemFunctionality()\"",
+    "test:integration": "node -e \"require('./comprehensive-role-tests').testIntegrationWorkflows()\""
   },
-  "devDependencies": {
-    "jest": "^29.7.0",
+  "dependencies": {
     "supertest": "^6.3.3",
-    "@types/jest": "^29.5.11"
+    "mysql2": "^3.6.5"
   },
-  "jest": {
-    "testEnvironment": "node",
-    "coverageDirectory": "coverage",
-    "collectCoverageFrom": [
-      "../server/**/*.js",
-      "!../server/node_modules/**"
-    ],
-    "testMatch": [
-      "**/__tests__/**/*.test.js"
-    ]
-  }
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "clearpass",
+    "barangay",
+    "testing",
+    "role-based",
+    "crud",
+    "api"
+  ],
+  "author": "ClearPass Development Team",
+  "license": "MIT",
+  "private": true
 }

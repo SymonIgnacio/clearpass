@@ -1,3 +1,225 @@
+// IT Admin User Management - All Users
+exports.getAllUsers = async (req, res) => {
+  const db = req.app.locals.db;
+  try {
+    const [users] = await db.execute(`
+      SELECT u.id, u.username, u.full_name, u.email, u.role_id, u.is_active, u.created_at,
+             COALESCE(r.role_name, CONCAT('Role ', u.role_id)) as role_name
+      FROM users u 
+      LEFT JOIN roles r ON u.role_id = r.id
+      ORDER BY u.role_id, u.username
+    `);
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+};
+
+exports.createUser = async (req, res) => {
+  const db = req.app.locals.db;
+  const { username, email, first_name, last_name, role_id, password, is_active = true } = req.body;
+  
+  try {
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const full_name = `${first_name || ''} ${last_name || ''}`.trim();
+    
+    await db.execute(`
+      INSERT INTO users (username, email, full_name, password_hash, role_id, is_active, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, NOW())
+    `, [username, email, full_name, hashedPassword, role_id, is_active]);
+    
+    res.status(201).json({ message: 'User created successfully' });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+};
+
+exports.updateUser = async (req, res) => {
+  const db = req.app.locals.db;
+  const { id } = req.params;
+  const { username, email, first_name, last_name, role_id, password, is_active } = req.body;
+  
+  try {
+    const full_name = `${first_name || ''} ${last_name || ''}`.trim();
+    let updateQuery = `
+      UPDATE users SET username = ?, email = ?, full_name = ?, role_id = ?, is_active = ?, updated_at = NOW()
+    `;
+    let values = [username, email, full_name, role_id, is_active];
+    
+    if (password) {
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateQuery += `, password_hash = ?`;
+      values.push(hashedPassword);
+    }
+    
+    updateQuery += ` WHERE id = ?`;
+    values.push(id);
+    
+    await db.execute(updateQuery, values);
+    res.json({ message: 'User updated successfully' });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  const db = req.app.locals.db;
+  const { id } = req.params;
+  
+  try {
+    await db.execute('DELETE FROM users WHERE id = ?', [id]);
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+};
+
+// IT Admin Staff Management
+exports.getAllStaff = async (req, res) => {
+  const db = req.app.locals.db;
+  try {
+    const [staff] = await db.execute(`
+      SELECT u.id, u.username, u.full_name, u.email, u.role_id, u.is_active, u.created_at,
+             COALESCE(r.role_name, CONCAT('Role ', u.role_id)) as role_name
+      FROM users u 
+      LEFT JOIN roles r ON u.role_id = r.id
+      WHERE u.role_id != 12 
+      ORDER BY u.role_id, u.username
+    `);
+    res.json(staff);
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    res.status(500).json({ error: 'Failed to fetch staff' });
+  }
+};
+
+exports.createStaff = async (req, res) => {
+  const db = req.app.locals.db;
+  const { username, email, first_name, last_name, role_id, password, is_active = true } = req.body;
+  
+  try {
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const full_name = `${first_name || ''} ${last_name || ''}`.trim();
+    
+    await db.execute(`
+      INSERT INTO users (username, email, full_name, password_hash, role_id, is_active, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, NOW())
+    `, [username, email, full_name, hashedPassword, role_id, is_active]);
+    
+    res.status(201).json({ message: 'Staff created successfully' });
+  } catch (error) {
+    console.error('Error creating staff:', error);
+    res.status(500).json({ error: 'Failed to create staff' });
+  }
+};
+
+exports.updateStaff = async (req, res) => {
+  const db = req.app.locals.db;
+  const { id } = req.params;
+  const { username, email, first_name, last_name, role_id, password, is_active } = req.body;
+  
+  try {
+    const full_name = `${first_name || ''} ${last_name || ''}`.trim();
+    let updateQuery = `
+      UPDATE users SET username = ?, email = ?, full_name = ?, role_id = ?, is_active = ?, updated_at = NOW()
+    `;
+    let values = [username, email, full_name, role_id, is_active];
+    
+    if (password) {
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateQuery += `, password_hash = ?`;
+      values.push(hashedPassword);
+    }
+    
+    updateQuery += ` WHERE id = ?`;
+    values.push(id);
+    
+    await db.execute(updateQuery, values);
+    res.json({ message: 'Staff updated successfully' });
+  } catch (error) {
+    console.error('Error updating staff:', error);
+    res.status(500).json({ error: 'Failed to update staff' });
+  }
+};
+
+exports.deleteStaff = async (req, res) => {
+  const db = req.app.locals.db;
+  const { id } = req.params;
+  
+  try {
+    await db.execute('DELETE FROM users WHERE id = ? AND role_id != 12', [id]);
+    res.json({ message: 'Staff deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting staff:', error);
+    res.status(500).json({ error: 'Failed to delete staff' });
+  }
+};
+
+// Secretary User Management - Residency & Vulnerability Verification
+exports.getResidentsForVerification = async (req, res) => {
+  const db = req.app.locals.db;
+  try {
+    const [residents] = await db.execute(`
+      SELECT r.*, h.Household_Number, s.name as sitio_name,
+             v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent, v.Vulnerability_Score
+      FROM residents r
+      LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
+      ORDER BY r.Last_Name
+    `);
+    res.json(residents);
+  } catch (error) {
+    console.error('Error fetching residents for verification:', error);
+    res.status(500).json({ error: 'Failed to fetch residents' });
+  }
+};
+
+exports.verifyResident = async (req, res) => {
+  const db = req.app.locals.db;
+  const { id } = req.params;
+  const { verification_type } = req.body;
+  
+  try {
+    if (verification_type === 'residency') {
+      await db.execute(`
+        UPDATE residents SET Residency_Status = 'Active', updated_at = NOW() WHERE Resident_ID = ?
+      `, [id]);
+    } else if (verification_type === 'vulnerability') {
+      // Update vulnerability verification status
+      await db.execute(`
+        UPDATE vulnerabilities SET verified_at = NOW(), verified_by = ? WHERE Resident_ID = ?
+      `, [req.user.id, id]);
+    }
+    
+    res.json({ message: `${verification_type} verification completed successfully` });
+  } catch (error) {
+    console.error('Error verifying resident:', error);
+    res.status(500).json({ error: 'Failed to verify resident' });
+  }
+};
+
+exports.getAllRoles = async (req, res) => {
+  const db = req.app.locals.db;
+  try {
+    console.log('Fetching roles from database...');
+    const [roles] = await db.execute('SELECT * FROM roles ORDER BY hierarchy_level');
+    console.log('Roles found:', roles);
+    res.json(roles);
+  } catch (error) {
+    console.error('Error fetching roles:', error);
+    res.status(500).json({ error: 'Failed to fetch roles' });
+  }
+};
+
 exports.getUsersReport = async (req, res) => {
   const db = req.app.locals.db;
   try {

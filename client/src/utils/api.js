@@ -8,6 +8,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ||
 // Generic authenticated fetch function
 export const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  console.log('🔗 API Request:', url, options.method || 'GET');
   
   let headers = {
     'Content-Type': 'application/json',
@@ -35,6 +36,7 @@ export const apiRequest = async (endpoint, options = {}) => {
   }
 
   const response = await fetch(url, config);
+  console.log('📊 API Response:', response.status, response.statusText);
 
   if (response.status === 401) {
     clearCsrfToken();

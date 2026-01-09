@@ -64,6 +64,53 @@ module.exports = (db) => {
     res.json(stats);
   }));
 
+  // Dashboard data - All authenticated users
+  router.get('/dashboard', verifyToken, asyncHandler(async (req, res) => {
+    try {
+      // Get total residents
+      const [residentStats] = await db.execute('SELECT COUNT(*) as total_residents FROM residents');
+      
+      // Get vulnerable groups counts
+      const [seniorStats] = await db.execute('SELECT COUNT(*) as total_seniors FROM residents WHERE TIMESTAMPDIFF(YEAR, Birthdate, CURDATE()) >= 60');
+      const [pwdStats] = await db.execute('SELECT COUNT(*) as total_pwd FROM vulnerabilities WHERE Is_PWD = 1');
+      const [singleParentStats] = await db.execute('SELECT COUNT(*) as total_single_parents FROM vulnerabilities WHERE Is_Solo_Parent = 1');
+      
+      // Get active blotter cases
+      const [blotterStats] = await db.execute('SELECT COUNT(*) as active_blotter FROM blotter WHERE Status = "Pending"');
+      
+      // Get certificates count
+      const [certStats] = await db.execute('SELECT COUNT(*) as certificates FROM certificates_log');
+      
+      const dashboardData = {
+        overall: {
+          total_residents: residentStats[0]?.total_residents || 0,
+          total_seniors: seniorStats[0]?.total_seniors || 0,
+          total_pwd: pwdStats[0]?.total_pwd || 0,
+          total_single_parents: singleParentStats[0]?.total_single_parents || 0
+        },
+        residents: residentStats[0]?.total_residents || 0,
+        active_blotter: blotterStats[0]?.active_blotter || 0,
+        certificates: certStats[0]?.certificates || 0
+      };
+      
+      res.json(dashboardData);
+    } catch (error) {
+      console.error('Dashboard API error:', error);
+      // Return default values on error
+      res.json({
+        overall: {
+          total_residents: 0,
+          total_seniors: 0,
+          total_pwd: 0,
+          total_single_parents: 0
+        },
+        residents: 0,
+        active_blotter: 0,
+        certificates: 0
+      });
+    }
+  }));
+
   // Document QR verification (public endpoint)
   router.post('/documents/verify-qr', asyncHandler(async (req, res) => {
     const { qr_hash } = req.body;

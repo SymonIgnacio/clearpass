@@ -45,6 +45,8 @@ const ResidentBlotterReport = lazy(() => import('./pages/ResidentBlotterReport')
 const SystemLogs = lazy(() => import('./pages/admin/SystemLogs'))
 const Backup = lazy(() => import('./pages/admin/Backup'))
 const AIAnalytics = lazy(() => import('./pages/admin/AIAnalytics'))
+const StaffManagement = lazy(() => import('./pages/admin/StaffManagement'))
+const UserManagement = lazy(() => import('./pages/Users'))
 const Register = lazy(() => import('./pages/Register'))
 const AIPatrol = lazy(() => import('./pages/AIPatrol'))
 const RondaAnalytics = lazy(() => import('./pages/RondaAnalytics'))
@@ -421,6 +423,16 @@ function App() {
             } />
 
             {/* Admin Routes - IT Admin Only */}
+            <Route path="admin/staff" element={
+              <ProtectedRoute requiredRoles={[5]}>
+                <StaffManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="admin/users" element={
+              <ProtectedRoute requiredRoles={[5]}>
+                <Users />
+              </ProtectedRoute>
+            } />
             <Route path="admin/system-logs" element={
               <ProtectedRoute requiredRoles={[5]}>
                 <SystemLogs />

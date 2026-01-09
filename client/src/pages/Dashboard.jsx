@@ -86,8 +86,9 @@ const Dashboard = () => {
   })
 
   // Check if user is IT Admin (role 5) - FIXED ROLE ID
-  const isITAdmin = user?.role === 5 || user?.role === '5'
-  const userRole = Number(user?.role)
+  const isITAdmin = user?.role === 5 || user?.role === '5' || user?.role_id === 5 || user?.role_id === '5'
+  const userRole = user?.role_id || user?.role || (user?.username === 'superadmin' ? 5 : null)
+  const userRoleNumber = Number(userRole)
 
   const tabs = [
     { label: 'Overview', icon: <Analytics /> },
@@ -95,7 +96,7 @@ const Dashboard = () => {
   ]
 
   useEffect(() => {
-    if (user && userRole) {
+    if (user && (userRole || user?.username === 'superadmin')) {
       console.log('🎯 Dashboard: Starting data fetch for user role:', userRole, 'User:', user)
       fetchRoleSpecificData()
     } else if (user === null) {
@@ -120,15 +121,26 @@ const Dashboard = () => {
   const fetchRoleSpecificData = async () => {
     try {
       setLoading(true)
-      console.log('📊 Dashboard: Fetching dashboard data for role:', userRole)
+      console.log('📊 Dashboard: Fetching dashboard data for user role:', userRole, 'User type:', user?.username)
       
       const response = await apiRequest('dashboard')
       
       if (response.ok) {
         const dashboardData = await response.json()
-        console.log('📊 Dashboard: Received data:', dashboardData)
+        console.log('📊 Dashboard: Raw API Response:', dashboardData)
+        console.log('📊 Dashboard: Response structure check:', {
+          hasOverall: !!dashboardData.overall,
+          overallKeys: dashboardData.overall ? Object.keys(dashboardData.overall) : 'none',
+          residents: dashboardData.residents,
+          active_blotter: dashboardData.active_blotter,
+          certificates: dashboardData.certificates,
+          allKeys: Object.keys(dashboardData)
+        })
         setStats(dashboardData)
       } else {
+        console.error('📊 Dashboard: API response not ok:', response.status, response.statusText)
+        const errorText = await response.text()
+        console.error('📊 Dashboard: Error response:', errorText)
         throw new Error(`Dashboard API failed: ${response.status}`)
       }
       
@@ -188,6 +200,7 @@ const Dashboard = () => {
       const response = await apiRequest('certificates')
       if (response.ok) {
         const data = await response.json()
+        console.log('📊 Dashboard: Certificates data:', data)
         setCertificates(data || [])
       } else {
         console.warn('Certificates API failed:', response.status)
@@ -204,6 +217,7 @@ const Dashboard = () => {
       const response = await apiRequest('blotter')
       if (response.ok) {
         const data = await response.json()
+        console.log('📊 Dashboard: Blotter data:', data)
         setBlotterCases(Array.isArray(data) ? data : [])
       } else {
         console.warn('Blotter API failed:', response.status)
@@ -237,8 +251,8 @@ const Dashboard = () => {
       icon: <People sx={{ fontSize: 32 }} />,
       color: '#1a73e8',
       bgColor: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
-      trend: '+12%',
-      trendLabel: 'vs last month'
+      status: 'Active',
+      statusLabel: 'Current Status'
     },
     {
       title: 'Active Cases',
@@ -247,8 +261,8 @@ const Dashboard = () => {
       icon: <Gavel sx={{ fontSize: 32 }} />,
       color: '#ea4335',
       bgColor: 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)',
-      trend: '-8%',
-      trendLabel: 'resolution rate'
+      status: 'Pending',
+      statusLabel: 'Status'
     },
     {
       title: 'Certificates Issued',
@@ -257,8 +271,8 @@ const Dashboard = () => {
       icon: <Description sx={{ fontSize: 32 }} />,
       color: '#34a853',
       bgColor: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)',
-      trend: '+15%',
-      trendLabel: 'vs last month'
+      status: 'Available',
+      statusLabel: 'Service Status'
     },
     {
       title: 'Vulnerable Groups',
@@ -267,8 +281,8 @@ const Dashboard = () => {
       icon: <Security sx={{ fontSize: 32 }} />,
       color: '#fbbc04',
       bgColor: 'linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%)',
-      trend: '+5%',
-      trendLabel: 'support programs'
+      status: 'Monitored',
+      statusLabel: 'Support Status'
     }
   ]
 
@@ -819,7 +833,29 @@ const Dashboard = () => {
   }
 
   // Debug logging
-  console.log('🎯 Dashboard render:', { user, isITAdmin, activeTab, loading })
+  console.log('🎯 Dashboard render:', { 
+    user, 
+    isITAdmin, 
+    activeTab, 
+    loading, 
+    stats, 
+    certificates: certificates.length, 
+    blotterCases: blotterCases.length,
+    statCardValues: {
+      totalPopulation: stats?.overall?.total_residents || stats?.residents || 0,
+      activeCases: stats?.active_blotter || (Array.isArray(blotterCases) ? blotterCases.filter(case_ => (case_.status || case_.Status) === 'Pending').length : 0),
+      certificates: stats?.certificates || certificates.length,
+      vulnerableGroups: Number(stats?.overall?.total_seniors || 0) + Number(stats?.overall?.total_pwd || 0) + Number(stats?.overall?.total_single_parents || 0)
+    }
+  })
+
+  // Check if all values are zero (likely empty database)
+  const allValuesZero = (
+    (stats?.overall?.total_residents || stats?.residents || 0) === 0 &&
+    (stats?.active_blotter || 0) === 0 &&
+    (stats?.certificates || certificates.length) === 0 &&
+    (Number(stats?.overall?.total_seniors || 0) + Number(stats?.overall?.total_pwd || 0) + Number(stats?.overall?.total_single_parents || 0)) === 0
+  )
 
   return (
     <Box>
@@ -859,6 +895,11 @@ const Dashboard = () => {
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2 }}>
+          {allValuesZero && (
+            <Alert severity="warning" sx={{ mr: 2 }}>
+              Database appears empty. Run: <code>node scripts/seed-database.js</code> to add sample data.
+            </Alert>
+          )}
           <Chip
             icon={<Shield />}
             label="System Online"
@@ -955,10 +996,10 @@ const Dashboard = () => {
                             letterSpacing: 0.5
                           }}
                         >
-                          {card.trend}
+                          {card.status}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {card.trendLabel}
+                          {card.statusLabel}
                         </Typography>
                       </Box>
                     </Box>
