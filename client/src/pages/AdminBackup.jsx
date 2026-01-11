@@ -15,7 +15,7 @@ import {
   Chip
 } from '@mui/material';
 import { Backup as BackupIcon, CloudDownload as DownloadIcon } from '@mui/icons-material';
-import axios from 'axios';
+import { apiRequest } from '../utils/api';
 
 const AdminBackup = () => {
   const [loading, setLoading] = useState(false);
@@ -29,11 +29,13 @@ const AdminBackup = () => {
   const handleCreateBackup = async () => {
     setLoading(true);
     try {
-      const response = await axios.post('/api/system-admin/backup');
-      if (response.data.success) {
+      const response = await apiRequest('/system-admin/backup', { method: 'POST' });
+      const data = await response.json();
+      
+      if (data.success) {
         setMessage({ 
           type: 'success', 
-          text: `Backup created successfully: ${response.data.data.backup_name}` 
+          text: `Backup created successfully: ${data.data.backup_name}` 
         });
       }
     } catch (error) {

@@ -13,7 +13,6 @@ import {
   Grid
 } from '@mui/material'
 import { LockOutlined, PersonAdd } from '@mui/icons-material'
-import { apiRequest } from '../utils/api'
 import { useAuth } from '../contexts/AuthContext'
 
 const OfficerLogin = () => {
@@ -43,12 +42,15 @@ const OfficerLogin = () => {
       console.log('🔐 OfficerLogin: Attempting login with credentials');
 
       // Use the AuthContext login method which handles cookie-based auth
-      await login(formData)
+      const data = await login(formData)
 
       console.log('🔐 OfficerLogin: Login completed successfully');
 
-      // Navigate to main dashboard
-      navigate('/', { replace: true });
+      if (data?.mfa_required) {
+        navigate('/mfa', { replace: true })
+      } else {
+        navigate('/', { replace: true })
+      }
     } catch (err) {
       console.error('❌ OfficerLogin: Login error:', err)
 

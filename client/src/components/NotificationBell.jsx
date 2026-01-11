@@ -72,7 +72,7 @@ const NotificationBell = () => {
         open={open}
         onClose={handleClose}
         PaperProps={{
-          sx: { width: 360, maxHeight: 400 }
+          sx: { width: { xs: 'calc(100vw - 32px)', sm: 360 }, maxHeight: 400 }
         }}
       >
         <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

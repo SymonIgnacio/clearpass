@@ -40,7 +40,7 @@ import {
   Business,
   Warning
 } from '@mui/icons-material'
-import { api } from '../utils/api'
+import { api, apiRequest } from '../utils/api'
 
 const AdminReports = () => {
   const [activeTab, setActiveTab] = useState(0)
@@ -93,38 +93,36 @@ const AdminReports = () => {
     try {
       setLoading(true)
 
-      // Create URL with current filters
-      const params = new URLSearchParams()
+      // Create params object for apiRequest
+      const queryParams = {};
 
       // Add common filters
-      if (detailedFilters.dateFrom) params.append('dateFrom', detailedFilters.dateFrom)
-      if (detailedFilters.dateTo) params.append('dateTo', detailedFilters.dateTo)
-      if (detailedFilters.status) params.append('status', detailedFilters.status)
-      if (detailedFilters.search) params.append('search', detailedFilters.search)
+      if (detailedFilters.dateFrom) queryParams.dateFrom = detailedFilters.dateFrom;
+      if (detailedFilters.dateTo) queryParams.dateTo = detailedFilters.dateTo;
+      if (detailedFilters.status) queryParams.status = detailedFilters.status;
+      if (detailedFilters.search) queryParams.search = detailedFilters.search;
 
       // Add report-specific filters
       switch (reportType) {
         case 'users':
-          if (detailedFilters.role) params.append('role', detailedFilters.role)
-          break
+          if (detailedFilters.role) queryParams.role = detailedFilters.role;
+          break;
         case 'residents':
           // Residents might have additional filters
-          break
+          break;
         case 'certificates':
           // Certificates might have additional filters
-          break
+          break;
         case 'blotter':
           // Blotter might have additional filters
-          break
+          break;
       }
 
-      // Call the PDF export endpoint
-      const response = await fetch(`/api/admin/reports/pdf/${reportType}?${params}`, {
+      // Call the PDF export endpoint using apiRequest
+      const response = await apiRequest(`/admin/reports/pdf/${reportType}`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      })
+        params: queryParams
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to generate PDF: ${response.statusText}`)
@@ -201,6 +199,170 @@ const AdminReports = () => {
     })
   }
 
+  const [detailedData, setDetailedData] = useState(null)
+  const [detailedLoading, setDetailedLoading] = useState(false)
+
+  const loadDetailedReport = async (reportType) => {
+    setDetailedLoading(true)
+    try {
+      const queryParams = {
+        page: detailedFilters.page,
+        limit: detailedFilters.limit,
+        ...detailedFilters
+      }
+      
+      const response = await api.get(`/admin/reports/detailed/${reportType}`, { params: queryParams })
+      if (response.ok) {
+        const data = await response.json()
+        setDetailedData(data)
+      } else {
+        console.error(`Failed to load detailed ${reportType} report: Status ${response.status}`)
+      }
+    } catch (err) {
+      console.error(`Failed to load detailed ${reportType} report:`, err)
+    } finally {
+      setDetailedLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    // Load detailed report when tab changes or filters change
+    const currentTabKey = tabs[activeTab]?.key
+    if (currentTabKey && ['users', 'blotter', 'certificates', 'residents'].includes(currentTabKey)) {
+      loadDetailedReport(currentTabKey)
+    }
+  }, [activeTab, detailedFilters.page, detailedFilters.dateFrom, detailedFilters.dateTo, detailedFilters.status, detailedFilters.role, detailedFilters.search])
+
+  const handleFilterChange = (field, value) => {
+    setDetailedFilters(prev => ({ ...prev, [field]: value, page: 1 }))
+  }
+
+  const renderDetailedTable = () => {
+    if (detailedLoading) return <LinearProgress />
+    if (!detailedData || !detailedData.data) return <Typography color="textSecondary">No detailed data available</Typography>
+
+    return (
+      <Box mt={4}>
+        <Typography variant="h6" gutterBottom>Detailed Records</Typography>
+        
+        {/* Filters */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              label="Date From"
+              type="date"
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              value={detailedFilters.dateFrom}
+              onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+              size="small"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              label="Date To"
+              type="date"
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              value={detailedFilters.dateTo}
+              onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+              size="small"
+            />
+          </Grid>
+          
+          {tabs[activeTab].key === 'users' && (
+             <Grid item xs={12} sm={6} md={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Role</InputLabel>
+                <Select
+                  value={detailedFilters.role}
+                  label="Role"
+                  onChange={(e) => handleFilterChange('role', e.target.value)}
+                >
+                  <MenuItem value="">All Roles</MenuItem>
+                  <MenuItem value="1">IT Admin</MenuItem>
+                  <MenuItem value="2">Captain</MenuItem>
+                  <MenuItem value="3">Secretary</MenuItem>
+                  <MenuItem value="4">Clerk</MenuItem>
+                  <MenuItem value="6">Blotter Officer</MenuItem>
+                  <MenuItem value="12">Resident</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          )}
+
+          <Grid item xs={12} sm={6} md={tabs[activeTab].key === 'users' ? 2 : 3}>
+             <FormControl fullWidth size="small">
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={detailedFilters.status}
+                  label="Status"
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                >
+                  <MenuItem value="">All Statuses</MenuItem>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="inactive">Inactive</MenuItem>
+                  {/* Add specific status options for other tabs if needed */}
+                </Select>
+              </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={12} md={tabs[activeTab].key === 'users' ? 2 : 3}>
+            <TextField
+              label="Search"
+              fullWidth
+              value={detailedFilters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              size="small"
+              placeholder="Search..."
+            />
+          </Grid>
+        </Grid>
+
+        <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
+          <Table size="small" sx={{ minWidth: 900 }}>
+            <TableHead>
+              <TableRow>
+                {detailedData.columns.map((col, index) => (
+                  <TableCell key={index} sx={{ fontWeight: 'bold' }}>{col}</TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {detailedData.data.length > 0 ? (
+                detailedData.data.map((row, rowIndex) => (
+                  <TableRow key={rowIndex}>
+                    {row.map((cell, cellIndex) => (
+                      <TableCell key={cellIndex}>
+                        {/* Basic rendering - can be enhanced for chips/status */}
+                        {cell} 
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={detailedData.columns.length} align="center">
+                    No records found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <Pagination 
+            count={detailedData.pagination.pages} 
+            page={detailedData.pagination.page} 
+            onChange={(e, p) => setDetailedFilters(prev => ({ ...prev, page: p }))} 
+            color="primary" 
+          />
+        </Box>
+      </Box>
+    )
+  }
+
   const renderUserReports = () => {
     const data = reports.users
     if (!data) return <CircularProgress />
@@ -267,7 +429,7 @@ const AdminReports = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>Recent User Activity</Typography>
-              <TableContainer>
+              <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -376,7 +538,7 @@ const AdminReports = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>Monthly Case Trends (12 months)</Typography>
-              <TableContainer>
+              <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -500,7 +662,7 @@ const AdminReports = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>Monthly Issuance Trends</Typography>
-              <TableContainer>
+              <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -527,7 +689,7 @@ const AdminReports = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>Top Certificate Issuers</Typography>
-              <TableContainer>
+              <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -567,6 +729,10 @@ const AdminReports = () => {
               </Button>
             </CardContent>
           </Card>
+        </Grid>
+
+        <Grid item xs={12}>
+           {renderDetailedTable()}
         </Grid>
       </Grid>
     )
@@ -768,7 +934,7 @@ const AdminReports = () => {
               <Typography variant="body2" color="textSecondary" gutterBottom>
                 Status: <Chip label={data.database_health.status} color="success" size="small" />
               </Typography>
-              <TableContainer>
+              <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -883,7 +1049,7 @@ const AdminReports = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>Top Failed Login Sources</Typography>
-              <TableContainer>
+              <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>

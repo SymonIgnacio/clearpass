@@ -11,7 +11,7 @@ module.exports = (db) => {
   // GET current user profile
   router.get('/me', verifyToken, asyncHandler(async (req, res) => {
     const [rows] = await db.execute(`
-      SELECT id, username, full_name, role_id, email, created_at
+      SELECT id, username, full_name, role, email, created_at
       FROM users WHERE id = ?
     `, [req.user.id]);
     

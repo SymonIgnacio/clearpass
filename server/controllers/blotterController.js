@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const db = require('../database');
+const { ROLES } = require('../config/roles');
 
 exports.getAll = async (req, res) => {
   try {
@@ -17,8 +18,7 @@ exports.getAll = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
-  // SECURITY PATCH: Captain Role Read-Only Enforcement (Database Role 2)
-  if (req.user && req.user.role === 2) {
+  if (req.user && req.user.role === ROLES.CAPTAIN) {
     return res.status(403).json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
   }
 
@@ -106,8 +106,7 @@ exports.create = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-  // SECURITY PATCH: Captain Role Read-Only Enforcement (Database Role 2)
-  if (req.user && req.user.role === 2) {
+  if (req.user && req.user.role === ROLES.CAPTAIN) {
     return res.status(403).json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
   }
 
@@ -142,8 +141,7 @@ exports.update = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
-  // SECURITY PATCH: Captain Role Read-Only Enforcement (Database Role 2)
-  if (req.user && req.user.role === 2) {
+  if (req.user && req.user.role === ROLES.CAPTAIN) {
     return res.status(403).json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
   }
 

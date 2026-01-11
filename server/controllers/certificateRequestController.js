@@ -53,7 +53,7 @@ class CertificateRequestController {
       // Create notification for staff
       if (global.createBulkNotification) {
         const [staff] = await this.db.execute(
-          'SELECT id FROM users WHERE role_id IN (2, 3, 4) AND is_active = 1'
+          'SELECT id FROM users WHERE role IN (2, 3, 4) AND is_active = 1'
         );
         const staffIds = staff.map(s => s.id);
         

@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 
 exports.seed = async function (knex) {
   // Clear existing data (in reverse order of dependencies)
-  await knex('audit_log').del();
+  await knex('audit_logs').del();
   await knex('users').del();
   await knex('certificates_log').del();
   await knex('certificate_types').del();
@@ -37,21 +37,21 @@ exports.seed = async function (knex) {
     {
       username: 'captain',
       password_hash: captainHash,
-      role: 'captain',
+      role: 2,
       email: 'captain@barangay-batia.gov.ph',
       full_name: 'Juan Dela Cruz'
     },
     {
       username: 'secretary',
       password_hash: secretaryHash,
-      role: 'secretary',
+      role: 3,
       email: 'secretary@barangay-batia.gov.ph',
       full_name: 'Maria Santos'
     },
     {
       username: 'clerk',
       password_hash: clerkHash,
-      role: 'clerk',
+      role: 4,
       email: 'clerk@barangay-batia.gov.ph',
       full_name: 'Pedro Reyes'
     }

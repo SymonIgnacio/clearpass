@@ -13,7 +13,6 @@ import {
   Grid
 } from '@mui/material'
 import { LockOutlined, PersonAdd, Business, Person } from '@mui/icons-material'
-import { apiRequest } from '../utils/api'
 import { useAuth } from '../contexts/AuthContext'
 
 const Login = () => {
@@ -39,30 +38,16 @@ const Login = () => {
     setError('')
 
     try {
-      console.log('🔐 Attempting resident login...')
-
-      // Authenticate with unified login endpoint
-      const response = await apiRequest('auth/login', {
-        method: 'POST',
-        body: {
-          username: formData.email, // Map email input to username field
-          password: formData.password
-        }
+      const data = await login({
+        username: formData.email,
+        password: formData.password
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Login failed')
+      if (data?.mfa_required) {
+        navigate('/mfa', { replace: true })
+      } else {
+        navigate('/', { replace: true })
       }
-
-      const data = await response.json()
-      console.log('✅ Resident login successful:', { role: data.user.role, username: data.user.username })
-
-      // Use AuthContext login function
-      login(data.token)
-
-      // Navigate to dashboard
-      navigate('/')
 
     } catch (err) {
       console.error('❌ Resident login error:', err)

@@ -93,7 +93,7 @@ class BlotterComplaintController {
       // Create notification for officers
       if (global.createBulkNotification) {
         const [officers] = await this.db.execute(
-          'SELECT id FROM users WHERE role_id = 6 AND is_active = 1'
+          'SELECT id FROM users WHERE role = 6 AND is_active = 1'
         );
         const officerIds = officers.map(o => o.id);
         

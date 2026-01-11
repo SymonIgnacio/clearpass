@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
   Box,
   Typography,
@@ -81,6 +82,7 @@ import WriteProtected from '../components/WriteProtected'
 import SmartComplainantInput from '../components/SmartComplainantInput'
 
 const Blotter = () => {
+  const location = useLocation()
   const [blotterCases, setBlotterCases] = useState([])
   const [residents, setResidents] = useState([])
   const [sitios, setSitios] = useState([])
@@ -128,6 +130,14 @@ const Blotter = () => {
     }
     loadData()
   }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('new') === '1') {
+      setActiveStep(0)
+      setOpenWizard(true)
+    }
+  }, [location.search])
 
   const fetchBlotterCases = useCallback(async () => {
     try {
@@ -295,13 +305,14 @@ const Blotter = () => {
   }
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'Pending': return 'warning'
-      case 'Scheduled for Mediation': return 'info'
-      case 'Amicably Settled': return 'success'
-      case 'Certificate to File Action Issued': return 'error'
-      case 'Dismissed': return 'default'
-      case 'Ongoing': return 'primary'
+    const normalized = typeof status === 'string' ? status.toLowerCase() : ''
+    switch (normalized) {
+      case 'pending': return 'warning'
+      case 'scheduled for mediation': return 'info'
+      case 'amicably settled': return 'success'
+      case 'certificate to file action issued': return 'error'
+      case 'dismissed': return 'default'
+      case 'ongoing': return 'primary'
       default: return 'default'
     }
   }
@@ -314,23 +325,18 @@ const Blotter = () => {
 
   const generateBlotterPDF = async () => {
     try {
-      // Create URL with current filters
-      const params = new URLSearchParams()
-
-      // Add filters
-      if (searchTerm) params.append('search', searchTerm)
-      if (statusFilter) params.append('status', statusFilter)
-      if (sitioFilter) params.append('sitio', sitioFilter)
-      if (dateFrom) params.append('dateFrom', dateFrom)
-      if (dateTo) params.append('dateTo', dateTo)
+      const queryParams = {};
+      if (searchTerm) queryParams.search = searchTerm;
+      if (statusFilter) queryParams.status = statusFilter;
+      if (sitioFilter) queryParams.sitio = sitioFilter;
+      if (dateFrom) queryParams.dateFrom = dateFrom;
+      if (dateTo) queryParams.dateTo = dateTo;
 
       // Call the PDF export endpoint
-      const response = await fetch(`/api/admin/reports/pdf/blotter?${params}`, {
+      const response = await apiRequest('/admin/reports/pdf/blotter', {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      })
+        params: queryParams
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to generate PDF: ${response.statusText}`)
@@ -624,16 +630,24 @@ const Blotter = () => {
                   <TableCell>{respondent.name}</TableCell>
                   <TableCell>{case_.Location_Sitio}</TableCell>
                   <TableCell>
+                    {(() => {
+                      const caseStatus = case_?.Status ?? case_?.status ?? ''
+                      return (
                     <Chip
-                      label={case_.Status}
-                      color={getStatusColor(case_.Status)}
+                      label={caseStatus || '-'}
+                      color={getStatusColor(caseStatus)}
                       size="small"
                     />
+                      )
+                    })()}
                   </TableCell>
                   <TableCell>{new Date(case_.DateTime_Incident).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      {case_.Status === 'Pending' && (
+                      {(() => {
+                        const caseStatus = (case_?.Status ?? case_?.status ?? '').toLowerCase()
+                        return caseStatus === 'pending'
+                      })() && (
                         <Button
                           size="small"
                           variant="outlined"
@@ -646,7 +660,10 @@ const Blotter = () => {
                           Issue Summons
                         </Button>
                       )}
-                      {(case_.Status === 'Scheduled for Mediation' || case_.Status === 'Ongoing') && (
+                      {(() => {
+                        const caseStatus = (case_?.Status ?? case_?.status ?? '').toLowerCase()
+                        return caseStatus === 'scheduled for mediation' || caseStatus === 'ongoing'
+                      })() && (
                         <Button
                           size="small"
                           variant="outlined"

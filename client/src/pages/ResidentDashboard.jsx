@@ -37,6 +37,7 @@ import {
   Campaign
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { apiRequest } from '../utils/api';
 
 const ResidentDashboard = () => {
   const navigate = useNavigate();
@@ -62,22 +63,18 @@ const ResidentDashboard = () => {
       setLoading(true);
       
       // Fetch resident profile
-      const profileResponse = await fetch('/api/resident-auth/profile', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const profileResponse = await apiRequest('/resident-auth/profile');
       const profileData = await profileResponse.json();
+      
+      let currentProfile = null;
       if (profileData.success) {
         setProfile(profileData.profile);
-        calculateProfileCompletion(profileData.profile);
+        currentProfile = profileData.profile;
       }
 
       // Fetch certificate requests
-      const requestsResponse = await fetch('/api/certificates?resident_id=' + user.id, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+      const requestsResponse = await apiRequest('/certificates', {
+        params: { resident_id: user.id }
       });
       const requestsData = await requestsResponse.json();
       setRequests(Array.isArray(requestsData) ? requestsData.slice(0, 5) : []);
@@ -89,7 +86,7 @@ const ResidentDashboard = () => {
       setStats({
         pending_requests: pending,
         completed_requests: completed,
-        profile_completion: calculateProfileCompletion(profileData.profile)
+        profile_completion: currentProfile ? calculateProfileCompletion(currentProfile) : 0
       });
 
       // Mock announcements (to be replaced with real API)

@@ -10,7 +10,7 @@ const { asyncHandler } = require('../middleware/errorHandler');
 // Rate limiting for auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 5, // 5 attempts per window
+  limit: 100, // Increased limit for testing
   message: { error: 'Too many authentication attempts, try again later' },
   standardHeaders: 'draft-7',
   legacyHeaders: false
@@ -64,6 +64,7 @@ module.exports = (db) => {
     const token = jwt.sign(
       {
         id: resident.Resident_ID,
+        resident_id: resident.Resident_ID,
         email: resident.email,
         role: 12, // Resident role
         type: 'resident'
@@ -77,6 +78,7 @@ module.exports = (db) => {
       token,
       user: {
         id: resident.Resident_ID,
+        resident_id: resident.Resident_ID,
         email: resident.email,
         name: `${resident.First_Name} ${resident.Last_Name}`,
         role: 12,
@@ -131,8 +133,8 @@ module.exports = (db) => {
 
       // Create user account
       await connection.execute(
-        'INSERT INTO users (username, email, password_hash, role_id, full_name, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
-        [email, email, hashedPassword, 12, `${first_name} ${last_name}`, true]
+        'INSERT INTO users (username, email, password_hash, role, full_name, resident_id, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
+        [email, email, hashedPassword, 12, `${first_name} ${last_name}`, residentId, true]
       );
 
       // Create resident record

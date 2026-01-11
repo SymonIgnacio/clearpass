@@ -14,12 +14,10 @@ import {
 import { PersonAdd } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
+import { apiRequest } from '../utils/api';
+
 const ResidentRegister = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  
   const [formData, setFormData] = useState({
     first_name: '',
     middle_name: '',
@@ -32,13 +30,9 @@ const ResidentRegister = () => {
     password: '',
     confirmPassword: ''
   });
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,12 +46,9 @@ const ResidentRegister = () => {
     }
 
     try {
-      const response = await fetch('/api/resident-auth/register', {
+      const response = await apiRequest('/resident-auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+        body: {
           first_name: formData.first_name,
           middle_name: formData.middle_name,
           last_name: formData.last_name,
@@ -67,7 +58,7 @@ const ResidentRegister = () => {
           gender: formData.gender,
           civil_status: formData.civil_status,
           password: formData.password
-        })
+        }
       });
 
       const data = await response.json();

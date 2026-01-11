@@ -17,6 +17,8 @@ import {
 import { Person, Home, Security } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
+import { apiRequest } from '../utils/api';
+
 const ResidentLogin = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -27,25 +29,15 @@ const ResidentLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const response = await fetch('/api/resident-auth/login', {
+      const response = await apiRequest('/resident-auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
+        body: formData
       });
 
       const data = await response.json();

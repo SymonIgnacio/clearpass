@@ -3,16 +3,16 @@ require('dotenv').config();
 
 const REQUIRED_TABLES = [
   'users', 'roles', 'residents', 'households', 'sitios',
-  'blotter', 'certificates_log', 'document_requests',
+  'blotter', 'certificates_log', 'clearance_requests', 'document_requests',
   'notifications', 'user_notifications', 'announcements',
-  'login_attempts', 'audit_log'
+  'login_attempts', 'audit_logs', 'system_assets'
 ];
 
 const REQUIRED_ROLES = [
+  { id: 1, name: 'IT Admin' },
   { id: 2, name: 'Captain' },
   { id: 3, name: 'Secretary' },
   { id: 4, name: 'Clerk' },
-  { id: 5, name: 'Admin' },
   { id: 6, name: 'Blotter Officer' },
   { id: 12, name: 'Resident' }
 ];
@@ -82,7 +82,7 @@ async function validateSystem() {
 
     // Check for admin users
     console.log('🔐 Checking admin users...');
-    const [admins] = await connection.execute('SELECT COUNT(*) as count FROM users WHERE role_id = 5');
+    const [admins] = await connection.execute('SELECT COUNT(*) as count FROM users WHERE role = 1');
     if (admins[0].count > 0) {
       console.log(`  ✅ ${admins[0].count} admin user(s) found`);
     } else {

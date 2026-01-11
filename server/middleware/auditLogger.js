@@ -49,6 +49,13 @@ const AUDIT_EVENTS = {
   CERTIFICATE_ISSUED: 'CERTIFICATE_ISSUED',
   CERTIFICATE_REJECTED: 'CERTIFICATE_REJECTED',
   CERTIFICATE_DOWNLOADED: 'CERTIFICATE_DOWNLOADED',
+  DOCUMENT_REQUEST_CREATED: 'DOCUMENT_REQUEST_CREATED',
+  DOCUMENT_REQUEST_UPDATED: 'DOCUMENT_REQUEST_UPDATED',
+  DOCUMENT_REQUEST_VIEWED: 'DOCUMENT_REQUEST_VIEWED',
+  RESIDENT_DOCUMENTS_VIEWED: 'RESIDENT_DOCUMENTS_VIEWED',
+  RESIDENT_DOCUMENT_DOWNLOADED: 'RESIDENT_DOCUMENT_DOWNLOADED',
+  APPLICATION_DOCUMENTS_VIEWED: 'APPLICATION_DOCUMENTS_VIEWED',
+  APPLICATION_DOCUMENT_DOWNLOADED: 'APPLICATION_DOCUMENT_DOWNLOADED',
   
   // Blotter Operations
   BLOTTER_CREATED: 'BLOTTER_CREATED',
@@ -65,7 +72,10 @@ const AUDIT_EVENTS = {
   UNAUTHORIZED_ACCESS: 'UNAUTHORIZED_ACCESS',
   SUSPICIOUS_ACTIVITY: 'SUSPICIOUS_ACTIVITY',
   DATA_EXPORT: 'DATA_EXPORT',
-  ADMIN_ACTION: 'ADMIN_ACTION'
+  ADMIN_ACTION: 'ADMIN_ACTION',
+  MFA_OTP_SENT: 'MFA_OTP_SENT',
+  MFA_OTP_VERIFIED: 'MFA_OTP_VERIFIED',
+  MFA_OTP_FAILED: 'MFA_OTP_FAILED'
 };
 
 // Audit logging function
@@ -105,7 +115,10 @@ const isSecurityEvent = (eventType) => {
     AUDIT_EVENTS.ROLE_CHANGED,
     AUDIT_EVENTS.ADMIN_ACTION,
     AUDIT_EVENTS.DATA_EXPORT,
-    AUDIT_EVENTS.SYSTEM_CONFIG_CHANGED
+    AUDIT_EVENTS.SYSTEM_CONFIG_CHANGED,
+    AUDIT_EVENTS.MFA_OTP_SENT,
+    AUDIT_EVENTS.MFA_OTP_VERIFIED,
+    AUDIT_EVENTS.MFA_OTP_FAILED
   ];
   return securityEvents.includes(eventType);
 };
@@ -144,6 +157,10 @@ const auditMiddleware = (options = {}) => {
         // Log appropriate event type based on the request
         const eventType = determineEventType(req, res.statusCode);
         logAuditEvent(eventType, auditDetails);
+        const db = req.app?.locals?.db;
+        if (db && typeof db.execute === 'function') {
+          logAuditToDatabase(db, eventType, auditDetails);
+        }
       }
       
       return originalJson.call(this, data);
@@ -165,7 +182,7 @@ const shouldAuditRequest = (req, options) => {
   if (['POST', 'PUT', 'DELETE'].includes(req.method)) return true;
   
   // Audit sensitive GET operations
-  const sensitiveEndpoints = ['/users', '/residents', '/blotter', '/certificates'];
+  const sensitiveEndpoints = ['/users', '/residents', '/blotter', '/certificates', '/documents/requests', '/secretary'];
   if (sensitiveEndpoints.some(endpoint => req.originalUrl.includes(endpoint))) {
     return true;
   }
@@ -177,12 +194,30 @@ const shouldAuditRequest = (req, options) => {
 const determineEventType = (req, statusCode) => {
   const url = req.originalUrl.toLowerCase();
   const method = req.method;
+
+  if (url.includes('/secretary/applications/') && url.includes('/documents')) {
+    if (method === 'GET' && url.includes('/download')) return AUDIT_EVENTS.APPLICATION_DOCUMENT_DOWNLOADED;
+    if (method === 'GET') return AUDIT_EVENTS.APPLICATION_DOCUMENTS_VIEWED;
+  }
+  if (url.includes('/secretary/documents/') && url.includes('/download') && method === 'GET') {
+    return AUDIT_EVENTS.RESIDENT_DOCUMENT_DOWNLOADED;
+  }
+  if (url.includes('/residents/') && url.includes('/documents')) {
+    if (method === 'GET' && url.includes('/download')) return AUDIT_EVENTS.RESIDENT_DOCUMENT_DOWNLOADED;
+    if (method === 'GET') return AUDIT_EVENTS.RESIDENT_DOCUMENTS_VIEWED;
+  }
   
   // Authentication events
   if (url.includes('/auth/login')) {
     return statusCode < 400 ? AUDIT_EVENTS.LOGIN_SUCCESS : AUDIT_EVENTS.LOGIN_FAILED;
   }
   if (url.includes('/auth/logout')) return AUDIT_EVENTS.LOGOUT;
+  if (url.includes('/auth/mfa/request')) {
+    return statusCode < 400 ? AUDIT_EVENTS.MFA_OTP_SENT : AUDIT_EVENTS.MFA_OTP_FAILED;
+  }
+  if (url.includes('/auth/mfa/verify')) {
+    return statusCode < 400 ? AUDIT_EVENTS.MFA_OTP_VERIFIED : AUDIT_EVENTS.MFA_OTP_FAILED;
+  }
   
   // User management events
   if (url.includes('/users')) {
@@ -202,6 +237,12 @@ const determineEventType = (req, statusCode) => {
     if (method === 'POST') return AUDIT_EVENTS.CERTIFICATE_REQUESTED;
     if (method === 'PUT' && url.includes('/issue')) return AUDIT_EVENTS.CERTIFICATE_ISSUED;
     if (method === 'GET' && url.includes('/download')) return AUDIT_EVENTS.CERTIFICATE_DOWNLOADED;
+  }
+
+  if (url.includes('/documents/requests')) {
+    if (method === 'GET') return AUDIT_EVENTS.DOCUMENT_REQUEST_VIEWED;
+    if (method === 'POST') return AUDIT_EVENTS.DOCUMENT_REQUEST_CREATED;
+    if (method === 'PUT') return AUDIT_EVENTS.DOCUMENT_REQUEST_UPDATED;
   }
   
   // Blotter events

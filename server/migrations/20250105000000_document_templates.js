@@ -10,8 +10,8 @@ exports.up = function(knex) {
     table.string('document_type', 50).notNullable();
     table.text('template_content').notNullable(); // JSON string containing template configuration
     table.boolean('is_active').defaultTo(true);
-    table.integer('created_by').unsigned().references('id').inTable('users');
-    table.integer('updated_by').unsigned().references('id').inTable('users');
+    table.integer('created_by').unsigned().nullable().references('id').inTable('users').onDelete('SET NULL');
+    table.integer('updated_by').unsigned().nullable().references('id').inTable('users').onDelete('SET NULL');
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
 
@@ -36,8 +36,7 @@ exports.up = function(knex) {
           font_family: 'Times-Roman',
           font_size: 12
         }),
-        is_active: true,
-        created_by: 1
+        is_active: true
       },
       {
         template_name: 'Default Indigency Certificate',
@@ -56,8 +55,7 @@ exports.up = function(knex) {
           font_family: 'Times-Roman',
           font_size: 12
         }),
-        is_active: true,
-        created_by: 1
+        is_active: true
       },
       {
         template_name: 'Default Bonafide Certificate',
@@ -76,8 +74,7 @@ exports.up = function(knex) {
           font_family: 'Times-Roman',
           font_size: 12
         }),
-        is_active: true,
-        created_by: 1
+        is_active: true
       }
     ]);
   });

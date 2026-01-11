@@ -41,10 +41,13 @@ import {
   Pending,
   Error
 } from '@mui/icons-material';
+import { apiRequest } from '../utils/api';
 import { useNotifications } from '../contexts/NotificationContext';
+import { useThemeMode } from '../contexts/ThemeModeContext.jsx';
 
 const Settings = ({ user }) => {
   const { addNotification } = useNotifications();
+  const { mode, setDarkMode } = useThemeMode();
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState({
     full_name: user?.full_name || '',
@@ -79,7 +82,11 @@ const Settings = ({ user }) => {
     const savedPreferences = localStorage.getItem('userPreferences');
     if (savedPreferences) {
       try {
-        setPreferences(JSON.parse(savedPreferences));
+        const parsed = JSON.parse(savedPreferences);
+        setPreferences(parsed);
+        if (typeof parsed?.darkMode === 'boolean') {
+          setDarkMode(parsed.darkMode);
+        }
       } catch (e) {
         console.error('Failed to parse saved preferences:', e);
       }
@@ -108,6 +115,10 @@ const Settings = ({ user }) => {
     // Save to localStorage immediately
     const newPrefs = { ...preferences, [field]: value };
     localStorage.setItem('userPreferences', JSON.stringify(newPrefs));
+
+    if (field === 'darkMode') {
+      setDarkMode(Boolean(value));
+    }
   };
 
   const validateProfile = () => {
@@ -136,14 +147,9 @@ const Settings = ({ user }) => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/profile`, {
+      const response = await apiRequest('/auth/profile', {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(profile)
+        body: profile
       });
 
       if (response.ok) {
@@ -204,17 +210,12 @@ const Settings = ({ user }) => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/change-password`, {
+      const response = await apiRequest('/auth/change-password', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          current_password: '', // Would need current password in real implementation
+        body: {
+          current_password: '',
           new_password: newPassword
-        })
+        }
       });
 
       if (response.ok) {
@@ -497,30 +498,15 @@ const Settings = ({ user }) => {
                         setResidencyVerification(prev => ({ ...prev, submitting: true }));
 
                         try {
-                          // For residents, use Firebase token instead of JWT token
-                          const token = user?.role === 'resident'
-                            ? localStorage.getItem('residentAuthToken')
-                            : localStorage.getItem('authToken');
-
-                          if (!token) {
-                            addNotification({
-                              type: 'error',
-                              title: 'Authentication Error',
-                              message: 'Please log in again to submit verification'
-                            });
-                            return;
+                          const formData = new FormData();
+                          // Backend expects file field name as document_{type}
+                          formData.append(`document_${residencyVerification.proof_type}`, residencyVerification.selectedFile);
+                          if (residencyVerification.notes) {
+                            formData.append('notes', residencyVerification.notes);
                           }
 
-                          const formData = new FormData();
-                          formData.append('proof_type', residencyVerification.proof_type);
-                          formData.append('notes', residencyVerification.notes);
-                          formData.append('proof_document', residencyVerification.selectedFile);
-
-                          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/submit-residency-verification`, {
+                          const response = await apiRequest('/residents/verification/upload', {
                             method: 'POST',
-                            headers: {
-                              'Authorization': `Bearer ${token}`
-                            },
                             body: formData
                           });
 
@@ -636,20 +622,14 @@ const Settings = ({ user }) => {
                       color="primary"
                       onClick={async () => {
                         setVerificationLoading(true);
-                        try {
-                          const token = localStorage.getItem('authToken');
-                          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/verify-email-for-residency`, {
-                            method: 'POST',
-                            headers: {
-                              'Authorization': `Bearer ${token}`,
-                              'Content-Type': 'application/json'
-                            }
-                          });
+                  try {
+                    const response = await apiRequest('/auth/verify-email-for-residency', {
+                      method: 'POST'
+                    });
 
-                          const data = await response.json();
-
-                          if (response.ok) {
-                            setVerificationStatus(data);
+                    if (response.ok) {
+                      const data = await response.json();
+                      setVerificationStatus(data);
 
                             if (data.action === 'promoted') {
                               // Update user in localStorage
@@ -782,12 +762,11 @@ const Settings = ({ user }) => {
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={preferences.darkMode}
+                      checked={mode === 'dark'}
                       onChange={handlePreferenceChange('darkMode')}
                     />
                   }
                   label="Dark mode"
-                  disabled // Not implemented yet
                 />
               </Box>
             </CardContent>

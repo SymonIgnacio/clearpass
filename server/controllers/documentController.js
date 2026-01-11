@@ -1020,13 +1020,23 @@ class DocumentController {
    */
   async _logAuditAction(userId, action, entityId, details) {
     try {
-      await knex('audit_log').insert({
-        user_id: userId,
+      const eventType =
+        action === 'CREATE'
+          ? 'DOCUMENT_REQUEST_CREATED'
+          : action === 'VIEW'
+            ? 'DOCUMENT_REQUEST_VIEWED'
+            : 'DOCUMENT_REQUEST_UPDATED';
+      await knex('audit_logs').insert({
+        event_type: eventType,
+        user_id: String(userId),
+        user_role: null,
+        ip_address: 'SYSTEM',
+        user_agent: null,
+        resource: 'document_request',
         action: action,
-        entity_type: 'document_request',
-        entity_id: entityId,
-        details: JSON.stringify(details),
-        ip_address: 'SYSTEM', // Would be req.ip in real implementation
+        result: 'SUCCESS',
+        details: details ? JSON.stringify(details) : null,
+        session_id: null,
         created_at: knex.fn.now()
       });
     } catch (error) {

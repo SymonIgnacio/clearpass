@@ -1,0 +1,113 @@
+{
+  "executed_at": "2026-01-11T00:58:50.286Z",
+  "plan": "audits/cleanup/cleanup-plan-2026-01-11.json",
+  "archive_root": ".cleanup_archive/2026-01-11T00-58-50.286Z",
+  "removed_files": [
+    {
+      "path": "ai_service/__pycache__/smart_suggestions.cpython-312.pyc",
+      "size_bytes": 47398,
+      "rationale": "Generated Python bytecode cache"
+    },
+    {
+      "path": "tests/__pycache__/test_chatbot_engine.cpython-312.pyc",
+      "size_bytes": 14105,
+      "rationale": "Generated Python bytecode cache"
+    },
+    {
+      "path": "client/src/__tests__/pages/admin/debug_output.html",
+      "size_bytes": 9347,
+      "rationale": "Debug artifact not used by build/test runtime"
+    },
+    {
+      "path": "client/test_output.txt",
+      "size_bytes": 6,
+      "rationale": "Test output artifact"
+    },
+    {
+      "path": "server/index.js.backup",
+      "size_bytes": 157290,
+      "rationale": "Deprecated server entry backup"
+    },
+    {
+      "path": "server/controllers/templateController.js",
+      "size_bytes": 27520,
+      "rationale": "Unreferenced controller (templateRoutes uses direct SQL; no imports found)"
+    },
+    {
+      "path": "server/monitoring.js",
+      "size_bytes": 16697,
+      "rationale": "Unreferenced legacy module (no requires/imports found)"
+    },
+    {
+      "path": "server/websocket.js",
+      "size_bytes": 11982,
+      "rationale": "Unreferenced legacy module (replaced by services/websocketService.js)"
+    },
+    {
+      "path": "server/permissions.js",
+      "size_bytes": 10869,
+      "rationale": "Unreferenced legacy module (no requires/imports found)"
+    },
+    {
+      "path": "server/security-alerts.js",
+      "size_bytes": 5958,
+      "rationale": "Unreferenced legacy module (no requires/imports found)"
+    },
+    {
+      "path": "server/health-check.js",
+      "size_bytes": 6832,
+      "rationale": "Unreferenced legacy module (healthCheck middleware is used instead)"
+    },
+    {
+      "path": "server/aiService.js",
+      "size_bytes": 4671,
+      "rationale": "Unreferenced legacy module (AI routes use controllers/services instead)"
+    },
+    {
+      "path": "server/notificationService.js",
+      "size_bytes": 8028,
+      "rationale": "Unreferenced legacy module (notificationController + websocketService used instead)"
+    },
+    {
+      "path": "client/src/components/BantayChatbot.jsx",
+      "size_bytes": 17828,
+      "rationale": "Unreferenced component (not imported by App/Sidebar and only referenced in an outdated unit test mock)"
+    },
+    {
+      "path": "client/src/pages/DocumentTemplates.jsx",
+      "size_bytes": 23868,
+      "rationale": "Unreferenced page (no route/import references found)"
+    },
+    {
+      "path": "client/src/pages/ResidentSettings.jsx",
+      "size_bytes": 28713,
+      "rationale": "Unreferenced page (no route/import references found)"
+    },
+    {
+      "path": "client/src/pages/ResidentOpenRegister.jsx",
+      "size_bytes": 18777,
+      "rationale": "Unreferenced page (no route/import references found)"
+    },
+    {
+      "path": "client/src/pages/RequestDocument.jsx",
+      "size_bytes": 16916,
+      "rationale": "Unreferenced page (no route/import references found)"
+    },
+    {
+      "path": "client/src/pages/CertificateTypes.jsx",
+      "size_bytes": 19249,
+      "rationale": "Unreferenced page (no route/import references found)"
+    },
+    {
+      "path": "client/src/pages/QRVerification.jsx",
+      "size_bytes": 9830,
+      "rationale": "Unreferenced page (no route/import references found)"
+    },
+    {
+      "path": "client/src/pages/Register.jsx",
+      "size_bytes": 10483,
+      "rationale": "Unreferenced page (replaced by ResidentRegister/ResidentOpenRegister; not routed)"
+    }
+  ],
+  "space_reclaimed_bytes": 466367
+}

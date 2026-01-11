@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>0/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>0/2</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>0/13</span>
             </div>
         
             
@@ -77,15 +77,39 @@
 <a name='L12'></a><a href='#L12'>12</a>
 <a name='L13'></a><a href='#L13'>13</a>
 <a name='L14'></a><a href='#L14'>14</a>
-<a name='L15'></a><a href='#L15'>15</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -95,12 +119,24 @@
 const router = <span class="cstat-no" title="statement not covered" >express.Router();</span>
 const { verifyToken, checkRole } = <span class="cstat-no" title="statement not covered" >require('../middleware/authMiddleware');</span>
 const { asyncHandler } = <span class="cstat-no" title="statement not covered" >require('../middleware/errorHandler');</span>
-const { ROLES } = <span class="cstat-no" title="statement not covered" >require('../config/roles');</span>
+const userController = <span class="cstat-no" title="statement not covered" >require('../controllers/userController');</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >module.exports = <span class="fstat-no" title="function not covered" >(d</span>b) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >  router.get('/', verifyToken, checkRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY]), asyncHandler(<span class="fstat-no" title="function not covered" >as</span>ync (req, res) =&gt; {</span>
-    const [rows] = <span class="cstat-no" title="statement not covered" >await db.execute(`SELECT id, username, full_name, role FROM users LIMIT 50`);</span>
-<span class="cstat-no" title="statement not covered" >    res.json({ users: rows });</span>
+  // GET all users
+<span class="cstat-no" title="statement not covered" >  router.get('/', verifyToken, checkRole(['admin', 'captain', 'secretary']), asyncHandler(userController.getAll));</span>
+  
+  // GET current user profile
+<span class="cstat-no" title="statement not covered" >  router.get('/me', verifyToken, asyncHandler(<span class="fstat-no" title="function not covered" >as</span>ync (req, res) =&gt; {</span>
+    const [rows] = <span class="cstat-no" title="statement not covered" >await db.execute(`</span>
+      SELECT id, username, full_name, role, email, created_at
+      FROM users WHERE id = ?
+    `, [req.user.id]);
+    
+<span class="cstat-no" title="statement not covered" >    if (rows.length === 0) {</span>
+<span class="cstat-no" title="statement not covered" >      return res.status(404).json({ error: 'User not found' });</span>
+    }
+    
+<span class="cstat-no" title="statement not covered" >    res.json(rows[0]);</span>
   }));
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  return router;</span>
@@ -112,7 +148,7 @@ const { ROLES } = <span class="cstat-no" title="statement not covered" >require(
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-04T22:36:42.400Z
+                at 2026-01-11T01:03:37.807Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

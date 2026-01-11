@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">1.65% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>5/302</span>
+                <span class='fraction'>0/303</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0.59% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>1/169</span>
+                <span class='fraction'>0/175</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">4.54% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/22</span>
+                <span class='fraction'>0/22</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">1.66% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>5/300</span>
+                <span class='fraction'>0/301</span>
             </div>
         
             
@@ -1102,10 +1102,20 @@
 <a name='L1037'></a><a href='#L1037'>1037</a>
 <a name='L1038'></a><a href='#L1038'>1038</a>
 <a name='L1039'></a><a href='#L1039'>1039</a>
-<a name='L1040'></a><a href='#L1040'>1040</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<a name='L1040'></a><a href='#L1040'>1040</a>
+<a name='L1041'></a><a href='#L1041'>1041</a>
+<a name='L1042'></a><a href='#L1042'>1042</a>
+<a name='L1043'></a><a href='#L1043'>1043</a>
+<a name='L1044'></a><a href='#L1044'>1044</a>
+<a name='L1045'></a><a href='#L1045'>1045</a>
+<a name='L1046'></a><a href='#L1046'>1046</a>
+<a name='L1047'></a><a href='#L1047'>1047</a>
+<a name='L1048'></a><a href='#L1048'>1048</a>
+<a name='L1049'></a><a href='#L1049'>1049</a>
+<a name='L1050'></a><a href='#L1050'>1050</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -2124,7 +2134,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -2134,17 +2151,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const knex = require('knex')(require('../knexfile')[process.env.NODE_ENV || <span class="branch-1 cbranch-no" title="branch not covered" >'development']</span>);
-const PDFDocument = require('pdfkit');
-const fs = require('fs');
-const path = require('path');
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const knex = <span class="cstat-no" title="statement not covered" >require('knex')(require('../knexfile')[process.env.NODE_ENV || 'development']);</span>
+const PDFDocument = <span class="cstat-no" title="statement not covered" >require('pdfkit');</span>
+const fs = <span class="cstat-no" title="statement not covered" >require('fs');</span>
+const path = <span class="cstat-no" title="statement not covered" >require('path');</span>
 &nbsp;
 /**
  * Document Controller
@@ -2152,7 +2172,7 @@ const path = require('path');
  */
 &nbsp;
 class DocumentController {
-  constructor() {
+<span class="fstat-no" title="function not covered" >  co</span>nstructor() {
     // TODO: Integrate with Python document generator
     // this.generator = new ResidentDocumentGenerator();
   }
@@ -3163,13 +3183,23 @@ class DocumentController {
    */
 <span class="fstat-no" title="function not covered" >  as</span>ync _logAuditAction(userId, action, entityId, details) {
 <span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      await knex('audit_log').insert({</span>
-        user_id: userId,
+      const eventType =
+<span class="cstat-no" title="statement not covered" >        action === 'CREATE'</span>
+          ? 'DOCUMENT_REQUEST_CREATED'
+          : action === 'VIEW'
+            ? 'DOCUMENT_REQUEST_VIEWED'
+            : 'DOCUMENT_REQUEST_UPDATED';
+<span class="cstat-no" title="statement not covered" >      await knex('audit_logs').insert({</span>
+        event_type: eventType,
+        user_id: String(userId),
+        user_role: null,
+        ip_address: 'SYSTEM',
+        user_agent: null,
+        resource: 'document_request',
         action: action,
-        entity_type: 'document_request',
-        entity_id: entityId,
-        details: JSON.stringify(details),
-        ip_address: 'SYSTEM', // Would be req.ip in real implementation
+        result: 'SUCCESS',
+        details: details ? JSON.stringify(details) : null,
+        session_id: null,
         created_at: knex.fn.now()
       });
     } catch (error) {
@@ -3179,7 +3209,7 @@ class DocumentController {
   }
 }
 &nbsp;
-module.exports = new DocumentController();
+<span class="cstat-no" title="statement not covered" >module.exports = new DocumentController();</span>
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -3187,7 +3217,7 @@ module.exports = new DocumentController();
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-04T22:36:42.400Z
+                at 2026-01-11T01:03:37.807Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

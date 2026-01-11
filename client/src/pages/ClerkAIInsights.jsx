@@ -16,7 +16,7 @@ import {
   Chip
 } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import axios from 'axios';
+import { apiRequest } from '../utils/api';
 
 const ClerkAIInsights = () => {
   const [insights, setInsights] = useState(null);
@@ -29,9 +29,10 @@ const ClerkAIInsights = () => {
 
   const fetchInsights = async () => {
     try {
-      const response = await axios.get('/api/ai-analytics/clerk-insights');
-      if (response.data.success) {
-        setInsights(response.data.data);
+      const response = await apiRequest('/ai-analytics/clerk-insights');
+      const data = await response.json();
+      if (data.success) {
+        setInsights(data.data);
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to load insights' });

@@ -18,6 +18,7 @@ import {
   Paper
 } from '@mui/material';
 import { SmartToy, Security, Warning } from '@mui/icons-material';
+import { apiRequest } from '../utils/api';
 
 const AIPatrol = () => {
   const [patrolSuggestions, setPatrolSuggestions] = useState(null)
@@ -26,7 +27,7 @@ const AIPatrol = () => {
   const fetchPatrolSuggestions = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3002/api'}/ai/patrol-suggestions`)
+      const response = await apiRequest('/ai/patrol-suggestions')
       if (response.ok) {
         const data = await response.json()
         setPatrolSuggestions(data)

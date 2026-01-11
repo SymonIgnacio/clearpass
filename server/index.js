@@ -12,7 +12,7 @@ const xssClean = require('xss-clean');
 function validateEnvironmentVariables() {
   const requiredVars = ['DB_HOST', 'DB_USER', 'DB_NAME', 'JWT_SECRET'];
   const missingVars = requiredVars.filter(varName => !process.env[varName]);
-  
+
   if (missingVars.length > 0) {
     console.error('Missing required environment variables:', missingVars);
     process.exit(1);
@@ -29,8 +29,8 @@ const csrfProtection = csrf({
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
-  }
+    sameSite: 'strict',
+  },
 });
 
 // Import controllers
@@ -44,6 +44,7 @@ const adminController = require('./controllers/adminController');
 
 // Import middleware
 const { verifyToken, checkRole } = require('./middleware/authMiddleware');
+const { ROLES } = require('./config/roles');
 const { errorHandler } = require('./middleware/errorHandler');
 const { validateLogin } = require('./middleware/validation');
 const { auditMiddleware } = require('./middleware/auditLogger');
@@ -58,58 +59,71 @@ const WebSocketService = require('./services/websocketService');
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   limit: 1000, // Increased limit for testing
-  message: { error: 'Too many login attempts, try again later' },
-  standardHeaders: 'draft-7',
+  message: { error: 'Too many requests' },
+  standardHeaders: true,
   legacyHeaders: false,
-  skip: () => true // Always skip rate limiting
 });
 
 const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 20, // 20 requests per window
+  limit: process.env.NODE_ENV === 'production' ? 20 : 5000,
   message: { error: 'Too many admin requests' },
   standardHeaders: 'draft-7',
-  legacyHeaders: false
+  legacyHeaders: false,
+  // TODO: Temporary development bypass for residents verification. Remove in production.
+  skip: req =>
+    process.env.NODE_ENV !== 'production' && req.originalUrl.includes('residents-verification'),
 });
 
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 100,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 5000, // Increased limit for testing
   message: { error: 'Too many requests' },
-  standardHeaders: 'draft-7',
-  legacyHeaders: false
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-// CORS configuration
-const corsOrigins = process.env.NODE_ENV === 'production'
-  ? [process.env.FRONTEND_URL || 'https://glistening-lamington-a9e2b7.netlify.app']
-  : ['http://localhost:3002', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
+// Apply limits
+app.use('/api/auth', authLimiter);
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (process.env.NODE_ENV === 'production' && origin && origin.includes('netlify.app')) {
-      return callback(null, true);
-    }
-    
-    if (corsOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    
-    // Allow localhost with any port for development
-    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
-      return callback(null, true);
-    }
-    
-    console.warn('CORS blocked origin:', origin);
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token']
-}));
+// CORS configuration
+const corsOrigins =
+  process.env.NODE_ENV === 'production'
+    ? [process.env.FRONTEND_URL || 'https://glistening-lamington-a9e2b7.netlify.app']
+    : [
+        'http://localhost:3002',
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:5175',
+      ];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      if (process.env.NODE_ENV === 'production' && origin && origin.includes('netlify.app')) {
+        return callback(null, true);
+      }
+
+      if (corsOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Allow localhost with any port for development
+      if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+        return callback(null, true);
+      }
+
+      console.warn('CORS blocked origin:', origin);
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
+  })
+);
 
 // Security middleware
 app.use(helmet());
@@ -132,6 +146,7 @@ app.use(auditMiddleware({ auditAll: false }));
 // Database connection (standardized)
 const db = require('./database');
 app.locals.db = db;
+const { startDocumentRetentionScheduler } = require('./jobs/documentRetention');
 
 // Test database connection
 async function initializeDatabase() {
@@ -156,15 +171,26 @@ app.get('/api/csrf-token', csrfProtection, (req, res) => {
 
 // Add auth/me endpoint for authentication check
 app.get('/api/auth/me', verifyToken, authController.me);
+app.post('/api/auth/mfa/request', verifyToken, authController.requestMfaOtp);
+app.post('/api/auth/mfa/verify', verifyToken, authController.verifyMfaOtpCode);
+app.put('/api/auth/profile', verifyToken, authController.updateProfile);
+app.post('/api/auth/change-password', verifyToken, authController.changePassword);
+app.post(
+  '/api/auth/verify-email-for-residency',
+  verifyToken,
+  authController.verifyEmailForResidency
+);
 
 // Load and mount modular routes
 app.use('/api/residents', require('./routes/residentRoutes')(db));
 app.use('/api/blotter', require('./routes/blotterRoutes')(db));
+app.use('/api/sitios', require('./routes/sitioRoutes')(db)); // Moved up to take precedence
 app.use('/api/certificates', require('./routes/certificateRoutes')(db));
 app.use('/api/certificate-requests', require('./routes/certificateRequestRoutes')(db));
 app.use('/api/blotter-complaints', require('./routes/blotterComplaintRoutes')(db));
 app.use('/api/resident-profile', require('./routes/residentProfileRoutes')(db));
 app.use('/api/case-management', require('./routes/caseManagementRoutes')(db));
+app.use('/api/templates', require('./routes/templateRoutes')(db));
 app.use('/api/ai-analytics', require('./routes/aiAnalyticsRoutes')(db));
 app.use('/api/system-admin', require('./routes/systemAdminRoutes')(db));
 app.use('/api/documents', require('./routes/documentRoutes')(db));
@@ -191,12 +217,16 @@ app.use('/api', require('./routes'));
 
 // Programs route
 app.use('/api/programs', require('./routes/programRoutes')(db));
-
-// Sitios route
-app.use('/api/sitios', require('./routes/sitioRoutes')(db));
+// Sitios route (Moved up)
+// app.use('/api/sitios', require('./routes/sitioRoutes')(db));
 
 // Legacy household route (to be moved to modular)
-app.get('/api/households', verifyToken, checkRole([1, 2, 5, 6]), householdController.getAll);
+app.get(
+  '/api/households',
+  verifyToken,
+  checkRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.CLERK, ROLES.BLOTTER_OFFICER]),
+  householdController.getAll
+);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -204,7 +234,7 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     service: 'Barangay Management API',
     timestamp: new Date().toISOString(),
-    port: port
+    port: port,
   });
 });
 
@@ -214,45 +244,75 @@ app.use(errorHandler);
 // Start server
 async function startServer() {
   await initializeDatabase();
-  
+
+  startDocumentRetentionScheduler(app.locals.db);
+
   // Initialize WebSocket service
   const wsService = new WebSocketService(server);
   global.wsService = wsService;
-  
+
   // Helper function to create notifications
-  const createNotification = async (userId, title, message, type = 'info', priority = 'normal', data = null) => {
+  const createNotification = async (
+    userId,
+    title,
+    message,
+    type = 'info',
+    priority = 'normal',
+    data = null
+  ) => {
     try {
       const NotificationController = require('./controllers/notificationController');
       const notificationController = new NotificationController(app.locals.db);
-      const notification = await notificationController.createNotification(userId, title, message, type, priority, data);
-      
+      const notification = await notificationController.createNotification(
+        userId,
+        title,
+        message,
+        type,
+        priority,
+        data
+      );
+
       // Send via WebSocket
       wsService.sendToUser(userId, {
         type: 'notification',
-        data: notification
+        data: notification,
       });
-      
+
       return notification;
     } catch (error) {
       console.error('Error creating notification:', error);
     }
   };
-  
+
   // Helper function to create bulk notifications
-  const createBulkNotification = async (userIds, title, message, type = 'info', priority = 'normal', data = null) => {
+  const createBulkNotification = async (
+    userIds,
+    title,
+    message,
+    type = 'info',
+    priority = 'normal',
+    data = null
+  ) => {
     try {
       const NotificationController = require('./controllers/notificationController');
       const notificationController = new NotificationController(app.locals.db);
-      return await notificationController.createBulkNotification(userIds, title, message, type, priority, data);
+      return await notificationController.createBulkNotification(
+        userIds,
+        title,
+        message,
+        type,
+        priority,
+        data
+      );
     } catch (error) {
       console.error('Error creating bulk notification:', error);
     }
   };
-  
+
   // Make notification helpers globally available
   global.createNotification = createNotification;
   global.createBulkNotification = createBulkNotification;
-  
+
   server.listen(port, () => {
     console.log(`🚀 ClearPass Server started on port ${port}`);
     console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
@@ -261,4 +321,8 @@ async function startServer() {
   });
 }
 
-startServer().catch(console.error);
+module.exports = { startServer };
+
+if (require.main === module) {
+  startServer().catch(console.error);
+}

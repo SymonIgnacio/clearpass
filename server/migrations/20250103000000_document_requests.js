@@ -11,9 +11,9 @@ exports.up = function(knex) {
     table.json('approval_data'); // Approval details
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
-    table.timestamp('approved_at');
+    table.timestamp('approved_at').nullable().defaultTo(null);
     table.string('approved_by', 50);
-    table.timestamp('valid_until');
+    table.timestamp('valid_until').nullable().defaultTo(null);
     table.text('qr_code');
     table.string('control_number', 100);
 

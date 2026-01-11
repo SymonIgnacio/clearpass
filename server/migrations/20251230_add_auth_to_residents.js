@@ -1,9 +1,19 @@
-exports.up = function(knex) {
-  return knex.schema.alterTable('residents', function(table) {
+exports.up = async function(knex) {
+  const hasUsername = await knex.schema.hasColumn('residents', 'username');
+  const hasPassword = await knex.schema.hasColumn('residents', 'password_hash');
+  const hasStatus = await knex.schema.hasColumn('residents', 'account_status');
+
+  await knex.schema.alterTable('residents', function(table) {
     // Add authentication columns for local login
-    table.string('username', 255).unique().nullable();
-    table.string('password_hash', 255).nullable();
-    table.enu('account_status', ['Unregistered', 'Unverified', 'Verified']).defaultTo('Unregistered');
+    if (!hasUsername) {
+      table.string('username', 255).unique().nullable();
+    }
+    if (!hasPassword) {
+      table.string('password_hash', 255).nullable();
+    }
+    if (!hasStatus) {
+      table.enu('account_status', ['Unregistered', 'Unverified', 'Verified']).defaultTo('Unregistered');
+    }
   });
 };
 

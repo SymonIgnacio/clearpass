@@ -154,14 +154,14 @@ class CaseManagementController {
         complainant, respondent, witnesses, case_number
       } = req.body;
 
-      const caseId = case_number || `BLT-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+      const caseId = case_number || `BLOT-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
       await this.db.execute(`
         INSERT INTO blotter (
           Case_Number, Incident_Type, Description, Location_Sitio,
           DateTime_Incident, Status, Complainant_Details, Respondent_Details,
           created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, NOW(), NOW())
+        ) VALUES (?, ?, ?, ?, ?, 'Pending', ?, ?, NOW(), NOW())
       `, [
         caseId, incident_type, description, location, incident_date,
         JSON.stringify(complainant), JSON.stringify(respondent)
@@ -384,6 +384,10 @@ class CaseManagementController {
       console.error('Error fetching cases:', error);
       res.status(500).json({ success: false, message: 'Failed to fetch cases' });
     }
+  }
+
+  async getCasesByOfficer(req, res) {
+    return this.getCases(req, res);
   }
 }
 

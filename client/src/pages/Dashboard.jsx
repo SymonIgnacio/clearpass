@@ -45,12 +45,15 @@ import {
   Person,
   Download
 } from '@mui/icons-material'
+import { useTheme, alpha } from '@mui/material/styles'
 import { apiRequest } from '../utils/api'
 import { useAuth } from '../contexts/AuthContext'
 import dashboardAPI from '../utils/dashboardAPI'
 
 const Dashboard = () => {
   const navigate = useNavigate()
+  const theme = useTheme()
+  const isDarkMode = theme.palette.mode === 'dark'
   const { user } = useAuth()
 
   // ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP LEVEL
@@ -719,11 +722,11 @@ const Dashboard = () => {
                   >
                     <MenuItem value="">All Roles</MenuItem>
                     <MenuItem value="1">IT Admin</MenuItem>
-                    <MenuItem value="2">Clerk</MenuItem>
-                    <MenuItem value="3">Blotter Officer</MenuItem>
-                    <MenuItem value="4">Resident</MenuItem>
-                    <MenuItem value="5">Captain</MenuItem>
-                    <MenuItem value="6">Secretary</MenuItem>
+                    <MenuItem value="2">Captain</MenuItem>
+                    <MenuItem value="3">Secretary</MenuItem>
+                    <MenuItem value="4">Clerk</MenuItem>
+                    <MenuItem value="6">Blotter Officer</MenuItem>
+                    <MenuItem value="12">Resident</MenuItem>
                   </TextField>
                   <TextField
                     id="status-filter"
@@ -765,37 +768,33 @@ const Dashboard = () => {
                     {detailedReport.data?.map((row, index) => (
                       <TableRow key={index}>
                         {detailedReport.columns?.map((col, colIndex) => {
-                          const value = row[col];
+                          const value = Array.isArray(row) ? row[colIndex] : row?.[col];
+                          const isRoleColumn = col.toLowerCase() === 'role'
+                          const isStatusColumn = col.toLowerCase() === 'status' || col.toLowerCase() === 'residency_status' || col.toLowerCase() === 'is_active'
+                          const isDateColumn = col.toLowerCase().includes('date') || col.toLowerCase().includes('created') || col.toLowerCase().includes('at')
+                          const statusIsActive =
+                            typeof value === 'boolean'
+                              ? value
+                              : typeof value === 'string'
+                                ? value.toLowerCase() === 'active'
+                                : false
 
                           return (
                             <TableCell key={colIndex}>
-                              {col === 'role' && typeof value === 'number' ? (
+                              {isRoleColumn ? (
                                 <Chip
-                                  label={
-                                    value === 1 ? 'IT Admin' :
-                                    value === 2 ? 'Clerk' :
-                                    value === 3 ? 'Blotter Officer' :
-                                    value === 4 ? 'Resident' :
-                                    value === 5 ? 'Captain' :
-                                    value === 6 ? 'Secretary' : `Role ${value}`
-                                  }
+                                  label={value || '-'}
                                   size="small"
-                                  color={
-                                    value === 1 ? 'error' :
-                                    value === 2 ? 'info' :
-                                    value === 3 ? 'warning' :
-                                    value === 4 ? 'default' :
-                                    value === 5 ? 'secondary' : 'success'
-                                  }
+                                  color="default"
                                 />
-                              ) : (col === 'is_active' || col === 'Status' || col === 'Residency_Status') ? (
+                              ) : isStatusColumn ? (
                                 <Chip
-                                  label={value ? 'Active' : 'Inactive'}
+                                  label={statusIsActive ? 'Active' : 'Inactive'}
                                   size="small"
-                                  color={value ? 'success' : 'error'}
+                                  color={statusIsActive ? 'success' : 'error'}
                                 />
-                              ) : (col.toLowerCase().includes('date') || col.toLowerCase().includes('created') || col.toLowerCase().includes('at')) ? (
-                                formatDate(value)
+                              ) : isDateColumn ? (
+                                value && value !== 'N/A' ? formatDate(value) : (value || '-')
                               ) : (
                                 value || '-'
                               )}
@@ -912,8 +911,9 @@ const Dashboard = () => {
               onClick={fetchRoleSpecificData}
               sx={{
                 borderRadius: 2,
-                border: '1px solid #e8eaed',
-                '&:hover': { backgroundColor: '#f8f9fa' }
+                border: '1px solid',
+                borderColor: 'divider',
+                '&:hover': { backgroundColor: 'action.hover' }
               }}
             >
               <Refresh />
@@ -959,8 +959,11 @@ const Dashboard = () => {
                 <Card
                   sx={{
                     height: '100%',
-                    background: card.bgColor,
-                    border: '1px solid #e8eaed',
+                    background: isDarkMode
+                      ? `linear-gradient(135deg, ${alpha(card.color, 0.26)} 0%, ${alpha(card.color, 0.14)} 100%)`
+                      : card.bgColor,
+                    border: '1px solid',
+                    borderColor: 'divider',
                     transition: 'all 0.3s ease',
                     '&:hover': {
                       transform: 'translateY(-4px)',
@@ -1008,7 +1011,7 @@ const Dashboard = () => {
                       variant="h3"
                       sx={{
                         fontWeight: 600,
-                        color: '#202124',
+                        color: 'text.primary',
                         mb: 1,
                         fontSize: '2rem'
                       }}
@@ -1020,7 +1023,7 @@ const Dashboard = () => {
                       variant="h6"
                       sx={{
                         fontWeight: 500,
-                        color: '#5f6368',
+                        color: 'text.secondary',
                         mb: 1
                       }}
                     >
@@ -1041,8 +1044,9 @@ const Dashboard = () => {
             <Grid item xs={12} lg={8}>
               <Card sx={{
                 height: '100%',
-                background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
-                border: '1px solid #e8eaed'
+                background: isDarkMode ? theme.palette.background.paper : 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+                border: '1px solid',
+                borderColor: 'divider'
               }}>
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{
@@ -1135,7 +1139,7 @@ const Dashboard = () => {
                           <Grid xs={12} sm={4} key={index}>
                             <Card variant="outlined" sx={{
                               borderRadius: 2,
-                              borderColor: '#e8eaed'
+                              borderColor: 'divider'
                             }}>
                               <CardContent sx={{ p: 2 }}>
                                 <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
@@ -1164,8 +1168,9 @@ const Dashboard = () => {
             <Grid item xs={12} lg={4}>
               <Card sx={{
                 height: '100%',
-                background: 'linear-gradient(135deg, #fff3e0 0%, #ffffff 100%)',
-                border: '1px solid #e8eaed'
+                background: isDarkMode ? theme.palette.background.paper : 'linear-gradient(135deg, #fff3e0 0%, #ffffff 100%)',
+                border: '1px solid',
+                borderColor: 'divider'
               }}>
                 <CardContent sx={{ p: 3 }}>
                   <Typography variant="h6" sx={{ fontWeight: 500, mb: 3 }}>
@@ -1190,11 +1195,11 @@ const Dashboard = () => {
                           py: 1.5,
                           px: 2,
                           borderRadius: 2,
-                          borderColor: '#e8eaed',
+                          borderColor: 'divider',
                           color: 'text.primary',
                           '&:hover': {
                             borderColor: action.color,
-                            backgroundColor: `${action.color}08`,
+                            backgroundColor: alpha(action.color, isDarkMode ? 0.16 : 0.08),
                             transform: 'translateX(4px)'
                           },
                           transition: 'all 0.2s ease'
@@ -1209,8 +1214,9 @@ const Dashboard = () => {
                     mt: 3,
                     p: 2,
                     borderRadius: 2,
-                    backgroundColor: 'rgba(26, 115, 232, 0.04)',
-                    border: '1px solid rgba(26, 115, 232, 0.12)'
+                    backgroundColor: alpha(theme.palette.primary.main, isDarkMode ? 0.14 : 0.06),
+                    border: '1px solid',
+                    borderColor: alpha(theme.palette.primary.main, isDarkMode ? 0.28 : 0.16)
                   }}>
                     <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
                       💡 Pro Tip

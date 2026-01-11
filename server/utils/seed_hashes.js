@@ -17,19 +17,21 @@ async function seedUserHashes() {
     connection = await mysql.createConnection(dbConfig);
     console.log('✅ Connected to database');
 
-    const password = 'password123';
+    const password = process.env.SEED_HASH_PASSWORD;
+    if (!password) {
+      throw new Error('SEED_HASH_PASSWORD is required');
+    }
     const saltRounds = 10;
     const hash = await bcrypt.hash(password, saltRounds);
 
     console.log('\n🔐 Updating user passwords...');
-    console.log(`   Password: ${password}`);
     console.log(`   Hash: ${hash.substring(0, 20)}...`);
 
     // Get all staff users (non-resident users)
     const [users] = await connection.execute(
       `SELECT u.id, u.username, r.role_name 
        FROM users u 
-       LEFT JOIN roles r ON u.role_id = r.id 
+       LEFT JOIN roles r ON u.role = r.id 
        WHERE r.role_name != 'Resident' OR r.role_name IS NULL`
     );
 
@@ -42,7 +44,7 @@ async function seedUserHashes() {
     }
 
     console.log('\n✅ Password hashes updated successfully!');
-    console.log('\n📋 Test Credentials (password: password123):');
+    console.log('\n📋 Updated accounts:');
     users.forEach(user => {
       console.log(`   - ${user.username} (${user.role_name || 'No Role'})`);
     });

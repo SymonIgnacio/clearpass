@@ -10,7 +10,7 @@ import {
   Pagination
 } from '@mui/material';
 import { Campaign as CampaignIcon } from '@mui/icons-material';
-import axios from 'axios';
+import { apiRequest } from '../utils/api';
 
 const ResidentAnnouncements = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -24,13 +24,14 @@ const ResidentAnnouncements = () => {
 
   const fetchAnnouncements = async () => {
     try {
-      const response = await axios.get('/api/system-admin/announcements/public', {
+      const response = await apiRequest('/system-admin/announcements/public', {
         params: { page: pagination.page, limit: pagination.limit }
       });
+      const data = await response.json();
       
-      if (response.data.success) {
-        setAnnouncements(response.data.data);
-        setPagination(prev => ({ ...prev, total: response.data.pagination.total }));
+      if (data.success) {
+        setAnnouncements(data.data);
+        setPagination(prev => ({ ...prev, total: data.pagination.total }));
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to load announcements' });

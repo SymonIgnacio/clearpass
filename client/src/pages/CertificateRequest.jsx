@@ -15,7 +15,7 @@ import {
   Grid
 } from '@mui/material';
 import { Send as SendIcon } from '@mui/icons-material';
-import axios from 'axios';
+import { apiRequest } from '../utils/api';
 
 const CertificateRequest = () => {
   const [certificateTypes, setCertificateTypes] = useState([]);
@@ -32,9 +32,10 @@ const CertificateRequest = () => {
   const fetchCertificateTypes = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/certificate-requests/types');
-      if (response.data.success) {
-        setCertificateTypes(response.data.data);
+      const response = await apiRequest('/certificate-requests/types');
+      const data = await response.json();
+      if (data.success) {
+        setCertificateTypes(data.data);
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to load certificate types' });
@@ -52,12 +53,16 @@ const CertificateRequest = () => {
 
     setSubmitLoading(true);
     try {
-      const response = await axios.post('/api/certificate-requests/submit', {
-        document_type: selectedType,
-        purpose: purpose.trim()
+      const response = await apiRequest('/certificate-requests/submit', {
+        method: 'POST',
+        body: {
+          document_type: selectedType,
+          purpose: purpose.trim()
+        }
       });
+      const data = await response.json();
 
-      if (response.data.success) {
+      if (data.success) {
         setMessage({ type: 'success', text: 'Certificate request submitted successfully!' });
         setSelectedType('');
         setPurpose('');
@@ -65,7 +70,7 @@ const CertificateRequest = () => {
     } catch (error) {
       setMessage({ 
         type: 'error', 
-        text: error.response?.data?.message || 'Failed to submit request' 
+        text: error.message || 'Failed to submit request' 
       });
     } finally {
       setSubmitLoading(false);

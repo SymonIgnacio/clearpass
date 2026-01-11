@@ -72,6 +72,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Check for existing authentication via API call
   useEffect(() => {
@@ -137,6 +138,26 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const refreshUser = async () => {
+    setRefreshing(true);
+    try {
+      const response = await api.get('/auth/me');
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData.user || userData);
+        setIsAuthenticated(true);
+        return userData;
+      }
+      if (response.status === 401) {
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+    } finally {
+      setRefreshing(false);
+    }
+    return null;
+  };
+
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -173,7 +194,9 @@ export function AuthProvider({ children }) {
     login,
     logout,
     checkAuth,
+    refreshUser,
     loading,
+    refreshing,
     isAuthenticated
   };
 

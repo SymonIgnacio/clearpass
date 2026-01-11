@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { ROLES } = require('../config/roles');
 
 module.exports = (db) => {
   // GET all document requests
   router.get('/requests', verifyToken, asyncHandler(async (req, res) => {
-    const isResident = req.user.role_id === 12; // RESIDENT role
+    const isResident = req.user.role === ROLES.RESIDENT;
     
     let query, values;
     
@@ -34,22 +35,41 @@ module.exports = (db) => {
   }));
   
   // POST create document request
-  router.post('/requests', verifyToken, asyncHandler(async (req, res) => {
-    const { resident_id, document_type, purpose, urgency, additional_info } = req.body;
-    
-    if (!resident_id || !document_type) {
-      return res.status(400).json({ error: 'resident_id and document_type are required' });
+  router.post('/requests', verifyToken, checkRole([ROLES.RESIDENT]), asyncHandler(async (req, res) => {
+    const { document_type, purpose, urgency, additional_info, additional_data } = req.body;
+
+    if (!document_type) {
+      return res.status(400).json({ error: 'document_type is required' });
     }
-    
+
+    const residentId = req.user.resident_id || req.user.id;
+
+    const [residents] = await db.execute(
+      'SELECT * FROM residents WHERE Resident_ID = ?',
+      [residentId]
+    );
+
+    if (residents.length === 0) {
+      return res.status(404).json({ error: 'Resident not found' });
+    }
+
     const request_id = `REQ-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-    
-    const [result] = await db.execute(`
-      INSERT INTO document_requests (request_id, resident_id, document_type, purpose, urgency, additional_info, status, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, 'Pending', NOW())
-    `, [request_id, resident_id, document_type, purpose || '', urgency || 'Normal', additional_info || '']);
-    
+    const requestData = {
+      purpose: purpose || '',
+      urgency: urgency || 'normal',
+      additional_info: additional_info || '',
+      ...(additional_data && typeof additional_data === 'object' ? additional_data : {})
+    };
+
+    await db.execute(
+      `
+      INSERT INTO document_requests (request_id, resident_id, document_type, status, request_data, resident_data)
+      VALUES (?, ?, ?, 'pending', ?, ?)
+      `,
+      [request_id, residentId, document_type, JSON.stringify(requestData), JSON.stringify(residents[0])]
+    );
+
     res.status(201).json({
-      id: result.insertId,
       request_id,
       message: 'Document request created successfully'
     });
@@ -62,12 +82,33 @@ module.exports = (db) => {
     if (!status) {
       return res.status(400).json({ error: 'status is required' });
     }
-    
-    await db.execute(`
-      UPDATE document_requests 
-      SET status = ?, notes = ?, updated_at = NOW()
-      WHERE id = ? OR request_id = ?
-    `, [status, notes || '', req.params.id, req.params.id]);
+
+    const normalizedStatus = String(status).toLowerCase();
+    const approvalData = {
+      notes: notes || '',
+      updated_by: String(req.user.id),
+      updated_at: new Date().toISOString()
+    };
+
+    if (normalizedStatus === 'approved' || normalizedStatus === 'rejected' || normalizedStatus === 'completed') {
+      await db.execute(
+        `
+        UPDATE document_requests 
+        SET status = ?, approval_data = ?, approved_at = NOW(), approved_by = ?, updated_at = NOW()
+        WHERE request_id = ?
+        `,
+        [normalizedStatus, JSON.stringify(approvalData), String(req.user.id), req.params.id]
+      );
+    } else {
+      await db.execute(
+        `
+        UPDATE document_requests 
+        SET status = ?, approval_data = ?, updated_at = NOW()
+        WHERE request_id = ?
+        `,
+        [normalizedStatus, JSON.stringify(approvalData), req.params.id]
+      );
+    }
     
     res.json({ message: 'Document request updated successfully' });
   }));

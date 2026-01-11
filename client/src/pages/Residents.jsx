@@ -353,13 +353,9 @@ const Residents = () => {
         }
       })
 
-      // Use fetch directly for FormData
-      const token = localStorage.getItem('authToken')
-      const response = await fetch(`/api/${endpoint}`, {
+      // Use apiRequest for FormData
+      const response = await apiRequest(endpoint, {
         method: method.toUpperCase(),
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
         body: submitData
       })
 
@@ -429,13 +425,9 @@ Keep these credentials secure and provide them to the resident privately.`
     formDataUpload.append('file', file)
 
     try {
-      // For file uploads, we need to use fetch directly since apiRequest expects JSON
-      const token = localStorage.getItem('authToken')
-      const response = await fetch('/api/residents/bulk-import', {
+      // For file uploads, we can use apiRequest as it handles FormData correctly
+      const response = await apiRequest('/residents/bulk-import', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
         body: formDataUpload
       })
 
@@ -539,11 +531,8 @@ Keep these credentials secure and provide them to the resident privately.`
       if (dateTo) params.append('dateTo', dateTo)
 
       // Call the PDF export endpoint
-      const response = await fetch(`/api/admin/reports/pdf/residents?${params}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
+      const response = await apiRequest(`admin/reports/pdf/residents?${params}`, {
+        method: 'GET'
       })
 
       if (!response.ok) {
@@ -775,8 +764,8 @@ Keep these credentials secure and provide them to the resident privately.`
             </Box>
           </Paper>
 
-          <TableContainer component={Paper}>
-            <Table>
+          <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 900 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Photo</TableCell>
@@ -863,8 +852,8 @@ Keep these credentials secure and provide them to the resident privately.`
       {tabValue === 1 && (
         <Box>
           <Typography variant="h6" sx={{ mb: 2 }}>Household Management</Typography>
-          <TableContainer component={Paper}>
-            <Table>
+          <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 700 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Household #</TableCell>

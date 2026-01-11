@@ -18,17 +18,23 @@ exports.getAllUsers = async (req, res) => {
 
 exports.createUser = async (req, res) => {
   const db = require('../database');
-  const { username, email, first_name, last_name, role_id, password, is_active = true } = req.body;
+  const { username, email, first_name, last_name, role, role_id, password, is_active = true } = req.body;
   
   try {
     const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash(password, 10);
     const full_name = `${first_name || ''} ${last_name || ''}`.trim();
     
+    const normalizedRole = role ?? role_id;
+    const roleNum = Number.parseInt(normalizedRole, 10);
+    if (!Number.isFinite(roleNum)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
+
     await db.execute(`
-      INSERT INTO users (username, email, full_name, password_hash, role_id, is_active, created_at)
+      INSERT INTO users (username, email, full_name, password_hash, role, is_active, created_at)
       VALUES (?, ?, ?, ?, ?, ?, NOW())
-    `, [username, email, full_name, hashedPassword, role_id, is_active]);
+    `, [username, email, full_name, hashedPassword, roleNum, is_active]);
     
     res.status(201).json({ message: 'User created successfully' });
   } catch (error) {
@@ -40,14 +46,19 @@ exports.createUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   const db = require('../database');
   const { id } = req.params;
-  const { username, email, first_name, last_name, role_id, password, is_active } = req.body;
+  const { username, email, first_name, last_name, role, role_id, password, is_active } = req.body;
   
   try {
     const full_name = `${first_name || ''} ${last_name || ''}`.trim();
+    const normalizedRole = role ?? role_id;
+    const roleNum = Number.parseInt(normalizedRole, 10);
+    if (!Number.isFinite(roleNum)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
     let updateQuery = `
-      UPDATE users SET username = ?, email = ?, full_name = ?, role_id = ?, is_active = ?, updated_at = NOW()
+      UPDATE users SET username = ?, email = ?, full_name = ?, role = ?, is_active = ?, updated_at = NOW()
     `;
-    let values = [username, email, full_name, role_id, is_active];
+    let values = [username, email, full_name, roleNum, is_active];
     
     if (password) {
       const bcrypt = require('bcryptjs');
@@ -89,7 +100,7 @@ exports.getAllStaff = async (req, res) => {
              COALESCE(r.role_name, CONCAT('Role ', u.role)) as role_name
       FROM users u 
       LEFT JOIN roles r ON u.role = r.id
-      WHERE u.role != 4 
+      WHERE u.role != 12
       ORDER BY u.role, u.username
     `);
     res.json(staff);
@@ -101,17 +112,23 @@ exports.getAllStaff = async (req, res) => {
 
 exports.createStaff = async (req, res) => {
   const db = require('../database');
-  const { username, email, first_name, last_name, role_id, password, is_active = true } = req.body;
+  const { username, email, first_name, last_name, role, role_id, password, is_active = true } = req.body;
   
   try {
     const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash(password, 10);
     const full_name = `${first_name || ''} ${last_name || ''}`.trim();
     
+    const normalizedRole = role ?? role_id;
+    const roleNum = Number.parseInt(normalizedRole, 10);
+    if (!Number.isFinite(roleNum)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
+
     await db.execute(`
-      INSERT INTO users (username, email, full_name, password_hash, role_id, is_active, created_at)
+      INSERT INTO users (username, email, full_name, password_hash, role, is_active, created_at)
       VALUES (?, ?, ?, ?, ?, ?, NOW())
-    `, [username, email, full_name, hashedPassword, role_id, is_active]);
+    `, [username, email, full_name, hashedPassword, roleNum, is_active]);
     
     res.status(201).json({ message: 'Staff created successfully' });
   } catch (error) {
@@ -123,14 +140,19 @@ exports.createStaff = async (req, res) => {
 exports.updateStaff = async (req, res) => {
   const db = require('../database');
   const { id } = req.params;
-  const { username, email, first_name, last_name, role_id, password, is_active } = req.body;
+  const { username, email, first_name, last_name, role, role_id, password, is_active } = req.body;
   
   try {
     const full_name = `${first_name || ''} ${last_name || ''}`.trim();
+    const normalizedRole = role ?? role_id;
+    const roleNum = Number.parseInt(normalizedRole, 10);
+    if (!Number.isFinite(roleNum)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
     let updateQuery = `
-      UPDATE users SET username = ?, email = ?, full_name = ?, role_id = ?, is_active = ?, updated_at = NOW()
+      UPDATE users SET username = ?, email = ?, full_name = ?, role = ?, is_active = ?, updated_at = NOW()
     `;
-    let values = [username, email, full_name, role_id, is_active];
+    let values = [username, email, full_name, roleNum, is_active];
     
     if (password) {
       const bcrypt = require('bcryptjs');
@@ -155,7 +177,7 @@ exports.deleteStaff = async (req, res) => {
   const { id } = req.params;
   
   try {
-    await db.execute('DELETE FROM users WHERE id = ? AND role_id != 12', [id]);
+    await db.execute('DELETE FROM users WHERE id = ? AND role != 12', [id]);
     res.json({ message: 'Staff deleted successfully' });
   } catch (error) {
     console.error('Error deleting staff:', error);
@@ -210,13 +232,59 @@ exports.verifyResident = async (req, res) => {
 exports.getAllRoles = async (req, res) => {
   const db = require('../database');
   try {
-    console.log('Fetching roles from database...');
     const [roles] = await db.execute('SELECT * FROM roles ORDER BY hierarchy_level');
-    console.log('Roles found:', roles);
     res.json(roles);
   } catch (error) {
     console.error('Error fetching roles:', error);
     res.status(500).json({ error: 'Failed to fetch roles' });
+  }
+};
+
+exports.createRole = async (req, res) => {
+  const db = require('../database');
+  const { role_name, description, hierarchy_level, permissions } = req.body;
+  try {
+    await db.execute(
+      'INSERT INTO roles (role_name, description, hierarchy_level, permissions) VALUES (?, ?, ?, ?)',
+      [role_name, description, hierarchy_level, JSON.stringify(permissions)]
+    );
+    res.status(201).json({ message: 'Role created successfully' });
+  } catch (error) {
+    console.error('Error creating role:', error);
+    res.status(500).json({ error: 'Failed to create role' });
+  }
+};
+
+exports.updateRole = async (req, res) => {
+  const db = require('../database');
+  const { id } = req.params;
+  const { role_name, description, hierarchy_level, permissions } = req.body;
+  try {
+    await db.execute(
+      'UPDATE roles SET role_name = ?, description = ?, hierarchy_level = ?, permissions = ? WHERE id = ?',
+      [role_name, description, hierarchy_level, JSON.stringify(permissions), id]
+    );
+    res.json({ message: 'Role updated successfully' });
+  } catch (error) {
+    console.error('Error updating role:', error);
+    res.status(500).json({ error: 'Failed to update role' });
+  }
+};
+
+exports.deleteRole = async (req, res) => {
+  const db = require('../database');
+  const { id } = req.params;
+  try {
+    // Check if role is in use
+    const [users] = await db.execute('SELECT COUNT(*) as count FROM users WHERE role = ?', [id]);
+    if (users[0].count > 0) {
+      return res.status(400).json({ error: 'Cannot delete role: It is currently assigned to users.' });
+    }
+    await db.execute('DELETE FROM roles WHERE id = ?', [id]);
+    res.json({ message: 'Role deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting role:', error);
+    res.status(500).json({ error: 'Failed to delete role' });
   }
 };
 
@@ -504,8 +572,13 @@ exports.getDetailedUsersReport = async (req, res) => {
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
     const [users] = await db.execute(`
-      SELECT u.id, u.username, u.full_name, u.email, u.contact_number, u.role, u.is_active, u.last_login, u.created_at
-      FROM users u ${whereClause} ORDER BY u.created_at DESC LIMIT ? OFFSET ?
+      SELECT u.id, u.username, u.full_name, u.email, u.contact_number, u.role, u.is_active, u.last_login, u.created_at,
+             COALESCE(r.role_name, CONCAT('Role ', u.role)) as role_name
+      FROM users u
+      LEFT JOIN roles r ON u.role = r.id
+      ${whereClause}
+      ORDER BY u.created_at DESC
+      LIMIT ? OFFSET ?
     `, [...values, parseInt(limit), offset]);
 
     const [totalResult] = await db.execute(`SELECT COUNT(*) as total FROM users u ${whereClause}`, values);
@@ -513,7 +586,7 @@ exports.getDetailedUsersReport = async (req, res) => {
     res.json({
       columns: ['ID', 'Username', 'Full Name', 'Email', 'Contact', 'Role', 'Status', 'Created', 'Last Login'],
       data: users.map(u => [u.id, u.username, u.full_name || 'N/A', u.email || 'N/A', u.contact_number || 'N/A',
-        u.role === 1 ? 'IT Admin' : u.role === 2 ? 'Clerk' : u.role === 3 ? 'Blotter Officer' : u.role === 4 ? 'Resident' : u.role === 5 ? 'Captain' : u.role === 6 ? 'Secretary' : `Role ${u.role}`,
+        u.role_name,
         u.is_active ? 'Active' : 'Inactive', new Date(u.created_at).toLocaleDateString(), u.last_login ? new Date(u.last_login).toLocaleDateString() : 'Never']),
       pagination: { page: parseInt(page), limit: parseInt(limit), total: totalResult[0].total, pages: Math.ceil(totalResult[0].total / limit) },
       generated_at: new Date().toISOString(),

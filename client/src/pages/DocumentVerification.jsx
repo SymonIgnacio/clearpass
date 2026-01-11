@@ -24,15 +24,11 @@ import {
   Tabs,
   Tab
 } from '@mui/material'
-import {
-  Visibility,
-  CheckCircle,
-  Cancel,
-  PendingActions,
-  Description,
-  Person,
-  Assignment
-} from '@mui/icons-material'
+import Visibility from '@mui/icons-material/Visibility'
+import CheckCircle from '@mui/icons-material/CheckCircle'
+import Cancel from '@mui/icons-material/Cancel'
+import Description from '@mui/icons-material/Description'
+import Assignment from '@mui/icons-material/Assignment'
 import { apiRequest } from '../utils/api'
 
 const DocumentVerification = () => {
@@ -40,6 +36,7 @@ const DocumentVerification = () => {
   const [applications, setApplications] = useState([])
   const [residentDocuments, setResidentDocuments] = useState([])
   const [selectedApplication, setSelectedApplication] = useState(null)
+  const [selectedApplicationDocuments, setSelectedApplicationDocuments] = useState([])
   const [selectedDocument, setSelectedDocument] = useState(null)
   const [documentViewOpen, setDocumentViewOpen] = useState(false)
 
@@ -72,6 +69,46 @@ const DocumentVerification = () => {
     }
   }
 
+  const fetchApplicationDocuments = async (applicationId) => {
+    try {
+      const response = await apiRequest(`secretary/applications/${applicationId}/documents`)
+      if (response.ok) {
+        const data = await response.json()
+        setSelectedApplicationDocuments(data)
+      } else {
+        setSelectedApplicationDocuments([])
+      }
+    } catch (error) {
+      console.error('Error fetching application documents:', error)
+      setSelectedApplicationDocuments([])
+    }
+  }
+
+  const openFileFromEndpoint = async (endpoint, fileName) => {
+    try {
+      const response = await apiRequest(endpoint)
+      if (!response.ok) {
+        alert('Failed to open file')
+        return
+      }
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const w = window.open(url, '_blank', 'noopener,noreferrer')
+      if (!w) {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = fileName || 'document'
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+      }
+      setTimeout(() => window.URL.revokeObjectURL(url), 30_000)
+    } catch (error) {
+      console.error('Error opening file:', error)
+      alert('Error opening file')
+    }
+  }
+
   const handleApplicationAction = async (applicationId, action, reason = '') => {
     try {
       const response = await apiRequest(`secretary/applications/${applicationId}/${action}`, {
@@ -80,8 +117,15 @@ const DocumentVerification = () => {
       })
 
       if (response.ok) {
+        const data = await response.json().catch(() => null)
         fetchApplications()
         setSelectedApplication(null)
+        if (action === 'approve' && data?.credentials?.email && data?.credentials?.temp_password) {
+          alert(
+            `Application approved.\n\nLogin credentials:\nEmail: ${data.credentials.email}\nTemp Password: ${data.credentials.temp_password}`
+          )
+          return
+        }
         alert(`Application ${action}d successfully`)
       }
     } catch (error) {
@@ -166,7 +210,10 @@ const DocumentVerification = () => {
                   <Tooltip title="Review Application">
                     <IconButton 
                       size="small" 
-                      onClick={() => setSelectedApplication(app)}
+                      onClick={() => {
+                        setSelectedApplication(app)
+                        fetchApplicationDocuments(app.application_id)
+                      }}
                     >
                       <Assignment />
                     </IconButton>
@@ -232,6 +279,15 @@ const DocumentVerification = () => {
                       <Visibility />
                     </IconButton>
                   </Tooltip>
+                  <Tooltip title="Open File">
+                    <IconButton
+                      size="small"
+                      aria-label="Open File"
+                      onClick={() => openFileFromEndpoint(`secretary/documents/${doc.id}/download`, doc.file_name)}
+                    >
+                      <Description />
+                    </IconButton>
+                  </Tooltip>
                 </TableCell>
               </TableRow>
             ))}
@@ -247,6 +303,9 @@ const DocumentVerification = () => {
         <Description sx={{ mr: 1, verticalAlign: 'middle' }} />
         Document Verification
       </Typography>
+      <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 3 }}>
+        Review registration applications and verify uploaded documents before approval.
+      </Typography>
 
       <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ mb: 3 }}>
         <Tab label="Registration Applications" />
@@ -259,7 +318,10 @@ const DocumentVerification = () => {
       {/* Application Review Dialog */}
       <Dialog 
         open={!!selectedApplication} 
-        onClose={() => setSelectedApplication(null)} 
+        onClose={() => {
+          setSelectedApplication(null)
+          setSelectedApplicationDocuments([])
+        }} 
         maxWidth="md" 
         fullWidth
       >
@@ -305,6 +367,59 @@ const DocumentVerification = () => {
                 </Grid>
               </Grid>
 
+              <Card sx={{ mt: 1 }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ mb: 1 }}>Uploaded Documents</Typography>
+                  {selectedApplicationDocuments.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">
+                      No documents found for this application.
+                    </Typography>
+                  ) : (
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Type</TableCell>
+                          <TableCell>File</TableCell>
+                          <TableCell>Status</TableCell>
+                          <TableCell align="right">Actions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {selectedApplicationDocuments.map((doc) => (
+                          <TableRow key={doc.id}>
+                            <TableCell>{doc.document_type}</TableCell>
+                            <TableCell>{doc.file_name}</TableCell>
+                            <TableCell>
+                              <Chip
+                                label={doc.verification_status}
+                                color={getStatusColor(doc.verification_status)}
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Tooltip title="Open File">
+                                <IconButton
+                                  size="small"
+                                  aria-label="Open File"
+                                  onClick={() =>
+                                    openFileFromEndpoint(
+                                      `secretary/applications/${selectedApplication.application_id}/documents/${doc.id}/download`,
+                                      doc.file_name
+                                    )
+                                  }
+                                >
+                                  <Visibility />
+                                </IconButton>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="body2">
                   Review all uploaded documents and personal information before approving this application.
@@ -314,8 +429,11 @@ const DocumentVerification = () => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSelectedApplication(null)}>Cancel</Button>
+      <DialogActions>
+          <Button onClick={() => {
+            setSelectedApplication(null)
+            setSelectedApplicationDocuments([])
+          }}>Cancel</Button>
           <Button 
             color="error" 
             startIcon={<Cancel />}
@@ -368,6 +486,11 @@ const DocumentVerification = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDocumentViewOpen(false)}>Cancel</Button>
+          {selectedDocument && (
+            <Button onClick={() => openFileFromEndpoint(`secretary/documents/${selectedDocument.id}/download`, selectedDocument.file_name)}>
+              Open File
+            </Button>
+          )}
           <Button 
             color="error" 
             onClick={() => {

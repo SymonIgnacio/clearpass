@@ -15,13 +15,10 @@ import {
   MenuItem,
   Alert,
   CircularProgress,
-  Timeline,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
   Divider,
+  List,
+  ListItem,
+  ListItemText,
   Table,
   TableBody,
   TableCell,
@@ -36,7 +33,7 @@ import {
   QrCode as QrCodeIcon,
   Save as SaveIcon
 } from '@mui/icons-material';
-import axios from 'axios';
+import { apiRequest } from '../utils/api';
 
 const CaseDetail = () => {
   const { caseId } = useParams();
@@ -56,13 +53,14 @@ const CaseDetail = () => {
 
   const fetchCaseDetails = async () => {
     try {
-      const response = await axios.get(`/api/case-management/case/${caseId}`);
-      if (response.data.success) {
-        setCaseData(response.data.data);
+      const response = await apiRequest(`/case-management/case/${caseId}`);
+      const data = await response.json();
+      if (data.success) {
+        setCaseData(data.data);
         setStatusUpdate({
-          status: response.data.data.Status,
-          hearing_schedule: response.data.data.Hearing_Schedule ? 
-            new Date(response.data.data.Hearing_Schedule).toISOString().slice(0, 16) : '',
+          status: data.data.Status,
+          hearing_schedule: data.data.Hearing_Schedule ? 
+            new Date(data.data.Hearing_Schedule).toISOString().slice(0, 16) : '',
           notes: ''
         });
       }
@@ -76,8 +74,12 @@ const CaseDetail = () => {
   const handleStatusUpdate = async () => {
     setUpdating(true);
     try {
-      const response = await axios.put(`/api/case-management/case/${caseId}/status`, statusUpdate);
-      if (response.data.success) {
+      const response = await apiRequest(`/case-management/case/${caseId}/status`, {
+        method: 'PUT',
+        body: statusUpdate
+      });
+      const data = await response.json();
+      if (data.success) {
         setMessage({ type: 'success', text: 'Case status updated successfully' });
         fetchCaseDetails();
       }
@@ -90,10 +92,14 @@ const CaseDetail = () => {
 
   const generateQRCode = async () => {
     try {
-      const response = await axios.post(`/api/case-management/case/${caseId}/qr`, {
-        hearing_date: statusUpdate.hearing_schedule
+      const response = await apiRequest(`/case-management/case/${caseId}/qr`, {
+        method: 'POST',
+        body: {
+          hearing_date: statusUpdate.hearing_schedule
+        }
       });
-      if (response.data.success) {
+      const data = await response.json();
+      if (data.success) {
         setMessage({ type: 'success', text: 'QR code generated for hearing attendance' });
       }
     } catch (error) {
@@ -323,47 +329,34 @@ const CaseDetail = () => {
           <Card sx={{ mt: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>Case Timeline</Typography>
-              <Timeline>
-                <TimelineItem>
-                  <TimelineSeparator>
-                    <TimelineDot color="primary" />
-                    <TimelineConnector />
-                  </TimelineSeparator>
-                  <TimelineContent>
-                    <Typography variant="body2" color="text.secondary">
-                      {formatDate(caseData.created_at)}
-                    </Typography>
-                    <Typography variant="body1">Case Filed</Typography>
-                  </TimelineContent>
-                </TimelineItem>
-                
+              <List dense>
+                <ListItem>
+                  <ListItemText
+                    primary="Case Filed"
+                    secondary={formatDate(caseData.created_at)}
+                  />
+                </ListItem>
                 {caseData.Hearing_Schedule && (
-                  <TimelineItem>
-                    <TimelineSeparator>
-                      <TimelineDot color="info" />
-                      <TimelineConnector />
-                    </TimelineSeparator>
-                    <TimelineContent>
-                      <Typography variant="body2" color="text.secondary">
-                        {formatDate(caseData.Hearing_Schedule)}
-                      </Typography>
-                      <Typography variant="body1">Hearing Scheduled</Typography>
-                    </TimelineContent>
-                  </TimelineItem>
+                  <ListItem>
+                    <ListItemText
+                      primary="Hearing Scheduled"
+                      secondary={formatDate(caseData.Hearing_Schedule)}
+                    />
+                  </ListItem>
                 )}
-
-                <TimelineItem>
-                  <TimelineSeparator>
-                    <TimelineDot color={getStatusColor(caseData.Status)} />
-                  </TimelineSeparator>
-                  <TimelineContent>
-                    <Typography variant="body2" color="text.secondary">
-                      Current Status
-                    </Typography>
-                    <Typography variant="body1">{caseData.Status}</Typography>
-                  </TimelineContent>
-                </TimelineItem>
-              </Timeline>
+                <ListItem>
+                  <ListItemText
+                    primary="Current Status"
+                    secondary={caseData.Status}
+                  />
+                  <Chip
+                    label={caseData.Status}
+                    color={getStatusColor(caseData.Status)}
+                    size="small"
+                    sx={{ ml: 2 }}
+                  />
+                </ListItem>
+              </List>
             </CardContent>
           </Card>
         </Grid>

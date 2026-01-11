@@ -1,7 +1,9 @@
+const { ROLES } = require('../config/roles');
+
 exports.getAll = async (req, res) => {
   const db = req.app.locals.db;
   try {
-    const isResident = req.user.role === 4;
+    const isResident = req.user.role === ROLES.RESIDENT;
 
     let query, values;
 
@@ -13,7 +15,7 @@ exports.getAll = async (req, res) => {
         WHERE r.Resident_ID = ?
         ORDER BY c.created_at DESC
       `;
-      values = [req.user.id];
+      values = [req.user.resident_id || req.user.id];
     } else {
       query = `
         SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name

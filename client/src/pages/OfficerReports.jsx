@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import { Download, Print, Visibility } from '@mui/icons-material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import axios from 'axios';
+import { apiRequest } from '../utils/api';
 
 const OfficerReports = () => {
   const [reportType, setReportType] = useState('monthly');
@@ -29,32 +29,38 @@ const OfficerReports = () => {
   const generateReport = async () => {
     setLoading(true);
     try {
-      const response = await axios.post('/api/case-management/reports', {
-        type: reportType,
-        start_date: dateRange.start,
-        end_date: dateRange.end
+      const response = await apiRequest('/case-management/reports', {
+        method: 'POST',
+        body: {
+          type: reportType,
+          start_date: dateRange.start,
+          end_date: dateRange.end
+        }
       });
+      const data = await response.json();
       
-      setReportData(response.data.data);
+      setReportData(data.data);
       setMessage('Report generated successfully!');
     } catch (error) {
-      setMessage('Error generating report: ' + error.response?.data?.message);
+      setMessage('Error generating report: ' + (error.message || 'Unknown error'));
     }
     setLoading(false);
   };
 
   const exportReport = async (format = 'pdf') => {
     try {
-      const response = await axios.post('/api/case-management/export-report', {
-        type: reportType,
-        start_date: dateRange.start,
-        end_date: dateRange.end,
-        format
-      }, {
-        responseType: 'blob'
+      const response = await apiRequest('/case-management/export-report', {
+        method: 'POST',
+        body: {
+          type: reportType,
+          start_date: dateRange.start,
+          end_date: dateRange.end,
+          format
+        }
       });
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `blotter-report-${reportType}-${dateRange.start}.${format}`);

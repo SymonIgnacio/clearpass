@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { apiRequest } from '../utils/api';
 import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext();
@@ -17,9 +18,13 @@ export function NotificationProvider({ children }) {
   const { user, token } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [ws, setWs] = useState(null);
+  const wsRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
+  const isUnmountedRef = useRef(false);
 
   useEffect(() => {
+    isUnmountedRef.current = false;
+
     if (user && token) {
       connectWebSocket();
       fetchNotifications();
@@ -27,13 +32,39 @@ export function NotificationProvider({ children }) {
     }
 
     return () => {
-      if (ws) {
-        ws.close();
+      isUnmountedRef.current = true;
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (wsRef.current) {
+        try {
+          wsRef.current.onopen = null;
+          wsRef.current.onmessage = null;
+          wsRef.current.onclose = null;
+          wsRef.current.onerror = null;
+          wsRef.current.close();
+        } finally {
+          wsRef.current = null;
+        }
       }
     };
   }, [user, token]);
 
   const connectWebSocket = () => {
+    if (isUnmountedRef.current) return;
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    if (wsRef.current) {
+      try {
+        wsRef.current.close();
+      } finally {
+        wsRef.current = null;
+      }
+    }
+
     const wsUrl = `ws://localhost:3001/ws`;
     const websocket = new WebSocket(wsUrl);
 
@@ -54,19 +85,19 @@ export function NotificationProvider({ children }) {
     };
 
     websocket.onclose = () => {
-      setTimeout(connectWebSocket, 5000);
+      if (isUnmountedRef.current) return;
+      reconnectTimeoutRef.current = setTimeout(() => {
+        reconnectTimeoutRef.current = null;
+        connectWebSocket();
+      }, 5000);
     };
 
-    setWs(websocket);
+    wsRef.current = websocket;
   };
 
   const fetchNotifications = async () => {
     try {
-      const response = await fetch('/api/notifications', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiRequest('/notifications');
       const data = await response.json();
       if (data.success) {
         setNotifications(data.data);
@@ -78,11 +109,7 @@ export function NotificationProvider({ children }) {
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await fetch('/api/notifications/unread-count', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiRequest('/notifications/unread-count');
       const data = await response.json();
       if (data.success) {
         setUnreadCount(data.count);
@@ -94,11 +121,8 @@ export function NotificationProvider({ children }) {
 
   const markAsRead = async (notificationId) => {
     try {
-      const response = await fetch(`/api/notifications/${notificationId}/read`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await apiRequest(`/notifications/${notificationId}/read`, {
+        method: 'PUT'
       });
       
       if (response.ok) {
@@ -114,11 +138,8 @@ export function NotificationProvider({ children }) {
 
   const markAllAsRead = async () => {
     try {
-      const response = await fetch('/api/notifications/mark-all-read', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await apiRequest('/notifications/mark-all-read', {
+        method: 'PUT'
       });
       
       if (response.ok) {

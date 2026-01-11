@@ -112,7 +112,7 @@ class ResidentProfileController {
       // Create notification for staff if high vulnerability score
       if (vulnerability_score >= 3 && global.createBulkNotification) {
         const [staff] = await this.db.execute(
-          'SELECT id FROM users WHERE role_id IN (2, 3) AND is_active = 1'
+          'SELECT id FROM users WHERE role IN (2, 3) AND is_active = 1'
         );
         const staffIds = staff.map(s => s.id);
         

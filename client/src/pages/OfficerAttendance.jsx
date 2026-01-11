@@ -5,7 +5,7 @@ import {
   Chip, TextField, Alert, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import { QrCodeScanner, Print, Download } from '@mui/icons-material';
-import axios from 'axios';
+import { apiRequest } from '../utils/api';
 
 const OfficerAttendance = () => {
   const [hearings, setHearings] = useState([]);
@@ -22,8 +22,9 @@ const OfficerAttendance = () => {
 
   const fetchHearings = async () => {
     try {
-      const response = await axios.get('/api/case-management/hearings');
-      setHearings(response.data.data || []);
+      const response = await apiRequest('/case-management/hearings');
+      const data = await response.json();
+      setHearings(data.data || []);
     } catch (error) {
       console.error('Error fetching hearings:', error);
     }
@@ -31,8 +32,9 @@ const OfficerAttendance = () => {
 
   const fetchAttendance = async (hearingId) => {
     try {
-      const response = await axios.get(`/api/case-management/attendance/${hearingId}`);
-      setAttendance(response.data.data || []);
+      const response = await apiRequest(`/case-management/attendance/${hearingId}`);
+      const data = await response.json();
+      setAttendance(data.data || []);
     } catch (error) {
       console.error('Error fetching attendance:', error);
     }
@@ -40,19 +42,23 @@ const OfficerAttendance = () => {
 
   const generateQRCode = async (hearingId) => {
     try {
-      const response = await axios.post('/api/case-management/generate-qr', {
-        hearing_id: hearingId,
-        type: 'attendance'
+      const response = await apiRequest('/case-management/generate-qr', {
+        method: 'POST',
+        body: {
+          hearing_id: hearingId,
+          type: 'attendance'
+        }
       });
+      const data = await response.json();
       
       // Create QR code display
-      const qrData = response.data.qr_code;
+      const qrData = data.qr_code;
       setMessage('QR Code generated successfully!');
       
       // You can implement QR code display here
       console.log('QR Code data:', qrData);
     } catch (error) {
-      setMessage('Error generating QR code: ' + error.response?.data?.message);
+      setMessage('Error generating QR code: ' + error.message);
     }
   };
 
@@ -61,9 +67,12 @@ const OfficerAttendance = () => {
     
     setLoading(true);
     try {
-      const response = await axios.post('/api/case-management/mark-attendance', {
-        qr_code: scannedCode,
-        timestamp: new Date().toISOString()
+      const response = await apiRequest('/case-management/mark-attendance', {
+        method: 'POST',
+        body: {
+          qr_code: scannedCode,
+          timestamp: new Date().toISOString()
+        }
       });
       
       setMessage('Attendance marked successfully!');
@@ -74,18 +83,17 @@ const OfficerAttendance = () => {
         fetchAttendance(selectedHearing.id);
       }
     } catch (error) {
-      setMessage('Error marking attendance: ' + error.response?.data?.message);
+      setMessage('Error marking attendance: ' + error.message);
     }
     setLoading(false);
   };
 
   const exportAttendance = async (hearingId) => {
     try {
-      const response = await axios.get(`/api/case-management/attendance-report/${hearingId}`, {
-        responseType: 'blob'
-      });
+      const response = await apiRequest(`/case-management/attendance-report/${hearingId}`);
+      const blob = await response.blob();
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `attendance-report-${hearingId}.pdf`);

@@ -39,7 +39,7 @@ module.exports = (db) => {
   router.post('/check-duplicate', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(residentController.checkDuplicate));
   
   // PUT update resident
-  router.put('/:id', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary', 'clerk']), validateId, asyncHandler(residentController.update));
+  router.put('/:id', verifyToken, enforceReadOnly, residentController.uploadMiddleware, checkRole(['admin', 'secretary', 'clerk']), validateId, asyncHandler(residentController.update));
   
   // DELETE (archive) resident
   router.delete('/:id', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary']), validateId, asyncHandler(residentController.archive));
@@ -51,10 +51,10 @@ module.exports = (db) => {
   router.get('/household/:id/members', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk']), asyncHandler(residentController.getHouseholdMembers));
   
   // POST file upload for verification
-  router.post('/verification/upload', verifyToken, asyncHandler(async (req, res) => {
-    // Placeholder for file upload implementation
-    res.json({ message: 'File upload endpoint - to be implemented', files: req.files || [] });
-  }));
+  router.post('/verification/upload', verifyToken, residentController.uploadMiddleware, asyncHandler(residentController.uploadVerificationDocs));
+
+  router.get('/:id/documents', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident']), validateId, asyncHandler(residentController.listDocuments));
+  router.get('/:id/documents/:docId/download', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident']), validateId, asyncHandler(residentController.downloadDocument));
 
   return router;
 };

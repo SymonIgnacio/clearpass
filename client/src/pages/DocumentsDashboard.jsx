@@ -449,14 +449,9 @@ const DocumentsDashboard = ({ user }) => {
 
     setUploadingFile(true);
     try {
-      // Use the correct server URL instead of relative path
-      const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${serverUrl}/api/templates/upload`, {
+      const response = await apiRequest('/templates/upload', {
         method: 'POST',
-        body: formData,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
+        body: formData
       });
 
       if (response.ok) {
@@ -981,8 +976,8 @@ const DocumentsDashboard = ({ user }) => {
                 Certificate History
               </Typography>
 
-              <TableContainer component={Paper}>
-                <Table>
+              <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+                <Table sx={{ minWidth: 900 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>Certificate #</TableCell>
@@ -1059,8 +1054,8 @@ const DocumentsDashboard = ({ user }) => {
                 )}
               </Box>
 
-              <TableContainer component={Paper}>
-                <Table>
+              <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+                <Table sx={{ minWidth: 900 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>Template Name</TableCell>
@@ -1743,8 +1738,8 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
             Available Certificate Types
           </Typography>
 
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 700 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>

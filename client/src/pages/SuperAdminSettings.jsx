@@ -37,10 +37,15 @@ import {
   Send,
   AdminPanelSettings
 } from '@mui/icons-material';
+import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
+import { useThemeMode } from '../contexts/ThemeModeContext.jsx';
+import { apiRequest } from '../utils/api';
 
-const SuperAdminSettings = ({ user }) => {
+const SuperAdminSettings = () => {
+  const { user } = useAuth();
   const { addNotification } = useNotifications();
+  const { mode, setDarkMode } = useThemeMode();
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState({
     full_name: user?.full_name || '',
@@ -66,7 +71,11 @@ const SuperAdminSettings = ({ user }) => {
     const savedPreferences = localStorage.getItem('userPreferences');
     if (savedPreferences) {
       try {
-        setPreferences(JSON.parse(savedPreferences));
+        const parsed = JSON.parse(savedPreferences);
+        setPreferences(parsed);
+        if (typeof parsed?.darkMode === 'boolean') {
+          setDarkMode(parsed.darkMode);
+        }
       } catch (e) {
         console.error('Failed to parse saved preferences:', e);
       }
@@ -95,6 +104,10 @@ const SuperAdminSettings = ({ user }) => {
     // Save to localStorage immediately
     const newPrefs = { ...preferences, [field]: value };
     localStorage.setItem('userPreferences', JSON.stringify(newPrefs));
+
+    if (field === 'darkMode') {
+      setDarkMode(Boolean(value));
+    }
   };
 
   const validateProfile = () => {
@@ -123,14 +136,9 @@ const SuperAdminSettings = ({ user }) => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/profile`, {
+      const response = await apiRequest('/auth/profile', {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(profile)
+        body: profile
       });
 
       if (response.ok) {
@@ -191,17 +199,12 @@ const SuperAdminSettings = ({ user }) => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/change-password`, {
+      const response = await apiRequest('/auth/change-password', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          current_password: '', // Would need current password in real implementation
+        body: {
+          current_password: '',
           new_password: newPassword
-        })
+        }
       });
 
       if (response.ok) {
@@ -456,12 +459,11 @@ const SuperAdminSettings = ({ user }) => {
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={preferences.darkMode}
+                      checked={mode === 'dark'}
                       onChange={handlePreferenceChange('darkMode')}
                     />
                   }
                   label="Dark mode"
-                  disabled // Not implemented yet
                 />
               </Box>
             </CardContent>
@@ -497,7 +499,7 @@ const SuperAdminSettings = ({ user }) => {
             variant="outlined"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            error={newPassword && confirmPassword && newPassword !== confirmPassword}
+            error={Boolean(newPassword && confirmPassword && newPassword !== confirmPassword)}
             helperText={
               newPassword && confirmPassword && newPassword !== confirmPassword
                 ? 'Passwords do not match'

@@ -20,7 +20,7 @@ import {
   Avatar
 } from '@mui/material';
 import { Save as SaveIcon, Person as PersonIcon, Security as SecurityIcon } from '@mui/icons-material';
-import axios from 'axios';
+import { apiRequest } from '../utils/api';
 
 const ResidentProfile = () => {
   const [profile, setProfile] = useState(null);
@@ -55,28 +55,29 @@ const ResidentProfile = () => {
 
   const fetchProfile = async () => {
     try {
-      const response = await axios.get('/api/resident-profile/profile');
-      if (response.data.success) {
-        const data = response.data.data;
-        setProfile(data);
+      const response = await apiRequest('/resident-profile/profile');
+      const data = await response.json();
+      if (data.success) {
+        const profileData = data.data;
+        setProfile(profileData);
         setFormData({
-          First_Name: data.First_Name || '',
-          Last_Name: data.Last_Name || '',
-          Middle_Name: data.Middle_Name || '',
-          Suffix: data.Suffix || '',
-          Mobile_Number: data.Mobile_Number || '',
-          Occupation: data.Occupation || '',
-          Income_Estimate: data.Income_Estimate || '',
-          Civil_Status: data.Civil_Status || '',
-          email: data.email || ''
+          First_Name: profileData.First_Name || '',
+          Last_Name: profileData.Last_Name || '',
+          Middle_Name: profileData.Middle_Name || '',
+          Suffix: profileData.Suffix || '',
+          Mobile_Number: profileData.Mobile_Number || '',
+          Occupation: profileData.Occupation || '',
+          Income_Estimate: profileData.Income_Estimate || '',
+          Civil_Status: profileData.Civil_Status || '',
+          email: profileData.email || ''
         });
         setBeneficiaryData({
-          Is_4Ps: data.Is_4Ps || false,
-          Is_PWD: data.Is_PWD || false,
-          Is_Senior: data.Is_Senior || false,
-          Is_Solo_Parent: data.Is_Solo_Parent || false,
-          Is_Out_of_School_Youth: data.Is_Out_of_School_Youth || false,
-          Disability_Type: data.Disability_Type || ''
+          Is_4Ps: profileData.Is_4Ps || false,
+          Is_PWD: profileData.Is_PWD || false,
+          Is_Senior: profileData.Is_Senior || false,
+          Is_Solo_Parent: profileData.Is_Solo_Parent || false,
+          Is_Out_of_School_Youth: profileData.Is_Out_of_School_Youth || false,
+          Disability_Type: profileData.Disability_Type || ''
         });
       }
     } catch (error) {
@@ -88,9 +89,10 @@ const ResidentProfile = () => {
 
   const fetchVerificationStatus = async () => {
     try {
-      const response = await axios.get('/api/resident-profile/verification-status');
-      if (response.data.success) {
-        setVerification(response.data.data);
+      const response = await apiRequest('/resident-profile/verification-status');
+      const data = await response.json();
+      if (data.success) {
+        setVerification(data.data);
       }
     } catch (error) {
       console.error('Failed to fetch verification status');
@@ -108,8 +110,12 @@ const ResidentProfile = () => {
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      const response = await axios.put('/api/resident-profile/profile', formData);
-      if (response.data.success) {
+      const response = await apiRequest('/resident-profile/profile', {
+        method: 'PUT',
+        body: formData
+      });
+      const data = await response.json();
+      if (data.success) {
         setMessage({ type: 'success', text: 'Profile updated successfully' });
       }
     } catch (error) {
@@ -122,11 +128,15 @@ const ResidentProfile = () => {
   const handleSaveBeneficiaryStatus = async () => {
     setSaving(true);
     try {
-      const response = await axios.put('/api/resident-profile/beneficiary-status', beneficiaryData);
-      if (response.data.success) {
+      const response = await apiRequest('/resident-profile/beneficiary-status', {
+        method: 'PUT',
+        body: beneficiaryData
+      });
+      const data = await response.json();
+      if (data.success) {
         setMessage({ 
           type: 'success', 
-          text: `Beneficiary status updated successfully. Vulnerability Score: ${response.data.vulnerability_score}` 
+          text: `Beneficiary status updated successfully. Vulnerability Score: ${data.vulnerability_score}` 
         });
       }
     } catch (error) {
