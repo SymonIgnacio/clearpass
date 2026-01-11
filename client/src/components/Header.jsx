@@ -24,7 +24,7 @@ const Header = ({ showMenuButton = false, onOpenSidebar = () => {} }) => {
   }
 
   return (
-    <AppBar position="static" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+    <AppBar position="sticky" sx={{ top: 0, zIndex: 1100 }}>
       <Toolbar>
         <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
           {showMenuButton && (

@@ -414,6 +414,43 @@ exports.archive = async (req, res) => {
   }
 };
 
+exports.toggleStatus = async (req, res) => {
+  if (!db) {
+    return res.status(500).json({ error: 'Database connection not available' });
+  }
+
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const residentId = req.params.id;
+    const { status, is_active } = req.body; // status for residents table, is_active for users table
+
+    if (status) {
+        await connection.execute(`
+            UPDATE residents SET Residency_Status = ?, updated_at = NOW() WHERE Resident_ID = ?
+        `, [status, residentId]);
+    }
+
+    if (is_active !== undefined) {
+        // Find linked user
+        await connection.execute(`
+            UPDATE users SET is_active = ?, updated_at = NOW() WHERE resident_id = ?
+        `, [is_active, residentId]);
+    }
+
+    await connection.commit();
+    res.json({ message: 'Resident status updated successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error updating resident status:', error);
+    res.status(500).json({ error: 'Failed to update resident status' });
+  } finally {
+    connection.release();
+  }
+};
+
 exports.generateQR = async (req, res) => {
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });

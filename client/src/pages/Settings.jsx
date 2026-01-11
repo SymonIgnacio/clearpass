@@ -708,6 +708,16 @@ const Settings = ({ user }) => {
                 {profile.full_name || user?.username}
               </Typography>
 
+              {user?.role === 1 && (
+                <Chip 
+                  label="Administrative Access" 
+                  color="error" 
+                  size="small" 
+                  icon={<Security />} 
+                  sx={{ mb: 2 }} 
+                />
+              )}
+
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 {user?.role_name}
               </Typography>

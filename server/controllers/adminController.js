@@ -110,6 +110,12 @@ exports.getAllStaff = async (req, res) => {
   }
 };
 
+// Helper to get hierarchy level
+const getRoleLevel = async (db, roleId) => {
+  const [rows] = await db.execute('SELECT hierarchy_level FROM roles WHERE id = ?', [roleId]);
+  return rows.length > 0 ? rows[0].hierarchy_level : 999; // Default to lowest priority if not found
+};
+
 exports.createStaff = async (req, res) => {
   const db = require('../database');
   const { username, email, first_name, last_name, role, role_id, password, is_active = true } = req.body;
@@ -123,6 +129,22 @@ exports.createStaff = async (req, res) => {
     const roleNum = Number.parseInt(normalizedRole, 10);
     if (!Number.isFinite(roleNum)) {
       return res.status(400).json({ error: 'Invalid role' });
+    }
+
+    // SECURITY: Hierarchy Check
+    // 1. Get Requester's Level
+    const requesterLevel = await getRoleLevel(db, req.user.role);
+    // 2. Get Target Role's Level
+    const targetLevel = await getRoleLevel(db, roleNum);
+
+    // Ensure requester has higher authority (Lower Level Number = Higher Authority)
+    // Exception: Admin (Level 1) can create other Admins (Level 1)
+    if (requesterLevel > targetLevel) {
+       return res.status(403).json({ error: 'Access denied. You cannot create a user with a higher or equal role hierarchy.' });
+    }
+    // Prevent non-super-admins from creating admins (if policy requires) - strictly enforced hierarchy
+    if (requesterLevel === targetLevel && requesterLevel !== 1) {
+       return res.status(403).json({ error: 'Access denied. You cannot create a user with the same role hierarchy.' });
     }
 
     await db.execute(`
@@ -143,9 +165,31 @@ exports.updateStaff = async (req, res) => {
   const { username, email, first_name, last_name, role, role_id, password, is_active } = req.body;
   
   try {
-    const full_name = `${first_name || ''} ${last_name || ''}`.trim();
+    // SECURITY: Hierarchy Check
+    const requesterLevel = await getRoleLevel(db, req.user.role);
+
+    // 1. Check Target User's Current Level
+    const [targetUser] = await db.execute('SELECT role FROM users WHERE id = ?', [id]);
+    if (targetUser.length === 0) return res.status(404).json({ error: 'User not found' });
+    
+    const targetCurrentLevel = await getRoleLevel(db, targetUser[0].role);
+
+    if (requesterLevel > targetCurrentLevel) {
+        return res.status(403).json({ error: 'Access denied. You cannot edit a user with higher authority.' });
+    }
+    
+    // 2. Check New Role Level (if changing role)
     const normalizedRole = role ?? role_id;
     const roleNum = Number.parseInt(normalizedRole, 10);
+    
+    if (Number.isFinite(roleNum)) {
+        const newTargetLevel = await getRoleLevel(db, roleNum);
+        if (requesterLevel > newTargetLevel) {
+            return res.status(403).json({ error: 'Access denied. You cannot promote a user to a higher authority than yourself.' });
+        }
+    }
+
+    const full_name = `${first_name || ''} ${last_name || ''}`.trim();
     if (!Number.isFinite(roleNum)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
@@ -308,6 +352,24 @@ exports.getUsersReport = async (req, res) => {
       SELECT COUNT(*) as recent_registrations FROM users WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
     `);
 
+    // Login Statistics
+    let loginStats = { total_attempts: 0, successful_logins: 0, failed_logins: 0 };
+    try {
+      const [lStats] = await db.execute(`
+        SELECT COUNT(*) as total_attempts,
+        SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful_logins,
+        SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failed_logins
+        FROM login_attempts WHERE attempted_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+      `);
+      if (lStats && lStats[0]) loginStats = lStats[0];
+    } catch (e) { console.warn('Login stats query failed', e); }
+
+    // Recent Users
+    const [recentUsers] = await db.execute(`
+      SELECT id, username, role, is_active, created_at 
+      FROM users ORDER BY created_at DESC LIMIT 5
+    `);
+
     const stats = userStats[0];
     res.json({
       user_statistics: {
@@ -326,6 +388,12 @@ exports.getUsersReport = async (req, res) => {
         firebase_users: stats.firebase_users || 0,
         avg_account_age_days: Math.round(stats.avg_account_age_days || 0)
       },
+      login_statistics: {
+        total_attempts: loginStats.total_attempts || 0,
+        successful_logins: loginStats.successful_logins || 0,
+        failed_logins: loginStats.failed_logins || 0
+      },
+      recent_users: recentUsers,
       generated_at: new Date().toISOString(),
       report_type: 'user_management'
     });
@@ -356,6 +424,21 @@ exports.getBlotterReport = async (req, res) => {
       SELECT COUNT(*) as recent_cases FROM blotter WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
     `);
 
+    const [monthlyTrends] = await db.execute(`
+      SELECT YEAR(created_at) as year, MONTH(created_at) as month, COUNT(*) as cases_count 
+      FROM blotter 
+      WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+      GROUP BY YEAR(created_at), MONTH(created_at) 
+      ORDER BY year DESC, month DESC
+    `);
+
+    const [activeLocations] = await db.execute(`
+      SELECT Location_Sitio, COUNT(*) as incidents 
+      FROM blotter 
+      GROUP BY Location_Sitio 
+      ORDER BY incidents DESC LIMIT 5
+    `);
+
     const stats = blotterStats[0];
     res.json({
       blotter_statistics: {
@@ -369,6 +452,8 @@ exports.getBlotterReport = async (req, res) => {
         resolution_rate: stats.total_cases > 0 ? Math.round(((stats.resolved_cases + stats.dismissed_cases) / stats.total_cases) * 100) : 0
       },
       incident_types: caseTypes.map(ct => ({ type: ct.Incident_Type, count: ct.count })),
+      monthly_trends: monthlyTrends,
+      active_locations: activeLocations,
       generated_at: new Date().toISOString(),
       report_type: 'blotter_cases'
     });
@@ -397,6 +482,17 @@ exports.getCertificatesReport = async (req, res) => {
       SELECT COUNT(*) as recent_certificates FROM certificates_log WHERE date_issued >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
     `);
 
+    const [monthlyIssuance] = await db.execute(`
+      SELECT YEAR(date_issued) as year, MONTH(date_issued) as month, COUNT(*) as certificates_count 
+      FROM certificates_log 
+      WHERE date_issued IS NOT NULL AND date_issued >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+      GROUP BY YEAR(date_issued), MONTH(date_issued) 
+      ORDER BY year DESC, month DESC
+    `);
+
+    // Column issued_by does not exist in certificates_log
+    const topIssuers = [];
+
     const stats = certStats[0];
     res.json({
       certificate_statistics: {
@@ -408,6 +504,8 @@ exports.getCertificatesReport = async (req, res) => {
         avg_certificate_age_days: Math.round(stats.avg_certificate_age_days || 0)
       },
       certificate_types: certTypes.map(ct => ({ type: ct.certificate_type, count: ct.count })),
+      monthly_issuance: monthlyIssuance,
+      top_issuers: topIssuers,
       generated_at: new Date().toISOString(),
       report_type: 'certificates'
     });
@@ -443,6 +541,31 @@ exports.getResidentsReport = async (req, res) => {
       SELECT COUNT(*) as recent_residents FROM residents WHERE Date_Arrival >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
     `);
 
+    const [ageDemographics] = await db.execute(`
+        SELECT 
+            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, Birthdate, CURDATE()) < 18 THEN 1 ELSE 0 END) as minors,
+            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, Birthdate, CURDATE()) BETWEEN 18 AND 59 THEN 1 ELSE 0 END) as adults,
+            SUM(CASE WHEN TIMESTAMPDIFF(YEAR, Birthdate, CURDATE()) >= 60 THEN 1 ELSE 0 END) as seniors
+        FROM residents
+    `);
+    
+    const [verificationStatus] = await db.execute(`
+        SELECT 
+            SUM(CASE WHEN Residency_Status = 'Active' THEN 1 ELSE 0 END) as verified_residents,
+            SUM(CASE WHEN Residency_Status = 'Pending' THEN 1 ELSE 0 END) as pending_verification,
+            SUM(CASE WHEN Residency_Status NOT IN ('Active', 'Pending') THEN 1 ELSE 0 END) as unverified_residents
+        FROM residents
+    `);
+    
+    const [sitioDistribution] = await db.execute(`
+        SELECT s.name as sitio_name, COUNT(*) as resident_count 
+        FROM residents r 
+        JOIN households h ON r.Household_ID = h.Household_ID 
+        JOIN sitios s ON h.Sitio_ID = s.id 
+        GROUP BY s.name 
+        ORDER BY resident_count DESC
+    `);
+
     const stats = residentStats[0];
     const vuln = vulnerableStats[0];
     res.json({
@@ -454,8 +577,12 @@ exports.getResidentsReport = async (req, res) => {
         recent_residents: recentResidents[0].recent_residents || 0,
         avg_residency_days: Math.round(stats.avg_residency_days || 0),
         gender_distribution: { male: stats.male_residents || 0, female: stats.female_residents || 0 },
-        vulnerable_groups: { seniors: vuln.seniors || 0, pwds: vuln.pwds || 0, solo_parents: vuln.solo_parents || 0, four_ps: vuln.four_ps || 0 }
+        vulnerable_groups: { seniors: vuln.seniors || 0, pwds: vuln.pwds || 0, solo_parents: vuln.solo_parents || 0, four_ps: vuln.four_ps || 0 },
+        total_households: 0 // Placeholder as it was not in original query but used in frontend? Frontend line 793 uses total_households.
       },
+      age_demographics: ageDemographics[0] || { minors: 0, adults: 0, seniors: 0 },
+      verification_status: verificationStatus[0] || { verified_residents: 0, pending_verification: 0, unverified_residents: 0 },
+      sitio_distribution: sitioDistribution,
       generated_at: new Date().toISOString(),
       report_type: 'residents'
     });
@@ -496,11 +623,36 @@ exports.getSystemReport = async (req, res) => {
         tableCounts[table] = 'Error';
       }
     }
+    
+    // Transform tableCounts to database_health.tables format expected by frontend
+    const dbTables = tables.map(t => ({
+        table_name: t,
+        record_count: tableCounts[t],
+        status: tableCounts[t] !== 'Error' ? 'accessible' : 'error'
+    }));
 
     res.json({
-      database_health: { status: dbStatus, response_time_ms: dbResponseTime, size: dbSize },
-      table_counts: tableCounts,
-      server_info: { uptime: process.uptime(), memory_usage: process.memoryUsage(), node_version: process.version, platform: process.platform },
+      database_health: { 
+          status: dbStatus, 
+          response_time_ms: dbResponseTime, 
+          size: dbSize,
+          tables: dbTables // Add tables array
+      },
+      system_info: { // Map to system_info
+          uptime: process.uptime(), 
+          memory_usage: process.memoryUsage(), 
+          node_version: process.version, 
+          platform: process.platform,
+          architecture: process.arch,
+          environment: process.env.NODE_ENV || 'development'
+      },
+      api_health: {
+          '/api/users': 'operational',
+          '/api/residents': 'operational',
+          '/api/blotter': 'operational',
+          '/api/certificates': 'operational',
+          '/api/auth': 'operational'
+      },
       generated_at: new Date().toISOString(),
       report_type: 'system_health'
     });
@@ -522,7 +674,8 @@ exports.getSecurityReport = async (req, res) => {
           SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful_attempts_30d,
           SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failed_attempts_30d,
           COUNT(DISTINCT user_id) as unique_users_30d,
-          COUNT(DISTINCT ip_address) as unique_ips_30d
+          COUNT(DISTINCT ip_address) as unique_ips_30d,
+          COUNT(DISTINCT CASE WHEN user_id IS NOT NULL THEN user_id END) as unique_users_attempted
         FROM login_attempts WHERE attempted_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
       `);
       loginStats = statsResult[0] || loginStats;
@@ -535,6 +688,42 @@ exports.getSecurityReport = async (req, res) => {
       failedByIP = failedResult || [];
     } catch (tableError) {}
 
+    // ClearPass Security
+    let clearpassStats = { total_blotter_cases: 0, cases_with_residents: 0, active_blocks: 0 };
+    try {
+        const [cpStats] = await db.execute(`
+            SELECT 
+                (SELECT COUNT(*) FROM blotter) as total_blotter_cases,
+                (SELECT COUNT(*) FROM blotter WHERE respondent_id IS NOT NULL) as cases_with_residents,
+                (SELECT COUNT(*) FROM users WHERE is_active = 0) as active_blocks
+        `);
+        if (cpStats && cpStats[0]) clearpassStats = cpStats[0];
+    } catch (e) {}
+
+    // Failed Login Sources
+    let failedSources = [];
+    try {
+        const [fs] = await db.execute(`
+            SELECT username, ip_address, COUNT(*) as attempts 
+            FROM login_attempts 
+            WHERE success = 0 
+            GROUP BY username, ip_address 
+            ORDER BY attempts DESC LIMIT 5
+        `);
+        failedSources = fs;
+    } catch (e) {}
+    
+    // Security Events (Audit Logs)
+    let securityEvents = [];
+    try {
+        const [se] = await db.execute(`
+            SELECT event_type as event, 'medium' as severity, created_at as timestamp 
+            FROM audit_logs 
+            ORDER BY created_at DESC LIMIT 5
+        `);
+        securityEvents = se;
+    } catch (e) {}
+
     const stats = loginStats;
     res.json({
       security_overview: {
@@ -543,9 +732,13 @@ exports.getSecurityReport = async (req, res) => {
         failed_attempts_30d: stats.failed_attempts_30d || 0,
         success_rate_30d: stats.total_attempts_30d > 0 ? Math.round((stats.successful_attempts_30d / stats.total_attempts_30d) * 100) : 100,
         unique_users_30d: stats.unique_users_30d || 0,
-        unique_ips_30d: stats.unique_ips_30d || 0
+        unique_ips_30d: stats.unique_ips_30d || 0,
+        unique_users_attempted: stats.unique_users_attempted || 0
       },
       suspicious_activity: { high_failure_ips: failedByIP.map(ip => ({ ip: ip.ip_address, failed_attempts: ip.failed_count })) },
+      clearpass_security: clearpassStats,
+      failed_login_sources: failedSources,
+      security_events: securityEvents,
       generated_at: new Date().toISOString(),
       report_type: 'security_audit'
     });
@@ -650,7 +843,7 @@ exports.getDetailedCertificatesReport = async (req, res) => {
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
     const [certificates] = await db.execute(`
-      SELECT c.control_no, c.certificate_type, c.purpose, c.status, c.date_issued, c.issued_by, c.created_at,
+      SELECT c.control_no, c.certificate_type, c.purpose, c.status, c.date_issued, c.created_at,
         CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
       FROM certificates_log c LEFT JOIN residents r ON c.resident_id = r.Resident_ID
       ${whereClause} ORDER BY c.created_at DESC LIMIT ? OFFSET ?

@@ -14,6 +14,8 @@ const AppShell = ({ children }) => {
     () => ({
       flexGrow: 1,
       minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
       backgroundColor: 'background.default',
       minWidth: 0,
     }),
@@ -36,7 +38,7 @@ const AppShell = ({ children }) => {
         <Box
           sx={{
             p: { xs: 2, sm: 3, md: 4 },
-            minHeight: 'calc(100vh - 64px)',
+            flexGrow: 1,
             backgroundColor: 'background.default',
           }}
         >

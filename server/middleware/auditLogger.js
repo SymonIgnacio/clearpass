@@ -270,15 +270,15 @@ const logAuditToDatabase = async (db, eventType, details = {}) => {
   try {
     const auditEntry = {
       event_type: eventType,
-      user_id: details.user_id,
-      user_role: details.user_role,
-      ip_address: details.ip_address,
-      user_agent: details.user_agent,
-      resource: details.resource,
-      action: details.action,
+      user_id: details.user_id ?? null,
+      user_role: details.user_role ?? null,
+      ip_address: details.ip_address ?? null,
+      user_agent: details.user_agent ?? null,
+      resource: details.resource ?? null,
+      action: details.action ?? null,
       result: details.result || 'SUCCESS',
       details: JSON.stringify(details.additional_details || {}),
-      session_id: details.session_id,
+      session_id: details.session_id ?? null,
       created_at: new Date()
     };
 

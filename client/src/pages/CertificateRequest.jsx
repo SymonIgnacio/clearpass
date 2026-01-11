@@ -21,6 +21,8 @@ const CertificateRequest = () => {
   const [certificateTypes, setCertificateTypes] = useState([]);
   const [selectedType, setSelectedType] = useState('');
   const [purpose, setPurpose] = useState('');
+  const [frontId, setFrontId] = useState(null);
+  const [backId, setBackId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -46,19 +48,23 @@ const CertificateRequest = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedType || !purpose.trim()) {
-      setMessage({ type: 'error', text: 'Please fill in all required fields' });
+    if (!selectedType || !purpose.trim() || !frontId || !backId) {
+      setMessage({ type: 'error', text: 'Please fill in all required fields and upload both ID photos' });
       return;
     }
 
     setSubmitLoading(true);
     try {
+      const formData = new FormData();
+      formData.append('document_type', selectedType);
+      formData.append('purpose', purpose.trim());
+      formData.append('front_id', frontId);
+      formData.append('back_id', backId);
+
       const response = await apiRequest('/certificate-requests/submit', {
         method: 'POST',
-        body: {
-          document_type: selectedType,
-          purpose: purpose.trim()
-        }
+        body: formData,
+        // Don't set Content-Type header manually for FormData, let browser set it with boundary
       });
       const data = await response.json();
 
@@ -66,6 +72,8 @@ const CertificateRequest = () => {
         setMessage({ type: 'success', text: 'Certificate request submitted successfully!' });
         setSelectedType('');
         setPurpose('');
+        setFrontId(null);
+        setBackId(null);
       }
     } catch (error) {
       setMessage({ 
@@ -102,6 +110,7 @@ const CertificateRequest = () => {
                     value={selectedType}
                     onChange={(e) => setSelectedType(e.target.value)}
                     disabled={loading}
+                    label="Certificate Type"
                   >
                     {certificateTypes.map((type) => (
                       <MenuItem key={type.id} value={type.name}>
@@ -128,9 +137,71 @@ const CertificateRequest = () => {
                       <strong>Fee:</strong> ₱{selectedCertificate.fee} | 
                       <strong> Valid for:</strong> {selectedCertificate.validity_days} days
                     </Typography>
+                    {selectedCertificate.required_data && (
+                       <Box sx={{ mt: 2 }}>
+                         <Typography variant="subtitle2" color="primary">Required Documents:</Typography>
+                         <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                           {JSON.parse(selectedCertificate.required_data).map((req, index) => (
+                             <li key={index}>
+                               <Typography variant="body2">{req}</Typography>
+                             </li>
+                           ))}
+                         </ul>
+                       </Box>
+                    )}
                   </Box>
                 </Grid>
               )}
+
+              <Grid item xs={12}>
+                <Box sx={{ p: 2, border: '1px dashed #ccc', borderRadius: 1, mb: 2 }}>
+                  <Typography variant="subtitle1" gutterBottom required>
+                    Upload Valid ID (Required)
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                    Please upload clear photos of your valid ID (Front and Back). Accepted formats: JPG, PNG.
+                  </Typography>
+                  
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        fullWidth
+                        color={frontId ? "success" : "primary"}
+                      >
+                        {frontId ? "Front ID Selected" : "Upload Front ID"}
+                        <input
+                          type="file"
+                          hidden
+                          accept="image/*"
+                          onChange={(e) => setFrontId(e.target.files[0])}
+                          required
+                        />
+                      </Button>
+                      {frontId && <Typography variant="caption" display="block" sx={{ mt: 1 }}>{frontId.name}</Typography>}
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        fullWidth
+                        color={backId ? "success" : "primary"}
+                      >
+                        {backId ? "Back ID Selected" : "Upload Back ID"}
+                        <input
+                          type="file"
+                          hidden
+                          accept="image/*"
+                          onChange={(e) => setBackId(e.target.files[0])}
+                          required
+                        />
+                      </Button>
+                      {backId && <Typography variant="caption" display="block" sx={{ mt: 1 }}>{backId.name}</Typography>}
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Grid>
 
               <Grid item xs={12}>
                 <TextField
@@ -152,7 +223,7 @@ const CertificateRequest = () => {
                   variant="contained"
                   size="large"
                   startIcon={submitLoading ? <CircularProgress size={20} /> : <SendIcon />}
-                  disabled={submitLoading || loading}
+                  disabled={submitLoading || loading || !frontId || !backId}
                   fullWidth
                 >
                   {submitLoading ? 'Submitting...' : 'Submit Request'}

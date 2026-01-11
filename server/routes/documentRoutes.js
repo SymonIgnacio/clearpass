@@ -3,6 +3,7 @@ const router = express.Router();
 const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { ROLES } = require('../config/roles');
+const DocumentController = require('../controllers/documentController');
 
 module.exports = (db) => {
   // GET all document requests
@@ -74,6 +75,9 @@ module.exports = (db) => {
       message: 'Document request created successfully'
     });
   }));
+
+  // GET download generated document
+  router.get('/requests/:request_id/download', verifyToken, (req, res) => DocumentController.downloadDocument(req, res));
   
   // PUT update document request status
   router.put('/requests/:id', verifyToken, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(async (req, res) => {

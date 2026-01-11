@@ -29,7 +29,7 @@ const csrfProtection = csrf({
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',
   },
 });
 
@@ -187,6 +187,7 @@ app.use('/api/blotter', require('./routes/blotterRoutes')(db));
 app.use('/api/sitios', require('./routes/sitioRoutes')(db)); // Moved up to take precedence
 app.use('/api/certificates', require('./routes/certificateRoutes')(db));
 app.use('/api/certificate-requests', require('./routes/certificateRequestRoutes')(db));
+app.use('/api/certificate-types', require('./routes/certificateTypeRoutes')(db)); // Add new route
 app.use('/api/blotter-complaints', require('./routes/blotterComplaintRoutes')(db));
 app.use('/api/resident-profile', require('./routes/residentProfileRoutes')(db));
 app.use('/api/case-management', require('./routes/caseManagementRoutes')(db));

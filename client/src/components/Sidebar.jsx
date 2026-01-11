@@ -133,7 +133,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
       children: [
         {
           text: 'User Management',
-          path: '/admin/users',
+          path: '/admin/staff',
           roles: [1]
         },
         {

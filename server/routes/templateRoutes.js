@@ -124,7 +124,7 @@ module.exports = (db) => {
   router.post(
     '/',
     verifyToken,
-    checkRole(['admin', 'secretary', 'clerk']),
+    checkRole(['admin']),
     asyncHandler(async (req, res) => {
       const { template_name, document_type, certificate_type_id, template_content, is_active } = req.body || {};
 
@@ -164,7 +164,7 @@ module.exports = (db) => {
   router.put(
     '/:id',
     verifyToken,
-    checkRole(['admin', 'secretary', 'clerk']),
+    checkRole(['admin']),
     asyncHandler(async (req, res) => {
       const { id } = req.params;
       const { template_name, document_type, certificate_type_id, template_content, is_active } = req.body || {};
@@ -203,7 +203,7 @@ module.exports = (db) => {
   router.delete(
     '/:id',
     verifyToken,
-    checkRole(['admin', 'secretary', 'clerk']),
+    checkRole(['admin']),
     asyncHandler(async (req, res) => {
       const { id } = req.params;
       await db.execute('DELETE FROM document_templates WHERE id = ?', [id]);
@@ -214,7 +214,7 @@ module.exports = (db) => {
   router.delete(
     '/:id/with-file',
     verifyToken,
-    checkRole(['admin', 'secretary', 'clerk']),
+    checkRole(['admin']),
     asyncHandler(async (req, res) => {
       const { id } = req.params;
       await db.execute('DELETE FROM document_templates WHERE id = ?', [id]);
@@ -225,7 +225,7 @@ module.exports = (db) => {
   router.post(
     '/:id/duplicate',
     verifyToken,
-    checkRole(['admin', 'secretary', 'clerk']),
+    checkRole(['admin']),
     asyncHandler(async (req, res) => {
       const { id } = req.params;
       const { new_template_name } = req.body || {};
@@ -278,7 +278,7 @@ module.exports = (db) => {
   router.post(
     '/upload',
     verifyToken,
-    checkRole(['admin', 'secretary', 'clerk']),
+    checkRole(['admin']),
     upload.single('template_file'),
     asyncHandler(async (req, res) => {
       const { template_name, document_type, certificate_type_id } = req.body || {};

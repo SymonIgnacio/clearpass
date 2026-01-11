@@ -44,6 +44,9 @@ module.exports = (db) => {
   // DELETE (archive) resident
   router.delete('/:id', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary']), validateId, asyncHandler(residentController.archive));
   
+  // PUT toggle resident status
+  router.put('/:id/status', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary']), validateId, asyncHandler(residentController.toggleStatus));
+
   // POST generate QR code
   router.post('/:id/qr', verifyToken, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(residentController.generateQR));
   

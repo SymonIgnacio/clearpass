@@ -24,12 +24,11 @@ import MfaOtp from './pages/MfaOtp'
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const ResidentDashboard = lazy(() => import('./pages/ResidentDashboard'))
 const Residents = lazy(() => import('./pages/Residents'))
-const Users = lazy(() => import('./pages/Users'))
 const Blotter = lazy(() => import('./pages/Blotter'))
 const DocumentsDashboard = lazy(() => import('./pages/DocumentsDashboard'))
 const Census = lazy(() => import('./pages/Census'))
 const CommunityEvents = lazy(() => import('./pages/CommunityEvents'))
-const SuperAdminSettings = lazy(() => import('./pages/SuperAdminSettings'))
+const Settings = lazy(() => import('./pages/Settings'))
 const CertificateRequest = lazy(() => import('./pages/CertificateRequest'))
 const RequestHistory = lazy(() => import('./pages/RequestHistory'))
 const AdminBackup = lazy(() => import('./pages/AdminBackup'))
@@ -40,7 +39,6 @@ const ResidentProfile = lazy(() => import('./pages/ResidentProfile'))
 const ComplaintHistory = lazy(() => import('./pages/ComplaintHistory'))
 const ResidentBlotterReport = lazy(() => import('./pages/ResidentBlotterReport'))
 const SystemLogs = lazy(() => import('./pages/admin/SystemLogs'))
-const AIAnalytics = lazy(() => import('./pages/admin/AIAnalytics'))
 const StaffManagement = lazy(() => import('./pages/admin/StaffManagement'))
 const AIPatrol = lazy(() => import('./pages/AIPatrol'))
 const RondaAnalytics = lazy(() => import('./pages/RondaAnalytics'))
@@ -282,6 +280,16 @@ const createAppTheme = (mode) => {
         },
       },
     },
+    MuiCssBaseline: {
+      styleOverrides: {
+        'input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, input:-webkit-autofill:active': {
+          WebkitBoxShadow: `0 0 0 1000px ${isDark ? '#1f1f1f' : '#ffffff'} inset !important`,
+          WebkitTextFillColor: `${isDark ? '#e8eaed' : '#202124'} !important`,
+          caretColor: isDark ? '#e8eaed' : '#202124',
+          transition: 'background-color 5000s ease-in-out 0s',
+        },
+      },
+    },
   },
   })
 }
@@ -339,11 +347,7 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
 
             <Route path="residents" element={<Residents />} />
-            <Route path="users" element={
-              <ProtectedRoute requiredRoles={[1, 2, 3]}>
-                <Users />
-              </ProtectedRoute>
-            } />
+            <Route path="users" element={<Navigate to="residents" replace />} />
             <Route path="blotter" element={
               <ProtectedRoute requiredRoles={[1, 2, 3, 4, 6]}>
                 <Blotter />
@@ -368,7 +372,7 @@ function App() {
 
             <Route path="admin/settings" element={
               <ProtectedRoute requiredRoles={[1]}>
-                <SuperAdminSettings />
+                <Settings />
               </ProtectedRoute>
             } />
 
@@ -386,11 +390,7 @@ function App() {
             <Route path="ai-dashboard" element={<AIPatrol />} />
             <Route path="ai-patrol" element={<AIPatrol />} />
             <Route path="ronda-analytics" element={<RondaAnalytics />} />
-            <Route path="ai-analytics" element={
-              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 6]}>
-                <AIAnalytics />
-              </ProtectedRoute>
-            } />
+            <Route path="ai-analytics" element={<Navigate to="/reports" replace />} />
 
             {/* Clerk Routes */}
             <Route path="clerk/ai-insights" element={
@@ -432,11 +432,7 @@ function App() {
                 <StaffManagement />
               </ProtectedRoute>
             } />
-            <Route path="admin/users" element={
-              <ProtectedRoute requiredRoles={[1]}>
-                <Users />
-              </ProtectedRoute>
-            } />
+            <Route path="admin/users" element={<Navigate to="staff" replace />} />
             <Route path="admin/logs" element={
               <ProtectedRoute requiredRoles={[1]}>
                 <SystemLogs />
