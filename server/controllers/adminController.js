@@ -359,7 +359,7 @@ exports.getUsersReport = async (req, res) => {
         SELECT COUNT(*) as total_attempts,
         SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful_logins,
         SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failed_logins
-        FROM login_attempts WHERE attempted_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+        FROM login_attempts WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
       `);
       if (lStats && lStats[0]) loginStats = lStats[0];
     } catch (e) { console.warn('Login stats query failed', e); }

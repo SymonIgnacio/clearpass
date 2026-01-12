@@ -163,9 +163,141 @@ class AIAnalyticsController {
     }
   }
 
+  async getDashboardSummary(req, res) {
+    try {
+      // Active cases
+      const [activeCases] = await this.db.execute(`
+        SELECT COUNT(*) as count 
+        FROM blotter 
+        WHERE Status IN ('Pending', 'Active', 'Under Investigation', 'Hearing Scheduled')
+      `);
+
+      // 30-day incidents
+      const [incidents30d] = await this.db.execute(`
+        SELECT COUNT(*) as count 
+        FROM blotter 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      `);
+      
+      // Previous 30-day incidents for trend
+      const [incidentsPrev30d] = await this.db.execute(`
+        SELECT COUNT(*) as count 
+        FROM blotter 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 60 DAY)
+        AND created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)
+      `);
+
+      // Calculate trend
+      const current = incidents30d[0].count;
+      const previous = incidentsPrev30d[0].count;
+      const trend_direction = current > previous ? 'INCREASING' : current < previous ? 'DECREASING' : 'STABLE';
+
+      // High risk areas (Top 3 sitios with most incidents in last 30 days)
+      const [highRiskAreas] = await this.db.execute(`
+        SELECT Location_Sitio 
+        FROM blotter 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        GROUP BY Location_Sitio 
+        ORDER BY COUNT(*) DESC 
+        LIMIT 3
+      `);
+
+      // Mock response time and coverage for now as they require complex calculation or new tables
+      const response_time_avg = '15m'; 
+      const coverage_percentage = 85;
+
+      res.json({
+        active_cases: activeCases[0].count,
+        total_incidents_30d: incidents30d[0].count,
+        response_time_avg,
+        coverage_percentage,
+        trend_direction,
+        high_risk_areas: highRiskAreas.map(a => a.Location_Sitio).filter(Boolean)
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard summary:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch dashboard summary' });
+    }
+  }
+
+  async getChartData(req, res) {
+    try {
+      const { type } = req.params;
+      let data = {};
+
+      switch (type) {
+        case 'incident_trends':
+          const [trends] = await this.db.execute(`
+            SELECT DATE(created_at) as date, COUNT(*) as count 
+            FROM blotter 
+            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            GROUP BY DATE(created_at) 
+            ORDER BY date
+          `);
+          data = {
+            labels: trends.map(t => new Date(t.date).toLocaleDateString()),
+            datasets: [{ data: trends.map(t => t.count) }]
+          };
+          break;
+
+        case 'incident_types':
+          const [types] = await this.db.execute(`
+            SELECT Incident_Type, COUNT(*) as count 
+            FROM blotter 
+            GROUP BY Incident_Type
+          `);
+          data = {
+            labels: types.map(t => t.Incident_Type),
+            datasets: [{ data: types.map(t => t.count) }]
+          };
+          break;
+
+        case 'sitio_distribution':
+          const [sitios] = await this.db.execute(`
+            SELECT Location_Sitio, COUNT(*) as count 
+            FROM blotter 
+            GROUP BY Location_Sitio
+          `);
+          data = {
+            labels: sitios.map(t => t.Location_Sitio || 'Unknown'),
+            datasets: [{ data: sitios.map(t => t.count) }]
+          };
+          break;
+
+        case 'hourly_patterns':
+          const [hours] = await this.db.execute(`
+            SELECT HOUR(Date_Time_Incident) as hour, COUNT(*) as count 
+            FROM blotter 
+            WHERE Date_Time_Incident IS NOT NULL
+            GROUP BY HOUR(Date_Time_Incident)
+            ORDER BY hour
+          `);
+          // Fill missing hours
+          const hourlyData = Array(24).fill(0);
+          hours.forEach(h => {
+            if (h.hour >= 0 && h.hour < 24) hourlyData[h.hour] = h.count;
+          });
+          data = {
+            labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+            datasets: [{ data: hourlyData }]
+          };
+          break;
+
+        default:
+          return res.status(400).json({ success: false, message: 'Invalid chart type' });
+      }
+
+      res.json(data);
+    } catch (error) {
+      console.error('Error fetching chart data:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch chart data' });
+    }
+  }
+
   async generateReport(req, res) {
     try {
-      const { report_type, date_range } = req.query;
+      // Handle both GET query and POST body
+      const report_type = req.query.report_type || req.body.report_type;
       
       let reportData = {};
       
@@ -184,6 +316,25 @@ class AIAnalyticsController {
             AND r.Residency_Status = 'Active'
           `);
           reportData = monthlySummary[0];
+          break;
+
+        case 'incident_analysis':
+        case 'trend_analysis':
+        case 'predictive_forecast':
+        case 'resource_allocation':
+          // For now, return a generic structure for these specific reports
+          // In a real implementation, these would have specific logic
+          const [incidents] = await this.db.execute(`
+            SELECT Incident_Type, Location_Sitio, Status, Date_Time_Incident
+            FROM blotter
+            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+          `);
+          reportData = {
+            type: report_type,
+            incident_count: incidents.length,
+            details: incidents,
+            generated_at: new Date().toISOString()
+          };
           break;
           
         default:

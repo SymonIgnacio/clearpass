@@ -35,6 +35,7 @@ const verificationUpload = multer({
 // Controllers
 const authController = require('./controllers/authController');
 const adminController = require('./controllers/adminController');
+const reportController = require('./controllers/reportController');
 
 // Import validation middleware
 const {
@@ -322,12 +323,12 @@ router.get(
     });
   })
 );
-router.get('/admin/reports/pdf/blotter', verifyToken, (req, res) => {
-  res.json({ message: 'Blotter PDF report temporarily disabled' });
-});
-router.get('/admin/reports/pdf/residents', verifyToken, (req, res) => {
-  res.json({ message: 'Residents PDF report temporarily disabled' });
-});
+router.get('/admin/reports/pdf/blotter', verifyToken, (req, res) =>
+  reportController.generateBlotterPDF(req, res)
+);
+router.get('/admin/reports/pdf/residents', verifyToken, (req, res) =>
+  reportController.generateResidentsPDF(req, res)
+);
 
 // =========================================================================
 // ROLE 2: CLERK ROUTES (ClearPass Operator)

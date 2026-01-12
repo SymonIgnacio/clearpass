@@ -34,9 +34,9 @@ if !errorlevel! equ 0 (
 timeout /t 2 /nobreak >nul
 
 echo.
-echo [2/5] Starting AI Service (Port 5000)...
+echo [2/5] Starting AI Service (Port 5001)...
 if exist "ai_service" (
-    start "ClearPass AI Service" cmd /k "cd ai_service && python smart_suggestions.py"
+    start "ClearPass AI Service" cmd /k "cd ai_service && python suggestion_engine.py"
     echo       - AI Service launched.
 ) else (
     echo       - ERROR: ai_service directory not found!
@@ -45,7 +45,7 @@ if exist "ai_service" (
 echo.
 echo [3/5] Starting Backend Server (Port 3002)...
 if exist "server" (
-    start "ClearPass Backend" cmd /k "cd server && npm run dev"
+    start "ClearPass Backend" cmd /k "cd server && set AI_SERVICE_URL=http://127.0.0.1:5001 && set AI_SERVICE_ENABLED=true && npm run dev"
     echo       - Backend launched.
 ) else (
     echo       - ERROR: server directory not found!
@@ -74,7 +74,7 @@ echo   SYSTEM IS RUNNING
 echo ========================================================
 echo   Frontend:    http://localhost:5174
 echo   Backend:     http://localhost:3002
-echo   AI Service:  http://localhost:5000
+echo   AI Service:  http://localhost:5001
 echo ========================================================
 echo.
 echo   Keep this window open to see status.

@@ -1,0 +1,3 @@
+timestamp,message,confidence,predicted_intent
+2026-01-12T07:45:36.123062,xyz123 random text,0.1615013350152447,certificate_inquiry
+2026-01-12T07:51:30.941378,xyz123 random text,0.16720401260252754,blotter_inquiry

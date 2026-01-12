@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const express = require('express');
 const mysql = require('mysql2/promise');
@@ -70,9 +71,6 @@ const adminLimiter = rateLimit({
   message: { error: 'Too many admin requests' },
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  // TODO: Temporary development bypass for residents verification. Remove in production.
-  skip: req =>
-    process.env.NODE_ENV !== 'production' && req.originalUrl.includes('residents-verification'),
 });
 
 const apiLimiter = rateLimit({

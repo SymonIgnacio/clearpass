@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const { sendEmail, isSmtpConfigured } = require('./emailService');
 
 const generateOtp = () => {
   const n = crypto.randomInt(0, 1_000_000);
@@ -14,38 +14,15 @@ const getOtpExpiryMinutes = () => {
   return n;
 };
 
-const isSmtpConfigured = () => {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
-};
-
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number.parseInt(process.env.SMTP_PORT || '587', 10),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    }
-  });
-};
-
 const sendOtpEmail = async ({ to, otp, expiresMinutes }) => {
   if (!isSmtpConfigured()) {
     throw new Error('SMTP not configured');
   }
-  const transporter = createTransporter();
   const subject = 'Your ClearPass OTP Code';
   const text = `Your OTP code is ${otp}. It expires in ${expiresMinutes} minutes.`;
   const html = `<p>Your OTP code is <b>${otp}</b>.</p><p>It expires in ${expiresMinutes} minutes.</p>`;
 
-  await transporter.sendMail({
-    from: `"ClearPass" <${process.env.SMTP_USER}>`,
-    to,
-    subject,
-    text,
-    html
-  });
+  await sendEmail({ to, subject, text, html });
 };
 
 const createOtpChallenge = async ({ db, userId }) => {

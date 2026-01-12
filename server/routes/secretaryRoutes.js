@@ -379,8 +379,8 @@ module.exports = db => {
         INSERT INTO residents (
           Resident_ID, First_Name, Middle_Name, Last_Name, Suffix, Birthdate, Gender, Civil_Status,
           Occupation, Income_Estimate, Email, Mobile_Number, Voter_Status, Date_Arrival, Residency_Status,
-          Household_ID, Sitio_ID, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'Active', ?, ?, NOW())
+          Household_ID, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'Active', ?, NOW())
       `,
           [
             residentId,
@@ -397,7 +397,7 @@ module.exports = db => {
             app.mobile_number,
             app.voter_status,
             'HH-TEMP',
-            1, // Placeholder Household/Sitio - secretary should assign later
+            sitioId, // Resolved sitio ID
           ]
         );
 

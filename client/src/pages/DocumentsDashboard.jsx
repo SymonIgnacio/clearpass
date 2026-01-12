@@ -399,12 +399,19 @@ const DocumentsDashboard = () => {
 
   const handleDeleteTemplate = async (templateId, templateName) => {
     if (user?.role !== ROLES.ADMIN) return;
-    if (!window.confirm(`Are you sure you want to delete "${templateName}"?`)) {
-      return;
-    }
+    setConfirmationAction({
+      type: 'delete_template',
+      id: templateId,
+      title: 'Delete Template',
+      message: `Are you sure you want to delete "${templateName}"?`,
+      icon: 'warning'
+    })
+    setConfirmationModalOpen(true)
+  }
 
+  const handleDeleteTemplateConfirm = async () => {
     try {
-      const response = await apiRequest(`templates/${templateId}`, { method: 'DELETE' });
+      const response = await apiRequest(`templates/${confirmationAction.id}`, { method: 'DELETE' });
 
       if (response.ok) {
         showSnackbar('Template deleted successfully!', 'success');
@@ -416,18 +423,30 @@ const DocumentsDashboard = () => {
       console.error('Error deleting template:', error);
       showSnackbar('Network error occurred', 'error');
     }
-  };
+  }
 
   const handleDuplicateTemplate = async (templateId) => {
     if (user?.role !== ROLES.ADMIN) return;
-    const newName = prompt('Enter new template name:');
-    if (!newName) return;
+    setConfirmationAction({
+      type: 'duplicate_template',
+      id: templateId,
+      title: 'Duplicate Template',
+      message: 'Enter name for the new template:',
+      icon: 'info',
+      showInput: true,
+      inputLabel: 'New Template Name'
+    })
+    setConfirmationModalOpen(true)
+  }
+
+  const handleDuplicateTemplateConfirm = async (inputValue) => {
+    if (!inputValue) return;
 
     try {
-      const response = await apiRequest(`templates/${templateId}/duplicate`, {
+      const response = await apiRequest(`templates/${confirmationAction.id}/duplicate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ new_template_name: newName })
+        body: JSON.stringify({ new_template_name: inputValue })
       });
 
       if (response.ok) {
@@ -440,16 +459,23 @@ const DocumentsDashboard = () => {
       console.error('Error duplicating template:', error);
       showSnackbar('Network error occurred', 'error');
     }
-  };
+  }
 
   const handleDeleteTemplateWithFile = async (templateId, templateName) => {
     if (user?.role !== ROLES.ADMIN) return;
-    if (!window.confirm(`Are you sure you want to delete "${templateName}" and its associated file? This action cannot be undone.`)) {
-      return;
-    }
+    setConfirmationAction({
+      type: 'delete_template_file',
+      id: templateId,
+      title: 'Delete Template & File',
+      message: `Are you sure you want to delete "${templateName}" and its associated file? This action cannot be undone.`,
+      icon: 'warning'
+    })
+    setConfirmationModalOpen(true)
+  }
 
+  const handleDeleteTemplateWithFileConfirm = async () => {
     try {
-      const response = await apiRequest(`templates/${templateId}/with-file`, { method: 'DELETE' });
+      const response = await apiRequest(`templates/${confirmationAction.id}/with-file`, { method: 'DELETE' });
 
       if (response.ok) {
         showSnackbar('Template and file deleted successfully!', 'success');
@@ -461,7 +487,23 @@ const DocumentsDashboard = () => {
       console.error('Error deleting template with file:', error);
       showSnackbar('Network error occurred', 'error');
     }
-  };
+  }
+
+  const handleConfirmationConfirm = async (inputValue) => {
+    setConfirmationModalOpen(false)
+    
+    if (confirmationAction.type === 'delete_template') {
+      await handleDeleteTemplateConfirm()
+    } else if (confirmationAction.type === 'duplicate_template') {
+      await handleDuplicateTemplateConfirm(inputValue)
+    } else if (confirmationAction.type === 'delete_template_file') {
+      await handleDeleteTemplateWithFileConfirm()
+    } else if (confirmationAction.type === 'delete_cert_type') {
+      await handleDeleteCertificateTypeConfirm()
+    }
+
+    setConfirmationAction(null)
+  }
 
   const handleFileUpload = async (event) => {
     if (user?.role !== ROLES.ADMIN) return;
@@ -1703,12 +1745,20 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData, canMa
 
   const handleDeleteType = async (typeId, typeName) => {
     if (!canManage) return;
-    if (!window.confirm(`Are you sure you want to delete certificate type "${typeName}"? This may affect existing templates.`)) {
-      return;
-    }
-
+    setConfirmationAction({
+      type: 'delete_cert_type',
+      id: typeId,
+      name: typeName,
+      title: 'Delete Certificate Type',
+      message: `Are you sure you want to delete certificate type "${typeName}"? This may affect existing templates.`,
+      icon: 'warning'
+    })
+    setConfirmationModalOpen(true)
+  }
+  
+  const handleDeleteTypeConfirm = async () => {
     try {
-      const response = await apiRequest(`certificate-types/${typeId}`, { method: 'DELETE' });
+      const response = await apiRequest(`certificate-types/${confirmationAction.id}`, { method: 'DELETE' });
       
       if (response.ok) {
         showSnackbar(`Certificate Type deleted successfully`, 'success');
@@ -1721,7 +1771,15 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData, canMa
       console.error('Error deleting certificate type:', error);
       showSnackbar(error.response?.data?.message || 'Failed to delete certificate type', 'error');
     }
-  };
+  }
+
+  const handleConfirmationConfirm = async () => {
+    setConfirmationModalOpen(false)
+    if (confirmationAction.type === 'delete_cert_type') {
+      await handleDeleteTypeConfirm()
+    }
+    setConfirmationAction(null)
+  }
 
   const handleEditType = (type) => {
     if (!canManage) return;
@@ -1999,6 +2057,11 @@ const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage,
   const [backIdUrl, setBackIdUrl] = useState(null);
   const [loadingIds, setLoadingIds] = useState(false);
 
+  const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
+  const [rejectionAction, setRejectionAction] = useState(null);
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState(null);
+
   const handleViewRequest = async (request) => {
     setSelectedRequest(request);
     setViewDialogOpen(true);
@@ -2036,11 +2099,61 @@ const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage,
     if (backIdUrl) URL.revokeObjectURL(backIdUrl);
   };
 
+  const handleReject = (id) => {
+    // If id is provided, it's from the table action
+    const requestId = id || selectedRequest?.request_id;
+    if (!requestId) return;
+    
+    setRejectionAction({ id: requestId })
+    setRejectionModalOpen(true)
+  }
+
+  const handleRejectionConfirm = async (reason) => {
+    setRejectionModalOpen(false)
+    try {
+      await apiRequest(`certificate-requests/${rejectionAction.id}/reject`, {
+        method: 'POST',
+        body: { remarks: reason }
+      })
+      showSnackbar('Request rejected successfully', 'success')
+      if (viewDialogOpen) handleCloseDialog()
+      loadAllData()
+    } catch (error) {
+      console.error('Error rejecting request:', error)
+      showSnackbar('Error rejecting request', 'error')
+    }
+    setRejectionAction(null)
+  }
+  
+  const handleApprove = (id) => {
+     // If id is provided, it's from the table action
+     const requestId = id || selectedRequest?.request_id;
+     if (!requestId) return;
+
+     setConfirmationAction({
+       type: 'approve_request',
+       id: requestId,
+       title: 'Approve Request',
+       message: 'Are you sure you want to approve this certificate request?',
+       icon: 'success'
+     })
+     setConfirmationModalOpen(true)
+  }
+
+  const handleConfirmationConfirm = async () => {
+    setConfirmationModalOpen(false)
+    if (confirmationAction.type === 'approve_request') {
+      await handleUpdateStatus('approved')
+    }
+    setConfirmationAction(null)
+  }
+
   const handleUpdateStatus = async (status, remarks = '') => {
-    if (!selectedRequest) return;
+    const requestId = confirmationAction?.id || selectedRequest?.request_id;
+    if (!requestId) return;
     
     try {
-      const response = await apiRequest(`certificate-requests/${selectedRequest.request_id}/status`, {
+      const response = await apiRequest(`certificate-requests/${requestId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, remarks })
@@ -2048,7 +2161,7 @@ const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage,
 
       if (response.ok) {
         showSnackbar(`Request ${status} successfully`, 'success');
-        handleCloseDialog();
+        if (viewDialogOpen) handleCloseDialog();
         loadAllData();
       } else {
         const data = await response.json();
@@ -2097,6 +2210,16 @@ const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage,
                   <IconButton onClick={() => handleViewRequest(req)} color="primary">
                     <Visibility />
                   </IconButton>
+                  {req.status === 'pending' && canManage && (
+                    <>
+                      <IconButton onClick={() => handleApprove(req.request_id)} color="success">
+                        <CheckCircle />
+                      </IconButton>
+                      <IconButton onClick={() => handleReject(req.request_id)} color="error">
+                        <Cancel />
+                      </IconButton>
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -2157,10 +2280,7 @@ const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage,
               <Button 
                 color="error" 
                 startIcon={<Cancel />}
-                onClick={() => {
-                  const remarks = prompt('Enter rejection remarks:');
-                  if (remarks !== null) handleUpdateStatus('rejected', remarks);
-                }}
+                onClick={() => handleReject()}
               >
                 Reject
               </Button>
@@ -2168,7 +2288,7 @@ const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage,
                 color="success" 
                 variant="contained" 
                 startIcon={<CheckCircle />}
-                onClick={() => handleUpdateStatus('approved')}
+                onClick={() => handleApprove()}
               >
                 Approve
               </Button>
@@ -2176,6 +2296,31 @@ const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage,
           )}
         </DialogActions>
       </Dialog>
+
+      <RejectionModal
+        open={rejectionModalOpen}
+        onClose={() => setRejectionModalOpen(false)}
+        onConfirm={handleRejectionConfirm}
+        title="Reject Request"
+        message="Please provide a reason for rejecting this request:"
+        inputLabel="Rejection Remarks"
+      />
+
+      <ConfirmationModal
+        open={confirmationModalOpen}
+        onClose={() => {
+          if (!confirmationAction?.type || confirmationAction.type === 'info' || confirmationAction.type === 'error') {
+            setConfirmationModalOpen(false)
+            setConfirmationAction(null)
+          } else {
+            setConfirmationModalOpen(false)
+          }
+        }}
+        onConfirm={handleConfirmationConfirm}
+        title={confirmationAction?.title}
+        message={confirmationAction?.message}
+        type={confirmationAction?.icon || 'info'}
+      />
     </Box>
   );
 };

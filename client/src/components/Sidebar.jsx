@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Drawer,
   List,
@@ -35,7 +35,8 @@ import {
   ExpandMore,
   AdminPanelSettings,
   FolderShared,
-  Assignment
+  Assignment,
+  QrCode
 } from '@mui/icons-material'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -43,6 +44,7 @@ export const DRAWER_WIDTH = 280
 
 const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
   const location = useLocation()
+  const navigate = useNavigate()
   const { user, logout } = useAuth()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -90,6 +92,12 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
           text: 'Beneficiary Eligibility Review',
           path: '/secretary/beneficiaries',
           roles: [1, 3] // Admin, Secretary
+        },
+        {
+          text: 'QR Generator',
+          path: '/qr-generator',
+          icon: <QrCode />,
+          roles: [1, 2, 3] // Admin, Captain, Secretary
         }
       ]
     },
@@ -119,9 +127,25 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         },
         {
           text: 'AI Insights',
-          path: '/ai-analytics',
+          path: '/reports?tab=ai',
           roles: [1, 2, 3, 4, 6],
           badge: 'AI'
+        },
+        {
+          text: 'Patrol AI',
+          path: '/ai-patrol',
+          roles: [1, 2, 6], // Admin, Captain, Officer
+          badge: 'Beta'
+        },
+        {
+          text: 'Ronda Analytics',
+          path: '/ronda-analytics',
+          roles: [1, 2, 6] // Admin, Captain, Officer
+        },
+        {
+          text: 'Clerk Forecasts',
+          path: '/clerk/ai-insights',
+          roles: [1, 4] // Admin, Clerk
         }
       ]
     },
@@ -184,7 +208,22 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
   const renderMenuItem = (item) => {
     const isParent = item.children && item.children.length > 0
     const isOpen = openSubmenus[item.key]
-    const isActive = !isParent && location.pathname === item.path
+    
+    // Improved active state detection
+    let isActive = false
+    
+    if (!isParent) {
+      if (item.path.includes('?')) {
+        // Strict match for items with query params (e.g. AI Insights)
+        isActive = (location.pathname + location.search) === item.path
+      } else {
+        // For items without query params (e.g. Reports), ensure current URL has no conflicting query param
+        // This prevents 'Reports' from being active when 'AI Insights' (/reports?tab=ai) is active
+        const isPathMatch = location.pathname === item.path
+        const hasConflictingQuery = location.search && location.search.includes('tab=ai')
+        isActive = isPathMatch && !hasConflictingQuery
+      }
+    }
 
     if (isParent) {
       return (
@@ -221,9 +260,8 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
     return (
       <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
         <ListItemButton
-          component={NavLink}
-          to={item.path}
           onClick={() => {
+            navigate(item.path)
             if (isMobile) onMobileClose()
           }}
           sx={{
@@ -232,12 +270,15 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
             px: 2,
             pl: item.icon ? 2 : 7, // Indent if no icon (child item)
             transition: 'all 0.2s ease-in-out',
-            '&.active': {
-              backgroundColor: 'primary.main',
-              color: 'primary.contrastText',
-              boxShadow: '0 2px 8px rgba(26, 115, 232, 0.25)',
-              '& .MuiListItemText-primary': { color: 'primary.contrastText', fontWeight: 500 },
-              '& .MuiListItemIcon-root': { color: 'primary.contrastText' }
+            backgroundColor: isActive ? 'primary.main' : 'transparent',
+            color: isActive ? 'primary.contrastText' : 'inherit',
+            boxShadow: isActive ? '0 2px 8px rgba(26, 115, 232, 0.25)' : 'none',
+            '& .MuiListItemText-primary': { 
+              color: isActive ? 'primary.contrastText' : 'inherit', 
+              fontWeight: isActive ? 500 : 400 
+            },
+            '& .MuiListItemIcon-root': { 
+              color: isActive ? 'primary.contrastText' : 'text.secondary' 
             },
             '&:hover': {
               backgroundColor: isActive ? 'primary.main' : 'rgba(26, 115, 232, 0.04)',

@@ -17,13 +17,21 @@ import {
   Checkbox,
   Divider,
   Chip,
-  Avatar
+  Avatar,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper
 } from '@mui/material';
-import { Save as SaveIcon, Person as PersonIcon, Security as SecurityIcon } from '@mui/icons-material';
+import { Save as SaveIcon, Person as PersonIcon, Security as SecurityIcon, Gavel as GavelIcon } from '@mui/icons-material';
 import { apiRequest } from '../utils/api';
 
 const ResidentProfile = () => {
   const [profile, setProfile] = useState(null);
+  const [blotterHistory, setBlotterHistory] = useState([]);
   const [formData, setFormData] = useState({
     First_Name: '',
     Last_Name: '',
@@ -52,6 +60,12 @@ const ResidentProfile = () => {
     fetchProfile();
     fetchVerificationStatus();
   }, []);
+
+  useEffect(() => {
+    if (profile?.Resident_ID) {
+      fetchBlotterHistory(profile.Resident_ID);
+    }
+  }, [profile]);
 
   const fetchProfile = async () => {
     try {
@@ -96,6 +110,18 @@ const ResidentProfile = () => {
       }
     } catch (error) {
       console.error('Failed to fetch verification status');
+    }
+  };
+
+  const fetchBlotterHistory = async (residentId) => {
+    try {
+      const response = await apiRequest(`/residents/${residentId}/blotter-history`);
+      if (response.ok) {
+        const data = await response.json();
+        setBlotterHistory(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch blotter history', error);
     }
   };
 
@@ -410,6 +436,63 @@ const ResidentProfile = () => {
             </CardContent>
           </Card>
         </Grid>
+
+        {/* Blotter History */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <GavelIcon sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography variant="h6">Blotter History</Typography>
+              </Box>
+
+              <TableContainer component={Paper} variant="outlined">
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Case #</TableCell>
+                      <TableCell>Incident Type</TableCell>
+                      <TableCell>Role</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Date</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {blotterHistory.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center">
+                          No blotter records found.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      blotterHistory.map((record) => (
+                        <TableRow key={record.Case_Number}>
+                          <TableCell>{record.Case_Number}</TableCell>
+                          <TableCell>{record.Incident_Type}</TableCell>
+                          <TableCell>
+                            {record.complainant_resident_id === profile.Resident_ID ? 
+                              <Chip label="Complainant" size="small" color="primary" variant="outlined" /> : 
+                              <Chip label="Respondent" size="small" color="error" variant="outlined" />
+                            }
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={record.Status} 
+                              size="small" 
+                              color={record.Status === 'Pending' ? 'warning' : 'default'} 
+                            />
+                          </TableCell>
+                          <TableCell>{new Date(record.DateTime_Incident).toLocaleDateString()}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+
       </Grid>
     </Box>
   );

@@ -2,32 +2,138 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from collections import Counter
+from sklearn.linear_model import LinearRegression
+
+# Define weights for different incident types to prioritize dangerous areas
+SEVERITY_WEIGHTS = {
+    'Physical Injury': 5,
+    'Homicide': 10,
+    'Grave Threats': 4,
+    'Theft': 3,
+    'Robbery': 4,
+    'Drug Related': 5,
+    'Sexual Harassment': 5,
+    'Vandalism': 2,
+    'Noise Complaint': 1,
+    'Dispute': 2,
+    'Other': 1
+}
+
+def analyze_trends(df):
+    """
+    Analyze crime trends using Linear Regression to detect if incidents are increasing.
+    Returns: "INCREASING", "DECREASING", or "STABLE"
+    """
+    try:
+        if 'dt' not in df.columns or df.empty:
+            return "STABLE"
+
+        # Group by day
+        daily_counts = df.groupby(df['dt'].dt.date).size().reset_index(name='counts')
+        
+        if len(daily_counts) < 3:
+            return "STABLE" # Not enough data points
+
+        # Prepare data for regression
+        # X = days since start, y = counts
+        daily_counts['date_ordinal'] = pd.to_datetime(daily_counts['dt']).map(datetime.toordinal)
+        X = daily_counts['date_ordinal'].values.reshape(-1, 1)
+        y = daily_counts['counts'].values
+
+        model = LinearRegression()
+        model.fit(X, y)
+        
+        slope = model.coef_[0]
+        
+        if slope > 0.1:
+            return "INCREASING"
+        elif slope < -0.1:
+            return "DECREASING"
+        else:
+            return "STABLE"
+            
+    except Exception as e:
+        print(f"Trend analysis error: {e}")
+        return "STABLE"
+
+def analyze_day_patterns(df):
+    """
+    Analyze incidents by day of the week to find dangerous days.
+    Returns: Dictionary of {Day: Count}
+    """
+    try:
+        if 'dt' not in df.columns or df.empty:
+            return {}
+            
+        # 0=Monday, 6=Sunday
+        df['day_name'] = df['dt'].dt.day_name()
+        day_counts = df['day_name'].value_counts().to_dict()
+        return day_counts
+    except Exception as e:
+        print(f"Day pattern analysis error: {e}")
+        return {}
 
 def analyze_crime_patterns(blotter_data):
-    """Analyze actual crime patterns from blotter data"""
+    """
+    Analyze actual crime patterns from blotter data using weighted risk scoring.
+    """
     if not blotter_data:
         return {"error": "No data provided"}
     
     df = pd.DataFrame(blotter_data)
     
-    # Location analysis
+    # Location analysis (Raw Counts)
     location_counts = df['Location_Sitio'].value_counts().to_dict() if 'Location_Sitio' in df.columns else {}
     
+    # Weighted Risk Analysis
+    risk_scores = {}
+    if 'Location_Sitio' in df.columns and 'Incident_Type' in df.columns:
+        for _, row in df.iterrows():
+            loc = row.get('Location_Sitio', 'Unknown')
+            incident = row.get('Incident_Type', 'Other')
+            # Use partial matching or default to 1
+            weight = 1
+            for key, val in SEVERITY_WEIGHTS.items():
+                if key.lower() in str(incident).lower():
+                    weight = val
+                    break
+            
+            risk_scores[loc] = risk_scores.get(loc, 0) + weight
+    
+    # Determine hotspots based on Risk Score if available, otherwise Counts
+    hotspots = dict(sorted(risk_scores.items(), key=lambda x: x[1], reverse=True)) if risk_scores else location_counts
+
     # Time pattern analysis
+    trend = "STABLE"
+    peak_hours = {}
+    day_counts = {}
+    
     if 'DateTime_Incident' in df.columns:
-        df['hour'] = pd.to_datetime(df['DateTime_Incident']).dt.hour
-        peak_hours = df['hour'].value_counts().head(3).to_dict()
-    else:
-        peak_hours = {}
+        # Convert to datetime, handling errors
+        df['dt'] = pd.to_datetime(df['DateTime_Incident'], errors='coerce')
+        df = df.dropna(subset=['dt']) # Drop invalid dates
+        
+        if not df.empty:
+            df['hour'] = df['dt'].dt.hour
+            peak_hours = df['hour'].value_counts().head(3).to_dict()
+            
+            # Analyze Trend
+            trend = analyze_trends(df)
+            
+            # Analyze Day Patterns
+            day_counts = analyze_day_patterns(df)
     
     # Incident type analysis
     incident_types = df['Incident_Type'].value_counts().to_dict() if 'Incident_Type' in df.columns else {}
     
     return {
-        "hotspots": location_counts,
+        "hotspots": hotspots,
+        "raw_counts": location_counts,
         "peak_hours": peak_hours,
+        "day_counts": day_counts,
         "incident_types": incident_types,
         "total_incidents": len(df),
+        "trend": trend,
         "analysis_date": datetime.now().isoformat()
     }
 

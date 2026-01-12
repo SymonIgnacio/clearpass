@@ -49,6 +49,7 @@ const AccountVerification = lazy(() => import('./components/AccountVerification'
 const BeneficiaryValidation = lazy(() => import('./pages/BeneficiaryValidation'))
 const AdminReports = lazy(() => import('./pages/AdminReports'))
 const DocumentVerification = lazy(() => import('./pages/DocumentVerification'))
+const QRCodeGenerator = lazy(() => import('./pages/QRCodeGenerator'))
 
 // Loading component
 const LoadingFallback = () => (
@@ -96,13 +97,13 @@ const createAppTheme = (mode) => {
     },
     background: {
       default: isDark ? '#121212' : '#f8f9fa',
-      paper: isDark ? '#1f1f1f' : '#ffffff',
+      paper: isDark ? '#1e1e1e' : '#ffffff', // Slightly lighter for paper in dark mode
     },
     text: {
-      primary: isDark ? '#e8eaed' : '#202124',
-      secondary: isDark ? '#9aa0a6' : '#5f6368',
+      primary: isDark ? '#ffffff' : '#202124', // Pure white for max contrast
+      secondary: isDark ? '#b0b3b8' : '#5f6368', // Lighter grey for secondary
     },
-    divider: isDark ? '#3c4043' : '#e8eaed',
+    divider: isDark ? 'rgba(255, 255, 255, 0.12)' : '#e8eaed',
   },
   typography: {
     fontFamily: '"Google Sans", "Roboto", "Helvetica", "Arial", sans-serif',
@@ -387,14 +388,26 @@ function App() {
             <Route path="qr-verification" element={<Navigate to="/" replace />} />
 
             {/* AI Routes - Available to authenticated staff */}
-            <Route path="ai-dashboard" element={<AIPatrol />} />
-            <Route path="ai-patrol" element={<AIPatrol />} />
-            <Route path="ronda-analytics" element={<RondaAnalytics />} />
+            <Route path="ai-dashboard" element={
+              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 6]}>
+                <AIPatrol />
+              </ProtectedRoute>
+            } />
+            <Route path="ai-patrol" element={
+              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 6]}>
+                <AIPatrol />
+              </ProtectedRoute>
+            } />
+            <Route path="ronda-analytics" element={
+              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 6]}>
+                <RondaAnalytics />
+              </ProtectedRoute>
+            } />
             <Route path="ai-analytics" element={<Navigate to="/reports" replace />} />
 
             {/* Clerk Routes */}
             <Route path="clerk/ai-insights" element={
-              <ProtectedRoute requiredRoles={[4]}>
+              <ProtectedRoute requiredRoles={[1, 4]}>
                 <ClerkAIInsights />
               </ProtectedRoute>
             } />
@@ -496,6 +509,12 @@ function App() {
             <Route path="secretary/settings" element={
               <ProtectedRoute requiredRoles={[1, 3]}>
                 <SecretarySettings />
+              </ProtectedRoute>
+            } />
+
+            <Route path="qr-generator" element={
+              <ProtectedRoute requiredRoles={[1, 2, 3]}>
+                <QRCodeGenerator />
               </ProtectedRoute>
             } />
 

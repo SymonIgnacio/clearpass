@@ -4,6 +4,7 @@ const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { ROLES } = require('../config/roles');
 const DocumentController = require('../controllers/documentController');
+const { sendRequestStatusEmail } = require('../utils/emailService');
 
 module.exports = (db) => {
   // GET all document requests
@@ -112,6 +113,27 @@ module.exports = (db) => {
         `,
         [normalizedStatus, JSON.stringify(approvalData), req.params.id]
       );
+    }
+
+    // Fetch details for email
+    const [rows] = await db.execute(`
+      SELECT dr.document_type, r.Email, r.First_Name, r.Last_Name 
+      FROM document_requests dr
+      JOIN residents r ON dr.resident_id = r.Resident_ID
+      WHERE dr.request_id = ?
+    `, [req.params.id]);
+
+    if (rows.length > 0) {
+       const { document_type, Email, First_Name, Last_Name } = rows[0];
+       if (Email) {
+         await sendRequestStatusEmail({
+           to: Email,
+           residentName: `${First_Name} ${Last_Name}`,
+           requestType: document_type,
+           status: normalizedStatus,
+           remarks: notes
+         });
+       }
     }
     
     res.json({ message: 'Document request updated successfully' });

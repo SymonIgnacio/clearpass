@@ -59,6 +59,7 @@ import ContactMail from '@mui/icons-material/ContactMail';
 import VerifiedUser from '@mui/icons-material/VerifiedUser';
 import ArrowBack from '@mui/icons-material/ArrowBack';
 import ArrowForward from '@mui/icons-material/ArrowForward';
+import ConfirmationModal from '../../components/ConfirmationModal';
 import { apiRequest } from '../../utils/api';
 
 const PERMISSION_MODULES = [
@@ -84,6 +85,9 @@ const StaffManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState(null);
 
   // Staff State
   const [staffDialogOpen, setStaffDialogOpen] = useState(false);
@@ -382,20 +386,15 @@ const StaffManagement = () => {
     }
   };
 
-  const handleDeleteRole = async (roleId) => {
-    if (!window.confirm('Are you sure you want to delete this role?')) return;
-    try {
-      const response = await apiRequest(`admin/roles/${roleId}`, { method: 'DELETE' });
-      if (response.ok) {
-        setSuccess('Role deleted successfully');
-        fetchRoles();
-      } else {
-        const err = await response.json();
-        setError(err.error || 'Failed to delete role');
-      }
-    } catch (error) {
-      setError('Network error occurred');
-    }
+  const handleDeleteRole = (roleId, roleName) => {
+    setConfirmationAction({
+      type: 'delete_role',
+      id: roleId,
+      title: 'Delete Role',
+      message: `Are you sure you want to delete the role "${roleName}"?`,
+      icon: 'warning'
+    });
+    setConfirmationModalOpen(true);
   };
 
   // --- Filtering & Stats ---
@@ -662,7 +661,8 @@ const StaffManagement = () => {
                         size="small" 
                         color="error" 
                         startIcon={<Delete />}
-                        onClick={() => handleDeleteRole(role.id)}
+                        onClick={() => handleDeleteRole(role.id, role.role_name)}
+                        disabled={role.role_name === 'Admin'} // Prevent deleting main admin role
                       >
                         Delete
                       </Button>
@@ -980,6 +980,15 @@ const StaffManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmationModal
+        open={confirmationModalOpen}
+        onClose={() => setConfirmationModalOpen(false)}
+        onConfirm={handleConfirmationConfirm}
+        title={confirmationAction?.title}
+        message={confirmationAction?.message}
+        type={confirmationAction?.icon || 'info'}
+      />
     </Box>
   );
 };

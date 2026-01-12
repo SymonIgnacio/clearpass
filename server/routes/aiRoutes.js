@@ -4,50 +4,26 @@ const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
 const axios = require('axios');
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:5001';
-const AI_SERVICE_ENABLED = process.env.AI_SERVICE_ENABLED === 'true';
+function normalizeAiServiceUrl(rawUrl) {
+  const fallbackUrl = 'http://127.0.0.1:5000';
+  const input = (rawUrl || '').trim();
+  if (!input) return fallbackUrl;
+
+  try {
+    const url = new URL(input);
+    if (url.hostname === 'localhost') url.hostname = '127.0.0.1';
+    if (url.hostname === '::1') url.hostname = '127.0.0.1';
+    return url.toString().replace(/\/$/, '');
+  } catch {
+    return input.replace(/\/$/, '');
+  }
+}
+
+const AI_SERVICE_URL = normalizeAiServiceUrl(process.env.AI_SERVICE_URL);
+// Force true default if undefined, but respect 'false' string
+const AI_SERVICE_ENABLED = process.env.AI_SERVICE_ENABLED !== 'false';
 
 module.exports = (db) => {
-  // POST OCR processing
-  router.post('/ocr', verifyToken, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(async (req, res) => {
-    if (!AI_SERVICE_ENABLED) {
-      return res.status(503).json({ 
-        success: false, 
-        message: 'AI service is currently disabled' 
-      });
-    }
-
-    try {
-      const { image_data, document_type } = req.body;
-      
-      if (!image_data) {
-        return res.status(400).json({ error: 'image_data is required' });
-      }
-
-      // Call Python AI service
-      const response = await axios.post(`${AI_SERVICE_URL}/ocr/extract`, {
-        image_data,
-        document_type: document_type || 'general'
-      }, {
-        timeout: 30000 // 30 second timeout
-      });
-
-      res.json({
-        success: true,
-        extracted_text: response.data.text,
-        extracted_fields: response.data.fields || {},
-        confidence: response.data.confidence || 0
-      });
-    } catch (error) {
-      console.error('OCR service error:', error.message);
-      res.status(503).json({ 
-        success: false, 
-        message: 'OCR service unavailable',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  }));
-
   // POST chatbot queries
   router.post('/chatbot', verifyToken, asyncHandler(async (req, res) => {
     if (!AI_SERVICE_ENABLED) {
@@ -58,27 +34,20 @@ module.exports = (db) => {
     }
 
     try {
-      const { message, context } = req.body;
+      const { message } = req.body;
       
       if (!message) {
         return res.status(400).json({ error: 'message is required' });
       }
 
       // Call Python AI service
-      const response = await axios.post(`${AI_SERVICE_URL}/chatbot/query`, {
-        message,
-        context: context || {},
-        user_id: req.user.id
+      const response = await axios.post(`${AI_SERVICE_URL}/chatbot/message`, {
+        message
       }, {
         timeout: 15000 // 15 second timeout
       });
 
-      res.json({
-        success: true,
-        response: response.data.response,
-        intent: response.data.intent || 'general',
-        confidence: response.data.confidence || 0
-      });
+      res.json(response.data);
     } catch (error) {
       console.error('Chatbot service error:', error.message);
       res.status(503).json({ 
@@ -89,8 +58,8 @@ module.exports = (db) => {
     }
   }));
 
-  // GET AI analytics
-  router.get('/analytics', verifyToken, checkRole(['admin', 'captain']), asyncHandler(async (req, res) => {
+  // POST Social Aid Priority Calculation
+  router.post('/priority', verifyToken, checkRole(['admin', 'secretary', 'clerk', 'captain']), asyncHandler(async (req, res) => {
     if (!AI_SERVICE_ENABLED) {
       return res.status(503).json({ 
         success: false, 
@@ -99,24 +68,60 @@ module.exports = (db) => {
     }
 
     try {
-      const { type, period } = req.query;
-
-      // Call Python AI service
-      const response = await axios.get(`${AI_SERVICE_URL}/analytics/${type || 'general'}`, {
-        params: { period: period || '30d' },
-        timeout: 20000 // 20 second timeout
+      // Call Python AI service with resident data
+      const response = await axios.post(`${AI_SERVICE_URL}/api/calculate-priority`, req.body, {
+        timeout: 10000
       });
 
       res.json({
         success: true,
-        analytics: response.data,
-        generated_at: new Date().toISOString()
+        data: response.data
       });
     } catch (error) {
-      console.error('Analytics service error:', error.message);
+      console.error('Priority service error:', error.message);
       res.status(503).json({ 
         success: false, 
-        message: 'Analytics service unavailable',
+        message: 'Priority calculation service unavailable',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }));
+
+  // POST Intelligent Patrol Suggestions
+  router.post('/patrol', verifyToken, checkRole(['admin', 'captain', 'officer']), asyncHandler(async (req, res) => {
+    if (!AI_SERVICE_ENABLED) {
+      return res.status(503).json({ 
+        success: false, 
+        message: 'AI service is currently disabled' 
+      });
+    }
+
+    try {
+      // 1. Fetch real blotter data from the last 30 days
+      const [rows] = await db.execute(`
+        SELECT Location_Sitio, Incident_Type, DateTime_Incident 
+        FROM blotter 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        ORDER BY DateTime_Incident DESC
+      `);
+
+      // 2. Send to AI service for analysis
+      const response = await axios.post(`${AI_SERVICE_URL}/suggest-patrol`, {
+        blotter_data: rows
+      }, {
+        timeout: 30000 // 30 second timeout for analysis
+      });
+
+      res.json({
+        success: true,
+        data: response.data,
+        analyzed_count: rows.length
+      });
+    } catch (error) {
+      console.error('Patrol service error:', error.message);
+      res.status(503).json({ 
+        success: false, 
+        message: 'Patrol suggestion service unavailable',
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
@@ -147,6 +152,32 @@ module.exports = (db) => {
         message: 'AI service is not responding',
         url: AI_SERVICE_URL,
         error: error.message
+      });
+    }
+  }));
+
+  // GET General AI Analytics
+  router.get('/analytics', verifyToken, checkRole(['admin']), asyncHandler(async (req, res) => {
+    if (!AI_SERVICE_ENABLED) {
+      return res.status(503).json({ 
+        success: false, 
+        message: 'AI service is currently disabled' 
+      });
+    }
+
+    try {
+      // Call Python AI service for general analytics
+      const response = await axios.get(`${AI_SERVICE_URL}/analytics/general`, {
+        timeout: 5000
+      });
+
+      res.json(response.data);
+    } catch (error) {
+      console.error('AI analytics service error:', error.message);
+      res.status(503).json({ 
+        success: false, 
+        message: 'AI analytics service unavailable',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }));

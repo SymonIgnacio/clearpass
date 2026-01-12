@@ -4,6 +4,29 @@ This folder is a lightweight “memory bank” for storing long-lived system kno
 
 The goal is to make critical context easy to find, review, and update over time using normal git history.
 
+## CLI Tools
+
+This repository includes a comprehensive audit and documentation system.
+
+### Usage
+
+```bash
+# Scan project files and regenerate documentation
+npm run memory-bank scan
+
+# Record a new audit entry (interactive)
+npm run audit
+
+# Create a backup of the memory bank
+npm run memory-bank backup
+```
+
+### Components
+
+- **Indexer**: Recursively scans files and builds a dependency graph (`data/file-index.json`).
+- **Doc Generator**: Creates `system/CODE_MAP.md` from file metadata and comments.
+- **Auditor**: Logs changes to `entries/audit-log.md` and `data/audit-history.json`.
+
 ## What goes here
 
 - Configuration settings (env vars, feature flags, ports, external services)
@@ -28,4 +51,3 @@ Use:
 Recommended ways to search:
 - IDE search for `tags:` or a subsystem keyword (`JWT`, `Knex`, `CSRF`, `retention`)
 - Jump via [STRUCTURE.md](STRUCTURE.md) and [INDEX.md](INDEX.md)
-

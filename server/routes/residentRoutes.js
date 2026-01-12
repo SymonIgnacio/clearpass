@@ -48,7 +48,7 @@ module.exports = (db) => {
   router.put('/:id/status', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary']), validateId, asyncHandler(residentController.toggleStatus));
 
   // POST generate QR code
-  router.post('/:id/qr', verifyToken, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(residentController.generateQR));
+  router.post('/:id/generate-qr', verifyToken, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(residentController.generateQR));
   
   // GET household members
   router.get('/household/:id/members', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk']), asyncHandler(residentController.getHouseholdMembers));
@@ -58,6 +58,9 @@ module.exports = (db) => {
 
   router.get('/:id/documents', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident']), validateId, asyncHandler(residentController.listDocuments));
   router.get('/:id/documents/:docId/download', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident']), validateId, asyncHandler(residentController.downloadDocument));
+
+  // GET resident blotter history
+  router.get('/:id/blotter-history', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident']), validateId, asyncHandler(residentController.getBlotterHistory));
 
   return router;
 };

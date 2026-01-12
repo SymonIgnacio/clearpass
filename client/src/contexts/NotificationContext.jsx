@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { apiRequest } from '../utils/api';
 import { useAuth } from './AuthContext';
+import { Snackbar, Alert } from '@mui/material';
 
 const NotificationContext = createContext();
 
@@ -18,9 +19,31 @@ export function NotificationProvider({ children }) {
   const { user, token } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'info' // 'success', 'error', 'warning', 'info'
+  });
+  
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const isUnmountedRef = useRef(false);
+
+  // Client-side notification function
+  const notify = (message, severity = 'info') => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
 
   useEffect(() => {
     isUnmountedRef.current = false;
@@ -156,12 +179,23 @@ export function NotificationProvider({ children }) {
     unreadCount,
     markAsRead,
     markAllAsRead,
-    refreshNotifications: fetchNotifications
+    refreshNotifications: fetchNotifications,
+    notify // Expose the notify function
   };
 
   return (
     <NotificationContext.Provider value={value}>
       {children}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </NotificationContext.Provider>
   );
 };

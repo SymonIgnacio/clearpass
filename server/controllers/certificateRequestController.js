@@ -1,6 +1,15 @@
+const { sendRequestStatusEmail } = require('../utils/emailService');
+
 class CertificateRequestController {
   constructor(db) {
     this.db = db;
+    this.getCertificateTypes = this.getCertificateTypes.bind(this);
+    this.submitRequest = this.submitRequest.bind(this);
+    this.getMyRequests = this.getMyRequests.bind(this);
+    this.cancelRequest = this.cancelRequest.bind(this);
+    this.getAllRequests = this.getAllRequests.bind(this);
+    this.getRequestAttachment = this.getRequestAttachment.bind(this);
+    this.updateRequestStatus = this.updateRequestStatus.bind(this);
   }
 
   async getCertificateTypes(req, res) {
@@ -155,7 +164,7 @@ class CertificateRequestController {
       const offset = (page - 1) * limit;
 
       let query = `
-        SELECT dr.id, dr.request_id, dr.document_type, dr.status, dr.created_at, 
+        SELECT dr.request_id, dr.document_type, dr.status, dr.created_at, 
                dr.request_data, dr.resident_data,
                r.First_Name, r.Last_Name, r.Middle_Name, r.Suffix
         FROM document_requests dr
@@ -249,20 +258,37 @@ class CertificateRequestController {
         return res.status(404).json({ success: false, message: 'Request not found' });
       }
 
-      // If approved, maybe create the actual certificate record automatically?
-      // For now, just update status. The staff will likely issue the cert manually or via another flow.
-
       // Notify resident
-      const [reqData] = await this.db.execute('SELECT resident_id, document_type FROM document_requests WHERE request_id = ?', [request_id]);
-      if (reqData.length > 0 && global.createNotification) {
-        await global.createNotification(
-          null, // system notification (no sender) or find user_id for resident
-          'Certificate Request Update',
-          `Your request for ${reqData[0].document_type} has been ${status}. ${remarks ? `Remarks: ${remarks}` : ''}`,
-          status === 'approved' ? 'success' : 'error',
-          'high',
-          { request_id }
-        );
+      const [rows] = await this.db.execute(`
+        SELECT dr.document_type, r.Email, r.First_Name, r.Last_Name 
+        FROM document_requests dr
+        JOIN residents r ON dr.resident_id = r.Resident_ID
+        WHERE dr.request_id = ?
+      `, [request_id]);
+
+      if (rows.length > 0) {
+        const { document_type, Email, First_Name, Last_Name } = rows[0];
+
+        if (global.createNotification) {
+          await global.createNotification(
+            null, // system notification
+            'Certificate Request Update',
+            `Your request for ${document_type} has been ${status}. ${remarks ? `Remarks: ${remarks}` : ''}`,
+            status === 'approved' ? 'success' : 'error',
+            'high',
+            { request_id }
+          );
+        }
+
+        if (Email) {
+          await sendRequestStatusEmail({
+            to: Email,
+            residentName: `${First_Name} ${Last_Name}`,
+            requestType: document_type,
+            status,
+            remarks
+          });
+        }
       }
 
       res.json({ success: true, message: `Request ${status} successfully` });

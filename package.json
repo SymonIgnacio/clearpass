@@ -14,7 +14,7 @@
     "test:watch": "cd tests && npm run test:watch",
     "test:coverage": "cd tests && npm run test:coverage",
     "install:all": "npm install && cd server && npm install && cd ../client && npm install && cd ../tests && npm install",
-    "dev:all": "concurrently \"cd client && npm run dev\" \"cd server && npm run dev\" \"cd ai_service && python smart_suggestions.py\"",
+    "dev:all": "concurrently \"cd client && npm run dev\" \"cd server && npm run dev\" \"cd ai_service && python suggestion_engine.py\"",
     "setup": "npm run install:all && npm run setup-env && npm run db:migrate",
     "setup-env": "node scripts/validate-env.cjs generate",
     "validate-env": "node scripts/validate-env.cjs",
@@ -22,7 +22,9 @@
     "db:migrate": "cd server && npm run db:migrate",
     "health-check": "node scripts/health-check.js",
     "test:system": "node scripts/run-tests.js",
-    "verify:completion": "node scripts/verify-completion.js"
+    "verify:completion": "node scripts/verify-completion.js",
+    "memory-bank": "node memory-bank/system/cli.cjs",
+    "audit": "node memory-bank/system/cli.cjs audit"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

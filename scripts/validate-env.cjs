@@ -1,9 +1,5 @@
 #!/usr/bin/env node
 
-// Force CommonJS mode
-const { createRequire } = require('module');
-const require = createRequire(import.meta.url);
-
 const fs = require('fs');
 const path = require('path');
 
@@ -29,8 +25,8 @@ function validateEnvironmentConfig() {
 
   // Check server environment
   log('📋 Server Environment Check:', 'blue');
-  const serverEnvPath = path.join(__dirname, '../../server/.env');
-  const serverEnvExamplePath = path.join(__dirname, '../../server/.env.example');
+  const serverEnvPath = path.join(__dirname, '../server/.env');
+  const serverEnvExamplePath = path.join(__dirname, '../server/.env.example');
 
   if (!fs.existsSync(serverEnvPath)) {
     log('  ❌ server/.env file not found', 'red');
@@ -86,8 +82,10 @@ function validateEnvironmentConfig() {
 
   // Check client environment
   log('\n📋 Client Environment Check:', 'blue');
-  const clientEnvPath = path.join(__dirname, '../../client/.env');
-  const clientEnvExamplePath = path.join(__dirname, '../../client/.env.example');
+  const clientEnvPath = path.join(__dirname, '../client/.env');
+  const clientEnvExamplePath = path.join(__dirname, '../client/.env.example');
+  log(`DEBUG: __dirname is: ${__dirname}`, 'yellow');
+  log(`DEBUG: Checking client env path: ${clientEnvPath}`, 'yellow');
 
   if (!fs.existsSync(clientEnvPath)) {
     log('  ❌ client/.env file not found', 'red');
@@ -140,7 +138,7 @@ function validateEnvironmentConfig() {
 
   // Check AI service environment
   log('\n📋 AI Service Environment Check:', 'blue');
-  const aiEnvPath = path.join(__dirname, '../../ai_service/.env');
+  const aiEnvPath = path.join(__dirname, '../ai_service/.env');
   
   if (!fs.existsSync(aiEnvPath)) {
     log('  ⚠️  ai_service/.env file not found (optional)', 'yellow');
@@ -153,8 +151,8 @@ function validateEnvironmentConfig() {
   log('\n📋 Package Configuration Check:', 'blue');
   
   const packagePaths = [
-    { name: 'Server', path: '../../server/package.json' },
-    { name: 'Client', path: '../../client/package.json' }
+    { name: 'Server', path: '../server/package.json' },
+    { name: 'Client', path: '../client/package.json' }
   ];
 
   packagePaths.forEach(({ name, path: pkgPath }) => {
@@ -203,8 +201,8 @@ function validateEnvironmentConfig() {
 function generateEnvironmentFiles() {
   log('🛠️  Generating missing environment files...', 'blue');
   
-  const serverEnvPath = path.join(__dirname, '../../server/.env');
-  const clientEnvPath = path.join(__dirname, '../../client/.env');
+  const serverEnvPath = path.join(__dirname, '../server/.env');
+  const clientEnvPath = path.join(__dirname, '../client/.env');
   
   // Generate server .env if missing
   if (!fs.existsSync(serverEnvPath)) {

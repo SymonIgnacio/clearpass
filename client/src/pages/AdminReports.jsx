@@ -42,8 +42,13 @@ import {
   SmartToy
 } from '@mui/icons-material'
 import { api, apiRequest } from '../utils/api'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useNotifications } from '../contexts/NotificationContext'
 
 const AdminReports = () => {
+  const { notify } = useNotifications()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState(0)
   const [reports, setReports] = useState({
     users: null,
@@ -162,10 +167,10 @@ const AdminReports = () => {
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
 
-      alert(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)} PDF report downloaded successfully!`)
+      notify(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)} PDF report downloaded successfully!`, 'success')
     } catch (error) {
       console.error('PDF generation error:', error)
-      alert(`Failed to generate PDF: ${error.message}`)
+      notify(`Failed to generate PDF: ${error.message}`, 'error')
     } finally {
       setLoading(false)
     }
@@ -193,6 +198,7 @@ const AdminReports = () => {
         const tabKey = tabs[index].key
         if (result.status === 'fulfilled') {
           // Successfully loaded report
+          if (tabKey === 'ai') console.log('🤖 AI Data Loaded:', result.value);
           newReports[tabKey] = result.value
         } else {
           // Report failed to load - set to null and log error
@@ -212,11 +218,24 @@ const AdminReports = () => {
   }
 
   useEffect(() => {
+    // Check for tab query param
+    const params = new URLSearchParams(location.search)
+    const tabParam = params.get('tab')
+    if (tabParam) {
+      const tabIndex = tabs.findIndex(t => t.key === tabParam)
+      if (tabIndex !== -1) {
+        setActiveTab(tabIndex)
+      }
+    }
+    
     loadAllReports()
-  }, [])
+  }, [location.search])
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue)
+    // Update URL without reloading to keep state in sync
+    const tabKey = tabs[newValue].key
+    navigate(`/reports?tab=${tabKey}`, { replace: true })
   }
 
   const formatDate = (dateString) => {
@@ -1170,8 +1189,19 @@ const AdminReports = () => {
   }
 
   const renderAIReports = () => {
+    console.log('Rendering AI Reports. Loading:', loading, 'Data:', reports.ai);
     const data = reports.ai
-    if (!data) return <CircularProgress />
+    // Only show loading if we are actually loading AND don't have data yet
+    if (loading && !data) return <CircularProgress />
+    
+    // If not loading and no data, show error/empty state
+    if (!data) {
+      return (
+        <Alert severity="warning">
+          AI Analytics data is currently unavailable. Please try refreshing the page.
+        </Alert>
+      )
+    }
 
     return (
       <Grid container spacing={3}>

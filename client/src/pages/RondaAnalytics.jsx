@@ -85,14 +85,14 @@ const RondaAnalytics = () => {
     setLoading(true);
     try {
       // Load summary data
-      const summaryResponse = await apiRequest('analytics/dashboard-summary');
+      const summaryResponse = await apiRequest('ai-analytics/dashboard-summary');
       const summary = await summaryResponse.json();
       setSummaryData(summary);
 
       // Load chart data
       const chartTypes = ['incident_trends', 'incident_types', 'sitio_distribution', 'hourly_patterns'];
       const chartPromises = chartTypes.map(type =>
-        apiRequest(`analytics/charts/${type}`).then(res => res.json())
+        apiRequest(`ai-analytics/charts/${type}`).then(res => res.json())
       );
 
       const chartResults = await Promise.all(chartPromises);
@@ -121,7 +121,7 @@ const RondaAnalytics = () => {
         filters: {}
       };
 
-      const response = await apiRequest('analytics/generate-report', {
+      const response = await apiRequest('ai-analytics/generate-report', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

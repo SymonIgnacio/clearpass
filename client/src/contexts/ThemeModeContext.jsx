@@ -7,9 +7,17 @@ const STORAGE_KEY = 'userPreferences';
 const readInitialMode = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return 'light';
-    const parsed = JSON.parse(raw);
-    return parsed?.darkMode ? 'dark' : 'light';
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed?.darkMode === 'boolean') {
+        return parsed.darkMode ? 'dark' : 'light';
+      }
+    }
+    // Fallback to system preference
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
   } catch {
     return 'light';
   }

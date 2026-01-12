@@ -79,7 +79,7 @@ const login = async (req, res) => {
 
     const mfaEnforced = isMfaEnforced();
     const mfaRequired =
-      mfaEnforced && [ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK].includes(normalizedRole);
+      mfaEnforced && [ROLES.RESIDENT].includes(normalizedRole);
 
     if (mfaRequired) {
       if (!user.email) {
@@ -256,7 +256,7 @@ const requestMfaOtp = async (req, res) => {
     if (!mfaEnforced) {
       return res.status(400).json(createErrorResponse('MFA enforcement is disabled', 400));
     }
-    if (![ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK].includes(req.user.role)) {
+    if (![ROLES.RESIDENT].includes(req.user.role)) {
       return res.status(403).json(createErrorResponse('MFA not required for this role', 403));
     }
     if (req.user.mfa_verified === true) {
@@ -314,7 +314,7 @@ const verifyMfaOtpCode = async (req, res) => {
     if (!mfaEnforced) {
       return res.status(400).json(createErrorResponse('MFA enforcement is disabled', 400));
     }
-    if (![ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK].includes(req.user.role)) {
+    if (![ROLES.RESIDENT].includes(req.user.role)) {
       return res.status(403).json(createErrorResponse('MFA not required for this role', 403));
     }
 

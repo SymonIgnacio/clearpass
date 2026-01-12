@@ -52,10 +52,15 @@ import {
   Refresh
 } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
+import { useNotifications } from '../contexts/NotificationContext'
 
 import WriteProtected from '../components/WriteProtected'
+import ConfirmationModal from '../components/ConfirmationModal'
+import QRCodeModal from '../components/QRCodeModal'
+import CredentialsModal from '../components/CredentialsModal'
 
 const Residents = () => {
+  const { notify } = useNotifications()
   const [residents, setResidents] = useState([])
   const [households, setHouseholds] = useState([])
   const [sitios, setSitios] = useState([])
@@ -67,6 +72,15 @@ const Residents = () => {
   const [tabValue, setTabValue] = useState(0)
   const [duplicateCheck, setDuplicateCheck] = useState(null)
   const [bulkImportResult, setBulkImportResult] = useState(null)
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false)
+  const [confirmationAction, setConfirmationAction] = useState(null)
+  
+  // New modal states
+  const [qrModalOpen, setQrModalOpen] = useState(false)
+  const [selectedQrCode, setSelectedQrCode] = useState(null)
+  const [selectedResidentName, setSelectedResidentName] = useState('')
+  const [credentialsModalOpen, setCredentialsModalOpen] = useState(false)
+  const [newCredentials, setNewCredentials] = useState(null)
 
   const [formData, setFormData] = useState({
     household_id: '',
@@ -201,14 +215,14 @@ const Residents = () => {
 
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB')
+      notify('File size must be less than 5MB', 'warning')
       return
     }
 
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
     if (!allowedTypes.includes(file.type)) {
-      alert('Only JPG, PNG, and PDF files are allowed')
+      notify('Only JPG, PNG, and PDF files are allowed', 'warning')
       return
     }
 
@@ -286,34 +300,34 @@ const Residents = () => {
   const handleSave = async () => {
     // Form validation
     if (!formData.household_id || formData.household_id === '') {
-      alert('Please select a household for the resident.')
+      notify('Please select a household for the resident.', 'warning')
       return
     }
 
     if (!formData.first_name || !formData.first_name.trim()) {
-      alert('First name is required.')
+      notify('First name is required.', 'warning')
       return
     }
 
     if (!formData.last_name || !formData.last_name.trim()) {
-      alert('Last name is required.')
+      notify('Last name is required.', 'warning')
       return
     }
 
     if (!formData.birthdate) {
-      alert('Birthdate is required.')
+      notify('Birthdate is required.', 'warning')
       return
     }
 
     if (!formData.email || !formData.email.trim()) {
-      alert('Email address is required.')
+      notify('Email address is required.', 'warning')
       return
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email)) {
-      alert('Please enter a valid email address.')
+      notify('Please enter a valid email address.', 'warning')
       return
     }
 
@@ -327,7 +341,7 @@ const Residents = () => {
 
     for (const check of vulnerabilityChecks) {
       if (formData[check.field] && !formData.documents[check.docType]) {
-        alert(`Please upload supporting document for ${check.name} status.`)
+        notify(`Please upload supporting document for ${check.name} status.`, 'warning')
         return
       }
     }
@@ -366,55 +380,62 @@ const Residents = () => {
 
         // Show different messages for create vs update
         if (editing) {
-          alert('Resident updated successfully!')
+          notify('Resident updated successfully!', 'success')
         } else {
           // Show generated credentials for new resident
-          const credentialsMessage = `✅ Resident Created Successfully!
-
-🆔 Resident ID: ${result.resident_code}
-👤 User Account: ${result.user_email}
-🔐 Temporary Password: ${result.temp_password}
-
-📝 Instructions: Provide these credentials to the resident for their first login.
-The resident can now login with their email and this temporary password.
-
-Keep these credentials secure and provide them to the resident privately.`
-
-          alert(credentialsMessage)
+          setNewCredentials(result)
+          setCredentialsModalOpen(true)
         }
       } else {
         const error = await response.json()
-        alert('Error: ' + (error.error || 'Unknown error'))
+        notify('Error: ' + (error.error || 'Unknown error'), 'error')
       }
     } catch (error) {
       console.error('Error saving resident:', error)
-      alert('Error saving resident: ' + error.message)
+      notify('Error saving resident: ' + error.message, 'error')
     }
   }
 
-  const handleArchive = async (residentId) => {
-    const reason = prompt('Enter departure reason:')
-    if (!reason) return
-
-    try {
-      const response = await apiRequest(`residents/${residentId}/archive`, {
-        method: 'put',
-        body: {
-          departure_reason: reason,
-          departure_date: new Date().toISOString()
-        }
-      })
-
-      if (response.ok) {
-        fetchResidents()
-        alert('Resident archived successfully')
-      } else {
-        alert('Error archiving resident')
-      }
-    } catch (error) {
-      console.error('Error archiving resident:', error)
-      alert('Error archiving resident: ' + error.message)
+  const handleConfirmationConfirm = (inputValue) => {
+    if (confirmationAction && confirmationAction.onConfirm) {
+      confirmationAction.onConfirm(inputValue)
     }
+    setConfirmationModalOpen(false)
+    setConfirmationAction(null)
+  }
+
+  const handleArchive = async (residentId) => {
+    setConfirmationAction({
+      title: 'Archive Resident',
+      message: 'Please provide a reason for archiving this resident. This action will move the resident to the archive list.',
+      icon: 'warning',
+      showInput: true,
+      inputLabel: 'Departure Reason',
+      inputRequired: true,
+      confirmText: 'Archive',
+      onConfirm: async (reason) => {
+        try {
+          const response = await apiRequest(`residents/${residentId}/archive`, {
+            method: 'put',
+            body: {
+              departure_reason: reason,
+              departure_date: new Date().toISOString()
+            }
+          })
+
+          if (response.ok) {
+            fetchResidents()
+            notify('Resident archived successfully', 'success')
+          } else {
+            notify('Error archiving resident', 'error')
+          }
+        } catch (error) {
+          console.error('Error archiving resident:', error)
+          notify('Error archiving resident: ' + error.message, 'error')
+        }
+      }
+    })
+    setConfirmationModalOpen(true)
   }
 
   const handleBulkImport = async (event) => {
@@ -444,21 +465,23 @@ Keep these credentials secure and provide them to the resident privately.`
     }
   }
 
-  const generateQR = async (residentId) => {
+  const generateQR = async (resident) => {
     try {
-      const response = await apiRequest(`residents/${residentId}/generate-qr`, {
+      const response = await apiRequest(`residents/${resident.Resident_ID}/generate-qr`, {
         method: 'POST'
       })
 
       if (response.ok) {
         const result = await response.json()
-        alert(`QR Code generated: ${result.qr_code}`)
-        // In a real app, this would open a print dialog or download the ID
-        window.open(`/print-id/${result.qr_code}`, '_blank')
+        
+        // Open the QR Modal instead of alert
+        setSelectedQrCode(result.qr_code)
+        setSelectedResidentName(`${resident.First_Name} ${resident.Last_Name}`)
+        setQrModalOpen(true)
       }
     } catch (error) {
       console.error('Error generating QR:', error)
-      alert('Error generating QR code')
+      notify('Error generating QR code', 'error')
     }
   }
 
@@ -550,10 +573,10 @@ Keep these credentials secure and provide them to the resident privately.`
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
 
-      alert('Residents PDF report downloaded successfully!')
+      notify('Residents PDF report downloaded successfully!', 'success')
     } catch (error) {
       console.error('PDF generation error:', error)
-      alert(`Failed to generate PDF: ${error.message}`)
+      notify(`Failed to generate PDF: ${error.message}`, 'error')
     }
   }
 
@@ -828,7 +851,7 @@ Keep these credentials secure and provide them to the resident privately.`
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Generate QR ID">
-                          <IconButton size="small" onClick={() => generateQR(resident.Resident_ID)}>
+                          <IconButton size="small" onClick={() => generateQR(resident)}>
                             <QrCode />
                           </IconButton>
                         </Tooltip>
@@ -1565,6 +1588,39 @@ Keep these credentials secure and provide them to the resident privately.`
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmationModal
+        open={confirmationModalOpen}
+        onClose={() => {
+          if (!confirmationAction?.type || confirmationAction.type === 'info' || confirmationAction.type === 'error') {
+            setConfirmationModalOpen(false)
+            setConfirmationAction(null)
+          } else {
+            setConfirmationModalOpen(false)
+          }
+        }}
+        onConfirm={handleConfirmationConfirm}
+        title={confirmationAction?.title}
+        message={confirmationAction?.message}
+        type={confirmationAction?.icon || 'info'}
+        showInput={confirmationAction?.showInput}
+        inputLabel={confirmationAction?.inputLabel}
+        inputRequired={confirmationAction?.inputRequired}
+      />
+
+      {/* New Modals */}
+      <QRCodeModal 
+        open={qrModalOpen} 
+        onClose={() => setQrModalOpen(false)} 
+        qrCode={selectedQrCode}
+        residentName={selectedResidentName}
+      />
+
+      <CredentialsModal
+        open={credentialsModalOpen}
+        onClose={() => setCredentialsModalOpen(false)}
+        credentials={newCredentials}
+      />
     </Box>
   )
 }

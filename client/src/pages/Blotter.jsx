@@ -46,6 +46,7 @@ import {
   Refresh
 } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
+import { useNotifications } from '../contexts/NotificationContext'
 
 // Hardcoded incident types per Katarungang Pambarangay categories
 const INCIDENT_CATEGORIES = {
@@ -82,6 +83,7 @@ import WriteProtected from '../components/WriteProtected'
 import SmartComplainantInput from '../components/SmartComplainantInput'
 
 const Blotter = () => {
+  const { notify } = useNotifications()
   const location = useLocation()
   const [blotterCases, setBlotterCases] = useState([])
   const [residents, setResidents] = useState([])
@@ -246,7 +248,7 @@ const Blotter = () => {
     // In a real implementation, this would generate and print a PDF
     console.log(`Printing Blotter Extract for case: ${caseNumber}`)
     // For demo purposes, we'll just show an alert
-    alert(`Blotter Extract PDF generated for Case #${caseNumber}`)
+    notify(`Blotter Extract PDF generated for Case #${caseNumber}`, 'success')
   }
 
   const handleIssueSummons = async (caseData) => {
@@ -353,10 +355,10 @@ const Blotter = () => {
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
 
-      alert('Blotter PDF report downloaded successfully!')
+      notify('Blotter PDF report downloaded successfully!', 'success')
     } catch (error) {
       console.error('PDF generation error:', error)
-      alert(`Failed to generate PDF: ${error.message}`)
+      notify(`Failed to generate PDF: ${error.message}`, 'error')
     }
   }
 

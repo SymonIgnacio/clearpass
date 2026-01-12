@@ -22,7 +22,9 @@ import {
   IconButton,
   Tooltip,
   Tabs,
-  Tab
+  Tab,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material'
 import Visibility from '@mui/icons-material/Visibility'
 import CheckCircle from '@mui/icons-material/CheckCircle'
@@ -30,15 +32,31 @@ import Cancel from '@mui/icons-material/Cancel'
 import Description from '@mui/icons-material/Description'
 import Assignment from '@mui/icons-material/Assignment'
 import { apiRequest } from '../utils/api'
+import { useNotifications } from '../contexts/NotificationContext'
+import RejectionModal from '../components/RejectionModal'
+import ConfirmationModal from '../components/ConfirmationModal'
+import CredentialsModal from '../components/CredentialsModal'
 
 const DocumentVerification = () => {
+  const { notify } = useNotifications()
   const [tabValue, setTabValue] = useState(0)
+  const [filterStatus, setFilterStatus] = useState('pending')
   const [applications, setApplications] = useState([])
   const [residentDocuments, setResidentDocuments] = useState([])
   const [selectedApplication, setSelectedApplication] = useState(null)
   const [selectedApplicationDocuments, setSelectedApplicationDocuments] = useState([])
   const [selectedDocument, setSelectedDocument] = useState(null)
   const [documentViewOpen, setDocumentViewOpen] = useState(false)
+  
+  // Modal States
+  const [rejectionModalOpen, setRejectionModalOpen] = useState(false)
+  const [rejectionAction, setRejectionAction] = useState(null)
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false)
+  const [confirmationAction, setConfirmationAction] = useState(null)
+  
+  // New Credentials Modal
+  const [credentialsModalOpen, setCredentialsModalOpen] = useState(false)
+  const [newCredentials, setNewCredentials] = useState(null)
 
   useEffect(() => {
     fetchApplications()
@@ -88,7 +106,7 @@ const DocumentVerification = () => {
     try {
       const response = await apiRequest(endpoint)
       if (!response.ok) {
-        alert('Failed to open file')
+        notify('Failed to open file', 'error')
         return
       }
       const blob = await response.blob()
@@ -105,7 +123,7 @@ const DocumentVerification = () => {
       setTimeout(() => window.URL.revokeObjectURL(url), 30_000)
     } catch (error) {
       console.error('Error opening file:', error)
-      alert('Error opening file')
+      notify('Error opening file', 'error')
     }
   }
 
@@ -121,16 +139,20 @@ const DocumentVerification = () => {
         fetchApplications()
         setSelectedApplication(null)
         if (action === 'approve' && data?.credentials?.email && data?.credentials?.temp_password) {
-          alert(
-            `Application approved.\n\nLogin credentials:\nEmail: ${data.credentials.email}\nTemp Password: ${data.credentials.temp_password}`
-          )
+          // Show credentials modal instead of alert
+          setNewCredentials({
+            resident_code: data.credentials.resident_id || 'N/A', // Assuming API returns this or we use application ID
+            user_email: data.credentials.email,
+            temp_password: data.credentials.temp_password
+          })
+          setCredentialsModalOpen(true)
           return
         }
-        alert(`Application ${action}d successfully`)
+        notify(`Application ${action}d successfully`, 'success')
       }
     } catch (error) {
       console.error(`Error ${action}ing application:`, error)
-      alert(`Error ${action}ing application`)
+      notify(`Error ${action}ing application`, 'error')
     }
   }
 
@@ -144,11 +166,11 @@ const DocumentVerification = () => {
       if (response.ok) {
         fetchResidentDocuments()
         setDocumentViewOpen(false)
-        alert('Document verification updated successfully')
+        notify('Document verification updated successfully', 'success')
       }
     } catch (error) {
       console.error('Error verifying document:', error)
-      alert('Error verifying document')
+      notify('Error verifying document', 'error')
     }
   }
 
@@ -166,9 +188,57 @@ const DocumentVerification = () => {
     }
   }
 
+  const openRejectionModal = (type, id) => {
+    setRejectionAction({ type, id })
+    setRejectionModalOpen(true)
+  }
+
+  const handleRejectionConfirm = async (reason) => {
+    setRejectionModalOpen(false)
+    if (rejectionAction?.type === 'application') {
+      await handleApplicationAction(rejectionAction.id, 'reject', reason)
+    } else if (rejectionAction?.type === 'document') {
+      await handleDocumentVerification(rejectionAction.id, 'rejected', reason)
+    }
+    setRejectionAction(null)
+  }
+
+  const openVerificationModal = (id) => {
+    setConfirmationAction({
+      type: 'verify_doc',
+      id: id,
+      title: 'Verify Document',
+      message: 'Are you sure you want to mark this document as verified?',
+      icon: 'success'
+    })
+    setConfirmationModalOpen(true)
+  }
+
+  const handleConfirmationConfirm = async (inputValue) => {
+    setConfirmationModalOpen(false)
+    if (confirmationAction?.type === 'verify_doc') {
+      await handleDocumentVerification(confirmationAction.id, 'verified', inputValue)
+    }
+    setConfirmationAction(null)
+  }
+
   const renderApplicationsTab = () => (
     <Box>
-      <Typography variant="h6" sx={{ mb: 2 }}>Pending Registration Applications</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h6">Registration Applications</Typography>
+        <ToggleButtonGroup
+          value={filterStatus}
+          exclusive
+          onChange={(e, newStatus) => {
+            if (newStatus !== null) setFilterStatus(newStatus)
+          }}
+          size="small"
+        >
+          <ToggleButton value="pending">Pending</ToggleButton>
+          <ToggleButton value="approved">Approved</ToggleButton>
+          <ToggleButton value="rejected">Rejected</ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -179,6 +249,7 @@ const DocumentVerification = () => {
               <TableCell>Address</TableCell>
               <TableCell>Vulnerabilities</TableCell>
               <TableCell>Status</TableCell>
+              {filterStatus !== 'pending' && <TableCell>Reviewed At</TableCell>}
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -206,6 +277,11 @@ const DocumentVerification = () => {
                     size="small" 
                   />
                 </TableCell>
+                {filterStatus !== 'pending' && (
+                  <TableCell>
+                    {app.reviewed_at ? new Date(app.reviewed_at).toLocaleDateString() : '-'}
+                  </TableCell>
+                )}
                 <TableCell>
                   <Tooltip title="Review Application">
                     <IconButton 
@@ -437,12 +513,7 @@ const DocumentVerification = () => {
           <Button 
             color="error" 
             startIcon={<Cancel />}
-            onClick={() => {
-              const reason = prompt('Enter rejection reason:')
-              if (reason) {
-                handleApplicationAction(selectedApplication.application_id, 'reject', reason)
-              }
-            }}
+            onClick={() => openRejectionModal('application', selectedApplication.application_id)}
           >
             Reject
           </Button>
@@ -493,25 +564,59 @@ const DocumentVerification = () => {
           )}
           <Button 
             color="error" 
-            onClick={() => {
-              const notes = prompt('Enter verification notes (optional):')
-              handleDocumentVerification(selectedDocument.id, 'rejected', notes || '')
-            }}
+            onClick={() => openRejectionModal('document', selectedDocument.id)}
           >
             Reject
           </Button>
           <Button 
             color="success" 
             variant="contained"
-            onClick={() => {
-              const notes = prompt('Enter verification notes (optional):')
-              handleDocumentVerification(selectedDocument.id, 'verified', notes || '')
-            }}
+            onClick={() => openVerificationModal(selectedDocument.id)}
           >
             Verify
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Rejection Modal */}
+      <RejectionModal
+        open={rejectionModalOpen}
+        onClose={() => setRejectionModalOpen(false)}
+        onConfirm={handleRejectionConfirm}
+        title={rejectionAction?.type === 'application' ? "Reject Application" : "Reject Document"}
+        message={rejectionAction?.type === 'application' 
+          ? "Please provide a reason for rejecting this application:" 
+          : "Please provide a reason for rejecting this document:"}
+        inputLabel={rejectionAction?.type === 'application' ? "Rejection Reason" : "Rejection Notes"}
+      />
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        open={confirmationModalOpen}
+        onClose={() => {
+          // If it's just an info modal, close it
+          if (!confirmationAction?.type || confirmationAction.type === 'info' || confirmationAction.type === 'credentials_info' || confirmationAction.type === 'error') {
+            setConfirmationModalOpen(false)
+            setConfirmationAction(null)
+          }
+        }}
+        onConfirm={handleConfirmationConfirm}
+        title={confirmationAction?.title || 'Confirm Action'}
+        message={confirmationAction?.message || 'Are you sure you want to proceed?'}
+        type={confirmationAction?.icon || 'info'}
+        // Only show confirm button if it's an action, otherwise it's just an info dialog
+        confirmText={['verify_doc'].includes(confirmationAction?.type) ? 'Confirm' : 'OK'}
+        cancelText={['verify_doc'].includes(confirmationAction?.type) ? 'Cancel' : ''}
+        showInput={confirmationAction?.type === 'verify_doc'}
+        inputLabel="Verification Notes (Optional)"
+        inputPlaceholder="Enter notes..."
+      />
+
+      <CredentialsModal
+        open={credentialsModalOpen}
+        onClose={() => setCredentialsModalOpen(false)}
+        credentials={newCredentials}
+      />
     </Box>
   )
 }

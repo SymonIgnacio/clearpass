@@ -16,6 +16,17 @@ const {
 } = require('../utils/documentStorage');
 const { logAuditEvent, logAuditToDatabase, AUDIT_EVENTS } = require('../middleware/auditLogger');
 
+const calculateAge = (birthdate) => {
+  const today = new Date();
+  const birthDate = new Date(birthdate);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
 exports.getAll = async (req, res) => {
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
@@ -192,15 +203,17 @@ exports.create = async (req, res) => {
     const tempPassword = crypto.randomBytes(8).toString('hex');
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
+    const age = calculateAge(birthdate);
+
     await connection.execute(`
       INSERT INTO residents (
         Resident_ID, Household_ID, Relation_to_Head, First_Name, Middle_Name, Last_Name, Suffix,
-        Birthdate, Gender, Civil_Status, Occupation, Income_Estimate, Email, Mobile_Number,
+        Birthdate, Age, Gender, Civil_Status, Occupation, Income_Estimate, Email, Mobile_Number,
         Voter_Status, Date_Arrival, Residency_Status, Profile_Photo_URL, QR_Hash_String
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       residentId, household_id, relation_to_head || 'Head', first_name.trim(), middle_name?.trim(),
-      last_name.trim(), suffix?.trim(), birthdate, gender, civil_status || 'Single',
+      last_name.trim(), suffix?.trim(), birthdate, age, gender, civil_status || 'Single',
       occupation?.trim(), income_estimate || 0, email.trim(), mobile_number?.trim(),
       voter_status || 'Non-Registered', date_arrival, 'Active',
       profile_photo_url?.trim(), qrHash
@@ -303,7 +316,13 @@ exports.update = async (req, res) => {
     if (middle_name !== undefined) { residentUpdates.push('Middle_Name = ?'); residentValues.push(middle_name?.trim()); }
     if (last_name !== undefined) { residentUpdates.push('Last_Name = ?'); residentValues.push(last_name.trim()); }
     if (suffix !== undefined) { residentUpdates.push('Suffix = ?'); residentValues.push(suffix?.trim()); }
-    if (birthdate !== undefined) { residentUpdates.push('Birthdate = ?'); residentValues.push(birthdate); }
+    if (birthdate !== undefined) { 
+      residentUpdates.push('Birthdate = ?'); 
+      residentValues.push(birthdate);
+      const age = calculateAge(birthdate);
+      residentUpdates.push('Age = ?');
+      residentValues.push(age);
+    }
     if (gender !== undefined) { residentUpdates.push('Gender = ?'); residentValues.push(gender); }
     if (civil_status !== undefined) { residentUpdates.push('Civil_Status = ?'); residentValues.push(civil_status); }
     if (occupation !== undefined) { residentUpdates.push('Occupation = ?'); residentValues.push(occupation?.trim()); }
@@ -451,20 +470,38 @@ exports.toggleStatus = async (req, res) => {
   }
 };
 
+/**
+ * Generate QR code for a resident
+ * POST /api/residents/:id/generate-qr
+ * 
+ * @param {string} id - Resident ID
+ * @returns {Object} - JSON with qr_code string and message
+ */
 exports.generateQR = async (req, res) => {
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
 
+  const residentId = req.params.id;
+  console.log(`[QR Generation] Request received for resident: ${residentId}`);
+
   try {
-    const residentId = req.params.id;
     const qrString = `BARANGAY-ID-${residentId}-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
 
-    await db.execute('UPDATE residents SET QR_Hash_String = ? WHERE Resident_ID = ?', [qrString, residentId]);
+    const [result] = await db.execute(
+      'UPDATE residents SET QR_Hash_String = ? WHERE Resident_ID = ?',
+      [qrString, residentId]
+    );
 
+    if (result.affectedRows === 0) {
+      console.warn(`[QR Generation] Resident not found: ${residentId}`);
+      return res.status(404).json({ error: 'Resident not found' });
+    }
+
+    console.log(`[QR Generation] Success for resident: ${residentId}`);
     res.json({ qr_code: qrString, message: 'QR code generated successfully' });
   } catch (error) {
-    console.error('Error generating QR:', error);
+    console.error(`[QR Generation] Error for resident ${residentId}:`, error);
     res.status(500).json({ error: 'Failed to generate QR code' });
   }
 };
@@ -763,6 +800,36 @@ exports.downloadDocument = async (req, res) => {
   } catch (error) {
     console.error('Error downloading resident document:', error);
     res.status(500).json({ error: 'Failed to download document' });
+  }
+};
+
+exports.getBlotterHistory = async (req, res) => {
+  if (!db) {
+    return res.status(500).json({ error: 'Database connection not available' });
+  }
+
+  try {
+    const residentId = req.params.id;
+    const effectiveResidentId = String(req.user.resident_id || req.user.id || '');
+    
+    // Residents can view their own history. Officials can view anyone's.
+    if (req.user.role === ROLES.RESIDENT && residentId !== effectiveResidentId) {
+      return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
+    }
+
+    const [rows] = await db.execute(`
+      SELECT b.*
+      FROM blotter b
+      WHERE b.complainant_resident_id = ? 
+         OR b.respondent_resident_id = ? 
+         OR b.respondent_id = ?
+      ORDER BY b.DateTime_Incident DESC
+    `, [residentId, residentId, residentId]);
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching resident blotter history:', error);
+    res.status(500).json({ error: 'Failed to fetch resident blotter history' });
   }
 };
 
