@@ -397,6 +397,24 @@ const StaffManagement = () => {
     setConfirmationModalOpen(true);
   };
 
+  const handleConfirmationConfirm = async () => {
+    if (confirmationAction?.type === 'delete_role') {
+      try {
+        const response = await apiRequest(`admin/roles/${confirmationAction.id}`, { method: 'DELETE' });
+        if (response.ok) {
+          setSuccess('Role deleted successfully');
+          fetchRoles();
+        } else {
+          setError('Failed to delete role');
+        }
+      } catch (error) {
+        setError('Network error occurred');
+      }
+    }
+    setConfirmationModalOpen(false);
+    setConfirmationAction(null);
+  };
+
   // --- Filtering & Stats ---
 
   const getRoleName = (roleId) => {

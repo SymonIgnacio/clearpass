@@ -44,10 +44,10 @@ describe('OTP MFA flow', () => {
               id: 10,
               username: params[0],
               password_hash,
-              role: 3,
-              role_name: 'Secretary',
-              email: 'sec@example.com',
-              full_name: 'Sec User',
+              role: 12,
+              role_name: 'Resident',
+              email: 'res@example.com',
+              full_name: 'Res User',
               is_active: 1
             }
           ]
@@ -58,11 +58,11 @@ describe('OTP MFA flow', () => {
           [
             {
               id: 10,
-              username: 'secretary',
-              role: 3,
-              role_name: 'Secretary',
-              email: 'sec@example.com',
-              full_name: 'Sec User',
+              username: 'resident',
+              role: 12,
+              role_name: 'Resident',
+              email: 'res@example.com',
+              full_name: 'Res User',
               is_active: 1
             }
           ]
@@ -80,7 +80,7 @@ describe('OTP MFA flow', () => {
 
     const agent = request.agent(app);
 
-    const loginRes = await agent.post('/api/auth/login').send({ username: 'secretary', password: 'pass' });
+    const loginRes = await agent.post('/api/auth/login').send({ username: 'resident', password: 'pass' });
     expect(loginRes.status).toBe(200);
     expect(loginRes.body.mfa_required).toBe(true);
     expect(loginRes.body.user.mfa_verified).toBe(false);

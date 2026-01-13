@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import DocumentVerification from '../DocumentVerification'
+import { NotificationProvider } from '../../contexts/NotificationContext'
+import { AuthProvider } from '../../contexts/AuthContext'
 
 vi.mock('../../utils/api', () => ({
   apiRequest: vi.fn(async (endpoint) => {
@@ -44,7 +46,13 @@ describe('DocumentVerification downloads', () => {
   })
 
   it('opens resident document via secure download endpoint', async () => {
-    render(<DocumentVerification />)
+    render(
+      <AuthProvider>
+        <NotificationProvider>
+          <DocumentVerification />
+        </NotificationProvider>
+      </AuthProvider>
+    )
     fireEvent.click(await screen.findByRole('tab', { name: /resident documents/i }))
     const buttons = await screen.findAllByLabelText(/open file/i)
     fireEvent.click(buttons[0])
