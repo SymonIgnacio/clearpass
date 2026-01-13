@@ -1,0 +1,281 @@
+{
+  "summary": {
+    "totalTests": 27,
+    "passed": 4,
+    "failed": 15,
+    "warnings": 0,
+    "skipped": 8,
+    "successRate": "21.05",
+    "duration": "0.15s",
+    "timestamp": "2026-01-13T15:30:16.761Z"
+  },
+  "tests": [
+    {
+      "name": "Server Health Endpoint",
+      "passed": false,
+      "message": "Server not responding",
+      "category": "infrastructure",
+      "timestamp": "2026-01-13T15:30:16.717Z"
+    },
+    {
+      "name": "Database Connection",
+      "passed": false,
+      "message": "connect ECONNREFUSED ::1:3306",
+      "category": "general",
+      "timestamp": "2026-01-13T15:30:16.720Z"
+    },
+    {
+      "name": "Environment Variable DB_HOST",
+      "passed": true,
+      "message": "",
+      "category": "infrastructure",
+      "timestamp": "2026-01-13T15:30:16.720Z"
+    },
+    {
+      "name": "Environment Variable DB_USER",
+      "passed": true,
+      "message": "",
+      "category": "infrastructure",
+      "timestamp": "2026-01-13T15:30:16.720Z"
+    },
+    {
+      "name": "Environment Variable DB_NAME",
+      "passed": true,
+      "message": "",
+      "category": "infrastructure",
+      "timestamp": "2026-01-13T15:30:16.720Z"
+    },
+    {
+      "name": "Environment Variable JWT_SECRET",
+      "passed": true,
+      "message": "",
+      "category": "infrastructure",
+      "timestamp": "2026-01-13T15:30:16.720Z"
+    },
+    {
+      "name": "Login with Invalid Credentials",
+      "passed": false,
+      "message": "",
+      "category": "authentication",
+      "timestamp": "2026-01-13T15:30:16.723Z"
+    },
+    {
+      "name": "Login with Missing Credentials",
+      "passed": false,
+      "message": "",
+      "category": "authentication",
+      "timestamp": "2026-01-13T15:30:16.725Z"
+    },
+    {
+      "name": "Login as admin",
+      "passed": false,
+      "message": "Authentication failed",
+      "category": "authentication",
+      "timestamp": "2026-01-13T15:30:16.726Z"
+    },
+    {
+      "name": "Login as clerk",
+      "passed": false,
+      "message": "Authentication failed",
+      "category": "authentication",
+      "timestamp": "2026-01-13T15:30:16.728Z"
+    },
+    {
+      "name": "Login as captain",
+      "passed": false,
+      "message": "Authentication failed",
+      "category": "authentication",
+      "timestamp": "2026-01-13T15:30:16.729Z"
+    },
+    {
+      "name": "Invalid Token Rejection",
+      "passed": false,
+      "message": "",
+      "category": "authentication",
+      "timestamp": "2026-01-13T15:30:16.730Z"
+    },
+    {
+      "name": "Protected Route /api/residents",
+      "passed": false,
+      "message": "",
+      "category": "authorization",
+      "timestamp": "2026-01-13T15:30:16.732Z"
+    },
+    {
+      "name": "Protected Route /api/blotter",
+      "passed": false,
+      "message": "",
+      "category": "authorization",
+      "timestamp": "2026-01-13T15:30:16.735Z"
+    },
+    {
+      "name": "Protected Route /api/certificates",
+      "passed": false,
+      "message": "",
+      "category": "authorization",
+      "timestamp": "2026-01-13T15:30:16.736Z"
+    },
+    {
+      "name": "Protected Route /api/dashboard",
+      "passed": false,
+      "message": "",
+      "category": "authorization",
+      "timestamp": "2026-01-13T15:30:16.737Z"
+    },
+    {
+      "name": "Protected Route /api/admin/users",
+      "passed": false,
+      "message": "",
+      "category": "authorization",
+      "timestamp": "2026-01-13T15:30:16.738Z"
+    },
+    {
+      "name": "Rate Limiting Active",
+      "passed": false,
+      "message": "Rate limiting may not be active",
+      "category": "security",
+      "timestamp": "2026-01-13T15:30:16.759Z"
+    },
+    {
+      "name": "CORS Headers Present",
+      "passed": false,
+      "message": "",
+      "category": "security",
+      "timestamp": "2026-01-13T15:30:16.760Z"
+    }
+  ],
+  "errors": [
+    {
+      "name": "Server Health Endpoint",
+      "passed": false,
+      "message": "Server not responding",
+      "category": "infrastructure",
+      "timestamp": "2026-01-13T15:30:16.717Z"
+    },
+    {
+      "name": "Database Connection",
+      "passed": false,
+      "message": "connect ECONNREFUSED ::1:3306",
+      "category": "general",
+      "timestamp": "2026-01-13T15:30:16.720Z"
+    },
+    {
+      "name": "Login with Invalid Credentials",
+      "passed": false,
+      "message": "",
+      "category": "authentication",
+      "timestamp": "2026-01-13T15:30:16.723Z"
+    },
+    {
+      "name": "Login with Missing Credentials",
+      "passed": false,
+      "message": "",
+      "category": "authentication",
+      "timestamp": "2026-01-13T15:30:16.725Z"
+    },
+    {
+      "name": "Login as admin",
+      "passed": false,
+      "message": "Authentication failed",
+      "category": "authentication",
+      "timestamp": "2026-01-13T15:30:16.726Z"
+    },
+    {
+      "name": "Login as clerk",
+      "passed": false,
+      "message": "Authentication failed",
+      "category": "authentication",
+      "timestamp": "2026-01-13T15:30:16.728Z"
+    },
+    {
+      "name": "Login as captain",
+      "passed": false,
+      "message": "Authentication failed",
+      "category": "authentication",
+      "timestamp": "2026-01-13T15:30:16.729Z"
+    },
+    {
+      "name": "Invalid Token Rejection",
+      "passed": false,
+      "message": "",
+      "category": "authentication",
+      "timestamp": "2026-01-13T15:30:16.730Z"
+    },
+    {
+      "name": "Protected Route /api/residents",
+      "passed": false,
+      "message": "",
+      "category": "authorization",
+      "timestamp": "2026-01-13T15:30:16.732Z"
+    },
+    {
+      "name": "Protected Route /api/blotter",
+      "passed": false,
+      "message": "",
+      "category": "authorization",
+      "timestamp": "2026-01-13T15:30:16.735Z"
+    },
+    {
+      "name": "Protected Route /api/certificates",
+      "passed": false,
+      "message": "",
+      "category": "authorization",
+      "timestamp": "2026-01-13T15:30:16.736Z"
+    },
+    {
+      "name": "Protected Route /api/dashboard",
+      "passed": false,
+      "message": "",
+      "category": "authorization",
+      "timestamp": "2026-01-13T15:30:16.737Z"
+    },
+    {
+      "name": "Protected Route /api/admin/users",
+      "passed": false,
+      "message": "",
+      "category": "authorization",
+      "timestamp": "2026-01-13T15:30:16.738Z"
+    },
+    {
+      "name": "Rate Limiting Active",
+      "passed": false,
+      "message": "Rate limiting may not be active",
+      "category": "security",
+      "timestamp": "2026-01-13T15:30:16.759Z"
+    },
+    {
+      "name": "CORS Headers Present",
+      "passed": false,
+      "message": "",
+      "category": "security",
+      "timestamp": "2026-01-13T15:30:16.760Z"
+    }
+  ],
+  "categories": {
+    "infrastructure": {
+      "passed": 4,
+      "failed": 1,
+      "total": 5
+    },
+    "general": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1
+    },
+    "authentication": {
+      "passed": 0,
+      "failed": 6,
+      "total": 6
+    },
+    "authorization": {
+      "passed": 0,
+      "failed": 5,
+      "total": 5
+    },
+    "security": {
+      "passed": 0,
+      "failed": 2,
+      "total": 2
+    }
+  }
+}
