@@ -8,7 +8,8 @@ export const THEMIS_ROLES = {
   4: { id: 4, key: 'clerk', name: 'Clerk', displayName: 'Barangay Clerk' },
   1: { id: 1, key: 'admin', name: 'Admin', displayName: 'IT Admin' },
   6: { id: 6, key: 'blotter_officer', name: 'Blotter Officer', displayName: 'Blotter Officer' },
-  12: { id: 12, key: 'resident', name: 'Resident', displayName: 'Resident' }
+  12: { id: 12, key: 'resident', name: 'Resident', displayName: 'Resident' },
+  13: { id: 13, key: 'guest', name: 'Guest', displayName: 'Guest' }
 };
 
 // Legacy role mapping for backward compatibility
@@ -18,7 +19,8 @@ export const ROLE_MAPPING = {
   'secretary': THEMIS_ROLES[3],
   'clerk': THEMIS_ROLES[4],
   'blotter_officer': THEMIS_ROLES[6],
-  'resident': THEMIS_ROLES[12]
+  'resident': THEMIS_ROLES[12],
+  'guest': THEMIS_ROLES[13]
 };
 
 /**
@@ -163,7 +165,8 @@ export const ROLES = {
   CLERK: 4,
   ADMIN: 1,
   BLOTTER_OFFICER: 6,
-  RESIDENT: 12
+  RESIDENT: 12,
+  GUEST: 13
 };
 
 export const ROLE_KEYS = {
@@ -172,5 +175,6 @@ export const ROLE_KEYS = {
   CLERK: 'clerk',
   ADMIN: 'admin',
   BLOTTER_OFFICER: 'blotter_officer',
-  RESIDENT: 'resident'
+  RESIDENT: 'resident',
+  GUEST: 'guest'
 };

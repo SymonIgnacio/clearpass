@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { apiRequest } from '../utils/api';
-import { useAuth } from './AuthContext';
+import { useAuth } from './useAuth';
 import { Snackbar, Alert } from '@mui/material';
 
 const NotificationContext = createContext();

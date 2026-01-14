@@ -37,14 +37,29 @@ describe('Resident Controller Unit Tests', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    mockConnection = await db.getConnection();
+    
+    // Create a connection mock that has all required methods
+    mockConnection = {
+      beginTransaction: jest.fn(),
+      execute: jest.fn(),
+      commit: jest.fn(),
+      rollback: jest.fn(),
+      release: jest.fn(),
+    };
+
+    // The db object in locals needs a getConnection method that returns our mock connection
+    const mockDb = {
+      getConnection: jest.fn().mockResolvedValue(mockConnection),
+      execute: jest.fn()
+    };
 
     req = {
       body: {},
       params: {},
       query: {},
       user: { id: 'admin1', role: 'admin' },
-      files: []
+      files: [],
+      app: { locals: { db: mockDb } }
     };
 
     res = {
@@ -68,10 +83,11 @@ describe('Resident Controller Unit Tests', () => {
     test('should create resident and commit transaction', async () => {
       req.body = {
         first_name: 'John', last_name: 'Doe', birthdate: '1990-01-01',
-        household_id: 'HH-1', email: 'john@example.com'
+        household_id: 'HH-1', email: 'john@example.com', gender: 'Male'
       };
 
       mockConnection.execute
+        .mockResolvedValueOnce([[]]) // Check existing email (empty)
         .mockResolvedValueOnce([[{ Household_ID: 'HH-1' }]]) // Check household
         .mockResolvedValueOnce() // Insert resident
         .mockResolvedValueOnce() // Insert user
@@ -89,10 +105,13 @@ describe('Resident Controller Unit Tests', () => {
     test('should rollback on error', async () => {
       req.body = {
         first_name: 'John', last_name: 'Doe', birthdate: '1990-01-01',
-        household_id: 'HH-1', email: 'john@example.com'
+        household_id: 'HH-1', email: 'john@example.com', gender: 'Male'
       };
 
-      mockConnection.execute.mockRejectedValue(new Error('DB Error'));
+      mockConnection.execute
+        .mockResolvedValueOnce([[]]) // Check existing email (empty)
+        .mockResolvedValueOnce([[{ Household_ID: 'HH-1' }]]) // Check household
+        .mockRejectedValue(new Error('DB Error')); // Fail on insert
 
       await residentController.create(req, res);
 
@@ -104,7 +123,9 @@ describe('Resident Controller Unit Tests', () => {
   describe('checkDuplicate', () => {
     test('should detect duplicates', async () => {
       req.body = { first_name: 'John', last_name: 'Doe', birthdate: '1990-01-01' };
-      db.execute.mockResolvedValueOnce([[{ Resident_ID: 'RES-1' }]]);
+      
+      // checkDuplicate uses db.execute directly (via locals.db), not via getConnection
+      req.app.locals.db.execute.mockResolvedValueOnce([[{ Resident_ID: 'RES-1' }]]);
 
       await residentController.checkDuplicate(req, res);
 

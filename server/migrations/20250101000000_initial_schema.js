@@ -58,6 +58,8 @@ exports.up = function (knex) {
         table
           .enu('Residency_Status', ['Active', 'Deceased', 'Transferred Out', 'Transient'])
           .defaultTo('Active');
+        table.text('Departure_Reason');
+        table.date('Departure_Date');
         table.string('Profile_Photo_URL', 255);
         table.string('QR_Hash_String', 255).unique(); // Unique identity token
         table.timestamp('created_at').defaultTo(knex.fn.now());

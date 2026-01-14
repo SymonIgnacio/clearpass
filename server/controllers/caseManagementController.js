@@ -1,3 +1,5 @@
+const { allocateBlotterCaseNumber } = require('../utils/blotterCaseNumber');
+
 class CaseManagementController {
   constructor(db) {
     this.db = db;
@@ -151,15 +153,15 @@ class CaseManagementController {
     try {
       const {
         incident_type, description, location, incident_date,
-        complainant, respondent, witnesses, case_number
+        complainant, respondent, witnesses
       } = req.body;
 
-      const caseId = case_number || `BLOT-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+      const caseId = await allocateBlotterCaseNumber(this.db, { incidentDate: incident_date });
 
       await this.db.execute(`
         INSERT INTO blotter (
           Case_Number, Incident_Type, Description, Location_Sitio,
-          DateTime_Incident, Status, Complainant_Details, Respondent_Details,
+          DateTime_Incident, status, Complainant_Details, Respondent_Details,
           created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, 'Pending', ?, ?, NOW(), NOW())
       `, [

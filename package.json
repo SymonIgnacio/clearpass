@@ -21,7 +21,8 @@
     "db:audit": "cd server && npm run db:audit",
     "db:migrate": "cd server && npm run db:migrate",
     "health-check": "node scripts/health-check.js",
-    "test:system": "node scripts/run-tests.js",
+    "test:system": "node scripts/run-tests.cjs",
+    "test:all": "node scripts/test-all.cjs",
     "verify:completion": "node scripts/verify-completion.js",
     "memory-bank": "node memory-bank/system/cli.cjs",
     "audit": "node memory-bank/system/cli.cjs audit"

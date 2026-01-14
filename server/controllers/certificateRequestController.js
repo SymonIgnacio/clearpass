@@ -14,7 +14,8 @@ class CertificateRequestController {
 
   async getCertificateTypes(req, res) {
     try {
-      const [types] = await this.db.execute(
+      const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
+      const [types] = await db.execute(
         'SELECT * FROM certificate_types WHERE is_active = 1 ORDER BY name'
       );
       res.json({ success: true, data: types });
@@ -26,6 +27,7 @@ class CertificateRequestController {
 
   async submitRequest(req, res) {
     try {
+      const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
       // Handle file uploads first
       if (!req.files || !req.files.front_id || !req.files.back_id) {
         return res.status(400).json({ success: false, message: 'Both Front and Back ID photos are required' });
@@ -41,7 +43,7 @@ class CertificateRequestController {
       }
 
       // Get resident data
-      const [residents] = await this.db.execute(
+      const [residents] = await db.execute(
         'SELECT * FROM residents WHERE Resident_ID = ?',
         [resident_id]
       );
@@ -53,7 +55,7 @@ class CertificateRequestController {
       const resident = residents[0];
       const request_id = `REQ-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
-      await this.db.execute(`
+      await db.execute(`
         INSERT INTO document_requests (
           request_id, resident_id, document_type, status, 
           request_data, resident_data,
@@ -74,7 +76,7 @@ class CertificateRequestController {
 
       // Create notification for staff
       if (global.createBulkNotification) {
-        const [staff] = await this.db.execute(
+        const [staff] = await db.execute(
           'SELECT id FROM users WHERE role IN (2, 3, 4) AND is_active = 1'
         );
         const staffIds = staff.map(s => s.id);
@@ -102,11 +104,12 @@ class CertificateRequestController {
 
   async getMyRequests(req, res) {
     try {
+      const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
       const resident_id = req.user.resident_id;
       const { page = 1, limit = 10 } = req.query;
       const offset = (page - 1) * limit;
 
-      const [requests] = await this.db.execute(`
+      const [requests] = await db.execute(`
         SELECT dr.id, dr.request_id, dr.document_type, dr.status, dr.created_at, ct.fee, ct.validity_days
         FROM document_requests dr
         LEFT JOIN certificate_types ct ON dr.document_type = ct.name
@@ -115,7 +118,7 @@ class CertificateRequestController {
         LIMIT ? OFFSET ?
       `, [resident_id, parseInt(limit), offset]);
 
-      const [countResult] = await this.db.execute(
+      const [countResult] = await db.execute(
         'SELECT COUNT(*) as total FROM document_requests WHERE resident_id = ?',
         [resident_id]
       );
@@ -137,10 +140,11 @@ class CertificateRequestController {
 
   async cancelRequest(req, res) {
     try {
+      const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
       const { request_id } = req.params;
       const resident_id = req.user.resident_id;
 
-      const [result] = await this.db.execute(
+      const [result] = await db.execute(
         'UPDATE document_requests SET status = "rejected" WHERE request_id = ? AND resident_id = ? AND status = "pending"',
         [request_id, resident_id]
       );
@@ -160,6 +164,7 @@ class CertificateRequestController {
 
   async getAllRequests(req, res) {
     try {
+      const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
       const { page = 1, limit = 10, status = 'pending' } = req.query;
       const offset = (page - 1) * limit;
 
@@ -181,7 +186,7 @@ class CertificateRequestController {
       query += ' ORDER BY dr.created_at DESC LIMIT ? OFFSET ?';
       params.push(parseInt(limit), offset);
 
-      const [requests] = await this.db.execute(query, params);
+      const [requests] = await db.execute(query, params);
 
       // Get total count
       let countQuery = 'SELECT COUNT(*) as total FROM document_requests';
@@ -191,7 +196,7 @@ class CertificateRequestController {
         countParams.push(status);
       }
       
-      const [countResult] = await this.db.execute(countQuery, countParams);
+      const [countResult] = await db.execute(countQuery, countParams);
 
       res.json({
         success: true,
@@ -214,6 +219,7 @@ class CertificateRequestController {
 
   async getRequestAttachment(req, res) {
     try {
+      const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
       const { request_id, type } = req.params; // type: 'front' or 'back'
       
       if (!['front', 'back'].includes(type)) {
@@ -223,7 +229,7 @@ class CertificateRequestController {
       const column = type === 'front' ? 'attachment_front_id' : 'attachment_back_id';
       const mimeColumn = type === 'front' ? 'attachment_front_mime' : 'attachment_back_mime';
 
-      const [rows] = await this.db.execute(
+      const [rows] = await db.execute(
         `SELECT ${column} as data, ${mimeColumn} as mime FROM document_requests WHERE request_id = ?`,
         [request_id]
       );
@@ -242,14 +248,15 @@ class CertificateRequestController {
 
   async updateRequestStatus(req, res) {
     try {
+      const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
       const { request_id } = req.params;
       const { status, remarks } = req.body; // status: 'approved', 'rejected'
-
+      
       if (!['approved', 'rejected'].includes(status)) {
         return res.status(400).json({ success: false, message: 'Invalid status' });
       }
 
-      const [result] = await this.db.execute(
+      const [result] = await db.execute(
         'UPDATE document_requests SET status = ?, remarks = ? WHERE request_id = ?',
         [status, remarks || '', request_id]
       );
@@ -259,7 +266,7 @@ class CertificateRequestController {
       }
 
       // Notify resident
-      const [rows] = await this.db.execute(`
+      const [rows] = await db.execute(`
         SELECT dr.document_type, r.Email, r.First_Name, r.Last_Name 
         FROM document_requests dr
         JOIN residents r ON dr.resident_id = r.Resident_ID

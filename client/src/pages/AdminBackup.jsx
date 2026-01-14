@@ -46,7 +46,7 @@ const AdminBackup = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
+    <Box sx={{ width: '100%', mx: 'auto', p: 3 }}>
       <Typography variant="h4" gutterBottom>
         System Backup & Restore
       </Typography>

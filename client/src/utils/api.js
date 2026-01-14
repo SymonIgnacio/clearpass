@@ -1,5 +1,5 @@
 // API utility functions with cookie-based authentication
-import { addCsrfToken, clearCsrfToken } from './csrf';
+import { addCsrfToken, clearCsrfToken } from './csrf.js';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
   import.meta.env.VITE_API_BASE_URL || 

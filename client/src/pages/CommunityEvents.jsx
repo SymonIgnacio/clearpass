@@ -33,7 +33,7 @@ import { Add, Event, People, Edit, PersonAdd, Sms } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
 import { canManageEvents } from '../utils/roles'
 import { safeJsonParseArray } from '../utils/apiHelpers'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 import dashboardAPI from '../utils/dashboardAPI'
 
 const CommunityEvents = () => {

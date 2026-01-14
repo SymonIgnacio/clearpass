@@ -6,6 +6,8 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
+const NotificationController = require('../controllers/notificationController');
+const { sendEmail } = require('../utils/emailService');
 
 // Rate limiting for auth endpoints
 const authLimiter = rateLimit({
@@ -38,7 +40,7 @@ module.exports = (db) => {
 
     // Find resident by email
     const [residents] = await db.execute(
-      'SELECT r.*, u.password_hash FROM residents r JOIN users u ON r.email = u.email WHERE r.email = ? AND r.Residency_Status = "Active"',
+      'SELECT r.*, u.password_hash, u.role FROM residents r JOIN users u ON r.email = u.email WHERE r.email = ? AND (r.Residency_Status = "Active" OR r.Residency_Status = "Pending Verification")',
       [email]
     );
 
@@ -60,13 +62,16 @@ module.exports = (db) => {
       });
     }
 
+    // Determine effective role (fallback to GUEST if status is Pending)
+    const effectiveRole = resident.Residency_Status === 'Pending Verification' ? 13 : (resident.role || 12);
+
     // Generate JWT token
     const token = jwt.sign(
       {
         id: resident.Resident_ID,
         resident_id: resident.Resident_ID,
         email: resident.email,
-        role: 12, // Resident role
+        role: effectiveRole,
         type: 'resident'
       },
       process.env.JWT_SECRET,
@@ -81,7 +86,7 @@ module.exports = (db) => {
         resident_id: resident.Resident_ID,
         email: resident.email,
         name: `${resident.First_Name} ${resident.Last_Name}`,
-        role: 12,
+        role: effectiveRole,
         type: 'resident'
       }
     });
@@ -104,10 +109,10 @@ module.exports = (db) => {
     } = req.body;
 
     // Validation
-    if (!first_name || !last_name || !email || !password || !birthdate) {
+    if (!first_name || !last_name || !email || !password || !birthdate || !gender || !civil_status) {
       return res.status(400).json({
         success: false,
-        message: 'Required fields: first_name, last_name, email, password, birthdate'
+        message: 'Required fields: first_name, last_name, email, password, birthdate, gender, civil_status'
       });
     }
 
@@ -131,12 +136,6 @@ module.exports = (db) => {
     try {
       await connection.beginTransaction();
 
-      // Create user account
-      await connection.execute(
-        'INSERT INTO users (username, email, password_hash, role, full_name, resident_id, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
-        [email, email, hashedPassword, 12, `${first_name} ${last_name}`, residentId, true]
-      );
-
       // Create resident record
       await connection.execute(
         `INSERT INTO residents (
@@ -147,15 +146,69 @@ module.exports = (db) => {
         [residentId, first_name, middle_name || '', last_name, email, mobile_number || '', birthdate, gender, civil_status, household_id || null]
       );
 
+      // Create user account
+      const [userResult] = await connection.execute(
+        'INSERT INTO users (username, email, password_hash, role, full_name, resident_id, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
+        [email, email, hashedPassword, 13, `${first_name} ${last_name}`, residentId, true] // Role 13 = GUEST
+      );
+      const userId = userResult.insertId;
+
+      // Send notifications
+      try {
+        const notificationController = new NotificationController(db);
+        const requirementsMsg = "Registration received. Please prepare the following requirements: Valid ID for 4Ps, PWD docs, and Barangay Clearance.";
+        
+        await notificationController.createNotification(
+          userId,
+          'Registration Successful - Requirements',
+          requirementsMsg,
+          'info',
+          'high'
+        );
+
+        await sendEmail({
+          to: email,
+          subject: 'Welcome to ClearPass - Requirements',
+          text: `Welcome ${first_name}!\n\n${requirementsMsg}\n\nYour account is pending verification.`,
+          html: `<div style="font-family: Arial, sans-serif; padding: 20px;"><h2>Welcome ${first_name}!</h2><p>${requirementsMsg}</p><p>Your account is pending verification.</p></div>`
+        });
+      } catch (notifyError) {
+        console.error('Failed to send registration notifications:', notifyError);
+        // Continue execution - don't fail registration
+      }
+
       await connection.commit();
+
+      // Generate JWT token for auto-login
+      const token = jwt.sign(
+        {
+          id: residentId,
+          resident_id: residentId,
+          email: email,
+          role: 13, // Guest role (Pending)
+          type: 'resident'
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
 
       res.status(201).json({
         success: true,
         message: 'Registration successful. Account pending verification.',
-        resident_id: residentId
+        resident_id: residentId,
+        token,
+        user: {
+          id: residentId,
+          resident_id: residentId,
+          email: email,
+          name: `${first_name} ${last_name}`,
+          role: 13, // Guest role
+          type: 'resident'
+        }
       });
 
     } catch (error) {
+      console.error('Registration error:', error);
       await connection.rollback();
       throw error;
     } finally {

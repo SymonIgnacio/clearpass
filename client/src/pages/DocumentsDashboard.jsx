@@ -55,7 +55,9 @@ import {
 } from '@mui/icons-material';
 import { apiRequest } from '../utils/api';
 import { ROLES } from '../utils/roles';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
+import ConfirmationModal from '../components/ConfirmationModal';
+import RejectionModal from '../components/RejectionModal';
 
 // Color palette for charts
 const COLORS = ['#1DB954', '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8'];
@@ -144,6 +146,9 @@ const DocumentsDashboard = () => {
     },
     is_active: true
   });
+
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState(null);
 
   // Document type options
   const documentTypes = [
@@ -498,8 +503,6 @@ const DocumentsDashboard = () => {
       await handleDuplicateTemplateConfirm(inputValue)
     } else if (confirmationAction.type === 'delete_template_file') {
       await handleDeleteTemplateWithFileConfirm()
-    } else if (confirmationAction.type === 'delete_cert_type') {
-      await handleDeleteCertificateTypeConfirm()
     }
 
     setConfirmationAction(null)
@@ -1642,6 +1645,20 @@ const DocumentsDashboard = () => {
         </DialogActions>
       </Dialog>
 
+      <ConfirmationModal
+        open={confirmationModalOpen}
+        onClose={() => {
+          setConfirmationModalOpen(false);
+          setConfirmationAction(null);
+        }}
+        onConfirm={handleConfirmationConfirm}
+        title={confirmationAction?.title}
+        message={confirmationAction?.message}
+        type={confirmationAction?.icon || 'info'}
+        showInput={confirmationAction?.showInput}
+        inputLabel={confirmationAction?.inputLabel}
+      />
+
       <Snackbar 
         open={snackbar.open} 
         autoHideDuration={6000} 
@@ -1675,6 +1692,9 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData, canMa
     required_data: '',
     is_active: true
   });
+
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState(null);
 
   const handleCreateType = async (e) => {
     e.preventDefault();
@@ -2045,6 +2065,18 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData, canMa
           handleInputChange={handleInputChange}
         />
       )}
+
+      <ConfirmationModal
+        open={confirmationModalOpen}
+        onClose={() => {
+          setConfirmationModalOpen(false);
+          setConfirmationAction(null);
+        }}
+        onConfirm={handleConfirmationConfirm}
+        title={confirmationAction?.title}
+        message={confirmationAction?.message}
+        type={confirmationAction?.icon || 'info'}
+      />
     </Box>
   );
 };

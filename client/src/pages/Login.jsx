@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Container,
@@ -12,18 +12,25 @@ import {
   Avatar,
   Grid
 } from '@mui/material'
-import { LockOutlined, PersonAdd, Business, Person } from '@mui/icons-material'
-import { useAuth } from '../contexts/AuthContext'
+import { LockOutlined, PersonAdd, Business, Person, Security } from '@mui/icons-material'
+import { useAuth } from '../contexts/useAuth'
 
 const Login = () => {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, user, loading: authLoading, isAuthenticated } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (authLoading) return
+    if (!isAuthenticated || !user) return
+    const destination = Number(user.role) === 12 ? '/resident/dashboard' : '/'
+    navigate(destination, { replace: true })
+  }, [authLoading, isAuthenticated, user, navigate])
 
   const handleChange = (e) => {
     setFormData({
@@ -38,10 +45,13 @@ const Login = () => {
     setError('')
 
     try {
-      const data = await login({
-        username: formData.email,
-        password: formData.password
-      })
+      const data = await login(
+        {
+          username: formData.email,
+          password: formData.password
+        },
+        { endpoint: '/auth/resident/login' }
+      )
 
       if (data?.mfa_required) {
         navigate('/mfa', { replace: true })

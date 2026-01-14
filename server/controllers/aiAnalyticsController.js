@@ -1,6 +1,9 @@
+const AIAnalysisService = require('../services/AIAnalysisService');
+
 class AIAnalyticsController {
   constructor(db) {
     this.db = db;
+    this.aiService = new AIAnalysisService(db);
   }
 
   async getClerkWorkloadInsights(req, res) {
@@ -31,7 +34,8 @@ class AIAnalyticsController {
 
       // Capacity planning
       const totalPending = certStats.reduce((sum, cert) => sum + cert.pending_count, 0);
-      const avgProcessingTime = certStats.reduce((sum, cert) => sum + cert.avg_processing_days, 0) / certStats.length;
+      const avgProcessingTime =
+        certStats.reduce((sum, cert) => sum + cert.avg_processing_days, 0) / certStats.length;
 
       res.json({
         success: true,
@@ -41,9 +45,9 @@ class AIAnalyticsController {
           capacity_metrics: {
             total_pending: totalPending,
             avg_processing_days: Math.round(avgProcessingTime * 10) / 10,
-            recommended_capacity: Math.ceil(totalPending / 5) // 5 requests per day capacity
-          }
-        }
+            recommended_capacity: Math.ceil(totalPending / 5), // 5 requests per day capacity
+          },
+        },
       });
     } catch (error) {
       console.error('Error fetching clerk insights:', error);
@@ -97,8 +101,12 @@ class AIAnalyticsController {
           population_overview: populationStats[0],
           service_performance: serviceStats,
           vulnerability_metrics: vulnerabilityStats[0],
-          governance_score: Math.round((serviceStats.reduce((sum, s) => sum + (s.completed_requests / s.total_requests), 0) / serviceStats.length) * 100)
-        }
+          governance_score: Math.round(
+            (serviceStats.reduce((sum, s) => sum + s.completed_requests / s.total_requests, 0) /
+              serviceStats.length) *
+              100
+          ),
+        },
       });
     } catch (error) {
       console.error('Error fetching captain insights:', error);
@@ -141,21 +149,54 @@ class AIAnalyticsController {
       const recommendations = riskAnalysis.map(area => ({
         sitio: area.sitio_name,
         risk_level: area.avg_risk_score >= 2 ? 'High' : area.avg_risk_score >= 1 ? 'Medium' : 'Low',
-        recommended_actions: area.avg_risk_score >= 2 ? 
-          ['Increase social services', 'Community outreach programs', 'Regular monitoring'] :
-          area.avg_risk_score >= 1 ? 
-          ['Preventive programs', 'Regular check-ins'] :
-          ['Maintain current services']
+        recommended_actions:
+          area.avg_risk_score >= 2
+            ? ['Increase social services', 'Community outreach programs', 'Regular monitoring']
+            : area.avg_risk_score >= 1
+              ? ['Preventive programs', 'Regular check-ins']
+              : ['Maintain current services'],
       }));
+
+      // --- AI Audit & Verification ---
+      // 1. Calculate Confidence
+      const totalResidentsAnalyzed = riskAnalysis.reduce((sum, r) => sum + r.total_residents, 0);
+      const confidenceScore = this.aiService.calculateConfidence(totalResidentsAnalyzed);
+
+      // 2. Log Analysis
+      const facts = riskAnalysis.map(r => ({
+        fact_type: 'RISK_SCORE',
+        fact_value: { sitio: r.sitio_name, score: r.avg_risk_score },
+        source: 'internal_db',
+        confidence: confidenceScore,
+      }));
+
+      const runId = await this.aiService.logAnalysis({
+        analysisType: 'SECRETARY_RISK_ANALYTICS',
+        parameters: { range: '90_days' },
+        results: {
+          risk_areas: riskAnalysis.length,
+          high_risk: riskAnalysis.filter(r => r.avg_risk_score >= 2).length,
+        },
+        confidenceScore,
+        userId: req.user ? req.user.id : null,
+        facts,
+      });
 
       res.json({
         success: true,
+        audit_id: runId,
+        confidence_score: confidenceScore,
         data: {
           risk_by_area: riskAnalysis,
           incident_patterns: incidentRisk,
           intervention_recommendations: recommendations,
-          overall_risk_score: Math.round((riskAnalysis.reduce((sum, area) => sum + area.avg_risk_score, 0) / riskAnalysis.length) * 10) / 10
-        }
+          overall_risk_score:
+            Math.round(
+              (riskAnalysis.reduce((sum, area) => sum + area.avg_risk_score, 0) /
+                riskAnalysis.length) *
+                10
+            ) / 10,
+        },
       });
     } catch (error) {
       console.error('Error fetching secretary analytics:', error);
@@ -178,7 +219,7 @@ class AIAnalyticsController {
         FROM blotter 
         WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
       `);
-      
+
       // Previous 30-day incidents for trend
       const [incidentsPrev30d] = await this.db.execute(`
         SELECT COUNT(*) as count 
@@ -190,7 +231,8 @@ class AIAnalyticsController {
       // Calculate trend
       const current = incidents30d[0].count;
       const previous = incidentsPrev30d[0].count;
-      const trend_direction = current > previous ? 'INCREASING' : current < previous ? 'DECREASING' : 'STABLE';
+      const trend_direction =
+        current > previous ? 'INCREASING' : current < previous ? 'DECREASING' : 'STABLE';
 
       // High risk areas (Top 3 sitios with most incidents in last 30 days)
       const [highRiskAreas] = await this.db.execute(`
@@ -202,17 +244,29 @@ class AIAnalyticsController {
         LIMIT 3
       `);
 
-      // Mock response time and coverage for now as they require complex calculation or new tables
-      const response_time_avg = '15m'; 
-      const coverage_percentage = 85;
+      // --- AI Audit ---
+      // Confidence depends on sample size (current incidents)
+      const confidenceScore = this.aiService.calculateConfidence(current);
+      const runId = await this.aiService.logAnalysis({
+        analysisType: 'DASHBOARD_SUMMARY',
+        parameters: { range: '30_days' },
+        results: { trend: trend_direction, active_cases: activeCases[0].count },
+        confidenceScore,
+        userId: req.user ? req.user.id : null,
+        facts: highRiskAreas.map(a => ({
+          fact_type: 'HIGH_RISK_AREA',
+          fact_value: a.Location_Sitio,
+          source: 'internal_db',
+        })),
+      });
 
       res.json({
+        audit_id: runId,
+        confidence_score: confidenceScore,
         active_cases: activeCases[0].count,
         total_incidents_30d: incidents30d[0].count,
-        response_time_avg,
-        coverage_percentage,
         trend_direction,
-        high_risk_areas: highRiskAreas.map(a => a.Location_Sitio).filter(Boolean)
+        high_risk_areas: highRiskAreas.map(a => a.Location_Sitio).filter(Boolean),
       });
     } catch (error) {
       console.error('Error fetching dashboard summary:', error);
@@ -236,7 +290,7 @@ class AIAnalyticsController {
           `);
           data = {
             labels: trends.map(t => new Date(t.date).toLocaleDateString()),
-            datasets: [{ data: trends.map(t => t.count) }]
+            datasets: [{ data: trends.map(t => t.count) }],
           };
           break;
 
@@ -248,7 +302,7 @@ class AIAnalyticsController {
           `);
           data = {
             labels: types.map(t => t.Incident_Type),
-            datasets: [{ data: types.map(t => t.count) }]
+            datasets: [{ data: types.map(t => t.count) }],
           };
           break;
 
@@ -260,16 +314,16 @@ class AIAnalyticsController {
           `);
           data = {
             labels: sitios.map(t => t.Location_Sitio || 'Unknown'),
-            datasets: [{ data: sitios.map(t => t.count) }]
+            datasets: [{ data: sitios.map(t => t.count) }],
           };
           break;
 
         case 'hourly_patterns':
           const [hours] = await this.db.execute(`
-            SELECT HOUR(Date_Time_Incident) as hour, COUNT(*) as count 
+            SELECT HOUR(DateTime_Incident) as hour, COUNT(*) as count 
             FROM blotter 
-            WHERE Date_Time_Incident IS NOT NULL
-            GROUP BY HOUR(Date_Time_Incident)
+            WHERE DateTime_Incident IS NOT NULL
+            GROUP BY HOUR(DateTime_Incident)
             ORDER BY hour
           `);
           // Fill missing hours
@@ -278,8 +332,8 @@ class AIAnalyticsController {
             if (h.hour >= 0 && h.hour < 24) hourlyData[h.hour] = h.count;
           });
           data = {
-            labels: Array.from({length: 24}, (_, i) => `${i}:00`),
-            datasets: [{ data: hourlyData }]
+            labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+            datasets: [{ data: hourlyData }],
           };
           break;
 
@@ -294,13 +348,132 @@ class AIAnalyticsController {
     }
   }
 
+  async getPatrolSuggestions(req, res) {
+    try {
+      // 1. Analyze incidents by Sitio for the last 7 days (Weekly Deployment Cycle)
+      const [sitioStats] = await this.db.execute(`
+        SELECT 
+          Location_Sitio,
+          COUNT(*) as incident_count,
+          GROUP_CONCAT(DISTINCT Incident_Type) as common_types
+        FROM blotter 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        AND Location_Sitio IS NOT NULL AND Location_Sitio != ''
+        GROUP BY Location_Sitio 
+        ORDER BY incident_count DESC
+      `);
+
+      // 2. Analyze peak incident times (Hour of day) - Keep 30 days for better trend accuracy
+      const [peakTimes] = await this.db.execute(`
+        SELECT 
+          HOUR(DateTime_Incident) as incident_hour,
+          COUNT(*) as count
+        FROM blotter 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        AND DateTime_Incident IS NOT NULL
+        GROUP BY incident_hour 
+        ORDER BY count DESC 
+        LIMIT 1
+      `);
+      const peakHour = peakTimes.length > 0 ? peakTimes[0].incident_hour : 18; // Default to 6 PM
+
+      // 3. Construct Structured Data for Matrix
+      const patrolMatrix = {};
+      let totalIncidentsWeek = 0;
+      let maxIncidents = 0;
+      let hotspotArea = null;
+
+      // Helper to determine risk and action plan
+      const getSitioPlan = (count, types) => {
+        if (count >= 5)
+          return {
+            level: 'HIGH',
+            plan: `Deploy 4-man team + Mobile Patrol. Focus on: ${types || 'General Order'}.`,
+          };
+        if (count >= 2)
+          return {
+            level: 'MEDIUM',
+            plan: `Deploy 2-man static post. Monitor for: ${types || 'Disturbances'}.`,
+          };
+        return {
+          level: 'LOW',
+          plan: 'Standard roving patrol (1 pass/hour).',
+        };
+      };
+
+      // Process existing stats
+      sitioStats.forEach(stat => {
+        totalIncidentsWeek += stat.incident_count;
+        if (stat.incident_count > maxIncidents) {
+          maxIncidents = stat.incident_count;
+          hotspotArea = stat.Location_Sitio;
+        }
+
+        const { level, plan } = getSitioPlan(stat.incident_count, stat.common_types);
+
+        patrolMatrix[stat.Location_Sitio] = {
+          incidents_this_week: stat.incident_count,
+          risk_level: level,
+          patrol_suggestion: plan,
+        };
+      });
+
+      // Ensure all major Sitios are represented (even with 0 incidents) if needed
+      // For now, we'll just show what we have in the blotter + maybe a default "Station" if empty?
+      // Better: If matrix is empty, return a default state so the table isn't blank
+      if (Object.keys(patrolMatrix).length === 0) {
+        patrolMatrix['Barangay Hall Area'] = {
+          incidents_this_week: 0,
+          risk_level: 'LOW',
+          patrol_suggestion: 'Standard perimeter watch.',
+        };
+      }
+
+      // 4. Calculate Overall Threat Level
+      let overallRiskLevel = 'LOW';
+      if (totalIncidentsWeek > 15 || maxIncidents >= 5) overallRiskLevel = 'HIGH';
+      else if (totalIncidentsWeek > 5 || maxIncidents >= 2) overallRiskLevel = 'MEDIUM';
+
+      // --- AI Audit & Validation ---
+      const confidenceScore = this.aiService.calculateConfidence(totalIncidentsWeek);
+      const runId = await this.aiService.logAnalysis({
+        analysisType: 'PATROL_MATRIX_7D',
+        parameters: { range: '7_days' },
+        results: {
+          overall_risk: overallRiskLevel,
+          areas_covered: Object.keys(patrolMatrix).length,
+        },
+        confidenceScore,
+        userId: req.user ? req.user.id : null,
+        facts: sitioStats.map(r => ({
+          fact_type: 'WEEKLY_INCIDENTS',
+          fact_value: { sitio: r.Location_Sitio, count: r.incident_count },
+          source: 'blotter',
+        })),
+      });
+
+      res.json({
+        audit_id: runId,
+        confidence_score: confidenceScore,
+        overall_risk_level: overallRiskLevel,
+        hotspot_area: hotspotArea,
+        max_incidents: maxIncidents,
+        analysis_period: 'Last 7 Days',
+        patrol_suggestions: patrolMatrix,
+      });
+    } catch (error) {
+      console.error('Error generating patrol suggestions:', error);
+      res.status(500).json({ success: false, message: 'Failed to generate patrol suggestions' });
+    }
+  }
+
   async generateReport(req, res) {
     try {
       // Handle both GET query and POST body
       const report_type = req.query.report_type || req.body.report_type;
-      
+
       let reportData = {};
-      
+
       switch (report_type) {
         case 'monthly_summary':
           const [monthlySummary] = await this.db.execute(`
@@ -325,7 +498,7 @@ class AIAnalyticsController {
           // For now, return a generic structure for these specific reports
           // In a real implementation, these would have specific logic
           const [incidents] = await this.db.execute(`
-            SELECT Incident_Type, Location_Sitio, Status, Date_Time_Incident
+            SELECT Incident_Type, Location_Sitio, Status, DateTime_Incident
             FROM blotter
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
           `);
@@ -333,10 +506,10 @@ class AIAnalyticsController {
             type: report_type,
             incident_count: incidents.length,
             details: incidents,
-            generated_at: new Date().toISOString()
+            generated_at: new Date().toISOString(),
           };
           break;
-          
+
         default:
           reportData = { message: 'Report type not implemented' };
       }
@@ -344,7 +517,7 @@ class AIAnalyticsController {
       res.json({
         success: true,
         data: reportData,
-        generated_at: new Date().toISOString()
+        generated_at: new Date().toISOString(),
       });
     } catch (error) {
       console.error('Error generating report:', error);

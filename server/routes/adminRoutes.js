@@ -93,6 +93,7 @@ module.exports = (db) => {
   router.get('/reports/residents', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getResidentsReport));
   router.get('/reports/system', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getSystemReport));
   router.get('/reports/security', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getSecurityReport));
+  router.get('/reports/pdf/:type', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.generatePDFReport));
   
   // Detailed reports (with pagination and filters)
   router.get('/reports/detailed/users', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getDetailedUsersReport));

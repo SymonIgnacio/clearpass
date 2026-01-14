@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Container,
@@ -13,10 +13,10 @@ import {
   Grid
 } from '@mui/material'
 import { LockOutlined, PersonAdd } from '@mui/icons-material'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 
 const OfficerLogin = () => {
-  const { login } = useAuth()
+  const { login, user, loading: authLoading, isAuthenticated } = useAuth()
   const navigate = useNavigate()
 
   const [formData, setFormData] = useState({
@@ -25,6 +25,13 @@ const OfficerLogin = () => {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (authLoading) return
+    if (!isAuthenticated || !user) return
+    const destination = Number(user.role) === 12 ? '/resident/dashboard' : '/'
+    navigate(destination, { replace: true })
+  }, [authLoading, isAuthenticated, user, navigate])
 
   const handleChange = (e) => {
     setFormData({
@@ -42,7 +49,7 @@ const OfficerLogin = () => {
       console.log('🔐 OfficerLogin: Attempting login with credentials');
 
       // Use the AuthContext login method which handles cookie-based auth
-      const data = await login(formData)
+      const data = await login(formData, { endpoint: '/auth/officer-login' })
 
       console.log('🔐 OfficerLogin: Login completed successfully');
 
@@ -181,7 +188,7 @@ const OfficerLogin = () => {
               </Typography>
               <Button
                 component={Link}
-                to="/login"
+                to="/resident/login"
                 variant="outlined"
                 startIcon={<PersonAdd />}
                 disabled={loading}

@@ -9,8 +9,8 @@ module.exports = (db) => {
   // GET all blotter records
   router.get('/', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'blotter_officer']), asyncHandler(blotterController.getAll));
   
-  // POST create blotter entry - ONLY Blotter Officer
-  router.post('/', verifyToken, checkRole(['blotter_officer']), asyncHandler(async (req, res) => {
+  // POST create blotter entry - Admin and Blotter Officer
+  router.post('/', verifyToken, checkRole(['admin', 'blotter_officer']), asyncHandler(async (req, res) => {
     const result = await blotterController.create(req, res);
     
     const auditDetails = {
@@ -34,8 +34,8 @@ module.exports = (db) => {
     return result;
   }));
   
-  // PUT update blotter entry - ONLY Blotter Officer
-  router.put('/:caseNumber', verifyToken, checkRole(['blotter_officer']), asyncHandler(blotterController.update));
+  // PUT update blotter entry - Admin and Blotter Officer
+  router.put('/:caseNumber', verifyToken, checkRole(['admin', 'blotter_officer']), asyncHandler(blotterController.update));
   
   // DELETE blotter entry
   router.delete('/:caseNumber', verifyToken, checkRole(['admin', 'secretary']), asyncHandler(blotterController.delete));

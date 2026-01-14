@@ -88,7 +88,7 @@ const CertificateRequest = () => {
   const selectedCertificate = certificateTypes.find(type => type.name === selectedType);
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
+    <Box sx={{ width: '100%', mx: 'auto', p: 3 }}>
       <Typography variant="h4" gutterBottom>
         Request Certificate
       </Typography>

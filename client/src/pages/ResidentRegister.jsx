@@ -9,15 +9,23 @@ import {
   Grid,
   MenuItem,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from '@mui/material';
 import { PersonAdd } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 import { apiRequest } from '../utils/api';
 
+import { useAuth } from '../contexts/useAuth';
+
 const ResidentRegister = () => {
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const [formData, setFormData] = useState({
     first_name: '',
     middle_name: '',
@@ -33,6 +41,15 @@ const ResidentRegister = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [requirementsModalOpen, setRequirementsModalOpen] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,14 +81,29 @@ const ResidentRegister = () => {
       const data = await response.json();
 
       if (data.success) {
-        setSuccess('Registration successful! Your account is pending verification.');
-        setTimeout(() => {
-          navigate('/resident/login');
-        }, 3000);
+        setSuccess('Registration successful! Redirecting...');
+        
+        // Auto-login logic
+        if (data.token) {
+          // Set cookie manually to ensure immediate availability
+          document.cookie = `authToken=${data.token}; path=/; max-age=86400`; // 24 hours
+          
+          // Refresh auth context
+          await refreshUser();
+          
+          // Navigate to dashboard with verification prompt
+          navigate('/resident/dashboard', { 
+            state: { showVerification: true },
+            replace: true 
+          });
+        } else {
+          // Fallback if no token (shouldn't happen with updated backend)
+          setRequirementsModalOpen(true);
+        }
       } else {
         setError(data.message || 'Registration failed');
       }
-    } catch (error) {
+    } catch {
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);
@@ -244,6 +276,42 @@ const ResidentRegister = () => {
           </form>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={requirementsModalOpen}
+        onClose={() => navigate('/resident/login')}
+        aria-labelledby="requirements-dialog-title"
+        aria-describedby="requirements-dialog-description"
+      >
+        <DialogTitle id="requirements-dialog-title">
+          Registration Successful!
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="requirements-dialog-description">
+            Your account has been created and is pending verification. 
+            To speed up the approval process, please prepare the following documents:
+          </DialogContentText>
+          <Box component="ul" sx={{ mt: 2, pl: 2 }}>
+            <Typography component="li" variant="body2" sx={{ mb: 1 }}>
+              <strong>Valid Government ID</strong> (for identity verification)
+            </Typography>
+            <Typography component="li" variant="body2" sx={{ mb: 1 }}>
+              <strong>4Ps ID / DSWD Certificate</strong> (if applying for 4Ps beneficiary status)
+            </Typography>
+            <Typography component="li" variant="body2" sx={{ mb: 1 }}>
+              <strong>PWD ID / Medical Certificate</strong> (if applying for PWD status)
+            </Typography>
+            <Typography component="li" variant="body2">
+              <strong>Barangay Clearance</strong> (if available)
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => navigate('/resident/login')} autoFocus variant="contained">
+            I Understand, Proceed to Login
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

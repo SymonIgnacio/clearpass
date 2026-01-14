@@ -38,7 +38,7 @@ import {
   Assignment,
   QrCode
 } from '@mui/icons-material'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 
 export const DRAWER_WIDTH = 280
 
@@ -65,7 +65,51 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
       icon: <Dashboard />,
       path: '/',
       description: 'Overview & Analytics',
-      roles: [1, 2, 3, 4, 6, 12]
+      roles: [1, 2, 3, 4, 6]
+    },
+    {
+      text: 'My Dashboard',
+      icon: <Dashboard />,
+      path: '/resident/dashboard',
+      roles: [12]
+    },
+    {
+      text: 'My Services',
+      icon: <Person />,
+      key: 'residentServices',
+      roles: [12],
+      children: [
+        {
+          text: 'My Profile',
+          path: '/resident/profile',
+          roles: [12]
+        },
+        {
+          text: 'Request Certificate',
+          path: '/resident/request-certificate',
+          roles: [12]
+        },
+        {
+          text: 'My Requests',
+          path: '/resident/requests',
+          roles: [12]
+        },
+        {
+          text: 'File Complaint',
+          path: '/resident/blotter-report',
+          roles: [12]
+        },
+        {
+          text: 'My Complaints',
+          path: '/resident/complaints',
+          roles: [12]
+        },
+        {
+          text: 'Announcements',
+          path: '/resident/announcements',
+          roles: [12]
+        }
+      ]
     },
     {
       text: 'Resident Services',
@@ -76,7 +120,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         {
           text: 'Resident Records',
           path: '/residents',
-          roles: [1, 2, 3] // Admin, Captain, Secretary
+          roles: [1, 2, 3, 4] // Admin, Captain, Secretary, Clerk (Read Only)
         },
         {
           text: 'Certificates',
@@ -92,12 +136,6 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
           text: 'Beneficiary Eligibility Review',
           path: '/secretary/beneficiaries',
           roles: [1, 3] // Admin, Secretary
-        },
-        {
-          text: 'QR Generator',
-          path: '/qr-generator',
-          icon: <QrCode />,
-          roles: [1, 2, 3] // Admin, Captain, Secretary
         }
       ]
     },
@@ -105,12 +143,22 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
       text: 'Case Management',
       icon: <Gavel />,
       key: 'caseManagement',
-      roles: [1, 3, 6], // Admin, Secretary, Blotter Officer
+      roles: [1, 6], // Admin, Blotter Officer
       children: [
         {
           text: 'Blotter Records',
           path: '/blotter',
-          roles: [1, 3, 6]
+          roles: [1, 6]
+        },
+        {
+          text: 'Attendance Log',
+          path: '/officer/attendance',
+          roles: [1, 6]
+        },
+        {
+          text: 'Officer Reports',
+          path: '/officer/reports',
+          roles: [1, 6]
         }
       ]
     },
@@ -123,7 +171,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         {
           text: 'Reports',
           path: '/reports',
-          roles: [1, 2, 3]
+          roles: [1, 3]
         },
         {
           text: 'AI Insights',

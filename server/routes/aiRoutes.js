@@ -3,6 +3,7 @@ const router = express.Router();
 const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
 const axios = require('axios');
+const AIAnalysisService = require('../services/AIAnalysisService');
 
 function normalizeAiServiceUrl(rawUrl) {
   const fallbackUrl = 'http://127.0.0.1:5000';
@@ -24,6 +25,8 @@ const AI_SERVICE_URL = normalizeAiServiceUrl(process.env.AI_SERVICE_URL);
 const AI_SERVICE_ENABLED = process.env.AI_SERVICE_ENABLED !== 'false';
 
 module.exports = (db) => {
+  const aiService = new AIAnalysisService(db);
+
   // POST chatbot queries
   router.post('/chatbot', verifyToken, asyncHandler(async (req, res) => {
     if (!AI_SERVICE_ENABLED) {
@@ -45,6 +48,22 @@ module.exports = (db) => {
         message
       }, {
         timeout: 15000 // 15 second timeout
+      });
+
+      // Audit the interaction
+      const confidence = response.data.confidence || 0.0;
+      await aiService.logAnalysis({
+        analysisType: 'CHATBOT_INTERACTION',
+        parameters: { message },
+        results: response.data,
+        confidenceScore: confidence,
+        userId: req.user ? req.user.id : null,
+        facts: response.data.intent ? [{
+          fact_type: 'INTENT_DETECTED',
+          fact_value: response.data.intent,
+          source: 'ml_model',
+          confidence: confidence
+        }] : []
       });
 
       res.json(response.data);
@@ -73,8 +92,23 @@ module.exports = (db) => {
         timeout: 10000
       });
 
+      // Audit the priority calculation
+      const auditId = await aiService.logAnalysis({
+        analysisType: 'PRIORITY_CALCULATION',
+        parameters: req.body,
+        results: response.data,
+        confidenceScore: 1.0, // Rule-based
+        userId: req.user ? req.user.id : null,
+        facts: [{
+          fact_type: 'PRIORITY_LEVEL',
+          fact_value: response.data.priority,
+          source: 'rule_engine'
+        }]
+      });
+
       res.json({
         success: true,
+        audit_id: auditId,
         data: response.data
       });
     } catch (error) {
@@ -112,8 +146,20 @@ module.exports = (db) => {
         timeout: 30000 // 30 second timeout for analysis
       });
 
+      // 3. Audit the patrol suggestion
+      const confidence = aiService.calculateConfidence(rows.length);
+      const auditId = await aiService.logAnalysis({
+        analysisType: 'PYTHON_PATROL_SUGGESTION',
+        parameters: { range: '30_days', data_points: rows.length },
+        results: response.data,
+        confidenceScore: confidence,
+        userId: req.user ? req.user.id : null
+      });
+
       res.json({
         success: true,
+        audit_id: auditId,
+        confidence_score: confidence,
         data: response.data,
         analyzed_count: rows.length
       });

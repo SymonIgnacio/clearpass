@@ -181,7 +181,7 @@ const ResidentProfile = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: 1000, mx: 'auto', p: 3 }}>
+    <Box sx={{ width: '100%', mx: 'auto', p: 3 }}>
       <Typography variant="h4" gutterBottom>
         My Profile
       </Typography>

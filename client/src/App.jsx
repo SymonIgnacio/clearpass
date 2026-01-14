@@ -10,6 +10,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthProvider } from './contexts/AuthContext'
+import { useAuth } from './contexts/useAuth'
 import { useThemeMode } from './contexts/ThemeModeContext.jsx'
 
 // Import critical pages directly to avoid dynamic import issues
@@ -50,6 +51,20 @@ const BeneficiaryValidation = lazy(() => import('./pages/BeneficiaryValidation')
 const AdminReports = lazy(() => import('./pages/AdminReports'))
 const DocumentVerification = lazy(() => import('./pages/DocumentVerification'))
 const QRCodeGenerator = lazy(() => import('./pages/QRCodeGenerator'))
+
+const ClerkDashboard = lazy(() => import('./pages/dashboards/ClerkDashboard'))
+const BlotterDashboard = lazy(() => import('./pages/dashboards/BlotterDashboard'))
+
+// Role-based dashboard redirector
+const RoleBasedDashboard = () => {
+  const { user } = useAuth()
+  
+  if (user && parseInt(user.role) === 12) {
+    return <Navigate to="/resident/dashboard" replace />
+  }
+  
+  return <Dashboard />
+}
 
 // Loading component
 const LoadingFallback = () => (
@@ -312,8 +327,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/resident/login" element={<ResidentLogin />} />
               <Route path="/resident/register" element={<ResidentRegister />} />
-              {/* SECURITY: Public signup disabled per business rules */}
-              {/* <Route path="/signup" element={<Register />} /> */}
+              <Route path="/signup" element={<ResidentRegister />} />
               <Route path="/officerlogin" element={<OfficerLogin />} />
               <Route path="/verify-account" element={<AccountVerification />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
@@ -338,19 +352,31 @@ function App() {
                 }
               >
               {/* Nested protected routes */}
-            <Route index element={<Dashboard />} />
+            <Route index element={<RoleBasedDashboard />} />
 
             {/* Role-specific dashboard routes */}
             <Route path="admin/dashboard" element={<Dashboard />} />
             <Route path="secretary/dashboard" element={<Dashboard />} />
-            <Route path="clerk/dashboard" element={<Dashboard />} />
-            <Route path="officer/dashboard" element={<Dashboard />} />
+            <Route path="clerk/dashboard" element={
+              <ProtectedRoute requiredRoles={[1, 4]}>
+                <ClerkDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="officer/dashboard" element={
+              <ProtectedRoute requiredRoles={[1, 6]}>
+                <BlotterDashboard />
+              </ProtectedRoute>
+            } />
             <Route path="dashboard" element={<Dashboard />} />
 
-            <Route path="residents" element={<Residents />} />
+            <Route path="residents" element={
+              <ProtectedRoute requiredRoles={[1, 2, 3, 4]}>
+                <Residents />
+              </ProtectedRoute>
+            } />
             <Route path="users" element={<Navigate to="residents" replace />} />
             <Route path="blotter" element={
-              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 6]}>
+              <ProtectedRoute requiredRoles={[1, 2, 4, 6]}>
                 <Blotter />
               </ProtectedRoute>
             } />

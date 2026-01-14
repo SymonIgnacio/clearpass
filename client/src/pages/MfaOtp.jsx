@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Box, Button, Container, Paper, TextField, Typography, Alert } from '@mui/material'
 import { apiRequest } from '../utils/api'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 import { useNavigate } from 'react-router-dom'
 
 const MfaOtp = () => {

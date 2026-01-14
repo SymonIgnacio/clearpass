@@ -18,7 +18,9 @@ import {
   ListItemIcon,
   Divider,
   IconButton,
-  Tooltip
+  Tooltip,
+  Dialog,
+  CircularProgress
 } from '@mui/material';
 import {
   Person,
@@ -34,18 +36,26 @@ import {
   Logout,
   Settings,
   Home,
+  UploadFile,
+  CloudUpload,
   Campaign
 } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
-import { apiRequest } from '../utils/api';
+import { useAuth } from '../contexts/useAuth';
+import { apiRequest, uploadVerification } from '../utils/api';
+import { useLocation } from 'react-router-dom';
 
 const ResidentDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [requests, setRequests] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [verificationOpen, setVerificationOpen] = useState(false);
+  const [verificationFile, setVerificationFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const [stats, setStats] = useState({
     pending_requests: 0,
     completed_requests: 0,
@@ -57,6 +67,57 @@ const ResidentDashboard = () => {
       fetchDashboardData();
     }
   }, [user]);
+
+  useEffect(() => {
+    // Check if we need to show verification modal
+    if (profile && (profile.Residency_Status === 'Pending Verification' || location.state?.showVerification)) {
+      // Check if user already has uploaded documents (optional enhancement)
+      // For now, show if status is pending
+      setVerificationOpen(true);
+    }
+  }, [profile, location.state]);
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        setUploadError('File size too large (max 5MB)');
+        setVerificationFile(null);
+      } else {
+        setUploadError('');
+        setVerificationFile(file);
+      }
+    }
+  };
+
+  const handleUploadVerification = async () => {
+    if (!verificationFile) {
+      setUploadError('Please select a file');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('document', verificationFile);
+      formData.append('document_type', 'Proof of Residency');
+      formData.append('description', 'Initial residency verification upload');
+
+      await uploadVerification(formData);
+      
+      setVerificationOpen(false);
+      // Optional: Show success snackbar
+      // refresh dashboard data
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setUploadError('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -162,6 +223,127 @@ const ResidentDashboard = () => {
             Loading Dashboard...
           </Typography>
         </Box>
+      </Box>
+    );
+  }
+
+  // Pending Verification View (Guest Role)
+  if (user?.role === 13 || profile?.Residency_Status === 'Pending Verification') {
+    return (
+      <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', p: 3 }}>
+        <Paper elevation={1} sx={{ p: 4, maxWidth: 800, mx: 'auto', textAlign: 'center', mt: 8 }}>
+          <Avatar sx={{ bgcolor: 'warning.main', width: 80, height: 80, mx: 'auto', mb: 3 }}>
+            <Pending sx={{ fontSize: 40 }} />
+          </Avatar>
+          
+          <Typography variant="h4" sx={{ fontWeight: 600, mb: 2 }}>
+            Account Under Review
+          </Typography>
+          
+          <Typography variant="body1" color="text.secondary" paragraph>
+            Thank you for registering, {profile?.First_Name}. Your account is currently pending verification by the Barangay Secretary.
+          </Typography>
+          
+          <Typography variant="body1" color="text.secondary" paragraph>
+            To speed up the process, please ensure you have uploaded a valid proof of residency.
+          </Typography>
+
+          <Alert severity="info" sx={{ mt: 3, mb: 3, textAlign: 'left' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Next Steps:</Typography>
+            <Box component="ul" sx={{ m: 0, pl: 2 }}>
+              <li>Upload your Proof of Residency if you haven't already.</li>
+              <li>Wait for the Barangay Secretary to review your documents.</li>
+              <li>Once approved, you will receive an email notification and gain full access.</li>
+            </Box>
+          </Alert>
+
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+            <Button 
+              variant="contained" 
+              onClick={() => setVerificationOpen(true)}
+              startIcon={<CloudUpload />}
+            >
+              Upload Proof of Residency
+            </Button>
+            <Button 
+              variant="outlined" 
+              onClick={handleLogout}
+              color="error"
+            >
+              Logout
+            </Button>
+          </Box>
+        </Paper>
+
+        {/* Reuse the existing Verification Modal */}
+        <Dialog 
+          open={verificationOpen} 
+          onClose={() => !uploading && setVerificationOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <CloudUpload sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
+            <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
+              Proof of Residency Required
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              To activate your account, please upload a valid proof of residency (e.g., Billing Statement, Government ID with Address).
+            </Typography>
+
+            {uploadError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {uploadError}
+              </Alert>
+            )}
+
+            <Box sx={{ 
+              border: '2px dashed', 
+              borderColor: 'grey.300', 
+              borderRadius: 2, 
+              p: 4, 
+              mb: 3,
+              cursor: 'pointer',
+              bgcolor: 'grey.50',
+              '&:hover': { bgcolor: 'grey.100' }
+            }}>
+              <input
+                accept="image/*,.pdf"
+                style={{ display: 'none' }}
+                id="verification-file-upload"
+                type="file"
+                onChange={handleFileChange}
+              />
+              <label htmlFor="verification-file-upload">
+                <Button variant="outlined" component="span" startIcon={<UploadFile />}>
+                  Select File
+                </Button>
+              </label>
+              {verificationFile && (
+                <Typography variant="body2" sx={{ mt: 2, fontWeight: 500 }}>
+                  Selected: {verificationFile.name}
+                </Typography>
+              )}
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button 
+                onClick={() => setVerificationOpen(false)} 
+                disabled={uploading}
+              >
+                Close
+              </Button>
+              <Button 
+                variant="contained" 
+                onClick={handleUploadVerification}
+                disabled={!verificationFile || uploading}
+                startIcon={uploading && <CircularProgress size={20} color="inherit" />}
+              >
+                {uploading ? 'Uploading...' : 'Upload Verification'}
+              </Button>
+            </Box>
+          </Box>
+        </Dialog>
       </Box>
     );
   }
@@ -447,6 +629,76 @@ const ResidentDashboard = () => {
           </Grid>
         </Grid>
       </Box>
+
+      {/* Verification Modal */}
+      <Dialog 
+        open={verificationOpen} 
+        onClose={() => !uploading && setVerificationOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <Box sx={{ p: 3, textAlign: 'center' }}>
+          <CloudUpload sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
+          <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
+            Proof of Residency Required
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            To activate your account, please upload a valid proof of residency (e.g., Billing Statement, Government ID with Address).
+          </Typography>
+
+          {uploadError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {uploadError}
+            </Alert>
+          )}
+
+          <Box sx={{ 
+            border: '2px dashed', 
+            borderColor: 'grey.300', 
+            borderRadius: 2, 
+            p: 4, 
+            mb: 3,
+            cursor: 'pointer',
+            bgcolor: 'grey.50',
+            '&:hover': { bgcolor: 'grey.100' }
+          }}>
+            <input
+              accept="image/*,.pdf"
+              style={{ display: 'none' }}
+              id="verification-file-upload"
+              type="file"
+              onChange={handleFileChange}
+            />
+            <label htmlFor="verification-file-upload">
+              <Button variant="outlined" component="span" startIcon={<UploadFile />}>
+                Select File
+              </Button>
+            </label>
+            {verificationFile && (
+              <Typography variant="body2" sx={{ mt: 2, fontWeight: 500 }}>
+                Selected: {verificationFile.name}
+              </Typography>
+            )}
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Button 
+              onClick={() => setVerificationOpen(false)} 
+              disabled={uploading}
+            >
+              Skip for Now
+            </Button>
+            <Button 
+              variant="contained" 
+              onClick={handleUploadVerification}
+              disabled={!verificationFile || uploading}
+              startIcon={uploading && <CircularProgress size={20} color="inherit" />}
+            >
+              {uploading ? 'Uploading...' : 'Upload Verification'}
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
     </Box>
   );
 };

@@ -29,6 +29,7 @@ const normalizeRole = role => {
 const login = async (req, res) => {
   try {
     const { username, password } = req.body;
+    process.stderr.write(`DEBUG: Login attempt for ${username}\n`);
 
     // Input validation
     if (!username || !password) {
@@ -56,17 +57,31 @@ const login = async (req, res) => {
     );
 
     if (users.length === 0) {
+      process.stderr.write(`DEBUG: User ${username} not found\n`);
       return res.status(401).json(createErrorResponse('Invalid credentials', 401));
     }
 
     const user = users[0];
     const normalizedRole = normalizeRole(user.role);
 
+    const requestPath = req.originalUrl || req.path || '';
+    if (requestPath.includes('/auth/officer-login') && normalizedRole === ROLES.RESIDENT) {
+      return res
+        .status(403)
+        .json(createErrorResponse('Residents must use the resident login page', 403));
+    }
+    if (requestPath.includes('/auth/resident/login') && normalizedRole !== ROLES.RESIDENT) {
+      return res
+        .status(403)
+        .json(createErrorResponse('Staff must use the officer login page', 403));
+    }
+
     if (!user.password_hash) {
       return res.status(401).json(createErrorResponse('Account not configured', 401));
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    process.stderr.write(`DEBUG: Password match for ${username}: ${isValidPassword}\n`);
 
     if (!isValidPassword) {
       return res.status(401).json(createErrorResponse('Invalid credentials', 401));
@@ -78,8 +93,7 @@ const login = async (req, res) => {
     }
 
     const mfaEnforced = isMfaEnforced();
-    const mfaRequired =
-      mfaEnforced && [ROLES.RESIDENT].includes(normalizedRole);
+    const mfaRequired = mfaEnforced && [ROLES.RESIDENT].includes(normalizedRole);
 
     if (mfaRequired) {
       if (!user.email) {
@@ -119,6 +133,7 @@ const login = async (req, res) => {
         username: user.username,
         role: normalizedRole,
         role_name: user.role_name,
+        resident_id: user.resident_id, // Added resident_id
         mfa_verified: !mfaRequired,
       },
       process.env.JWT_SECRET,
@@ -134,11 +149,28 @@ const login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
+      path: '/',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     });
 
+    const auditDetails = {
+      user_id: user.id,
+      user_role: normalizedRole,
+      ip_address: req.ip || req.connection.remoteAddress,
+      user_agent: req.get('User-Agent'),
+      resource: req.originalUrl,
+      action: req.method,
+      result: 'SUCCESS',
+      session_id: req.sessionID,
+    };
+    logAuditEvent(AUDIT_EVENTS.LOGIN_SUCCESS, auditDetails);
+    if (db && typeof db.execute === 'function') {
+      await logAuditToDatabase(db, AUDIT_EVENTS.LOGIN_SUCCESS, auditDetails);
+    }
+
     res.json({
       success: true,
+      token, // Return token for client-side storage/testing
       mfa_required: mfaRequired,
       user: {
         id: user.id,
@@ -192,6 +224,7 @@ const logout = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
+      path: '/',
     });
 
     res.json({ success: true, message: 'Logged out successfully' });
@@ -207,18 +240,25 @@ const me = async (req, res) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    // CLEARPASS: Use role column (Database Aligned)
+    // CLEARPASS: Use role column (Database Aligned) with Resident Status Check
     const [users] = await db.execute(
-      `SELECT u.*, 
-        CASE u.role 
-          WHEN 1 THEN 'IT Admin'
-          WHEN 2 THEN 'Captain'
-          WHEN 3 THEN 'Secretary'
-          WHEN 4 THEN 'Clerk'
-          WHEN 6 THEN 'Blotter Officer'
-          WHEN 12 THEN 'Resident'
+      `SELECT u.*, r.Residency_Status,
+        CASE 
+          WHEN r.Residency_Status = 'Pending Verification' THEN 13
+          ELSE u.role
+        END as effective_role,
+        CASE 
+          WHEN r.Residency_Status = 'Pending Verification' THEN 'Guest'
+          WHEN u.role = 1 THEN 'IT Admin'
+          WHEN u.role = 2 THEN 'Captain'
+          WHEN u.role = 3 THEN 'Secretary'
+          WHEN u.role = 4 THEN 'Clerk'
+          WHEN u.role = 6 THEN 'Blotter Officer'
+          WHEN u.role = 12 THEN 'Resident'
+          WHEN u.role = 13 THEN 'Guest'
         END as role_name
        FROM users u 
+       LEFT JOIN residents r ON u.resident_id = r.Resident_ID
        WHERE u.id = ? AND u.is_active = TRUE`,
       [req.user.id]
     );
@@ -228,7 +268,8 @@ const me = async (req, res) => {
     }
 
     const user = users[0];
-    const normalizedRole = normalizeRole(user.role);
+    // Use effective_role instead of raw role
+    const normalizedRole = normalizeRole(user.effective_role);
     res.json({
       success: true,
       user: {

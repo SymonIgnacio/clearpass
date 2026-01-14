@@ -105,17 +105,19 @@ const NotificationBell = () => {
                 {!notification.is_read && (
                   <CircleIcon sx={{ fontSize: 8, color: 'primary.main', mr: 1 }} />
                 )}
-                <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
+                <Typography variant="subtitle2" sx={{ flexGrow: 1, fontWeight: notification.is_read ? 400 : 600 }}>
                   {notification.title}
                 </Typography>
-                <Chip
-                  label={notification.type}
-                  size="small"
-                  color={getTypeColor(notification.type)}
-                  sx={{ ml: 1 }}
-                />
+                {notification.type !== 'info' && (
+                  <Chip
+                    label={notification.type}
+                    size="small"
+                    color={getTypeColor(notification.type)}
+                    sx={{ height: 20, fontSize: '0.625rem', ml: 1 }}
+                  />
+                )}
               </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, whiteSpace: 'pre-line' }}>
                 {notification.message}
               </Typography>
               <Typography variant="caption" color="text.secondary">

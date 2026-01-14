@@ -111,6 +111,54 @@ async function generateBlotterData() {
         'Parent-child conflict over curfew and household rules',
         'Sibling dispute over inheritance and property division',
         'Extended family conflict over living arrangements'
+      ],
+      'Grave Threats': [
+        'Respondent threatened to kill complainant during a heated argument',
+        'Death threats sent via text message to the complainant',
+        'Respondent brandished a bladed weapon while shouting threats',
+        'Verbal threats of physical harm made in front of witnesses'
+      ],
+      'Alarming and Scandal': [
+        'Drunken behavior causing public disturbance in the neighborhood',
+        'Shouting matches in the street late at night disturbing residents',
+        'Respondent creating a scene at the barangay hall',
+        'Public intoxication and disorderly conduct reported'
+      ],
+      'Malicious Mischief': [
+        'Car tires slashed by respondent while parked',
+        'Vandalism on complainant\'s perimeter wall',
+        'Respondent threw stones at complainant\'s window causing breakage',
+        'Deliberate damage to complainant\'s garden and plants'
+      ],
+      'Estafa (Swindling)': [
+        'Failure to pay debt after repeated demands and promises',
+        'Complainant was scammed in an online transaction by respondent',
+        'Issuance of bounced check for payment of goods',
+        'Failure to deliver paid items in a buy-and-sell transaction'
+      ],
+      'Trespassing': [
+        'Respondent entered complainant\'s yard without permission',
+        'Squatting on private property despite warnings',
+        'Refusal to leave premises after being asked by the owner',
+        'Unauthorize entry into a fenced property'
+      ],
+      'Curfew Violation': [
+        'Minors caught roaming streets past 10 PM curfew',
+        'Drinking in public places during curfew hours',
+        'Group of teenagers loitering in the park after curfew',
+        'Violation of barangay curfew ordinance by minors'
+      ],
+      'Waste Management': [
+        'Burning of garbage in the backyard causing smoke',
+        'Throwing trash in the river/creek',
+        'Failure to segregate waste as required by ordinance',
+        'Dumping of construction debris in public area'
+      ],
+      'Stray Animals': [
+        'Dog roaming freely and chasing passersby',
+        'Stray cats causing mess in neighbor\'s property',
+        'Unleashed dog defecating in public spaces',
+        'Chicken/Rooster noise and smell complaint'
       ]
     };
 
@@ -437,7 +485,8 @@ async function runComprehensiveDataGeneration() {
     const [existingBlotter] = await db.execute('SELECT COUNT(*) as count FROM blotter');
     console.log(`Existing blotter records: ${existingBlotter[0].count}`);
 
-    if (existingBlotter[0].count < 100) {
+    // Always generate more data to improve accuracy
+    // if (existingBlotter[0].count < 100) {
       const blotterData = await generateBlotterData();
       console.log(`Generated ${blotterData.length} blotter records`);
 
@@ -460,9 +509,9 @@ async function runComprehensiveDataGeneration() {
         }
       }
       console.log('✅ Blotter data inserted successfully');
-    } else {
-      console.log('ℹ️ Sufficient blotter data exists');
-    }
+    // } else {
+    //   console.log('ℹ️ Sufficient blotter data exists');
+    // }
 
     // 2. Generate resident data for analytics
     console.log('\n👥 PHASE 2: Generating resident data for analytics...');

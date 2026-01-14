@@ -68,7 +68,12 @@ module.exports = db => {
     verifyToken,
     checkRole(['secretary', 'admin']),
     asyncHandler(async (req, res) => {
-      const [beneficiaries] = await db.execute(`
+      const { status } = req.query;
+      const validStatuses = ['pending', 'approved', 'rejected'];
+      const queryStatus = validStatuses.includes(status) ? status : 'pending';
+
+      const [beneficiaries] = await db.execute(
+        `
       SELECT r.*, h.Household_Number, s.name as sitio_name,
              v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent, 
              v.Disability_Type, v.Vulnerability_Score,
@@ -77,13 +82,15 @@ module.exports = db => {
       JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
       LEFT JOIN households h ON r.Household_ID = h.Household_ID
       LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      WHERE (v.validation_status IS NULL OR v.validation_status = 'pending')
+      WHERE (v.validation_status = ? OR (v.validation_status IS NULL AND ? = 'pending'))
         AND (
           v.Is_4Ps = true OR v.Is_PWD = true OR v.Is_Senior = true 
           OR v.Is_Solo_Parent = true OR v.Is_Out_of_School_Youth = true
         )
       ORDER BY v.Vulnerability_Score DESC, r.Last_Name
-    `);
+    `,
+        [queryStatus, queryStatus]
+      );
       res.json(beneficiaries);
     })
   );
@@ -198,18 +205,25 @@ module.exports = db => {
   // DOCUMENT VERIFICATION ROUTES
   // =========================================================================
 
-  // Get pending registration applications
+  // Get registration applications with status filter
   router.get(
     '/applications',
     verifyToken,
     requireVerificationMfa,
     checkRole(['secretary', 'admin']),
     asyncHandler(async (req, res) => {
-      const [applications] = await db.execute(`
+      const { status } = req.query;
+      const validStatuses = ['pending', 'approved', 'rejected'];
+      const queryStatus = validStatuses.includes(status) ? status : 'pending';
+
+      const [applications] = await db.execute(
+        `
       SELECT * FROM resident_applications 
-      WHERE status = 'pending' 
+      WHERE status = ? 
       ORDER BY created_at ASC
-    `);
+    `,
+        [queryStatus]
+      );
       res.json(applications);
     })
   );
@@ -293,20 +307,27 @@ module.exports = db => {
     })
   );
 
-  // Get pending resident documents
+  // Get resident documents with status filter
   router.get(
     '/resident-documents',
     verifyToken,
     requireVerificationMfa,
     checkRole(['secretary', 'admin']),
     asyncHandler(async (req, res) => {
-      const [documents] = await db.execute(`
+      const { status } = req.query;
+      const validStatuses = ['pending', 'verified', 'rejected'];
+      const queryStatus = validStatuses.includes(status) ? status : 'pending';
+
+      const [documents] = await db.execute(
+        `
       SELECT d.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name 
       FROM resident_documents d
       JOIN residents r ON d.resident_id = r.Resident_ID
-      WHERE d.verification_status = 'pending'
+      WHERE d.verification_status = ?
       ORDER BY d.created_at ASC
-    `);
+    `,
+        [queryStatus]
+      );
       res.json(documents);
     })
   );
@@ -373,6 +394,24 @@ module.exports = db => {
           return res.status(409).json({ error: 'User already exists for this email' });
         }
 
+        // Resolve Sitio ID
+        const [sitioRows] = await connection.execute('SELECT id FROM sitios WHERE name = ?', [
+          app.sitio,
+        ]);
+        if (sitioRows.length === 0) {
+          await connection.rollback();
+          connection.release();
+          return res.status(400).json({ error: `Invalid Sitio: ${app.sitio}` });
+        }
+        const sitioId = sitioRows[0].id;
+
+        // Create New Household for the Resident
+        const householdId = `HH-${Date.now()}`;
+        await connection.execute(
+          'INSERT INTO households (Household_ID, Household_Number, Sitio_ID, Street_Address, Total_Members, created_at) VALUES (?, ?, ?, ?, 1, NOW())',
+          [householdId, householdId, sitioId, app.street_address]
+        );
+
         // 2. Insert into Residents
         await connection.execute(
           `
@@ -396,8 +435,7 @@ module.exports = db => {
             app.email,
             app.mobile_number,
             app.voter_status,
-            'HH-TEMP',
-            sitioId, // Resolved sitio ID
+            householdId,
           ]
         );
 

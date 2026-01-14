@@ -1,7 +1,7 @@
 import React from 'react'
 import { AppBar, Toolbar, Typography, Box, Chip, IconButton, Menu, MenuItem } from '@mui/material'
 import { Security, AccountCircle, Logout, Brightness4, Brightness7, Menu as MenuIcon } from '@mui/icons-material'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 import { useThemeMode } from '../contexts/ThemeModeContext.jsx'
 import NotificationBell from './NotificationBell'
 

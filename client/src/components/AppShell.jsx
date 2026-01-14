@@ -42,7 +42,7 @@ const AppShell = ({ children }) => {
             backgroundColor: 'background.default',
           }}
         >
-          <Container maxWidth="lg" disableGutters sx={{ mx: 'auto' }}>
+          <Container maxWidth={false} disableGutters sx={{ mx: 'auto' }}>
             {children}
           </Container>
         </Box>

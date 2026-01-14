@@ -24,6 +24,7 @@ export const Circle = Icon;
 export const Close = Icon;
 export const CloudDownload = Icon;
 export const CloudUpload = Icon;
+export const ContentCopy = Icon;
 export const Delete = Icon;
 export const Description = Icon;
 export const Download = Icon;

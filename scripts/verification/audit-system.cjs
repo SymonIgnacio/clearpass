@@ -1,4 +1,5 @@
-require('dotenv').config({ path: '../../server/.env' });
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../server/.env') });
 const mysql = require('mysql2/promise');
 
 async function comprehensiveAudit() {

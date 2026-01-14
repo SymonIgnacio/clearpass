@@ -44,9 +44,11 @@ import {
 import { api, apiRequest } from '../utils/api'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useNotifications } from '../contexts/NotificationContext'
+import { useAuth } from '../contexts/useAuth'
 
 const AdminReports = () => {
   const { notify } = useNotifications()
+  const { user } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState(0)
@@ -69,8 +71,10 @@ const AdminReports = () => {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-
-  const tabs = [
+  
+  // Filter tabs based on role
+  // Captain (Role 2) only sees AI Insights
+  const allTabs = [
     { label: 'User Reports', icon: <People />, key: 'users' },
     { label: 'Blotter Reports', icon: <Gavel />, key: 'blotter' },
     { label: 'Certificate Reports', icon: <Description />, key: 'certificates' },
@@ -79,6 +83,13 @@ const AdminReports = () => {
     { label: 'Security Audit', icon: <Security />, key: 'security' },
     { label: 'AI Insights', icon: <SmartToy />, key: 'ai' }
   ]
+
+  const tabs = React.useMemo(() => {
+    if (user && Number(user.role) === 2) {
+      return allTabs.filter(tab => tab.key === 'ai')
+    }
+    return allTabs
+  }, [user])
 
   const loadReport = async (reportKey) => {
     try {
@@ -194,6 +205,7 @@ const AdminReports = () => {
       const results = await Promise.allSettled(reportPromises)
 
       const newReports = {}
+      let failedCount = 0
       results.forEach((result, index) => {
         const tabKey = tabs[index].key
         if (result.status === 'fulfilled') {
@@ -204,10 +216,16 @@ const AdminReports = () => {
           // Report failed to load - set to null and log error
           console.error(`Failed to load ${tabKey} report:`, result.reason)
           newReports[tabKey] = null
+          failedCount++
         }
       })
 
       setReports(newReports)
+      
+      // If all reports failed, or critical reports failed, set global error
+      if (failedCount === results.length) {
+        setError('Failed to load reports')
+      }
     } catch (err) {
       // This catch block should rarely be hit with Promise.allSettled
       console.error('Unexpected error in loadAllReports:', err)
@@ -229,7 +247,7 @@ const AdminReports = () => {
     }
     
     loadAllReports()
-  }, [location.search])
+  }, [location.search, tabs])
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue)
@@ -1246,7 +1264,11 @@ const AdminReports = () => {
   }
 
   // Show full loading screen during initial load
-  if (loading && !reports.users) {
+  // Modified condition to check for AI data if only AI tab is present
+  const isCaptain = user && Number(user.role) === 2
+  const requiredData = isCaptain ? reports.ai : reports.users
+
+  if (loading && !requiredData) {
     return (
       <Container maxWidth="xl">
         <Box
@@ -1273,8 +1295,8 @@ const AdminReports = () => {
   }
 
   return (
-    <Container maxWidth="xl">
-      <Box sx={{ py: 4 }}>
+    <Container maxWidth={false}>
+      <Box sx={{ py: 3 }}>
         {/* Header */}
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
           <Box>
@@ -1355,13 +1377,13 @@ const AdminReports = () => {
 
         {/* Report Content */}
         <Box sx={{ mt: 3 }}>
-          {activeTab === 0 && renderUserReports()}
-          {activeTab === 1 && renderBlotterReports()}
-          {activeTab === 2 && renderCertificateReports()}
-          {activeTab === 3 && renderResidentReports()}
-          {activeTab === 4 && renderSystemReports()}
-          {activeTab === 5 && renderSecurityReports()}
-          {activeTab === 6 && renderAIReports()}
+          {tabs[activeTab]?.key === 'users' && renderUserReports()}
+          {tabs[activeTab]?.key === 'blotter' && renderBlotterReports()}
+          {tabs[activeTab]?.key === 'certificates' && renderCertificateReports()}
+          {tabs[activeTab]?.key === 'residents' && renderResidentReports()}
+          {tabs[activeTab]?.key === 'system' && renderSystemReports()}
+          {tabs[activeTab]?.key === 'security' && renderSecurityReports()}
+          {tabs[activeTab]?.key === 'ai' && renderAIReports()}
         </Box>
 
         {/* Report Footer */}

@@ -1,0 +1,5186 @@
+{
+  "generatedAt": "2026-01-14T02:24:16.947Z",
+  "database": {
+    "name": "barangay_management",
+    "tableCount": 41
+  },
+  "schema": {
+    "tables": {
+      "ai_analytics_reports": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "report_type",
+            "type": "enum('incident_analysis','trend_report','predictive_forecast','resource_allocation')",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "report_title",
+            "type": "varchar(255)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "date_range_start",
+            "type": "date",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "date_range_end",
+            "type": "date",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "generated_by",
+            "type": "int(11)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "report_data",
+            "type": "longtext",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "file_path",
+            "type": "varchar(500)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "download_count",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_reports_type",
+            "columnName": "report_type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_reports_date",
+            "columnName": "date_range_start",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_reports_date",
+            "columnName": "date_range_end",
+            "nonUnique": true,
+            "seqInIndex": 2
+          },
+          {
+            "keyName": "idx_reports_user",
+            "columnName": "generated_by",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "ai_appointments": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "resident_id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "visitor_name",
+            "type": "varchar(255)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "visitor_contact",
+            "type": "varchar(20)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "appointment_type",
+            "type": "enum('certificate_request','blotter_filing','complaint','inquiry','other')",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "appointment_date",
+            "type": "date",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "appointment_time",
+            "type": "time",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "preferred_time_slot",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "purpose",
+            "type": "text",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "status",
+            "type": "enum('pending','confirmed','completed','cancelled')",
+            "nullable": true,
+            "key": "MUL",
+            "default": "pending"
+          },
+          {
+            "name": "assigned_staff",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "notes",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "chatbot_session_id",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_appointments_resident",
+            "columnName": "resident_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_appointments_date",
+            "columnName": "appointment_date",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_appointments_type",
+            "columnName": "appointment_type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_appointments_status",
+            "columnName": "status",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_appointments_session",
+            "columnName": "chatbot_session_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "ai_chatbot_conversations": {
+        "rowCount": 200,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "session_id",
+            "type": "varchar(255)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "user_id",
+            "type": "int(11)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "resident_id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "user_message",
+            "type": "text",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "bot_response",
+            "type": "text",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "intent_detected",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "confidence_score",
+            "type": "decimal(3,2)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "appointment_booked",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "appointment_details",
+            "type": "longtext",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "ip_address",
+            "type": "varchar(45)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "user_agent",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": "MUL",
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_chatbot_session",
+            "columnName": "session_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_chatbot_user",
+            "columnName": "user_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_chatbot_resident",
+            "columnName": "resident_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_chatbot_intent",
+            "columnName": "intent_detected",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_chatbot_date",
+            "columnName": "created_at",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_conversations_recent",
+            "columnName": "created_at",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "ai_chatbot_faq": {
+        "rowCount": 12,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "category",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "question",
+            "type": "text",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "answer",
+            "type": "text",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "keywords",
+            "type": "text",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "priority",
+            "type": "int(11)",
+            "nullable": true,
+            "key": "MUL",
+            "default": "1"
+          },
+          {
+            "name": "is_active",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": "MUL",
+            "default": "1"
+          },
+          {
+            "name": "usage_count",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_faq_category",
+            "columnName": "category",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_faq_keywords",
+            "columnName": "keywords",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_faq_priority",
+            "columnName": "priority",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_faq_active",
+            "columnName": "is_active",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "ai_ocr_cache": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "original_filename",
+            "type": "varchar(255)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "file_hash",
+            "type": "varchar(128)",
+            "nullable": false,
+            "key": "UNI",
+            "default": null
+          },
+          {
+            "name": "ocr_text",
+            "type": "text",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "confidence_score",
+            "type": "decimal(3,2)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "extracted_fields",
+            "type": "longtext",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "document_type",
+            "type": "enum('barangay_id','drivers_license','passport','certificate','form','other')",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "processing_status",
+            "type": "enum('success','partial','failed')",
+            "nullable": true,
+            "key": "MUL",
+            "default": "success"
+          },
+          {
+            "name": "error_message",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "last_accessed",
+            "type": "timestamp",
+            "nullable": false,
+            "key": "MUL",
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "access_count",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "file_hash",
+            "columnName": "file_hash",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_ocr_hash",
+            "columnName": "file_hash",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_ocr_type",
+            "columnName": "document_type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_ocr_status",
+            "columnName": "processing_status",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_ocr_accessed",
+            "columnName": "last_accessed",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "ai_ocr_field_mappings": {
+        "rowCount": 14,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "document_type",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "field_name",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "regex_pattern",
+            "type": "text",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "validation_rules",
+            "type": "longtext",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "priority",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": "1"
+          },
+          {
+            "name": "is_active",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": "MUL",
+            "default": "1"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_mappings_type",
+            "columnName": "document_type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_mappings_field",
+            "columnName": "field_name",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_mappings_active",
+            "columnName": "is_active",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "ai_predictive_models": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "model_name",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "model_version",
+            "type": "varchar(20)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "model_type",
+            "type": "enum('linear_regression','time_series','classification','clustering')",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "parameters",
+            "type": "longtext",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "training_data_info",
+            "type": "longtext",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "accuracy_metrics",
+            "type": "longtext",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "is_active",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": "MUL",
+            "default": "1"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_models_name",
+            "columnName": "model_name",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_models_type",
+            "columnName": "model_type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_models_active",
+            "columnName": "is_active",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "ai_system_logs": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "component",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "operation",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "user_id",
+            "type": "int(11)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "session_id",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "input_data",
+            "type": "longtext",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "output_data",
+            "type": "longtext",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "processing_time_ms",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "status",
+            "type": "enum('success','warning','error')",
+            "nullable": true,
+            "key": "MUL",
+            "default": "success"
+          },
+          {
+            "name": "error_message",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "ip_address",
+            "type": "varchar(45)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "user_agent",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": "MUL",
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_logs_component",
+            "columnName": "component",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_logs_operation",
+            "columnName": "operation",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_logs_user",
+            "columnName": "user_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_logs_session",
+            "columnName": "session_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_logs_status",
+            "columnName": "status",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_logs_date",
+            "columnName": "created_at",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "announcements": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "title",
+            "type": "varchar(255)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "content",
+            "type": "text",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "category",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": "general"
+          },
+          {
+            "name": "priority",
+            "type": "enum('low','normal','high','urgent')",
+            "nullable": true,
+            "key": null,
+            "default": "normal"
+          },
+          {
+            "name": "expires_at",
+            "type": "datetime",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "is_active",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": "MUL",
+            "default": "1"
+          },
+          {
+            "name": "created_by",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": "MUL",
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_active_expires",
+            "columnName": "is_active",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_active_expires",
+            "columnName": "expires_at",
+            "nonUnique": true,
+            "seqInIndex": 2
+          },
+          {
+            "keyName": "idx_created",
+            "columnName": "created_at",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "application_documents": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "application_id",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "document_type",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "file_path",
+            "type": "varchar(500)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "file_name",
+            "type": "varchar(255)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "verification_status",
+            "type": "enum('pending','verified','rejected')",
+            "nullable": true,
+            "key": "MUL",
+            "default": "pending"
+          },
+          {
+            "name": "verification_notes",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "verified_by",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "verified_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "encryption_alg",
+            "type": "varchar(32)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "encryption_version",
+            "type": "int(10) unsigned",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "encryption_iv",
+            "type": "varchar(64)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "encryption_tag",
+            "type": "varchar(64)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "disposed_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "disposed_by",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "disposal_reason",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "application_documents_application_id_index",
+            "columnName": "application_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "application_documents_document_type_index",
+            "columnName": "document_type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "application_documents_verification_status_index",
+            "columnName": "verification_status",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "audit_logs": {
+        "rowCount": 3231,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "event_type",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "user_id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "user_role",
+            "type": "varchar(20)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "ip_address",
+            "type": "varchar(45)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "user_agent",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "resource",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "action",
+            "type": "varchar(20)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "result",
+            "type": "enum('SUCCESS','FAILED','ERROR')",
+            "nullable": true,
+            "key": "MUL",
+            "default": "SUCCESS"
+          },
+          {
+            "name": "details",
+            "type": "longtext",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "session_id",
+            "type": "varchar(128)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": "MUL",
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "audit_logs_event_type_index",
+            "columnName": "event_type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "audit_logs_user_id_index",
+            "columnName": "user_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "audit_logs_user_role_index",
+            "columnName": "user_role",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "audit_logs_resource_index",
+            "columnName": "resource",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "audit_logs_action_index",
+            "columnName": "action",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "audit_logs_result_index",
+            "columnName": "result",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "audit_logs_session_id_index",
+            "columnName": "session_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "audit_logs_created_at_index",
+            "columnName": "created_at",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "audit_logs_event_type_created_at_index",
+            "columnName": "event_type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "audit_logs_event_type_created_at_index",
+            "columnName": "created_at",
+            "nonUnique": true,
+            "seqInIndex": 2
+          },
+          {
+            "keyName": "audit_logs_user_id_created_at_index",
+            "columnName": "user_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "audit_logs_user_id_created_at_index",
+            "columnName": "created_at",
+            "nonUnique": true,
+            "seqInIndex": 2
+          },
+          {
+            "keyName": "audit_logs_result_created_at_index",
+            "columnName": "result",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "audit_logs_result_created_at_index",
+            "columnName": "created_at",
+            "nonUnique": true,
+            "seqInIndex": 2
+          }
+        ]
+      },
+      "blotter": {
+        "rowCount": 7,
+        "columns": [
+          {
+            "name": "Case_Number",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "Complainant_Details",
+            "type": "longtext",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "Respondent_Details",
+            "type": "longtext",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "Incident_Type",
+            "type": "enum('Physical Injury','Unjust Vexation','Grave Threats','Alarming and Scandal','Theft (Petty)','Malicious Mischief','Estafa (Swindling)','Trespassing','Collection of Sum of Money','Ejectment','Boundary Dispute','Family Dispute','Curfew Violation','Noise Barrage','Illegal Parking','Waste Management','Stray Animals')",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "Narrative",
+            "type": "text",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "DateTime_Incident",
+            "type": "datetime",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "Location_Sitio",
+            "type": "enum('Batia Proper','Northville 5','St. Martha','AFP/PNP')",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "status",
+            "type": "enum('Pending','Active','Resolved','Dismissed','Scheduled for Mediation','Amicably Settled','Certificate to File Action Issued','Ongoing')",
+            "nullable": true,
+            "key": "MUL",
+            "default": "Pending"
+          },
+          {
+            "name": "Hearing_Schedule",
+            "type": "datetime",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": "MUL",
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "respondent_id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "hearing_count",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "missed_hearings",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "complainant_resident_id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "respondent_resident_id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "resolution_notes",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "Case_Number",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_blotter_status",
+            "columnName": "status",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_blotter_date",
+            "columnName": "DateTime_Incident",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_blotter_sitio",
+            "columnName": "Location_Sitio",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_blotter_type",
+            "columnName": "Incident_Type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "blotter_respondent_id_foreign",
+            "columnName": "respondent_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_blotter_respondent",
+            "columnName": "respondent_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_blotter_created",
+            "columnName": "created_at",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "blotter_case_sequences": {
+        "rowCount": 5,
+        "columns": [
+          {
+            "name": "year",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "month",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "next_seq",
+            "type": "int(11)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "year",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "PRIMARY",
+            "columnName": "month",
+            "nonUnique": false,
+            "seqInIndex": 2
+          }
+        ]
+      },
+      "blotter_participants": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "blotter_id",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "resident_id",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "participation_type",
+            "type": "enum('Complainant','Respondent','Victim','Witness')",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "status",
+            "type": "enum('Active','Settled','Cleared')",
+            "nullable": true,
+            "key": null,
+            "default": "Active"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_blotter_id",
+            "columnName": "blotter_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_resident_id",
+            "columnName": "resident_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_participation_type",
+            "columnName": "participation_type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "certificate_types": {
+        "rowCount": 19,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "name",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": "UNI",
+            "default": null
+          },
+          {
+            "name": "fee",
+            "type": "decimal(8,2)",
+            "nullable": true,
+            "key": null,
+            "default": "0.00"
+          },
+          {
+            "name": "validity_days",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": "365"
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "purpose",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "when_needed",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "required_data",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "is_active",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "1"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "code",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "name",
+            "columnName": "name",
+            "nonUnique": false,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "certificates_log": {
+        "rowCount": 10,
+        "columns": [
+          {
+            "name": "control_no",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "resident_id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "certificate_type",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "purpose",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "date_issued",
+            "type": "date",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "signatory_captain",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "signatory_secretary",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "qr_validation_string",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": "UNI",
+            "default": null
+          },
+          {
+            "name": "status",
+            "type": "enum('Paid','Released','Cancelled')",
+            "nullable": true,
+            "key": "MUL",
+            "default": "Paid"
+          },
+          {
+            "name": "fee_amount",
+            "type": "decimal(8,2)",
+            "nullable": true,
+            "key": null,
+            "default": "0.00"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "resident_name",
+            "type": "varchar(200)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "address",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "is_manual",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "control_no",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "qr_validation_string",
+            "columnName": "qr_validation_string",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_certificates_resident",
+            "columnName": "resident_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_certificates_type",
+            "columnName": "certificate_type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_certificates_qr",
+            "columnName": "qr_validation_string",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_certificates_date",
+            "columnName": "date_issued",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_certificates_status",
+            "columnName": "status",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "clearance_requests": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "request_id",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "UNI",
+            "default": null
+          },
+          {
+            "name": "resident_id",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "purpose",
+            "type": "varchar(500)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "status",
+            "type": "enum('pending','approved','rejected','issued')",
+            "nullable": true,
+            "key": null,
+            "default": "pending"
+          },
+          {
+            "name": "requested_by",
+            "type": "int(11)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "approved_by",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "issued_by",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "requested_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "approved_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "issued_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "notes",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "request_id",
+            "columnName": "request_id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_resident_status",
+            "columnName": "resident_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_resident_status",
+            "columnName": "status",
+            "nonUnique": true,
+            "seqInIndex": 2
+          },
+          {
+            "keyName": "idx_requested_status",
+            "columnName": "requested_by",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_requested_status",
+            "columnName": "status",
+            "nonUnique": true,
+            "seqInIndex": 2
+          },
+          {
+            "keyName": "idx_request_id",
+            "columnName": "request_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "community_programs": {
+        "rowCount": 4,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "program_name",
+            "type": "varchar(200)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "program_date",
+            "type": "date",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "sitio_id",
+            "type": "int(11)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "target_beneficiaries",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "status",
+            "type": "enum('Planned','Ongoing','Completed','Cancelled')",
+            "nullable": true,
+            "key": "MUL",
+            "default": "Planned"
+          },
+          {
+            "name": "organizer",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "budget_allocated",
+            "type": "decimal(10,2)",
+            "nullable": true,
+            "key": null,
+            "default": "0.00"
+          },
+          {
+            "name": "actual_cost",
+            "type": "decimal(10,2)",
+            "nullable": true,
+            "key": null,
+            "default": "0.00"
+          },
+          {
+            "name": "participants_count",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "success_rating",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "notes",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_programs_date",
+            "columnName": "program_date",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_programs_sitio",
+            "columnName": "sitio_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_programs_status",
+            "columnName": "status",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "document_requests": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "request_id",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "resident_id",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "document_type",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "status",
+            "type": "enum('pending','approved','rejected','completed')",
+            "nullable": false,
+            "key": "MUL",
+            "default": "pending"
+          },
+          {
+            "name": "request_data",
+            "type": "longtext",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "resident_data",
+            "type": "longtext",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "approval_data",
+            "type": "longtext",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": "MUL",
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "approved_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "approved_by",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "valid_until",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "qr_code",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "control_number",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "attachment_front_id",
+            "type": "longblob",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "attachment_back_id",
+            "type": "longblob",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "attachment_front_mime",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "attachment_back_mime",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "remarks",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "request_id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_document_requests_resident",
+            "columnName": "resident_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_document_requests_type",
+            "columnName": "document_type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_document_requests_status",
+            "columnName": "status",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_document_requests_created",
+            "columnName": "created_at",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_document_requests_control",
+            "columnName": "control_number",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "document_templates": {
+        "rowCount": 4,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "template_name",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": "UNI",
+            "default": null
+          },
+          {
+            "name": "document_type",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "certificate_type_id",
+            "type": "int(11)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "template_content",
+            "type": "text",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "is_active",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": "MUL",
+            "default": "1"
+          },
+          {
+            "name": "created_by",
+            "type": "int(10) unsigned",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "updated_by",
+            "type": "int(10) unsigned",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "file_data",
+            "type": "mediumblob",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "file_encoding",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "document_templates_template_name_unique",
+            "columnName": "template_name",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "uk_active_certificate_type_template",
+            "columnName": "certificate_type_id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "uk_active_certificate_type_template",
+            "columnName": "is_active",
+            "nonUnique": false,
+            "seqInIndex": 2
+          },
+          {
+            "keyName": "idx_templates_active_type",
+            "columnName": "is_active",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_templates_active_type",
+            "columnName": "document_type",
+            "nonUnique": true,
+            "seqInIndex": 2
+          },
+          {
+            "keyName": "idx_document_templates_certificate_type_id",
+            "columnName": "certificate_type_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "households": {
+        "rowCount": 16,
+        "columns": [
+          {
+            "name": "Household_ID",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "Household_Number",
+            "type": "varchar(20)",
+            "nullable": false,
+            "key": "UNI",
+            "default": null
+          },
+          {
+            "name": "Sitio_ID",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "Street_Address",
+            "type": "text",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "Coordinates",
+            "type": "point",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "Head_Resident_ID",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "Total_Members",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": "1"
+          },
+          {
+            "name": "Household_Type",
+            "type": "enum('Nuclear','Extended','Single','Boarding')",
+            "nullable": true,
+            "key": null,
+            "default": "Nuclear"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "Household_ID",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "Household_Number",
+            "columnName": "Household_Number",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_households_sitio",
+            "columnName": "Sitio_ID",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_households_head",
+            "columnName": "Head_Resident_ID",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "knex_migrations": {
+        "rowCount": 40,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "name",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "batch",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "migration_time",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "knex_migrations_lock": {
+        "rowCount": 1,
+        "columns": [
+          {
+            "name": "index",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "is_locked",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "index",
+            "nonUnique": false,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "login_attempts": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "username",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "ip_address",
+            "type": "varchar(45)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "success",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": "MUL",
+            "default": "1"
+          },
+          {
+            "name": "reason",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": "MUL",
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_username",
+            "columnName": "username",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_ip_address",
+            "columnName": "ip_address",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_success",
+            "columnName": "success",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_created_at",
+            "columnName": "created_at",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "mfa_otp_challenges": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "user_id",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "otp_hash",
+            "type": "varchar(255)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "attempts_remaining",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": null,
+            "default": "5"
+          },
+          {
+            "name": "expires_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "consumed_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "mfa_otp_challenges_user_id_created_at_index",
+            "columnName": "user_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "mfa_otp_challenges_user_id_created_at_index",
+            "columnName": "created_at",
+            "nonUnique": true,
+            "seqInIndex": 2
+          }
+        ]
+      },
+      "notifications": {
+        "rowCount": 1,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "type",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": "info"
+          },
+          {
+            "name": "title",
+            "type": "varchar(255)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "message",
+            "type": "text",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "priority",
+            "type": "varchar(20)",
+            "nullable": false,
+            "key": null,
+            "default": "normal"
+          },
+          {
+            "name": "data",
+            "type": "longtext",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "is_system",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": "MUL",
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_type_priority",
+            "columnName": "type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_type_priority",
+            "columnName": "priority",
+            "nonUnique": true,
+            "seqInIndex": 2
+          },
+          {
+            "keyName": "idx_created_at",
+            "columnName": "created_at",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "program_participants": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "program_id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "resident_id",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "joined_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "attendance_status",
+            "type": "enum('Registered','Attended','Absent')",
+            "nullable": true,
+            "key": null,
+            "default": "Registered"
+          },
+          {
+            "name": "notes",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "unique_participant",
+            "columnName": "program_id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "unique_participant",
+            "columnName": "resident_id",
+            "nonUnique": false,
+            "seqInIndex": 2
+          },
+          {
+            "keyName": "idx_program",
+            "columnName": "program_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_resident",
+            "columnName": "resident_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "resident_applications": {
+        "rowCount": 8,
+        "columns": [
+          {
+            "name": "application_id",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "first_name",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "middle_name",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "last_name",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "suffix",
+            "type": "varchar(10)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "birthdate",
+            "type": "date",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "gender",
+            "type": "enum('Male','Female','Other')",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "civil_status",
+            "type": "enum('Single','Married','Widowed','Separated','Divorced')",
+            "nullable": true,
+            "key": null,
+            "default": "Single"
+          },
+          {
+            "name": "occupation",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "income_estimate",
+            "type": "decimal(10,2)",
+            "nullable": true,
+            "key": null,
+            "default": "0.00"
+          },
+          {
+            "name": "email",
+            "type": "varchar(255)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "mobile_number",
+            "type": "varchar(20)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "street_address",
+            "type": "varchar(255)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "sitio",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "voter_status",
+            "type": "enum('Registered','Non-Registered')",
+            "nullable": true,
+            "key": null,
+            "default": "Non-Registered"
+          },
+          {
+            "name": "is_4ps",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "is_pwd",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "is_solo_parent",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "is_out_of_school_youth",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "disability_type",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "status",
+            "type": "enum('pending','approved','rejected')",
+            "nullable": true,
+            "key": "MUL",
+            "default": "pending"
+          },
+          {
+            "name": "temp_password",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "rejection_reason",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "reviewed_by",
+            "type": "int(10) unsigned",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "reviewed_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "application_id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_status",
+            "columnName": "status",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_email",
+            "columnName": "email",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "resident_applications_reviewed_by_index",
+            "columnName": "reviewed_by",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "resident_applications_reviewed_at_index",
+            "columnName": "reviewed_at",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "resident_documents": {
+        "rowCount": 15,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "resident_id",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "document_type",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "file_path",
+            "type": "varchar(500)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "file_name",
+            "type": "varchar(255)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "verification_status",
+            "type": "enum('pending','verified','rejected')",
+            "nullable": true,
+            "key": "MUL",
+            "default": "pending"
+          },
+          {
+            "name": "verification_notes",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "verified_by",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "verified_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "encryption_alg",
+            "type": "varchar(32)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "encryption_version",
+            "type": "int(10) unsigned",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "encryption_iv",
+            "type": "varchar(64)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "encryption_tag",
+            "type": "varchar(64)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "disposed_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "disposed_by",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "disposal_reason",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "resident_documents_resident_id_index",
+            "columnName": "resident_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "resident_documents_document_type_index",
+            "columnName": "document_type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "resident_documents_verification_status_index",
+            "columnName": "verification_status",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "resident_signup_requests": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "request_id",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": "UNI",
+            "default": null
+          },
+          {
+            "name": "resident_id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "username",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "password_hash",
+            "type": "varchar(255)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "full_name",
+            "type": "varchar(200)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "email",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "mobile_number",
+            "type": "varchar(20)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "proof_of_residency_path",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "proof_type",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "notes",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "status",
+            "type": "enum('pending','approved','rejected')",
+            "nullable": true,
+            "key": "MUL",
+            "default": "pending"
+          },
+          {
+            "name": "reviewed_by",
+            "type": "int(10) unsigned",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "reviewed_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "approved_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "submitted_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": "MUL",
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "request_id",
+            "columnName": "request_id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_status",
+            "columnName": "status",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_username",
+            "columnName": "username",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_resident_id",
+            "columnName": "resident_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_submitted_at",
+            "columnName": "submitted_at",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "resident_verification_requests": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "request_id",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": "UNI",
+            "default": null
+          },
+          {
+            "name": "user_id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "proof_of_residency_path",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "file_data",
+            "type": "blob",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "file_encoding",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "original_filename",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "mime_type",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "file_size",
+            "type": "int(11)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "proof_type",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "notes",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "status",
+            "type": "enum('draft','pending','approved','rejected')",
+            "nullable": true,
+            "key": "MUL",
+            "default": "draft"
+          },
+          {
+            "name": "submitted_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "reviewed_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "reviewed_by",
+            "type": "int(10) unsigned",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "review_notes",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "resident_verification_requests_request_id_unique",
+            "columnName": "request_id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_user_status",
+            "columnName": "user_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_user_status",
+            "columnName": "status",
+            "nonUnique": true,
+            "seqInIndex": 2
+          },
+          {
+            "keyName": "idx_status",
+            "columnName": "status",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_request_id",
+            "columnName": "request_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "residents": {
+        "rowCount": 61,
+        "columns": [
+          {
+            "name": "Resident_ID",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "Household_ID",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "Relation_to_Head",
+            "type": "enum('Head','Spouse','Child','Relative','Boarder')",
+            "nullable": true,
+            "key": null,
+            "default": "Head"
+          },
+          {
+            "name": "First_Name",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "Middle_Name",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "Last_Name",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "Suffix",
+            "type": "varchar(10)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "Birthdate",
+            "type": "date",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "Gender",
+            "type": "enum('Male','Female','Other')",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "Civil_Status",
+            "type": "enum('Single','Married','Widowed','Separated','Divorced')",
+            "nullable": true,
+            "key": null,
+            "default": "Single"
+          },
+          {
+            "name": "Occupation",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "Income_Estimate",
+            "type": "decimal(10,2)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "Email",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "Voter_Status",
+            "type": "enum('Registered','Non-Registered')",
+            "nullable": true,
+            "key": null,
+            "default": "Non-Registered"
+          },
+          {
+            "name": "Date_Arrival",
+            "type": "date",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "Residency_Status",
+            "type": "enum('Active','Deceased','Transferred Out','Transient')",
+            "nullable": true,
+            "key": "MUL",
+            "default": "Active"
+          },
+          {
+            "name": "Profile_Photo_URL",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "QR_Hash_String",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": "UNI",
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "Mobile_Number",
+            "type": "varchar(20)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "username",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": "UNI",
+            "default": null
+          },
+          {
+            "name": "password_hash",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "account_status",
+            "type": "enum('Unregistered','Unverified','Verified')",
+            "nullable": true,
+            "key": null,
+            "default": "Unregistered"
+          },
+          {
+            "name": "verification_file",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "resident_status",
+            "type": "enum('Good Standing','Derogatory Record','Watchlist')",
+            "nullable": true,
+            "key": null,
+            "default": "Good Standing"
+          },
+          {
+            "name": "Age",
+            "type": "int(11)",
+            "nullable": true,
+            "key": "MUL",
+            "default": "0"
+          },
+          {
+            "name": "Departure_Reason",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "Departure_Date",
+            "type": "date",
+            "nullable": true,
+            "key": null,
+            "default": null
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "Resident_ID",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "QR_Hash_String",
+            "columnName": "QR_Hash_String",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "username",
+            "columnName": "username",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_residents_household",
+            "columnName": "Household_ID",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_residents_name",
+            "columnName": "Last_Name",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_residents_name",
+            "columnName": "First_Name",
+            "nonUnique": true,
+            "seqInIndex": 2
+          },
+          {
+            "keyName": "idx_residents_mobile",
+            "columnName": "Email",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_residents_status",
+            "columnName": "Residency_Status",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_residents_qr",
+            "columnName": "QR_Hash_String",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_residents_birthdate",
+            "columnName": "Birthdate",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "residents_age_index",
+            "columnName": "Age",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "roles": {
+        "rowCount": 6,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "role_name",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": "UNI",
+            "default": null
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "hierarchy_level",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "MUL",
+            "default": "0"
+          },
+          {
+            "name": "permissions",
+            "type": "longtext",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "is_active",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "1"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "role_name",
+            "columnName": "role_name",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "hierarchy_level",
+            "columnName": "hierarchy_level",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "sitios": {
+        "rowCount": 4,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "name",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": "UNI",
+            "default": null
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "name",
+            "columnName": "name",
+            "nonUnique": false,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "system_assets": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "asset_type",
+            "type": "enum('seal','letterhead')",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "file_path",
+            "type": "varchar(512)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "mime_type",
+            "type": "varchar(128)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "original_name",
+            "type": "varchar(255)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "uploaded_by",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": "MUL",
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "system_assets_asset_type_index",
+            "columnName": "asset_type",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "system_assets_uploaded_by_index",
+            "columnName": "uploaded_by",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "system_assets_created_at_index",
+            "columnName": "created_at",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "system_settings": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "barangay_name",
+            "type": "varchar(200)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "captain_name",
+            "type": "varchar(200)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "secretary_name",
+            "type": "varchar(200)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "contact_number",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "email",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "address",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "office_hours",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "certificate_fee",
+            "type": "decimal(10,2)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "user_notifications": {
+        "rowCount": 1,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "user_id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "notification_id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "is_read",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "read_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "unique_user_notification",
+            "columnName": "user_id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "unique_user_notification",
+            "columnName": "notification_id",
+            "nonUnique": false,
+            "seqInIndex": 2
+          },
+          {
+            "keyName": "idx_user_read",
+            "columnName": "user_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_user_read",
+            "columnName": "is_read",
+            "nonUnique": true,
+            "seqInIndex": 2
+          }
+        ]
+      },
+      "users": {
+        "rowCount": 33,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "username",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "UNI",
+            "default": null
+          },
+          {
+            "name": "password_hash",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "email",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "full_name",
+            "type": "varchar(200)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "contact_number",
+            "type": "varchar(20)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "is_active",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": "MUL",
+            "default": "1"
+          },
+          {
+            "name": "last_login",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "parent_user_id",
+            "type": "int(11)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "email_verified",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "phone_verified",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "firebase_uid",
+            "type": "varchar(255)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "verified_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "resident_id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "pin_code",
+            "type": "varchar(6)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "position",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "pin",
+            "type": "varchar(6)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "role",
+            "type": "int(11)",
+            "nullable": false,
+            "key": "MUL",
+            "default": "12"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "username",
+            "columnName": "username",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_users_active",
+            "columnName": "is_active",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "parent_user_id",
+            "columnName": "parent_user_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_firebase_uid",
+            "columnName": "firebase_uid",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_resident_id",
+            "columnName": "resident_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "users_role_resident_id_index",
+            "columnName": "resident_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "users_pin_code_index",
+            "columnName": "pin_code",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_users_resident",
+            "columnName": "resident_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_users_role",
+            "columnName": "role",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "vehicles": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "owner_id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "plate_number",
+            "type": "varchar(20)",
+            "nullable": false,
+            "key": "UNI",
+            "default": null
+          },
+          {
+            "name": "make",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "model",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "color",
+            "type": "varchar(30)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "vehicle_type",
+            "type": "enum('Motorcycle','Tricycle','Car','Van','Truck','Bicycle','Other')",
+            "nullable": true,
+            "key": null,
+            "default": "Other"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "vehicles_plate_number_unique",
+            "columnName": "plate_number",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "vehicles_owner_id_index",
+            "columnName": "owner_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "vehicles_plate_number_index",
+            "columnName": "plate_number",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "visitors": {
+        "rowCount": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "int(10) unsigned",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "visitor_name",
+            "type": "varchar(100)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "purpose",
+            "type": "varchar(255)",
+            "nullable": false,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "host_resident_id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "time_in",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "time_out",
+            "type": "timestamp",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "id_type_presented",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "id_number",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "id",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "visitors_host_resident_id_foreign",
+            "columnName": "host_resident_id",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      },
+      "vulnerabilities": {
+        "rowCount": 9,
+        "columns": [
+          {
+            "name": "Resident_ID",
+            "type": "varchar(50)",
+            "nullable": false,
+            "key": "PRI",
+            "default": null
+          },
+          {
+            "name": "Is_4Ps",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "Is_PWD",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "Is_Senior",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "Is_Solo_Parent",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "Is_Out_of_School_Youth",
+            "type": "tinyint(1)",
+            "nullable": true,
+            "key": null,
+            "default": "0"
+          },
+          {
+            "name": "Disability_Type",
+            "type": "varchar(100)",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "Vulnerability_Score",
+            "type": "int(11)",
+            "nullable": true,
+            "key": "MUL",
+            "default": "0"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": false,
+            "key": null,
+            "default": "current_timestamp()"
+          },
+          {
+            "name": "validation_status",
+            "type": "enum('pending','approved','rejected')",
+            "nullable": true,
+            "key": "MUL",
+            "default": "pending"
+          },
+          {
+            "name": "validation_notes",
+            "type": "text",
+            "nullable": true,
+            "key": null,
+            "default": null
+          },
+          {
+            "name": "validated_by",
+            "type": "int(10) unsigned",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          },
+          {
+            "name": "validated_at",
+            "type": "timestamp",
+            "nullable": true,
+            "key": "MUL",
+            "default": null
+          }
+        ],
+        "indexes": [
+          {
+            "keyName": "PRIMARY",
+            "columnName": "Resident_ID",
+            "nonUnique": false,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_vulnerabilities_score",
+            "columnName": "Vulnerability_Score",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "idx_vulnerabilities_resident",
+            "columnName": "Resident_ID",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "vulnerabilities_validation_status_index",
+            "columnName": "validation_status",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "vulnerabilities_validated_by_index",
+            "columnName": "validated_by",
+            "nonUnique": true,
+            "seqInIndex": 1
+          },
+          {
+            "keyName": "vulnerabilities_validated_at_index",
+            "columnName": "validated_at",
+            "nonUnique": true,
+            "seqInIndex": 1
+          }
+        ]
+      }
+    },
+    "foreignKeys": [
+      {
+        "TABLE_NAME": "application_documents",
+        "COLUMN_NAME": "application_id",
+        "CONSTRAINT_NAME": "application_documents_application_id_foreign",
+        "REFERENCED_TABLE_NAME": "resident_applications",
+        "REFERENCED_COLUMN_NAME": "application_id"
+      },
+      {
+        "TABLE_NAME": "blotter",
+        "COLUMN_NAME": "respondent_id",
+        "CONSTRAINT_NAME": "blotter_respondent_id_foreign",
+        "REFERENCED_TABLE_NAME": "residents",
+        "REFERENCED_COLUMN_NAME": "Resident_ID"
+      },
+      {
+        "TABLE_NAME": "certificates_log",
+        "COLUMN_NAME": "resident_id",
+        "CONSTRAINT_NAME": "certificates_log_ibfk_1",
+        "REFERENCED_TABLE_NAME": "residents",
+        "REFERENCED_COLUMN_NAME": "Resident_ID"
+      },
+      {
+        "TABLE_NAME": "community_programs",
+        "COLUMN_NAME": "sitio_id",
+        "CONSTRAINT_NAME": "community_programs_ibfk_1",
+        "REFERENCED_TABLE_NAME": "sitios",
+        "REFERENCED_COLUMN_NAME": "id"
+      },
+      {
+        "TABLE_NAME": "document_requests",
+        "COLUMN_NAME": "resident_id",
+        "CONSTRAINT_NAME": "document_requests_resident_id_foreign",
+        "REFERENCED_TABLE_NAME": "residents",
+        "REFERENCED_COLUMN_NAME": "Resident_ID"
+      },
+      {
+        "TABLE_NAME": "document_templates",
+        "COLUMN_NAME": "certificate_type_id",
+        "CONSTRAINT_NAME": "fk_document_templates_certificate_type",
+        "REFERENCED_TABLE_NAME": "certificate_types",
+        "REFERENCED_COLUMN_NAME": "id"
+      },
+      {
+        "TABLE_NAME": "households",
+        "COLUMN_NAME": "Head_Resident_ID",
+        "CONSTRAINT_NAME": "fk_households_head_resident",
+        "REFERENCED_TABLE_NAME": "residents",
+        "REFERENCED_COLUMN_NAME": "Resident_ID"
+      },
+      {
+        "TABLE_NAME": "households",
+        "COLUMN_NAME": "Sitio_ID",
+        "CONSTRAINT_NAME": "households_ibfk_1",
+        "REFERENCED_TABLE_NAME": "sitios",
+        "REFERENCED_COLUMN_NAME": "id"
+      },
+      {
+        "TABLE_NAME": "program_participants",
+        "COLUMN_NAME": "program_id",
+        "CONSTRAINT_NAME": "program_participants_ibfk_1",
+        "REFERENCED_TABLE_NAME": "community_programs",
+        "REFERENCED_COLUMN_NAME": "id"
+      },
+      {
+        "TABLE_NAME": "program_participants",
+        "COLUMN_NAME": "resident_id",
+        "CONSTRAINT_NAME": "program_participants_ibfk_2",
+        "REFERENCED_TABLE_NAME": "residents",
+        "REFERENCED_COLUMN_NAME": "Resident_ID"
+      },
+      {
+        "TABLE_NAME": "residents",
+        "COLUMN_NAME": "Household_ID",
+        "CONSTRAINT_NAME": "residents_ibfk_1",
+        "REFERENCED_TABLE_NAME": "households",
+        "REFERENCED_COLUMN_NAME": "Household_ID"
+      },
+      {
+        "TABLE_NAME": "resident_documents",
+        "COLUMN_NAME": "resident_id",
+        "CONSTRAINT_NAME": "resident_documents_resident_id_foreign",
+        "REFERENCED_TABLE_NAME": "residents",
+        "REFERENCED_COLUMN_NAME": "Resident_ID"
+      },
+      {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "parent_user_id",
+        "CONSTRAINT_NAME": "users_ibfk_parent_user_id",
+        "REFERENCED_TABLE_NAME": "users",
+        "REFERENCED_COLUMN_NAME": "id"
+      },
+      {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "resident_id",
+        "CONSTRAINT_NAME": "fk_users_resident_id",
+        "REFERENCED_TABLE_NAME": "residents",
+        "REFERENCED_COLUMN_NAME": "Resident_ID"
+      },
+      {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "role",
+        "CONSTRAINT_NAME": "fk_users_role",
+        "REFERENCED_TABLE_NAME": "roles",
+        "REFERENCED_COLUMN_NAME": "id"
+      },
+      {
+        "TABLE_NAME": "vehicles",
+        "COLUMN_NAME": "owner_id",
+        "CONSTRAINT_NAME": "vehicles_owner_id_foreign",
+        "REFERENCED_TABLE_NAME": "residents",
+        "REFERENCED_COLUMN_NAME": "Resident_ID"
+      },
+      {
+        "TABLE_NAME": "visitors",
+        "COLUMN_NAME": "host_resident_id",
+        "CONSTRAINT_NAME": "visitors_host_resident_id_foreign",
+        "REFERENCED_TABLE_NAME": "residents",
+        "REFERENCED_COLUMN_NAME": "Resident_ID"
+      },
+      {
+        "TABLE_NAME": "vulnerabilities",
+        "COLUMN_NAME": "Resident_ID",
+        "CONSTRAINT_NAME": "vulnerabilities_ibfk_1",
+        "REFERENCED_TABLE_NAME": "residents",
+        "REFERENCED_COLUMN_NAME": "Resident_ID"
+      }
+    ]
+  },
+  "blotter": {
+    "tableName": "blotter",
+    "rowCount": 7,
+    "statusColumn": "status",
+    "datetimeColumn": "DateTime_Incident",
+    "distributions": {
+      "status": [
+        {
+          "status": "Active",
+          "count": 5
+        },
+        {
+          "status": "Pending",
+          "count": 1
+        },
+        {
+          "status": "Scheduled for Mediation",
+          "count": 1
+        }
+      ],
+      "sitio": [
+        {
+          "sitio": "Northville 5",
+          "count": 2
+        },
+        {
+          "sitio": "St. Martha",
+          "count": 2
+        },
+        {
+          "sitio": "AFP/PNP",
+          "count": 2
+        },
+        {
+          "sitio": "Batia Proper",
+          "count": 1
+        }
+      ],
+      "incidentType": [
+        {
+          "incidentType": "Boundary Dispute",
+          "count": 2
+        },
+        {
+          "incidentType": "Unjust Vexation",
+          "count": 1
+        },
+        {
+          "incidentType": "Grave Threats",
+          "count": 1
+        },
+        {
+          "incidentType": "Theft (Petty)",
+          "count": 1
+        },
+        {
+          "incidentType": "Estafa (Swindling)",
+          "count": 1
+        },
+        {
+          "incidentType": "Noise Barrage",
+          "count": 1
+        }
+      ]
+    },
+    "checks": {
+      "caseId": {
+        "total": 7,
+        "invalidFormat": 0,
+        "nonBlotPrefix": 0
+      },
+      "json": {
+        "Complainant_Details": {
+          "invalidJson": 0
+        },
+        "Respondent_Details": {
+          "invalidJson": 0
+        }
+      },
+      "time": {
+        "futureIncidents": 0
+      },
+      "sitioReferential": {
+        "missingMaster": 0
+      }
+    },
+    "issues": []
+  },
+  "aiRequirements": {
+    "aiAnalytics": {
+      "tables": [
+        "blotter",
+        "residents",
+        "sitios"
+      ],
+      "requiredFields": [
+        "blotter.Case_Number",
+        "blotter.Incident_Type",
+        "blotter.Location_Sitio",
+        "blotter.DateTime_Incident",
+        "blotter.Status|blotter.status"
+      ]
+    },
+    "pythonPatrolSuggestions": {
+      "tables": [
+        "blotter"
+      ],
+      "requiredFields": [
+        "blotter.Location_Sitio",
+        "blotter.Incident_Type",
+        "blotter.DateTime_Incident"
+      ]
+    }
+  },
+  "issues": []
+}

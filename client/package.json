@@ -20,10 +20,13 @@
     "@mui/icons-material": "^7.3.5",
     "@mui/material": "^7.3.5",
     "@mui/x-data-grid": "^8.18.0",
+    "@mui/x-date-pickers": "^8.24.0",
     "axios": "^1.6.0",
+    "date-fns": "^4.1.0",
     "qrcode": "^1.5.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-qr-scanner": "^1.0.0-alpha.11",
     "react-router-dom": "^6.8.0",
     "recharts": "^2.8.0"
   },

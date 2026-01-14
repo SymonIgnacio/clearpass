@@ -49,7 +49,8 @@ import {
   Error,
   Warning,
   Download,
-  Refresh
+  Refresh,
+  Visibility
 } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
 import { useNotifications } from '../contexts/NotificationContext'
@@ -68,6 +69,7 @@ const Residents = () => {
   const [openHousehold, setOpenHousehold] = useState(false)
   const [openBulkImport, setOpenBulkImport] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [viewOnly, setViewOnly] = useState(false)
   const [selectedHousehold, setSelectedHousehold] = useState(null)
   const [tabValue, setTabValue] = useState(0)
   const [duplicateCheck, setDuplicateCheck] = useState(null)
@@ -235,7 +237,8 @@ const Residents = () => {
     }))
   }
 
-  const handleOpenDialog = (resident = null) => {
+  const handleOpenDialog = (resident = null, isViewOnly = false) => {
+    setViewOnly(isViewOnly)
     if (resident) {
       setEditing(resident)
       setFormData({
@@ -295,6 +298,7 @@ const Residents = () => {
     setOpen(false)
     setEditing(null)
     setDuplicateCheck(null)
+    setViewOnly(false)
   }
 
   const handleSave = async () => {
@@ -329,6 +333,15 @@ const Residents = () => {
     if (!emailRegex.test(formData.email)) {
       notify('Please enter a valid email address.', 'warning')
       return
+    }
+
+    // Mobile number validation (if provided)
+    if (formData.mobile_number && formData.mobile_number.trim()) {
+      const mobileRegex = /^(09|\+639)\d{9}$/
+      if (!mobileRegex.test(formData.mobile_number.replace(/\s/g, ''))) {
+        notify('Please enter a valid PH mobile number (e.g., 09123456789).', 'warning')
+        return
+      }
     }
 
     // Validate vulnerability documents
@@ -845,23 +858,35 @@ const Residents = () => {
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <Tooltip title="Edit">
-                          <IconButton size="small" onClick={() => handleOpenDialog(resident)}>
-                            <Edit />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Generate QR ID">
-                          <IconButton size="small" onClick={() => generateQR(resident)}>
-                            <QrCode />
-                          </IconButton>
-                        </Tooltip>
-                        {resident.Residency_Status === 'Active' && (
-                          <Tooltip title="Archive Resident">
-                            <IconButton size="small" color="error" onClick={() => handleArchive(resident.Resident_ID)}>
-                              <Delete />
+                        <WriteProtected fallback={
+                          <Tooltip title="View Details">
+                            <IconButton size="small" onClick={() => handleOpenDialog(resident, true)}>
+                              <Visibility />
                             </IconButton>
                           </Tooltip>
-                        )}
+                        }>
+                          <Tooltip title="Edit">
+                            <IconButton size="small" onClick={() => handleOpenDialog(resident)}>
+                              <Edit />
+                            </IconButton>
+                          </Tooltip>
+                        </WriteProtected>
+                        <WriteProtected>
+                          <Tooltip title="Generate QR ID">
+                            <IconButton size="small" onClick={() => generateQR(resident)}>
+                              <QrCode />
+                            </IconButton>
+                          </Tooltip>
+                        </WriteProtected>
+                        <WriteProtected>
+                          {resident.Residency_Status === 'Active' && (
+                            <Tooltip title="Archive Resident">
+                              <IconButton size="small" color="error" onClick={() => handleArchive(resident.Resident_ID)}>
+                                <Delete />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </WriteProtected>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -964,12 +989,12 @@ const Residents = () => {
           gap: 1 
         }}>
           <People />
-          {editing ? 'Edit Resident Information' : 'Add New Resident'}
+          {viewOnly ? 'View Resident Information' : (editing ? 'Edit Resident Information' : 'Add New Resident')}
         </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
+        <DialogContent sx={{ p: 3, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'background.default' : 'white' }}>
           <Box sx={{ pt: 1 }}>
             {/* Duplicate Check */}
-            {!editing && formData.first_name && formData.last_name && formData.birthdate && (
+            {!editing && !viewOnly && formData.first_name && formData.last_name && formData.birthdate && (
               <Box sx={{ mb: 3 }}>
                 <Button variant="outlined" onClick={checkDuplicate} sx={{ mb: 1 }}>
                   Check for Duplicates
@@ -992,7 +1017,8 @@ const Residents = () => {
             )}
 
             {/* Household Information Section */}
-            <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+            <fieldset disabled={viewOnly} style={{ border: 'none', padding: 0, margin: 0, width: '100%' }}>
+            <Paper sx={{ p: 2, mb: 3, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'grey.50' }}>
               <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
                 Household Information
               </Typography>
@@ -1403,21 +1429,24 @@ const Residents = () => {
                 )}
               </Grid>
             </Paper>
+            </fieldset>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 3, bgcolor: 'grey.50', gap: 1 }}>
+        <DialogActions sx={{ p: 3, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'grey.50', gap: 1 }}>
           <Button onClick={handleCloseDialog} variant="outlined" size="large">
-            Cancel
+            {viewOnly ? 'Close' : 'Cancel'}
           </Button>
-          <Button 
-            onClick={handleSave} 
-            variant="contained" 
-            size="large"
-            startIcon={editing ? <Edit /> : <Add />}
-            sx={{ minWidth: 140 }}
-          >
-            {editing ? 'Update Resident' : 'Add Resident'}
-          </Button>
+          {!viewOnly && (
+            <Button 
+              onClick={handleSave} 
+              variant="contained" 
+              size="large"
+              startIcon={editing ? <Edit /> : <Add />}
+              sx={{ minWidth: 140 }}
+            >
+              {editing ? 'Update Resident' : 'Add Resident'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 

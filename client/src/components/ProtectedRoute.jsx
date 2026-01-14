@@ -1,7 +1,7 @@
 import React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { Box, CircularProgress, Typography } from '@mui/material'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 
 const ProtectedRoute = ({ children, requiredRoles = [] }) => {
   const { user, loading, isAuthenticated } = useAuth()
@@ -18,7 +18,8 @@ const ProtectedRoute = ({ children, requiredRoles = [] }) => {
 
   // Check authentication status
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />
+    const loginTarget = requiredRoles.includes(12) ? '/login' : '/officerlogin'
+    return <Navigate to={loginTarget} replace />
   }
 
   const requiresMfa = [1, 3, 4].includes(Number(user.role)) && user.mfa_verified !== true

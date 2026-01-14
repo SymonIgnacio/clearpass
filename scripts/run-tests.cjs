@@ -22,7 +22,7 @@ async function runSystemTests() {
 
   let testsPassed = 0;
   let testsFailed = 0;
-  const serverPort = process.env.SERVER_PORT || 3001;
+  const serverPort = process.env.SERVER_PORT || 3002; // Updated default to 3002 as per rules
   const baseUrl = `http://localhost:${serverPort}`;
 
   // Test 1: Port Connectivity

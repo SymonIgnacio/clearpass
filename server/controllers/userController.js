@@ -22,7 +22,8 @@ exports.getAll = async (req, res) => {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    const [rows] = await db.execute(`
+    const [rows] = await db.execute(
+      `
       SELECT u.id, u.username, u.full_name, u.email, u.contact_number, u.role, u.is_active, 
              u.resident_id, u.last_login, u.created_at,
              r.First_Name, r.Last_Name
@@ -31,9 +32,14 @@ exports.getAll = async (req, res) => {
       ${whereClause}
       ORDER BY u.created_at DESC
       LIMIT ? OFFSET ?
-    `, [...values, parseInt(limit), parseInt(offset)]);
+    `,
+      [...values, parseInt(limit), parseInt(offset)]
+    );
 
-    const [totalRows] = await db.execute(`SELECT COUNT(*) as total FROM users u ${whereClause}`, values);
+    const [totalRows] = await db.execute(
+      `SELECT COUNT(*) as total FROM users u ${whereClause}`,
+      values
+    );
 
     res.json({
       data: rows,
@@ -41,8 +47,8 @@ exports.getAll = async (req, res) => {
         page: parseInt(page),
         limit: parseInt(limit),
         total: totalRows[0].total,
-        pages: Math.ceil(totalRows[0].total / limit)
-      }
+        pages: Math.ceil(totalRows[0].total / limit),
+      },
     });
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -53,14 +59,17 @@ exports.getAll = async (req, res) => {
 exports.getById = async (req, res) => {
   const db = req.app.locals.db;
   try {
-    const [rows] = await db.execute(`
+    const [rows] = await db.execute(
+      `
       SELECT u.id, u.username, u.full_name, u.email, u.contact_number, u.role, u.is_active,
              u.resident_id, u.last_login, u.created_at,
              r.First_Name, r.Last_Name
       FROM users u
       LEFT JOIN residents r ON u.resident_id = r.Resident_ID
       WHERE u.id = ?
-    `, [req.params.id]);
+    `,
+      [req.params.id]
+    );
 
     if (rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -89,12 +98,27 @@ exports.create = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const [result] = await db.execute(`
-      INSERT INTO users (username, password, full_name, email, contact_number, role, resident_id, is_active)
+    const [result] = await db.execute(
+      `
+      INSERT INTO users (username, password_hash, full_name, email, contact_number, role, resident_id, is_active)
       VALUES (?, ?, ?, ?, ?, ?, ?, true)
-    `, [username, hashedPassword, full_name, email, contact_number, role, resident_id]);
+    `,
+      [
+        username,
+        hashedPassword,
+        full_name || null,
+        email || null,
+        contact_number || null,
+        role,
+        resident_id || null,
+      ]
+    );
 
-    res.status(201).json({ user_id: result.insertId, message: 'User created successfully' });
+    console.error('User created result:', result);
+
+    // Send welcome email
+    const responseData = { user_id: result.insertId || 0, message: 'User created successfully' };
+    res.status(201).json(responseData);
   } catch (error) {
     console.error('Error creating user:', error);
     res.status(500).json({ error: 'Failed to create user' });
@@ -109,11 +133,26 @@ exports.update = async (req, res) => {
     const updates = [];
     const values = [];
 
-    if (full_name !== undefined) { updates.push('full_name = ?'); values.push(full_name); }
-    if (email !== undefined) { updates.push('email = ?'); values.push(email); }
-    if (contact_number !== undefined) { updates.push('contact_number = ?'); values.push(contact_number); }
-    if (role !== undefined) { updates.push('role = ?'); values.push(role); }
-    if (resident_id !== undefined) { updates.push('resident_id = ?'); values.push(resident_id); }
+    if (full_name !== undefined) {
+      updates.push('full_name = ?');
+      values.push(full_name);
+    }
+    if (email !== undefined) {
+      updates.push('email = ?');
+      values.push(email);
+    }
+    if (contact_number !== undefined) {
+      updates.push('contact_number = ?');
+      values.push(contact_number);
+    }
+    if (role !== undefined) {
+      updates.push('role = ?');
+      values.push(role);
+    }
+    if (resident_id !== undefined) {
+      updates.push('resident_id = ?');
+      values.push(resident_id);
+    }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
@@ -150,7 +189,10 @@ exports.resetPassword = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(new_password, 10);
-    await db.execute('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, req.params.id]);
+    await db.execute('UPDATE users SET password_hash = ? WHERE id = ?', [
+      hashedPassword,
+      req.params.id,
+    ]);
 
     res.json({ message: 'Password reset successfully' });
   } catch (error) {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import QrScanner from 'react-qr-scanner';
 import {
   Box, Paper, Typography, Button, Grid, Card, CardContent,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -15,6 +16,7 @@ const OfficerAttendance = () => {
   const [scannedCode, setScannedCode] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     fetchHearings();
@@ -256,6 +258,37 @@ const OfficerAttendance = () => {
       <Dialog open={qrDialogOpen} onClose={() => setQrDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Scan QR Code for Attendance</DialogTitle>
         <DialogContent>
+          {isScanning ? (
+            <Box sx={{ mt: 2, mb: 2, borderRadius: 2, overflow: 'hidden' }}>
+               <QrScanner
+                delay={300}
+                onError={(err) => console.error(err)}
+                onScan={(data) => {
+                  if (data) {
+                    setScannedCode(data?.text || data);
+                    setIsScanning(false);
+                  }
+                }}
+                style={{ width: '100%' }}
+                constraints={{
+                  video: { facingMode: 'environment' }
+                }}
+              />
+              <Button onClick={() => setIsScanning(false)} fullWidth sx={{ mt: 1 }}>
+                Stop Camera
+              </Button>
+            </Box>
+          ) : (
+            <Button 
+              variant="outlined" 
+              fullWidth 
+              onClick={() => setIsScanning(true)} 
+              sx={{ mb: 2, mt: 1 }}
+            >
+              Open Camera Scanner
+            </Button>
+          )}
+
           <TextField
             fullWidth
             label="QR Code Data"
@@ -265,7 +298,7 @@ const OfficerAttendance = () => {
             sx={{ mt: 2 }}
           />
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Use a QR scanner app or manually enter the QR code data
+            Use the camera or a QR scanner app to scan the code.
           </Typography>
         </DialogContent>
         <DialogActions>

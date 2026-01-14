@@ -30,7 +30,9 @@ import {
   CardContent,
   Divider,
   Alert,
-  Snackbar
+  Snackbar,
+  Autocomplete,
+  ListSubheader
 } from '@mui/material'
 import {
   Add,
@@ -43,7 +45,8 @@ import {
   Cancel,
   PlayArrow,
   Download,
-  Refresh
+  Refresh,
+  Edit
 } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
 import { useNotifications } from '../contexts/NotificationContext'
@@ -93,6 +96,7 @@ const Blotter = () => {
   const [openSummonsDialog, setOpenSummonsDialog] = useState(false)
   const [openResolutionDialog, setOpenResolutionDialog] = useState(false)
   const [selectedCase, setSelectedCase] = useState(null)
+  const [isEditing, setIsEditing] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
 
   // Wizard states
@@ -101,6 +105,7 @@ const Blotter = () => {
     complainantDetails: { name: '', address: '', contact: '', idProof: '', isResident: false, residentId: null },
     respondentDetails: { name: '', address: '', alias: '', contact: '', isResident: false, residentId: null },
     incidentType: '',
+    customIncidentType: '',
     narrative: '',
     locationSitio: '',
     dateTimeIncident: new Date().toISOString().slice(0, 16)
@@ -150,14 +155,17 @@ const Blotter = () => {
         return
       }
 
-      const data = await response.json()
+      const responseData = await response.json()
 
-      if (!Array.isArray(data)) {
-        console.error('Blotter API returned non-array data:', typeof data)
+      // Handle both array (legacy) and paginated object (new) formats
+      const cases = Array.isArray(responseData) ? responseData : (responseData.data || [])
+
+      if (!Array.isArray(cases)) {
+        console.error('Blotter API returned invalid data format:', typeof responseData)
         return
       }
 
-      setBlotterCases(data)
+      setBlotterCases(cases)
     } catch (error) {
       console.error('Error fetching blotter cases:', error)
     }
@@ -183,33 +191,155 @@ const Blotter = () => {
     }
   }, [])
 
-  const generateCaseNumber = () => {
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    // In a real app, you'd query the database for the next sequence number
-    const sequence = String(blotterCases.length + 1).padStart(4, '0')
-    return `BLOT-${year}-${month}-${sequence}`
+  const handleEdit = (case_) => {
+    setSelectedCase(case_)
+    
+    // Parse complainant details
+    let complainant = { name: '', address: '', contact: '', idProof: '', isResident: false, residentId: null }
+    try {
+      if (typeof case_.Complainant_Details === 'string') {
+        let parsed = JSON.parse(case_.Complainant_Details)
+        if (typeof parsed === 'string') parsed = JSON.parse(parsed)
+        complainant = { ...complainant, ...parsed }
+      } else if (typeof case_.Complainant_Details === 'object') {
+        complainant = { ...complainant, ...case_.Complainant_Details }
+      }
+    } catch (e) {
+      console.error('Error parsing complainant details', e)
+    }
+
+    // Parse respondent details
+    let respondent = { name: '', address: '', alias: '', contact: '', isResident: false, residentId: null }
+    try {
+      if (typeof case_.Respondent_Details === 'string') {
+        let parsed = JSON.parse(case_.Respondent_Details)
+        if (typeof parsed === 'string') parsed = JSON.parse(parsed)
+        respondent = { ...respondent, ...parsed }
+      } else if (typeof case_.Respondent_Details === 'object') {
+        respondent = { ...respondent, ...case_.Respondent_Details }
+      }
+    } catch (e) {
+      console.error('Error parsing respondent details', e)
+    }
+
+    // Determine Incident Type
+    let incidentType = case_.Incident_Type
+    let customIncidentType = ''
+    const isStandard = Object.values(INCIDENT_CATEGORIES).flat().includes(incidentType)
+    if (!isStandard && incidentType) {
+      customIncidentType = incidentType
+      incidentType = 'Others'
+    }
+
+    setWizardData({
+      complainantDetails: complainant,
+      respondentDetails: respondent,
+      incidentType: incidentType,
+      customIncidentType: customIncidentType,
+      narrative: case_.Narrative,
+      locationSitio: case_.Location_Sitio,
+      dateTimeIncident: case_.DateTime_Incident ? new Date(case_.DateTime_Incident).toISOString().slice(0, 16) : ''
+    })
+
+    setIsEditing(true)
+    setOpenWizard(true)
   }
 
-  const handleWizardNext = () => {
-    setActiveStep((prevStep) => prevStep + 1)
-  }
+  const handleUpdateCase = async () => {
+    const { complainantDetails, incidentType, customIncidentType, narrative, locationSitio, dateTimeIncident } = wizardData
+    
+    if (!complainantDetails.name || !complainantDetails.name.trim()) {
+      notify('Complainant Name is required', 'warning')
+      return
+    }
+    
+    const finalIncidentType = incidentType === 'Others' ? customIncidentType : incidentType
 
-  const handleWizardBack = () => {
-    setActiveStep((prevStep) => prevStep - 1)
+    if (!finalIncidentType || !finalIncidentType.trim()) {
+      notify('Incident Type is required', 'warning')
+      return
+    }
+
+    try {
+      const payload = {
+        Complainant_Details: wizardData.complainantDetails,
+        Respondent_Details: wizardData.respondentDetails.name ? wizardData.respondentDetails : null,
+        Incident_Type: finalIncidentType,
+        Narrative: wizardData.narrative,
+        DateTime_Incident: wizardData.dateTimeIncident,
+        Location_Sitio: wizardData.locationSitio,
+      }
+
+      const response = await apiRequest(`blotter/${selectedCase.Case_Number}`, {
+        method: 'PUT',
+        body: payload
+      })
+
+      if (response.ok) {
+        fetchBlotterCases()
+        setOpenWizard(false)
+        setIsEditing(false)
+        setSelectedCase(null)
+        setWizardData({
+          complainantDetails: { name: '', address: '', contact: '', idProof: '', isResident: false, residentId: null },
+          respondentDetails: { name: '', address: '', alias: '', contact: '', isResident: false, residentId: null },
+          incidentType: '',
+          customIncidentType: '',
+          narrative: '',
+          locationSitio: '',
+          dateTimeIncident: new Date().toISOString().slice(0, 16)
+        })
+        setSnackbar({ open: true, message: 'Blotter case updated successfully!', severity: 'success' })
+      }
+    } catch (error) {
+      console.error('Error updating blotter case:', error)
+      setSnackbar({ open: true, message: 'Error updating blotter case.', severity: 'error' })
+    }
   }
 
   const handleWizardSubmit = async () => {
+    // Validate the form fields directly
+    const { complainantDetails, incidentType, customIncidentType, narrative, locationSitio, dateTimeIncident } = wizardData
+    
+    if (!complainantDetails.name || !complainantDetails.name.trim()) {
+      notify('Complainant Name is required', 'warning')
+      return
+    }
+    if (!complainantDetails.contact || !complainantDetails.contact.trim()) {
+      notify('Complainant Contact is required', 'warning')
+      return
+    }
+    if (!complainantDetails.address || !complainantDetails.address.trim()) {
+      notify('Complainant Address is required', 'warning')
+      return
+    }
+    
+    const finalIncidentType = incidentType === 'Others' ? customIncidentType : incidentType
+
+    if (!finalIncidentType || !finalIncidentType.trim()) {
+      notify('Incident Type is required', 'warning')
+      return
+    }
+    if (!locationSitio) {
+      notify('Location (Sitio) is required', 'warning')
+      return
+    }
+    if (!narrative || !narrative.trim()) {
+      notify('Narrative is required', 'warning')
+      return
+    }
+    if (!dateTimeIncident) {
+      notify('Date & Time of Incident is required', 'warning')
+      return
+    }
+
     try {
-      const caseNumber = generateCaseNumber()
       const payload = {
-        Case_Number: caseNumber,
-        Complainant_Details: JSON.stringify(wizardData.complainantDetails),
+        Complainant_Details: wizardData.complainantDetails, // Send as object
         complainant_resident_id: wizardData.complainantDetails.residentId,
-        Respondent_Details: wizardData.respondentDetails.name ? JSON.stringify(wizardData.respondentDetails) : null,
+        Respondent_Details: wizardData.respondentDetails.name ? wizardData.respondentDetails : null, // Send as object
         respondent_resident_id: wizardData.respondentDetails.residentId,
-        Incident_Type: wizardData.incidentType,
+        Incident_Type: finalIncidentType,
         Narrative: wizardData.narrative,
         DateTime_Incident: wizardData.dateTimeIncident,
         Location_Sitio: wizardData.locationSitio,
@@ -222,9 +352,10 @@ const Blotter = () => {
       })
 
       if (response.ok) {
+        const created = await response.json().catch(() => null)
+        const createdCaseNumber = created?.Case_Number || created?.case_number || created?.data?.Case_Number
         fetchBlotterCases()
         setOpenWizard(false)
-        setActiveStep(0)
         setWizardData({
           complainantDetails: { name: '', address: '', contact: '', idProof: '', isResident: false, residentId: null },
           respondentDetails: { name: '', address: '', alias: '', contact: '', isResident: false, residentId: null },
@@ -236,7 +367,7 @@ const Blotter = () => {
         setSnackbar({ open: true, message: 'Blotter case created successfully! PDF extract will be generated.', severity: 'success' })
 
         // Auto-print blotter extract (in real app, this would trigger PDF generation)
-        handlePrintBlotterExtract(caseNumber)
+        if (createdCaseNumber) handlePrintBlotterExtract(createdCaseNumber)
       }
     } catch (error) {
       console.error('Error saving blotter case:', error)
@@ -319,11 +450,13 @@ const Blotter = () => {
     }
   }
 
-  const getIncidentTypeOptions = () => {
-    return Object.entries(INCIDENT_CATEGORIES).flatMap(([category, options]) =>
-      options.map(option => ({ value: option, label: `${category}: ${option}` }))
+  const incidentOptions = useMemo(() => {
+    const options = Object.entries(INCIDENT_CATEGORIES).flatMap(([category, options]) =>
+      options.map(option => ({ category, label: option }))
     )
-  }
+    options.push({ category: 'Others', label: 'Others' })
+    return options
+  }, [])
 
   const generateBlotterPDF = async () => {
     try {
@@ -372,7 +505,11 @@ const Blotter = () => {
         if (!details) return ''
         try {
           if (typeof details === 'string') {
-            return JSON.parse(details).name || ''
+            let parsed = JSON.parse(details)
+            if (typeof parsed === 'string') {
+               parsed = JSON.parse(parsed)
+            }
+            return parsed.name || ''
           } else if (typeof details === 'object') {
             return details.name || ''
           }
@@ -392,7 +529,7 @@ const Blotter = () => {
         case_.Narrative?.toLowerCase().includes(searchTerm.toLowerCase())
 
       // Status filter
-      const statusMatch = !statusFilter || case_.Status === statusFilter
+      const statusMatch = !statusFilter || (case_.Status || case_.status) === statusFilter
 
       // Sitio filter
       const sitioMatch = !sitioFilter || case_.Location_Sitio === sitioFilter
@@ -400,8 +537,6 @@ const Blotter = () => {
       return searchMatch && statusMatch && sitioMatch
     })
   }, [blotterCases, searchTerm, statusFilter, sitioFilter])
-
-  const wizardSteps = ['Intake (The Report)', 'The Summons', 'Resolution (The Outcome)']
 
   return (
     <Box>
@@ -579,7 +714,8 @@ const Blotter = () => {
               <TableCell>Respondent</TableCell>
               <TableCell>Sitio</TableCell>
               <TableCell>Status</TableCell>
-              <TableCell>Date</TableCell>
+              <TableCell>Date Filed</TableCell>
+              <TableCell>Incident Date</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -591,7 +727,15 @@ const Blotter = () => {
               try {
                 if (case_.Complainant_Details) {
                   if (typeof case_.Complainant_Details === 'string') {
-                    complainant = JSON.parse(case_.Complainant_Details)
+                    try {
+                      complainant = JSON.parse(case_.Complainant_Details)
+                      // Handle double stringification
+                      if (typeof complainant === 'string') {
+                        complainant = JSON.parse(complainant)
+                      }
+                    } catch (e) {
+                      // fallback
+                    }
                   } else if (typeof case_.Complainant_Details === 'object') {
                     complainant = case_.Complainant_Details
                   }
@@ -609,7 +753,15 @@ const Blotter = () => {
               try {
                 if (case_.Respondent_Details) {
                   if (typeof case_.Respondent_Details === 'string') {
-                    respondent = JSON.parse(case_.Respondent_Details)
+                    try {
+                      respondent = JSON.parse(case_.Respondent_Details)
+                      // Handle double stringification
+                      if (typeof respondent === 'string') {
+                        respondent = JSON.parse(respondent)
+                      }
+                    } catch (e) {
+                      // fallback
+                    }
                   } else if (typeof case_.Respondent_Details === 'object') {
                     respondent = case_.Respondent_Details
                   }
@@ -643,6 +795,7 @@ const Blotter = () => {
                       )
                     })()}
                   </TableCell>
+                  <TableCell>{case_.created_at ? new Date(case_.created_at).toLocaleDateString() : '-'}</TableCell>
                   <TableCell>{new Date(case_.DateTime_Incident).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 1 }}>
@@ -681,6 +834,14 @@ const Blotter = () => {
                       <Button
                         size="small"
                         variant="outlined"
+                        startIcon={<Edit />}
+                        onClick={() => handleEdit(case_)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
                         startIcon={<Print />}
                         onClick={() => handlePrintBlotterExtract(case_.Case_Number)}
                       >
@@ -696,276 +857,287 @@ const Blotter = () => {
         )}
       </TableContainer>
 
-      {/* 3-Step Wizard Dialog */}
-      <Dialog open={openWizard} onClose={() => setOpenWizard(false)} maxWidth="md" fullWidth>
-        <DialogTitle>File a Complaint - Katarungang Pambarangay</DialogTitle>
+      {/* Single Step Form Dialog */}
+      <Dialog
+        open={openWizard}
+        onClose={() => {
+          setOpenWizard(false)
+          setIsEditing(false)
+          setSelectedCase(null)
+          setWizardData({
+            complainantDetails: { name: '', address: '', contact: '', idProof: '', isResident: false, residentId: null },
+            respondentDetails: { name: '', address: '', alias: '', contact: '', isResident: false, residentId: null },
+            incidentType: '',
+            customIncidentType: '',
+            narrative: '',
+            locationSitio: '',
+            dateTimeIncident: new Date().toISOString().slice(0, 16)
+          })
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>{isEditing ? 'Edit Complaint' : 'File a Complaint - Katarungang Pambarangay'}</DialogTitle>
         <DialogContent>
-          <Stepper activeStep={activeStep} sx={{ mb: 3, mt: 2 }}>
-            {wizardSteps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            <Typography variant="h6">Intake (The Report)</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Please provide the details of your complaint (The "Sumbong")
+            </Typography>
 
-          {activeStep === 0 && (
+            <Card sx={{ mb: 2 }}>
+              <CardContent>
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>Complainant Details</Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <SmartComplainantInput
+                      value={wizardData.complainantDetails}
+                      onChange={(complainantData) => {
+                        if (complainantData) {
+                          setWizardData({
+                            ...wizardData,
+                            complainantDetails: {
+                              ...wizardData.complainantDetails,
+                              name: complainantData.name,
+                              address: complainantData.address || wizardData.complainantDetails.address,
+                              contact: complainantData.mobile || wizardData.complainantDetails.contact,
+                              isResident: complainantData.isResident,
+                              residentId: complainantData.residentId
+                            }
+                          });
+                        } else {
+                          setWizardData({
+                            ...wizardData,
+                            complainantDetails: {
+                              ...wizardData.complainantDetails,
+                              name: '',
+                              isResident: false,
+                              residentId: null
+                            }
+                          });
+                        }
+                      }}
+                      label="Complainant Name"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Contact Number"
+                      value={wizardData.complainantDetails.contact}
+                      onChange={(e) => setWizardData({
+                        ...wizardData,
+                        complainantDetails: { ...wizardData.complainantDetails, contact: e.target.value }
+                      })}
+                      required
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Address"
+                      value={wizardData.complainantDetails.address}
+                      onChange={(e) => setWizardData({
+                        ...wizardData,
+                        complainantDetails: { ...wizardData.complainantDetails, address: e.target.value }
+                      })}
+                      required
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="ID Proof (Voter ID, Driver's License, etc.)"
+                      value={wizardData.complainantDetails.idProof}
+                      onChange={(e) => setWizardData({
+                        ...wizardData,
+                        complainantDetails: { ...wizardData.complainantDetails, idProof: e.target.value }
+                      })}
+                      required
+                    />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ mb: 2 }}>
+              <CardContent>
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>Respondent Details (Optional)</Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <SmartComplainantInput
+                      value={wizardData.respondentDetails}
+                      onChange={(respondentData) => {
+                        if (respondentData) {
+                          setWizardData({
+                            ...wizardData,
+                            respondentDetails: {
+                              ...wizardData.respondentDetails,
+                              name: respondentData.name,
+                              address: respondentData.address || wizardData.respondentDetails.address,
+                              contact: respondentData.mobile || wizardData.respondentDetails.contact,
+                              isResident: respondentData.isResident,
+                              residentId: respondentData.residentId
+                            }
+                          });
+                        } else {
+                          setWizardData({
+                            ...wizardData,
+                            respondentDetails: {
+                              ...wizardData.respondentDetails,
+                              name: '',
+                              isResident: false,
+                              residentId: null
+                            }
+                          });
+                        }
+                      }}
+                      label="Respondent Name"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Alias (if any)"
+                      value={wizardData.respondentDetails.alias}
+                      onChange={(e) => setWizardData({
+                        ...wizardData,
+                        respondentDetails: { ...wizardData.respondentDetails, alias: e.target.value }
+                      })}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Address"
+                      value={wizardData.respondentDetails.address}
+                      onChange={(e) => setWizardData({
+                        ...wizardData,
+                        respondentDetails: { ...wizardData.respondentDetails, address: e.target.value }
+                      })}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Contact Number"
+                      value={wizardData.respondentDetails.contact}
+                      onChange={(e) => setWizardData({
+                        ...wizardData,
+                        respondentDetails: { ...wizardData.respondentDetails, contact: e.target.value }
+                      })}
+                    />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+
+            {/* Removed Grid container to ensure full width block display */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Typography variant="h6">Step 1: Intake (The Report)</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Please provide the details of your complaint (The "Sumbong")
-              </Typography>
-
-              <Card sx={{ mb: 2 }}>
-                <CardContent>
-                  <Typography variant="subtitle1" sx={{ mb: 2 }}>Complainant Details</Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <SmartComplainantInput
-                        value={wizardData.complainantDetails}
-                        onChange={(complainantData) => {
-                          if (complainantData) {
-                            setWizardData({
-                              ...wizardData,
-                              complainantDetails: {
-                                ...wizardData.complainantDetails,
-                                name: complainantData.name,
-                                address: complainantData.address || wizardData.complainantDetails.address,
-                                contact: complainantData.mobile || wizardData.complainantDetails.contact,
-                                isResident: complainantData.isResident,
-                                residentId: complainantData.residentId
-                              }
-                            });
-                          } else {
-                            setWizardData({
-                              ...wizardData,
-                              complainantDetails: {
-                                ...wizardData.complainantDetails,
-                                name: '',
-                                isResident: false,
-                                residentId: null
-                              }
-                            });
-                          }
+                <Autocomplete
+                  fullWidth
+                  options={incidentOptions}
+                  groupBy={(option) => option.category}
+                  getOptionLabel={(option) => option.label}
+                  isOptionEqualToValue={(option, value) => option.label === value.label}
+                  value={incidentOptions.find(opt => opt.label === wizardData.incidentType) || null}
+                  onChange={(event, newValue) => {
+                    if (newValue && newValue.label === 'Others') {
+                        setWizardData({ ...wizardData, incidentType: 'Others', customIncidentType: '' })
+                    } else {
+                        setWizardData({ ...wizardData, incidentType: newValue ? newValue.label : '', customIncidentType: '' })
+                    }
+                  }}
+                  renderInput={(params) => <TextField {...params} label="Incident Type" required fullWidth />}
+                  renderGroup={(params) => (
+                    <li key={params.key}>
+                      <ListSubheader 
+                        component="div" 
+                        sx={{ 
+                          fontWeight: 'bold', 
+                          color: 'primary.main', 
+                          bgcolor: 'background.paper',
+                          lineHeight: '48px',
+                          zIndex: 1
                         }}
-                        label="Complainant Name"
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
+                      >
+                        {params.group}
+                      </ListSubheader>
+                      <ul style={{ padding: 0 }}>{params.children}</ul>
+                    </li>
+                  )}
+                  sx={{ width: '100%' }}
+                />
+                
+                {wizardData.incidentType === 'Others' && (
+                    <TextField
                         fullWidth
-                        label="Contact Number"
-                        value={wizardData.complainantDetails.contact}
-                        onChange={(e) => setWizardData({
-                          ...wizardData,
-                          complainantDetails: { ...wizardData.complainantDetails, contact: e.target.value }
-                        })}
+                        label="Specify Incident Type"
+                        value={wizardData.customIncidentType || ''}
+                        onChange={(e) => setWizardData({ ...wizardData, customIncidentType: e.target.value })}
                         required
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Address"
-                        value={wizardData.complainantDetails.address}
-                        onChange={(e) => setWizardData({
-                          ...wizardData,
-                          complainantDetails: { ...wizardData.complainantDetails, address: e.target.value }
-                        })}
-                        required
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="ID Proof (Voter ID, Driver's License, etc.)"
-                        value={wizardData.complainantDetails.idProof}
-                        onChange={(e) => setWizardData({
-                          ...wizardData,
-                          complainantDetails: { ...wizardData.complainantDetails, idProof: e.target.value }
-                        })}
-                        required
-                      />
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-
-              <Card sx={{ mb: 2 }}>
-                <CardContent>
-                  <Typography variant="subtitle1" sx={{ mb: 2 }}>Respondent Details (Optional)</Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <SmartComplainantInput
-                        value={wizardData.respondentDetails}
-                        onChange={(respondentData) => {
-                          if (respondentData) {
-                            setWizardData({
-                              ...wizardData,
-                              respondentDetails: {
-                                ...wizardData.respondentDetails,
-                                name: respondentData.name,
-                                address: respondentData.address || wizardData.respondentDetails.address,
-                                contact: respondentData.mobile || wizardData.respondentDetails.contact,
-                                isResident: respondentData.isResident,
-                                residentId: respondentData.residentId
-                              }
-                            });
-                          } else {
-                            setWizardData({
-                              ...wizardData,
-                              respondentDetails: {
-                                ...wizardData.respondentDetails,
-                                name: '',
-                                isResident: false,
-                                residentId: null
-                              }
-                            });
-                          }
-                        }}
-                        label="Respondent Name"
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Alias (if any)"
-                        value={wizardData.respondentDetails.alias}
-                        onChange={(e) => setWizardData({
-                          ...wizardData,
-                          respondentDetails: { ...wizardData.respondentDetails, alias: e.target.value }
-                        })}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Address"
-                        value={wizardData.respondentDetails.address}
-                        onChange={(e) => setWizardData({
-                          ...wizardData,
-                          respondentDetails: { ...wizardData.respondentDetails, address: e.target.value }
-                        })}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Contact Number"
-                        value={wizardData.respondentDetails.contact}
-                        onChange={(e) => setWizardData({
-                          ...wizardData,
-                          respondentDetails: { ...wizardData.respondentDetails, contact: e.target.value }
-                        })}
-                      />
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Incident Type</InputLabel>
-                    <Select
-                      value={wizardData.incidentType}
-                      onChange={(e) => setWizardData({ ...wizardData, incidentType: e.target.value })}
-                      label="Incident Type"
-                    >
-                      {getIncidentTypeOptions().map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Location (Sitio)</InputLabel>
-                    <Select
-                      value={wizardData.locationSitio}
-                      onChange={(e) => setWizardData({ ...wizardData, locationSitio: e.target.value })}
-                      label="Location (Sitio)"
-                    >
-                      {SITIOS.map((sitio) => (
-                        <MenuItem key={sitio} value={sitio}>{sitio}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </Grid>
-
-              <TextField
-                fullWidth
-                multiline
-                rows={4}
-                label="Narrative (The Sumbong - Describe what happened)"
-                value={wizardData.narrative}
-                onChange={(e) => setWizardData({ ...wizardData, narrative: e.target.value })}
-                required
-                sx={{ mt: 2 }}
-              />
-
-              <TextField
-                fullWidth
-                label="Date & Time of Incident"
-                type="datetime-local"
-                value={wizardData.dateTimeIncident}
-                onChange={(e) => setWizardData({ ...wizardData, dateTimeIncident: e.target.value })}
-                required
-                sx={{ mt: 2 }}
-              />
+                        sx={{ width: '100%' }}
+                    />
+                )}
+              
+                <FormControl fullWidth required sx={{ width: '100%' }}>
+                  <InputLabel>Location (Sitio)</InputLabel>
+                  <Select
+                    value={wizardData.locationSitio}
+                    onChange={(e) => setWizardData({ ...wizardData, locationSitio: e.target.value })}
+                    label="Location (Sitio)"
+                  >
+                    {SITIOS.map((sitio) => (
+                      <MenuItem key={sitio} value={sitio}>{sitio}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
             </Box>
-          )}
 
-          {activeStep === 1 && (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Typography variant="h6">Step 2: The Summons (Katarungang Pambarangay)</Typography>
-              <Typography variant="body1" sx={{ mt: 2, mb: 3 }}>
-                This step is handled by the Barangay Administration.
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Once your complaint is filed, the Barangay will issue a summons (KP Form #9) to the respondent,
-                inviting them to the Barangay Hall for mediation.
-              </Typography>
-              <Alert severity="info" sx={{ mt: 3 }}>
-                <strong>Next:</strong> The Barangay Secretary will schedule a hearing date and issue the summons.
-              </Alert>
-            </Box>
-          )}
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Narrative (The Sumbong - Describe what happened)"
+              value={wizardData.narrative}
+              onChange={(e) => setWizardData({ ...wizardData, narrative: e.target.value })}
+              required
+              sx={{ mt: 2 }}
+            />
 
-          {activeStep === 2 && (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Typography variant="h6">Step 3: Resolution (The Outcome)</Typography>
-              <Typography variant="body1" sx={{ mt: 2, mb: 3 }}>
-                This step is handled by the Lupon Tagapamayapa (Peace Panel).
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                During the hearing, the Lupon will attempt to mediate between parties.
-                If successful, the case will be amicably settled. If not, a Certificate to File Action will be issued.
-              </Typography>
-              <Alert severity="success" sx={{ mt: 3 }}>
-                <strong>Outcome:</strong> Either amicable settlement or referral to court/PNP.
-              </Alert>
-            </Box>
-          )}
+            <TextField
+              fullWidth
+              label="Date & Time of Incident"
+              type="datetime-local"
+              value={wizardData.dateTimeIncident}
+              onChange={(e) => setWizardData({ ...wizardData, dateTimeIncident: e.target.value })}
+              required
+              sx={{ mt: 2 }}
+            />
+          </Box>
         </DialogContent>
         <DialogActions>
-          <Button disabled={activeStep === 0} onClick={handleWizardBack}>
-            Back
-          </Button>
-          <Button onClick={() => setOpenWizard(false)}>
+          <Button
+            onClick={() => {
+              setOpenWizard(false)
+              setIsEditing(false)
+              setSelectedCase(null)
+              setWizardData({
+                complainantDetails: { name: '', address: '', contact: '', idProof: '', isResident: false, residentId: null },
+                respondentDetails: { name: '', address: '', alias: '', contact: '', isResident: false, residentId: null },
+                incidentType: '',
+                customIncidentType: '',
+                narrative: '',
+                locationSitio: '',
+                dateTimeIncident: new Date().toISOString().slice(0, 16)
+              })
+            }}
+          >
             Cancel
           </Button>
-          {activeStep === wizardSteps.length - 1 ? (
-            <Button onClick={handleWizardSubmit} variant="contained">
-              Submit Complaint
-            </Button>
-          ) : (
-            <Button onClick={handleWizardNext} variant="contained">
-              Next
-            </Button>
-          )}
+          <Button onClick={isEditing ? handleUpdateCase : handleWizardSubmit} variant="contained">
+            {isEditing ? 'Save Changes' : 'Submit Complaint'}
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -992,35 +1164,23 @@ const Blotter = () => {
       </Dialog>
 
       {/* Resolution Dialog */}
-      <Dialog open={openResolutionDialog} onClose={() => setOpenResolutionDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Case Resolution - Hearing Panel</DialogTitle>
+      <Dialog open={openResolutionDialog} onClose={() => setOpenResolutionDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Case Resolution</DialogTitle>
         <DialogContent>
-          <Typography sx={{ mb: 3 }}>
-            Resolution for Case #{selectedCase?.Case_Number}
+          <Typography sx={{ mb: 3, color: 'text.secondary' }}>
+            Finalizing resolution for Case <strong>#{selectedCase?.Case_Number}</strong>
           </Typography>
 
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Hearing Date"
                 type="datetime-local"
                 value={resolutionData.hearingDate}
                 onChange={(e) => setResolutionData({ ...resolutionData, hearingDate: e.target.value })}
+                InputLabelProps={{ shrink: true }}
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Outcome</InputLabel>
-                <Select
-                  value={resolutionData.outcome}
-                  onChange={(e) => setResolutionData({ ...resolutionData, outcome: e.target.value })}
-                  label="Outcome"
-                >
-                  <MenuItem value="settled">Amicably Settled</MenuItem>
-                  <MenuItem value="failed">Failed/No Show - Issue CFA</MenuItem>
-                </Select>
-              </FormControl>
             </Grid>
             <Grid item xs={12}>
               <TextField
@@ -1035,33 +1195,66 @@ const Blotter = () => {
             </Grid>
           </Grid>
 
-          <Divider sx={{ my: 3 }} />
+          <Divider sx={{ my: 3 }}>
+            <Chip label="Select Outcome" />
+          </Divider>
 
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+          <Box sx={{ display: 'flex', gap: 2, flexDirection: 'column' }}>
             <Button
+              fullWidth
               variant="contained"
               color="success"
               startIcon={<CheckCircle />}
-              onClick={() => setResolutionData({ ...resolutionData, outcome: 'settled' })}
-              disabled={resolutionData.outcome !== 'settled'}
+              onClick={() => {
+                setResolutionData({ ...resolutionData, outcome: 'settled' })
+                // We'll trigger the update in a separate step or directly here if preferred
+                // For now, let's keep the submit button flow but make these buttons select the outcome visualy
+              }}
+              sx={{ 
+                py: 1.5,
+                justifyContent: 'flex-start',
+                bgcolor: resolutionData.outcome === 'settled' ? 'success.dark' : 'success.main',
+                opacity: resolutionData.outcome && resolutionData.outcome !== 'settled' ? 0.6 : 1
+              }}
             >
-              Settled - Archive Case
+              <Box sx={{ textAlign: 'left' }}>
+                <Typography variant="subtitle2">Amicably Settled</Typography>
+                <Typography variant="caption" sx={{ display: 'block', opacity: 0.9 }}>
+                  Parties agreed to a settlement. Archive case.
+                </Typography>
+              </Box>
             </Button>
+
             <Button
+              fullWidth
               variant="contained"
               color="error"
               startIcon={<Cancel />}
               onClick={() => setResolutionData({ ...resolutionData, outcome: 'failed' })}
-              disabled={resolutionData.outcome !== 'failed'}
+              sx={{ 
+                py: 1.5,
+                justifyContent: 'flex-start',
+                bgcolor: resolutionData.outcome === 'failed' ? 'error.dark' : 'error.main',
+                opacity: resolutionData.outcome && resolutionData.outcome !== 'failed' ? 0.6 : 1
+              }}
             >
-              Failed - Issue CFA
+              <Box sx={{ textAlign: 'left' }}>
+                <Typography variant="subtitle2">Failed / No Show</Typography>
+                <Typography variant="caption" sx={{ display: 'block', opacity: 0.9 }}>
+                  Mediation failed or respondent didn't appear. Issue CFA.
+                </Typography>
+              </Box>
             </Button>
           </Box>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ p: 2.5 }}>
           <Button onClick={() => setOpenResolutionDialog(false)}>Cancel</Button>
-          <Button onClick={handleResolution} variant="contained">
-            Submit Resolution
+          <Button 
+            onClick={handleResolution} 
+            variant="contained"
+            disabled={!resolutionData.outcome}
+          >
+            Confirm & Submit
           </Button>
         </DialogActions>
       </Dialog>

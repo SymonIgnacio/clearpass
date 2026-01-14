@@ -284,14 +284,36 @@ class ReportController {
         // Parse JSON details if needed, but assuming simple strings for report
         let complainant = 'N/A';
         try {
-            const cObj = JSON.parse(incident.Complainant_Details);
-            complainant = cObj.name || incident.Complainant_Details;
+            let cObj = incident.Complainant_Details;
+            if (typeof cObj === 'string') {
+              try {
+                cObj = JSON.parse(cObj);
+                // Handle double stringification
+                if (typeof cObj === 'string') {
+                  cObj = JSON.parse(cObj);
+                }
+              } catch (e) {
+                // If parse fails, it might be just a name string (though unlikely given the schema)
+              }
+            }
+            complainant = (typeof cObj === 'object' && cObj !== null) ? (cObj.name || 'N/A') : (cObj || 'N/A');
         } catch (e) { complainant = incident.Complainant_Details || 'N/A'; }
 
         let respondent = 'N/A';
         try {
-            const rObj = JSON.parse(incident.Respondent_Details);
-            respondent = rObj.name || incident.Respondent_Details;
+            let rObj = incident.Respondent_Details;
+             if (typeof rObj === 'string') {
+              try {
+                rObj = JSON.parse(rObj);
+                // Handle double stringification
+                if (typeof rObj === 'string') {
+                  rObj = JSON.parse(rObj);
+                }
+              } catch (e) {
+                 // If parse fails
+              }
+            }
+            respondent = (typeof rObj === 'object' && rObj !== null) ? (rObj.name || 'N/A') : (rObj || 'N/A');
         } catch (e) { respondent = incident.Respondent_Details || 'N/A'; }
 
         let dateStr = incident.DateTime_Incident ? new Date(incident.DateTime_Incident).toLocaleDateString() : '-';

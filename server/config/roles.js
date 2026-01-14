@@ -5,7 +5,8 @@ const ROLES = {
   SECRETARY: 3,       // Barangay Secretary
   CLERK: 4,           // Administrative Clearance Clerks
   BLOTTER_OFFICER: 6, // Blotter Officer
-  RESIDENT: 12        // Residents
+  RESIDENT: 12,       // Residents
+  GUEST: 13           // Pending Verification (Limited Access)
 };
 
 // Role name mapping (Database Aligned)
@@ -15,7 +16,8 @@ const ROLE_NAMES = {
   3: 'Secretary',
   4: 'Clerk',
   6: 'Blotter Officer',
-  12: 'Resident'
+  12: 'Resident',
+  13: 'Guest'
 };
 
 // Helper function to check if user has role

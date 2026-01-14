@@ -103,11 +103,7 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/__tests__/exhaustive-complete\\.test\\.js$",
-      "/__tests__/certificates\\.test\\.js$",
       "/__tests__/system-comprehensive\\.test\\.js$",
-      "/__tests__/residents\\.test\\.js$",
-      "/__tests__/authController\\.test\\.js$",
-      "/__tests__/controllers\\.test\\.js$",
       "/__tests__/controllers-expanded\\.test\\.js$"
     ],
     "setupFilesAfterEnv": [

@@ -4,6 +4,7 @@ const multer = require('multer');
 const { verifyToken, verifyRole } = require('./middleware/authMiddleware');
 const { asyncHandler } = require('./middleware/errorHandler');
 const db = require('./database');
+const { allocateBlotterCaseNumber } = require('./utils/blotterCaseNumber');
 
 // Configure multer for photo uploads
 const upload = multer({
@@ -36,6 +37,9 @@ const verificationUpload = multer({
 const authController = require('./controllers/authController');
 const adminController = require('./controllers/adminController');
 const reportController = require('./controllers/reportController');
+const residentController = require('./controllers/residentController');
+const AIAnalyticsController = require('./controllers/AIAnalyticsController');
+const aiController = new AIAnalyticsController(db);
 
 // Import validation middleware
 const {
@@ -282,13 +286,12 @@ router.post(
   '/admin/residents/import',
   verifyToken,
   verifyRole([ROLES.ADMIN, ROLES.CLERK]),
-  (req, res) => {
-    res.status(501).json({ message: 'Bulk import feature coming soon' });
-  }
+  upload.single('file'),
+  residentController.importResidents
 ); // Admin + Clerk per requirements
-router.get('/admin/ai-analytics', verifyToken, verifyRole([ROLES.ADMIN]), (req, res) => {
-  res.status(501).json({ message: 'AI analytics feature coming soon' });
-});
+router.get('/admin/ai-analytics', verifyToken, verifyRole([ROLES.ADMIN]), (req, res) =>
+  aiController.getSecretaryRiskAnalytics(req, res)
+);
 router.get(
   '/admin/users',
   verifyToken,
@@ -598,21 +601,7 @@ router.get(
 router.get(
   '/ai/patrol-suggestions',
   verifyToken,
-  asyncHandler(async (req, res) => {
-    // Mock AI patrol suggestions for now
-    res.json({
-      overall_risk_level: 'MEDIUM',
-      risk_assessment: {
-        total_incidents: 15,
-        peak_hours: '8PM-12AM',
-      },
-      patrol_suggestions: [
-        'Increase patrol frequency in Sitio 1 during evening hours',
-        'Focus on residential areas with recent incident reports',
-        'Coordinate with community leaders for enhanced visibility',
-      ],
-    });
-  })
+  asyncHandler((req, res) => aiController.getPatrolSuggestions(req, res))
 );
 
 router.post(
@@ -897,10 +886,10 @@ router.post(
       DateTime_Incident,
       Location_Sitio,
     } = req.body;
-    const caseNumber = `BLOT-${Date.now()}`;
+    const caseNumber = await allocateBlotterCaseNumber(db, { incidentDate: DateTime_Incident });
     await db.execute(
       `
-        INSERT INTO blotter (Case_Number, Complainant_Details, Respondent_Details, respondent_id, Incident_Type, Narrative, DateTime_Incident, Location_Sitio, Status)
+        INSERT INTO blotter (Case_Number, Complainant_Details, Respondent_Details, respondent_id, Incident_Type, Narrative, DateTime_Incident, Location_Sitio, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending')
     `,
       [

@@ -47,7 +47,7 @@ import {
 } from '@mui/icons-material'
 import { useTheme, alpha } from '@mui/material/styles'
 import { apiRequest } from '../utils/api'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 import dashboardAPI from '../utils/dashboardAPI'
 
 const Dashboard = () => {

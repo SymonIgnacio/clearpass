@@ -20,7 +20,7 @@ module.exports = (db) => {
   router.post(
     '/submit', 
     verifyToken, 
-    checkRole([ROLES.RESIDENT]), 
+    checkRole([ROLES.RESIDENT, ROLES.ADMIN]), 
     upload.fields([{ name: 'front_id', maxCount: 1 }, { name: 'back_id', maxCount: 1 }]),
     (req, res) => controller.submitRequest(req, res)
   );

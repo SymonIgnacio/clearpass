@@ -281,45 +281,63 @@ module.exports = (db) => {
     checkRole(['admin']),
     upload.single('template_file'),
     asyncHandler(async (req, res) => {
-      const { template_name, document_type, certificate_type_id } = req.body || {};
-
-      if (!req.file) {
-        return res.status(400).json({ success: false, message: 'template_file is required' });
-      }
-
-      if (!template_name || !document_type) {
-        return res.status(400).json({ success: false, message: 'template_name and document_type are required' });
-      }
-
-      await db.execute(
-        `
-          INSERT INTO document_templates (
+      try {
+        const { template_name, document_type, certificate_type_id } = req.body || {};
+        
+        console.log('Starting template upload:', {
             template_name,
             document_type,
             certificate_type_id,
-            template_content,
-            is_active,
-            created_by,
-            updated_by,
-            created_at,
-            updated_at,
-            file_data,
-            file_encoding
-          ) VALUES (?, ?, ?, ?, 1, ?, ?, NOW(), NOW(), ?, ?)
-        `,
-        [
-          String(template_name).trim(),
-          String(document_type).trim(),
-          certificate_type_id ?? null,
-          '{}',
-          req.user.id,
-          req.user.id,
-          req.file.buffer,
-          req.file.mimetype || null,
-        ]
-      );
+            file_present: !!req.file,
+            file_size: req.file?.size,
+            mimetype: req.file?.mimetype
+        });
 
-      res.status(201).json({ success: true, message: 'Template file uploaded successfully' });
+        if (!req.file) {
+          return res.status(400).json({ success: false, message: 'template_file is required' });
+        }
+
+        if (!template_name || !document_type) {
+          return res.status(400).json({ success: false, message: 'template_name and document_type are required' });
+        }
+
+        await db.execute(
+          `
+            INSERT INTO document_templates (
+              template_name,
+              document_type,
+              certificate_type_id,
+              template_content,
+              is_active,
+              created_by,
+              updated_by,
+              created_at,
+              updated_at,
+              file_data,
+              file_encoding
+            ) VALUES (?, ?, ?, ?, 1, ?, ?, NOW(), NOW(), ?, ?)
+          `,
+          [
+            String(template_name).trim(),
+            String(document_type).trim(),
+            certificate_type_id ?? null,
+            '{}',
+            req.user.id,
+            req.user.id,
+            req.file.buffer,
+            req.file.mimetype || null,
+          ]
+        );
+
+        res.status(201).json({ success: true, message: 'Template file uploaded successfully' });
+      } catch (error) {
+        console.error('TEMPLATE UPLOAD ERROR:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Internal server error during template upload',
+            error: error.message 
+        });
+      }
     })
   );
 

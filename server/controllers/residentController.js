@@ -5,18 +5,18 @@ const bcrypt = require('bcryptjs');
 const xlsx = require('xlsx');
 const path = require('path');
 const fs = require('fs');
-const db = require('../database');
+// const db = require('../database');
 const { ROLES } = require('../config/roles');
 const uploadMiddleware = require('../middleware/upload').any();
 const {
   isEncryptionEnabled,
   encryptFileToEncryptedPath,
   resolveAndValidateUploadedDocumentPath,
-  sendStoredDocument
+  sendStoredDocument,
 } = require('../utils/documentStorage');
 const { logAuditEvent, logAuditToDatabase, AUDIT_EVENTS } = require('../middleware/auditLogger');
 
-const calculateAge = (birthdate) => {
+const calculateAge = birthdate => {
   const today = new Date();
   const birthDate = new Date(birthdate);
   let age = today.getFullYear() - birthDate.getFullYear();
@@ -28,19 +28,29 @@ const calculateAge = (birthdate) => {
 };
 
 exports.getAll = async (req, res) => {
+  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
 
   try {
-    const { page = 1, limit = 50, search, sitio_id, residency_status, show_vulnerable } = req.query || {};
+    const {
+      page = 1,
+      limit = 50,
+      search,
+      sitio_id,
+      residency_status,
+      show_vulnerable,
+    } = req.query || {};
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     let whereConditions = [];
     let values = [];
 
     if (search && search.trim()) {
-      whereConditions.push('(r.First_Name LIKE ? OR r.Last_Name LIKE ? OR r.Mobile_Number LIKE ?)');
+      whereConditions.push(
+        '(CONCAT(r.First_Name, " ", r.Last_Name) LIKE ? OR CONCAT(r.First_Name, " ", r.Middle_Name, " ", r.Last_Name) LIKE ? OR r.Mobile_Number LIKE ?)'
+      );
       const searchTerm = `%${search.trim()}%`;
       values.push(searchTerm, searchTerm, searchTerm);
     }
@@ -93,8 +103,8 @@ exports.getAll = async (req, res) => {
         page: parseInt(page),
         limit: parseInt(limit),
         total: totalRows[0].total,
-        pages: Math.ceil(totalRows[0].total / parseInt(limit))
-      }
+        pages: Math.ceil(totalRows[0].total / parseInt(limit)),
+      },
     });
   } catch (error) {
     console.error('Error fetching residents:', error);
@@ -103,12 +113,14 @@ exports.getAll = async (req, res) => {
 };
 
 exports.getById = async (req, res) => {
+  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
 
   try {
-    const [rows] = await db.execute(`
+    const [rows] = await db.execute(
+      `
       SELECT r.*, h.Household_Number, h.Street_Address, h.Household_Type, s.name as sitio_name,
         v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent, v.Is_Out_of_School_Youth,
         v.Vulnerability_Score, v.Disability_Type
@@ -117,7 +129,9 @@ exports.getById = async (req, res) => {
       LEFT JOIN sitios s ON h.Sitio_ID = s.id
       LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
       WHERE r.Resident_ID = ?
-    `, [req.params.id]);
+    `,
+      [req.params.id]
+    );
 
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Resident not found' });
@@ -131,6 +145,7 @@ exports.getById = async (req, res) => {
 };
 
 exports.checkDuplicate = async (req, res) => {
+  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -142,7 +157,8 @@ exports.checkDuplicate = async (req, res) => {
       return res.status(400).json({ error: 'First name, last name, and birthdate are required' });
     }
 
-    const [duplicates] = await db.execute(`
+    const [duplicates] = await db.execute(
+      `
       SELECT r.Resident_ID, r.First_Name, r.Last_Name, r.Birthdate, r.Residency_Status,
         h.Household_Number, s.name as sitio_name
       FROM residents r
@@ -150,14 +166,17 @@ exports.checkDuplicate = async (req, res) => {
       LEFT JOIN sitios s ON h.Sitio_ID = s.id
       WHERE r.First_Name = ? AND r.Last_Name = ? AND r.Birthdate = ?
       AND r.Residency_Status = 'Active'
-    `, [first_name.trim(), last_name.trim(), birthdate]);
+    `,
+      [first_name.trim(), last_name.trim(), birthdate]
+    );
 
     res.json({
       is_duplicate: duplicates.length > 0,
       duplicates: duplicates,
-      message: duplicates.length > 0 ?
-        'Possible duplicate found. Please verify if this is the same person.' :
-        'No duplicates found. Safe to proceed.'
+      message:
+        duplicates.length > 0
+          ? 'Possible duplicate found. Please verify if this is the same person.'
+          : 'No duplicates found. Safe to proceed.',
     });
   } catch (error) {
     console.error('Error checking duplicates:', error);
@@ -166,6 +185,7 @@ exports.checkDuplicate = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
+  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -176,14 +196,44 @@ exports.create = async (req, res) => {
     await connection.beginTransaction();
 
     const {
-      household_id, relation_to_head, first_name, middle_name, last_name, suffix,
-      birthdate, gender, civil_status, occupation, income_estimate, email, mobile_number,
-      voter_status, date_arrival, profile_photo_url,
-      is_4ps, is_pwd, is_solo_parent, is_out_of_school_youth, disability_type
+      household_id,
+      relation_to_head,
+      first_name,
+      middle_name,
+      last_name,
+      suffix,
+      birthdate,
+      gender,
+      civil_status,
+      occupation,
+      income_estimate,
+      email,
+      mobile_number,
+      voter_status,
+      date_arrival,
+      profile_photo_url,
+      is_4ps,
+      is_pwd,
+      is_solo_parent,
+      is_out_of_school_youth,
+      disability_type,
     } = req.body || {};
 
-    if (!first_name || !last_name || !birthdate || !household_id || !email) {
-      return res.status(400).json({ error: 'Required fields: first_name, last_name, birthdate, household_id, email' });
+    // Validate required fields
+    if (!first_name || !last_name || !birthdate || !household_id || !email || !gender) {
+      return res.status(400).json({
+        error: 'Required fields: first_name, last_name, birthdate, household_id, email, gender',
+      });
+    }
+
+    // Check for existing email in users table before starting transaction
+    const [existingUser] = await connection.execute('SELECT email FROM users WHERE email = ?', [
+      email.trim(),
+    ]);
+
+    if (existingUser.length > 0) {
+      // Connection released in finally block
+      return res.status(409).json({ error: 'Email address is already registered to another user' });
     }
 
     const [householdCheck] = await connection.execute(
@@ -191,13 +241,17 @@ exports.create = async (req, res) => {
       [household_id]
     );
     if (householdCheck.length === 0) {
+      connection.release(); // Release early
       return res.status(400).json({ error: 'Invalid household_id - household does not exist' });
     }
 
     const residentId = `RES-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-    const qrHash = crypto.createHash('sha256')
+    const qrHash = crypto
+      .createHash('sha256')
       .update(`${residentId}-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`)
-      .digest('hex').substring(0, 16).toUpperCase();
+      .digest('hex')
+      .substring(0, 16)
+      .toUpperCase();
 
     // Generate temporary password for resident login
     const tempPassword = crypto.randomBytes(8).toString('hex');
@@ -205,32 +259,71 @@ exports.create = async (req, res) => {
 
     const age = calculateAge(birthdate);
 
-    await connection.execute(`
+    // Prepare values, converting undefined/empty to null where appropriate
+    const safeMiddleName = middle_name?.trim() || null;
+    const safeSuffix = suffix?.trim() || null;
+    const safeOccupation = occupation?.trim() || null;
+    const safeMobile = mobile_number?.trim() || null;
+    const safePhoto = profile_photo_url?.trim() || null;
+    const safeDisability = disability_type?.trim() || null;
+    const safeDateArrival = date_arrival || null;
+
+    await connection.execute(
+      `
       INSERT INTO residents (
         Resident_ID, Household_ID, Relation_to_Head, First_Name, Middle_Name, Last_Name, Suffix,
         Birthdate, Age, Gender, Civil_Status, Occupation, Income_Estimate, Email, Mobile_Number,
         Voter_Status, Date_Arrival, Residency_Status, Profile_Photo_URL, QR_Hash_String
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      residentId, household_id, relation_to_head || 'Head', first_name.trim(), middle_name?.trim(),
-      last_name.trim(), suffix?.trim(), birthdate, age, gender, civil_status || 'Single',
-      occupation?.trim(), income_estimate || 0, email.trim(), mobile_number?.trim(),
-      voter_status || 'Non-Registered', date_arrival, 'Active',
-      profile_photo_url?.trim(), qrHash
-    ]);
+    `,
+      [
+        residentId,
+        household_id,
+        relation_to_head || 'Head',
+        first_name.trim(),
+        safeMiddleName,
+        last_name.trim(),
+        safeSuffix,
+        birthdate,
+        age,
+        gender,
+        civil_status || 'Single',
+        safeOccupation,
+        income_estimate || 0,
+        email.trim(),
+        safeMobile,
+        voter_status || 'Non-Registered',
+        safeDateArrival,
+        'Active',
+        safePhoto,
+        qrHash,
+      ]
+    );
 
     // Create user account for resident
-    await connection.execute(`
+    await connection.execute(
+      `
       INSERT INTO users (username, email, password_hash, role, resident_id, is_active)
       VALUES (?, ?, ?, ?, ?, 1)
-    `, [email.trim(), email.trim(), hashedPassword, ROLES.RESIDENT || 12, residentId]);
+    `,
+      [email.trim(), email.trim(), hashedPassword, ROLES.RESIDENT || 12, residentId]
+    );
 
-    await connection.execute(`
+    await connection.execute(
+      `
       INSERT INTO vulnerabilities (
         Resident_ID, Is_4Ps, Is_PWD, Is_Solo_Parent, Is_Out_of_School_Youth, Disability_Type
       ) VALUES (?, ?, ?, ?, ?, ?)
-    `, [residentId, is_4ps || false, is_pwd || false, is_solo_parent || false,
-        is_out_of_school_youth || false, disability_type?.trim()]);
+    `,
+      [
+        residentId,
+        is_4ps || false,
+        is_pwd || false,
+        is_solo_parent || false,
+        is_out_of_school_youth || false,
+        safeDisability,
+      ]
+    );
 
     // Handle document uploads
     if (req.files && req.files.length > 0) {
@@ -239,7 +332,12 @@ exports.create = async (req, res) => {
         const docType = file.fieldname.replace('document_', '');
 
         let storedPath = file.path;
-        let encryptionMeta = { encryption_alg: null, encryption_version: null, encryption_iv: null, encryption_tag: null };
+        let encryptionMeta = {
+          encryption_alg: null,
+          encryption_version: null,
+          encryption_iv: null,
+          encryption_tag: null,
+        };
         if (isEncryptionEnabled()) {
           const encrypted = await encryptFileToEncryptedPath(file.path);
           storedPath = encrypted.outputPath;
@@ -261,15 +359,18 @@ exports.create = async (req, res) => {
             encryptionMeta.encryption_alg,
             encryptionMeta.encryption_version,
             encryptionMeta.encryption_iv,
-            encryptionMeta.encryption_tag
+            encryptionMeta.encryption_tag,
           ]
         );
       }
     }
 
-    await connection.execute(`
+    await connection.execute(
+      `
       UPDATE households SET Total_Members = Total_Members + 1 WHERE Household_ID = ?
-    `, [household_id]);
+    `,
+      [household_id]
+    );
 
     await connection.commit();
 
@@ -278,18 +379,37 @@ exports.create = async (req, res) => {
       user_email: email.trim(),
       temp_password: tempPassword,
       qr_hash: qrHash,
-      message: 'Resident created successfully'
+      message: 'Resident created successfully',
     });
   } catch (error) {
-    await connection.rollback();
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rbError) {
+        console.error('Rollback failed:', rbError);
+      }
+    }
     console.error('Error creating resident:', error);
-    res.status(500).json({ error: 'Failed to create resident' });
+
+    // Improved error response
+    const errorMessage =
+      error.code === 'ER_DUP_ENTRY'
+        ? 'Duplicate entry found (possibly email or ID).'
+        : process.env.NODE_ENV === 'development'
+          ? error.message
+          : 'Failed to create resident';
+
+    res.status(500).json({
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.toString() : undefined,
+    });
   } finally {
-    connection.release();
+    if (connection) connection.release();
   }
 };
 
 exports.update = async (req, res) => {
+  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -301,37 +421,109 @@ exports.update = async (req, res) => {
 
     const residentId = req.params.id;
     const {
-      household_id, relation_to_head, first_name, middle_name, last_name, suffix,
-      birthdate, gender, civil_status, occupation, income_estimate, mobile_number,
-      voter_status, date_arrival, residency_status, profile_photo_url,
-      is_4ps, is_pwd, is_solo_parent, is_out_of_school_youth, disability_type
+      household_id,
+      relation_to_head,
+      first_name,
+      middle_name,
+      last_name,
+      suffix,
+      birthdate,
+      gender,
+      civil_status,
+      occupation,
+      income_estimate,
+      mobile_number,
+      voter_status,
+      date_arrival,
+      residency_status,
+      profile_photo_url,
+      is_4ps,
+      is_pwd,
+      is_solo_parent,
+      is_out_of_school_youth,
+      disability_type,
     } = req.body || {};
 
     const residentUpdates = [];
     const residentValues = [];
 
-    if (household_id !== undefined) { residentUpdates.push('Household_ID = ?'); residentValues.push(household_id); }
-    if (relation_to_head !== undefined) { residentUpdates.push('Relation_to_Head = ?'); residentValues.push(relation_to_head); }
-    if (first_name !== undefined) { residentUpdates.push('First_Name = ?'); residentValues.push(first_name.trim()); }
-    if (middle_name !== undefined) { residentUpdates.push('Middle_Name = ?'); residentValues.push(middle_name?.trim()); }
-    if (last_name !== undefined) { residentUpdates.push('Last_Name = ?'); residentValues.push(last_name.trim()); }
-    if (suffix !== undefined) { residentUpdates.push('Suffix = ?'); residentValues.push(suffix?.trim()); }
-    if (birthdate !== undefined) { 
-      residentUpdates.push('Birthdate = ?'); 
+    if (household_id !== undefined) {
+      residentUpdates.push('Household_ID = ?');
+      residentValues.push(household_id);
+    }
+    if (relation_to_head !== undefined) {
+      residentUpdates.push('Relation_to_Head = ?');
+      residentValues.push(relation_to_head);
+    }
+    if (first_name !== undefined) {
+      residentUpdates.push('First_Name = ?');
+      residentValues.push(first_name.trim());
+    }
+    if (middle_name !== undefined) {
+      residentUpdates.push('Middle_Name = ?');
+      residentValues.push(middle_name?.trim() || null);
+    }
+    if (last_name !== undefined) {
+      residentUpdates.push('Last_Name = ?');
+      residentValues.push(last_name.trim());
+    }
+    if (suffix !== undefined) {
+      residentUpdates.push('Suffix = ?');
+      residentValues.push(suffix?.trim() || null);
+    }
+    if (birthdate !== undefined) {
+      residentUpdates.push('Birthdate = ?');
       residentValues.push(birthdate);
       const age = calculateAge(birthdate);
       residentUpdates.push('Age = ?');
       residentValues.push(age);
     }
-    if (gender !== undefined) { residentUpdates.push('Gender = ?'); residentValues.push(gender); }
-    if (civil_status !== undefined) { residentUpdates.push('Civil_Status = ?'); residentValues.push(civil_status); }
-    if (occupation !== undefined) { residentUpdates.push('Occupation = ?'); residentValues.push(occupation?.trim()); }
-    if (income_estimate !== undefined) { residentUpdates.push('Income_Estimate = ?'); residentValues.push(income_estimate); }
-    if (mobile_number !== undefined) { residentUpdates.push('Mobile_Number = ?'); residentValues.push(mobile_number?.trim()); }
-    if (voter_status !== undefined) { residentUpdates.push('Voter_Status = ?'); residentValues.push(voter_status); }
-    if (date_arrival !== undefined) { residentUpdates.push('Date_Arrival = ?'); residentValues.push(date_arrival); }
-    if (residency_status !== undefined) { residentUpdates.push('Residency_Status = ?'); residentValues.push(residency_status); }
-    if (profile_photo_url !== undefined) { residentUpdates.push('Profile_Photo_URL = ?'); residentValues.push(profile_photo_url?.trim()); }
+    if (gender !== undefined) {
+      residentUpdates.push('Gender = ?');
+      residentValues.push(gender);
+    }
+    if (civil_status !== undefined) {
+      const validStatuses = ['Single', 'Married', 'Widowed', 'Divorced'];
+      if (!validStatuses.includes(civil_status)) {
+        connection.release();
+        return res.status(400).json({ error: 'Invalid civil_status' });
+      }
+      residentUpdates.push('Civil_Status = ?');
+      residentValues.push(civil_status);
+    }
+    if (occupation !== undefined) {
+      residentUpdates.push('Occupation = ?');
+      residentValues.push(occupation?.trim() || null);
+    }
+    if (income_estimate !== undefined) {
+      residentUpdates.push('Income_Estimate = ?');
+      residentValues.push(income_estimate);
+    }
+    if (mobile_number !== undefined) {
+      residentUpdates.push('Mobile_Number = ?');
+      residentValues.push(mobile_number?.trim() || null);
+    }
+    if (voter_status !== undefined) {
+      residentUpdates.push('Voter_Status = ?');
+      residentValues.push(voter_status);
+    }
+    if (date_arrival !== undefined) {
+      residentUpdates.push('Date_Arrival = ?');
+      residentValues.push(date_arrival || null);
+    }
+    if (residency_status !== undefined) {
+      const validResidencyStatuses = ['Active', 'Deceased', 'Transferred Out', 'Unknown'];
+      if (!validResidencyStatuses.includes(residency_status)) {
+        connection.release();
+        return res.status(400).json({ error: 'Invalid residency_status' });
+      }
+      residentUpdates.push('Residency_Status = ?');
+      residentValues.push(residency_status);
+    }
+    if (profile_photo_url !== undefined) {
+      residentUpdates.push('Profile_Photo_URL = ?');
+      residentValues.push(profile_photo_url?.trim() || null);
+    }
 
     if (residentUpdates.length > 0) {
       const residentSql = `UPDATE residents SET ${residentUpdates.join(', ')} WHERE Resident_ID = ?`;
@@ -342,11 +534,26 @@ exports.update = async (req, res) => {
     const vulnUpdates = [];
     const vulnValues = [];
 
-    if (is_4ps !== undefined) { vulnUpdates.push('Is_4Ps = ?'); vulnValues.push(is_4ps); }
-    if (is_pwd !== undefined) { vulnUpdates.push('Is_PWD = ?'); vulnValues.push(is_pwd); }
-    if (is_solo_parent !== undefined) { vulnUpdates.push('Is_Solo_Parent = ?'); vulnValues.push(is_solo_parent); }
-    if (is_out_of_school_youth !== undefined) { vulnUpdates.push('Is_Out_of_School_Youth = ?'); vulnValues.push(is_out_of_school_youth); }
-    if (disability_type !== undefined) { vulnUpdates.push('Disability_Type = ?'); vulnValues.push(disability_type?.trim()); }
+    if (is_4ps !== undefined) {
+      vulnUpdates.push('Is_4Ps = ?');
+      vulnValues.push(is_4ps);
+    }
+    if (is_pwd !== undefined) {
+      vulnUpdates.push('Is_PWD = ?');
+      vulnValues.push(is_pwd);
+    }
+    if (is_solo_parent !== undefined) {
+      vulnUpdates.push('Is_Solo_Parent = ?');
+      vulnValues.push(is_solo_parent);
+    }
+    if (is_out_of_school_youth !== undefined) {
+      vulnUpdates.push('Is_Out_of_School_Youth = ?');
+      vulnValues.push(is_out_of_school_youth);
+    }
+    if (disability_type !== undefined) {
+      vulnUpdates.push('Disability_Type = ?');
+      vulnValues.push(disability_type?.trim() || null);
+    }
 
     if (vulnUpdates.length > 0) {
       const vulnSql = `UPDATE vulnerabilities SET ${vulnUpdates.join(', ')} WHERE Resident_ID = ?`;
@@ -361,7 +568,12 @@ exports.update = async (req, res) => {
         const docType = file.fieldname.replace('document_', '');
 
         let storedPath = file.path;
-        let encryptionMeta = { encryption_alg: null, encryption_version: null, encryption_iv: null, encryption_tag: null };
+        let encryptionMeta = {
+          encryption_alg: null,
+          encryption_version: null,
+          encryption_iv: null,
+          encryption_tag: null,
+        };
         if (isEncryptionEnabled()) {
           const encrypted = await encryptFileToEncryptedPath(file.path);
           storedPath = encrypted.outputPath;
@@ -383,7 +595,7 @@ exports.update = async (req, res) => {
             encryptionMeta.encryption_alg,
             encryptionMeta.encryption_version,
             encryptionMeta.encryption_iv,
-            encryptionMeta.encryption_tag
+            encryptionMeta.encryption_tag,
           ]
         );
       }
@@ -401,6 +613,7 @@ exports.update = async (req, res) => {
 };
 
 exports.archive = async (req, res) => {
+  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -412,15 +625,27 @@ exports.archive = async (req, res) => {
 
     const residentId = req.params.id;
 
-    await connection.execute(`
-      UPDATE residents SET Residency_Status = 'Transferred Out', updated_at = CURRENT_TIMESTAMP
-      WHERE Resident_ID = ?
-    `, [residentId]);
+    const { departure_reason, departure_date } = req.body;
 
-    await connection.execute(`
+    await connection.execute(
+      `
+      UPDATE residents 
+      SET Residency_Status = 'Transferred Out', 
+          Departure_Reason = ?, 
+          Departure_Date = ?, 
+          updated_at = CURRENT_TIMESTAMP
+      WHERE Resident_ID = ?
+    `,
+      [departure_reason || null, departure_date || null, residentId]
+    );
+
+    await connection.execute(
+      `
       UPDATE households SET Total_Members = Total_Members - 1
       WHERE Household_ID = (SELECT Household_ID FROM residents WHERE Resident_ID = ?)
-    `, [residentId]);
+    `,
+      [residentId]
+    );
 
     await connection.commit();
     res.json({ message: 'Resident archived successfully', status: 'Transferred Out' });
@@ -434,6 +659,7 @@ exports.archive = async (req, res) => {
 };
 
 exports.toggleStatus = async (req, res) => {
+  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -447,16 +673,22 @@ exports.toggleStatus = async (req, res) => {
     const { status, is_active } = req.body; // status for residents table, is_active for users table
 
     if (status) {
-        await connection.execute(`
+      await connection.execute(
+        `
             UPDATE residents SET Residency_Status = ?, updated_at = NOW() WHERE Resident_ID = ?
-        `, [status, residentId]);
+        `,
+        [status, residentId]
+      );
     }
 
     if (is_active !== undefined) {
-        // Find linked user
-        await connection.execute(`
+      // Find linked user
+      await connection.execute(
+        `
             UPDATE users SET is_active = ?, updated_at = NOW() WHERE resident_id = ?
-        `, [is_active, residentId]);
+        `,
+        [is_active, residentId]
+      );
     }
 
     await connection.commit();
@@ -473,11 +705,12 @@ exports.toggleStatus = async (req, res) => {
 /**
  * Generate QR code for a resident
  * POST /api/residents/:id/generate-qr
- * 
+ *
  * @param {string} id - Resident ID
  * @returns {Object} - JSON with qr_code string and message
  */
 exports.generateQR = async (req, res) => {
+  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -507,26 +740,33 @@ exports.generateQR = async (req, res) => {
 };
 
 exports.getHouseholdMembers = async (req, res) => {
+  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
 
   try {
-    const [members] = await db.execute(`
+    const [members] = await db.execute(
+      `
       SELECT r.*, v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent,
         v.Is_Out_of_School_Youth, v.Vulnerability_Score
       FROM residents r
       LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
       WHERE r.Household_ID = ?
       ORDER BY CASE r.Relation_to_Head WHEN 'Head' THEN 1 WHEN 'Spouse' THEN 2 ELSE 3 END, r.Birthdate
-    `, [req.params.id]);
+    `,
+      [req.params.id]
+    );
 
-    const [household] = await db.execute(`
+    const [household] = await db.execute(
+      `
       SELECT h.*, s.name as sitio_name
       FROM households h
       LEFT JOIN sitios s ON h.Sitio_ID = s.id
       WHERE h.Household_ID = ?
-    `, [req.params.id]);
+    `,
+      [req.params.id]
+    );
 
     if (household.length === 0) {
       return res.status(404).json({ error: 'Household not found' });
@@ -540,6 +780,7 @@ exports.getHouseholdMembers = async (req, res) => {
 };
 
 exports.openRegister = async (req, res) => {
+  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -550,13 +791,31 @@ exports.openRegister = async (req, res) => {
     await connection.beginTransaction();
 
     const {
-      first_name, middle_name, last_name, suffix, birthdate, gender, civil_status,
-      occupation, income_estimate, email, mobile_number, street_address, sitio,
-      voter_status, is_4ps, is_pwd, is_solo_parent, is_out_of_school_youth, disability_type
+      first_name,
+      middle_name,
+      last_name,
+      suffix,
+      birthdate,
+      gender,
+      civil_status,
+      occupation,
+      income_estimate,
+      email,
+      mobile_number,
+      street_address,
+      sitio,
+      voter_status,
+      is_4ps,
+      is_pwd,
+      is_solo_parent,
+      is_out_of_school_youth,
+      disability_type,
     } = req.body || {};
 
     if (!first_name || !last_name || !birthdate || !email || !street_address || !sitio) {
-      return res.status(400).json({ error: 'Required fields: first_name, last_name, birthdate, email, street_address, sitio' });
+      return res.status(400).json({
+        error: 'Required fields: first_name, last_name, birthdate, email, street_address, sitio',
+      });
     }
 
     if (!req.body.government_id_uploaded) {
@@ -565,10 +824,9 @@ exports.openRegister = async (req, res) => {
     }
 
     // Check for existing email
-    const [existingUser] = await connection.execute(
-      'SELECT email FROM users WHERE email = ?',
-      [email.trim()]
-    );
+    const [existingUser] = await connection.execute('SELECT email FROM users WHERE email = ?', [
+      email.trim(),
+    ]);
     if (existingUser.length > 0) {
       return res.status(400).json({ error: 'Email address already registered' });
     }
@@ -578,21 +836,39 @@ exports.openRegister = async (req, res) => {
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
     // Create pending registration record
-    await connection.execute(`
+    await connection.execute(
+      `
       INSERT INTO resident_applications (
         application_id, first_name, middle_name, last_name, suffix, birthdate, gender,
         civil_status, occupation, income_estimate, email, mobile_number, street_address,
         sitio, voter_status, is_4ps, is_pwd, is_solo_parent, is_out_of_school_youth,
         disability_type, status, temp_password, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())
-    `, [
-      applicationId, first_name.trim(), middle_name?.trim(), last_name.trim(), suffix?.trim(),
-      birthdate, gender, civil_status || 'Single', occupation?.trim(), income_estimate || 0,
-      email.trim(), mobile_number?.trim(), street_address.trim(), sitio.trim(),
-      voter_status || 'Non-Registered', is_4ps || false, is_pwd || false,
-      is_solo_parent || false, is_out_of_school_youth || false, disability_type?.trim(),
-      hashedPassword
-    ]);
+    `,
+      [
+        applicationId,
+        first_name.trim(),
+        middle_name?.trim(),
+        last_name.trim(),
+        suffix?.trim(),
+        birthdate,
+        gender,
+        civil_status || 'Single',
+        occupation?.trim(),
+        income_estimate || 0,
+        email.trim(),
+        mobile_number?.trim(),
+        street_address.trim(),
+        sitio.trim(),
+        voter_status || 'Non-Registered',
+        is_4ps || false,
+        is_pwd || false,
+        is_solo_parent || false,
+        is_out_of_school_youth || false,
+        disability_type?.trim(),
+        hashedPassword,
+      ]
+    );
 
     // Handle document uploads
     if (req.files && req.files.length > 0) {
@@ -601,7 +877,12 @@ exports.openRegister = async (req, res) => {
         const docType = file.fieldname.replace('document_', '');
 
         let storedPath = file.path;
-        let encryptionMeta = { encryption_alg: null, encryption_version: null, encryption_iv: null, encryption_tag: null };
+        let encryptionMeta = {
+          encryption_alg: null,
+          encryption_version: null,
+          encryption_iv: null,
+          encryption_tag: null,
+        };
         if (isEncryptionEnabled()) {
           const encrypted = await encryptFileToEncryptedPath(file.path);
           storedPath = encrypted.outputPath;
@@ -623,7 +904,7 @@ exports.openRegister = async (req, res) => {
             encryptionMeta.encryption_alg,
             encryptionMeta.encryption_version,
             encryptionMeta.encryption_iv,
-            encryptionMeta.encryption_tag
+            encryptionMeta.encryption_tag,
           ]
         );
       }
@@ -633,7 +914,8 @@ exports.openRegister = async (req, res) => {
 
     res.status(201).json({
       application_id: applicationId,
-      message: 'Registration application submitted successfully. You will receive an email notification once verified.'
+      message:
+        'Registration application submitted successfully. You will receive an email notification once verified.',
     });
   } catch (error) {
     await connection.rollback();
@@ -645,6 +927,7 @@ exports.openRegister = async (req, res) => {
 };
 
 exports.uploadVerificationDocs = async (req, res) => {
+  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -657,37 +940,42 @@ exports.uploadVerificationDocs = async (req, res) => {
     const residentId = req.user.resident_id || req.user.id; // Assuming user is linked
 
     if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ error: 'No files uploaded' });
+      return res.status(400).json({ error: 'No files uploaded' });
     }
 
     for (const file of req.files) {
-        const docType = file.fieldname.replace('document_', '');
-        let storedPath = file.path;
-        let encryptionMeta = { encryption_alg: null, encryption_version: null, encryption_iv: null, encryption_tag: null };
-        if (isEncryptionEnabled()) {
-            const encrypted = await encryptFileToEncryptedPath(file.path);
-            storedPath = encrypted.outputPath;
-            encryptionMeta = encrypted;
-        }
+      const docType = file.fieldname.replace('document_', '');
+      let storedPath = file.path;
+      let encryptionMeta = {
+        encryption_alg: null,
+        encryption_version: null,
+        encryption_iv: null,
+        encryption_tag: null,
+      };
+      if (isEncryptionEnabled()) {
+        const encrypted = await encryptFileToEncryptedPath(file.path);
+        storedPath = encrypted.outputPath;
+        encryptionMeta = encrypted;
+      }
 
-        await connection.execute(
-            `
+      await connection.execute(
+        `
             INSERT INTO resident_documents (
             resident_id, document_type, file_path, file_name, verification_status, created_at,
             encryption_alg, encryption_version, encryption_iv, encryption_tag
             ) VALUES (?, ?, ?, ?, 'pending', NOW(), ?, ?, ?, ?)
         `,
-            [
-              residentId,
-              docType,
-              storedPath,
-              file.originalname,
-              encryptionMeta.encryption_alg,
-              encryptionMeta.encryption_version,
-              encryptionMeta.encryption_iv,
-              encryptionMeta.encryption_tag
-            ]
-        );
+        [
+          residentId,
+          docType,
+          storedPath,
+          file.originalname,
+          encryptionMeta.encryption_alg,
+          encryptionMeta.encryption_version,
+          encryptionMeta.encryption_iv,
+          encryptionMeta.encryption_tag,
+        ]
+      );
     }
 
     await connection.commit();
@@ -702,6 +990,7 @@ exports.uploadVerificationDocs = async (req, res) => {
 };
 
 exports.listDocuments = async (req, res) => {
+  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -731,6 +1020,7 @@ exports.listDocuments = async (req, res) => {
 };
 
 exports.downloadDocument = async (req, res) => {
+  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -776,9 +1066,9 @@ exports.downloadDocument = async (req, res) => {
       result: 'SUCCESS',
       additional_details: {
         resident_id: residentId,
-        document_id: docId
+        document_id: docId,
       },
-      session_id: req.sessionID
+      session_id: req.sessionID,
     };
 
     res.once('finish', () => {
@@ -795,7 +1085,7 @@ exports.downloadDocument = async (req, res) => {
       file_name: rows[0].file_name,
       encryption_alg: rows[0].encryption_alg,
       encryption_iv: rows[0].encryption_iv,
-      encryption_tag: rows[0].encryption_tag
+      encryption_tag: rows[0].encryption_tag,
     });
   } catch (error) {
     console.error('Error downloading resident document:', error);
@@ -804,6 +1094,7 @@ exports.downloadDocument = async (req, res) => {
 };
 
 exports.getBlotterHistory = async (req, res) => {
+  const db = req.app.locals.db;
   if (!db) {
     return res.status(500).json({ error: 'Database connection not available' });
   }
@@ -811,25 +1102,215 @@ exports.getBlotterHistory = async (req, res) => {
   try {
     const residentId = req.params.id;
     const effectiveResidentId = String(req.user.resident_id || req.user.id || '');
-    
+
     // Residents can view their own history. Officials can view anyone's.
     if (req.user.role === ROLES.RESIDENT && residentId !== effectiveResidentId) {
       return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
     }
 
-    const [rows] = await db.execute(`
+    const [rows] = await db.execute(
+      `
       SELECT b.*
       FROM blotter b
       WHERE b.complainant_resident_id = ? 
          OR b.respondent_resident_id = ? 
          OR b.respondent_id = ?
       ORDER BY b.DateTime_Incident DESC
-    `, [residentId, residentId, residentId]);
+    `,
+      [residentId, residentId, residentId]
+    );
 
     res.json(rows);
   } catch (error) {
     console.error('Error fetching resident blotter history:', error);
     res.status(500).json({ error: 'Failed to fetch resident blotter history' });
+  }
+};
+
+exports.exportResidents = async (req, res) => {
+  const db = req.app.locals.db;
+  if (!db) {
+    return res.status(500).json({ error: 'Database connection not available' });
+  }
+
+  try {
+    const { format = 'json' } = req.query;
+
+    // Fetch all residents (or filtered set if needed, but exports usually full dump or filtered)
+    // Reusing the query logic from getAll would be ideal, but for simplicity let's do a clean fetch
+    const [rows] = await db.execute(`
+      SELECT r.Resident_ID, r.First_Name, r.Last_Name, r.Middle_Name, r.Birthdate, r.Age,
+             r.Gender, r.Civil_Status, r.Occupation, r.Mobile_Number, r.Email,
+             h.Household_Number, s.name as Sitio, r.Residency_Status
+      FROM residents r
+      LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN sitios s ON h.Sitio_ID = s.id
+      ORDER BY r.Last_Name, r.First_Name
+    `);
+
+    if (format === 'json') {
+      res.header('Content-Type', 'application/json');
+      res.attachment('residents_export.json');
+      return res.send(JSON.stringify(rows, null, 2));
+    }
+
+    if (format === 'csv' || format === 'xlsx') {
+      const wb = xlsx.utils.book_new();
+      const ws = xlsx.utils.json_to_sheet(rows);
+      xlsx.utils.book_append_sheet(wb, ws, 'Residents');
+
+      if (format === 'csv') {
+        const csv = xlsx.utils.sheet_to_csv(ws);
+        res.header('Content-Type', 'text/csv');
+        res.attachment('residents_export.csv');
+        return res.send(csv);
+      }
+
+      if (format === 'xlsx') {
+        const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        res.header(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.attachment('residents_export.xlsx');
+        return res.send(buffer);
+      }
+    }
+
+    res.status(400).json({ error: 'Invalid export format. Supported: json, csv, xlsx' });
+  } catch (error) {
+    console.error('Error exporting residents:', error);
+    res.status(500).json({ error: 'Failed to export residents' });
+  }
+};
+
+exports.importResidents = async (req, res) => {
+  const db = req.app.locals.db;
+  if (!db) {
+    return res.status(500).json({ error: 'Database connection not available' });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const workbook = xlsx.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const data = xlsx.utils.sheet_to_json(worksheet);
+
+    if (!data || data.length === 0) {
+      fs.unlinkSync(req.file.path); // Clean up
+      return res.status(400).json({ error: 'File is empty or invalid' });
+    }
+
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [],
+    };
+
+    for (const [index, row] of data.entries()) {
+      try {
+        // Basic Validation
+        if (!row.first_name || !row.last_name || !row.birthdate || !row.household_id) {
+          throw new Error(
+            'Missing required fields: first_name, last_name, birthdate, household_id'
+          );
+        }
+
+        // Generate IDs
+        const residentId = `RES-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}-${index}`;
+        const qrHash = crypto
+          .createHash('sha256')
+          .update(`${residentId}-${Date.now()}`)
+          .digest('hex')
+          .substring(0, 16)
+          .toUpperCase();
+
+        // Generate User Account
+        const email = row.email || `resident_${residentId}@clearpass.local`;
+        const tempPassword = crypto.randomBytes(8).toString('hex');
+        const hashedPassword = await bcrypt.hash(tempPassword, 10);
+        const age = calculateAge(row.birthdate);
+
+        // Insert Resident
+        await connection.execute(
+          `INSERT INTO residents (
+            Resident_ID, Household_ID, Relation_to_Head, First_Name, Middle_Name, Last_Name, Suffix,
+            Birthdate, Age, Gender, Civil_Status, Occupation, Income_Estimate, Email, Mobile_Number,
+            Voter_Status, Date_Arrival, Residency_Status, QR_Hash_String
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?)`,
+          [
+            residentId,
+            row.household_id,
+            row.relation_to_head || 'Head',
+            row.first_name,
+            row.middle_name || null,
+            row.last_name,
+            row.suffix || null,
+            row.birthdate,
+            age,
+            row.gender || 'Unknown',
+            row.civil_status || 'Single',
+            row.occupation || null,
+            row.income_estimate || 0,
+            email,
+            row.mobile_number || null,
+            row.voter_status || 'Non-Registered',
+            row.date_arrival || new Date(),
+            qrHash,
+          ]
+        );
+
+        // Insert Vulnerabilities
+        await connection.execute(
+          `INSERT INTO vulnerabilities (
+            Resident_ID, Is_4Ps, Is_PWD, Is_Solo_Parent, Is_Out_of_School_Youth, Disability_Type
+          ) VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            residentId,
+            row.is_4ps ? 1 : 0,
+            row.is_pwd ? 1 : 0,
+            row.is_solo_parent ? 1 : 0,
+            row.is_out_of_school_youth ? 1 : 0,
+            row.disability_type || null,
+          ]
+        );
+
+        // Insert User
+        await connection.execute(
+          `INSERT INTO users (username, email, password_hash, role, resident_id, is_active)
+           VALUES (?, ?, ?, ?, ?, 1)`,
+          [email, email, hashedPassword, ROLES.RESIDENT || 12, residentId]
+        );
+
+        results.success++;
+      } catch (err) {
+        results.failed++;
+        results.errors.push(`Row ${index + 1}: ${err.message}`);
+      }
+    }
+
+    await connection.commit();
+    fs.unlinkSync(req.file.path); // Clean up
+
+    res.json({
+      message: 'Bulk import completed',
+      results,
+    });
+  } catch (error) {
+    await connection.rollback();
+    if (req.file) fs.unlinkSync(req.file.path);
+    console.error('Error importing residents:', error);
+    res.status(500).json({ error: 'Failed to import residents' });
+  } finally {
+    connection.release();
   }
 };
 

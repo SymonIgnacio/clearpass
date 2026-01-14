@@ -15,9 +15,7 @@ import {
   Paper
 } from '@mui/material';
 import { Person, Home, Security } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
-
-import { apiRequest } from '../utils/api';
+import { useAuth } from '../contexts/useAuth';
 
 const ResidentLogin = () => {
   const navigate = useNavigate();
@@ -29,35 +27,29 @@ const ResidentLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const response = await apiRequest('/resident-auth/login', {
-        method: 'POST',
-        body: formData
-      });
+      await login(
+        { email: formData.email, password: formData.password },
+        { endpoint: '/resident-auth/login' }
+      )
 
-      const data = await response.json();
-
-      if (data.success) {
-        // Store token and user data
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        
-        // Update auth context
-        await login(data.user, data.token);
-        
-        // Redirect to resident dashboard
-        navigate('/resident/dashboard');
-      } else {
-        setError(data.message || 'Login failed');
-      }
+      navigate('/resident/dashboard', { replace: true })
     } catch (error) {
       console.error('Login error:', error);
-      setError('Network error. Please try again.');
+      setError(error.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -171,20 +163,6 @@ const ResidentLogin = () => {
           >
             Register New Account
           </Button>
-
-          <Box sx={{ textAlign: 'center', mt: 3 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Staff Member?
-            </Typography>
-            <Button
-              component={Link}
-              to="/login"
-              startIcon={<Security />}
-              sx={{ textTransform: 'none' }}
-            >
-              Staff Login Portal
-            </Button>
-          </Box>
         </CardContent>
 
         {/* Footer */}

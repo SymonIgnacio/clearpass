@@ -73,7 +73,13 @@ exports.create = async (req, res) => {
     await db.execute(`
       INSERT INTO households (Household_ID, Household_Number, Sitio_ID, Street_Address, Household_Type, Total_Members)
       VALUES (?, ?, ?, ?, ?, 0)
-    `, [householdId, household_number, sitio_id, street_address, household_type || 'Nuclear']);
+    `, [
+      householdId,
+      household_number || null,
+      sitio_id || null,
+      street_address || null,
+      household_type || 'Nuclear'
+    ]);
 
     res.status(201).json({ household_id: householdId, message: 'Household created successfully' });
   } catch (error) {

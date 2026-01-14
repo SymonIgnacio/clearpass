@@ -233,6 +233,7 @@ async function repopulateDatabase() {
         const blotterCases = [];
         const statuses = ['Active', 'Settled', 'Dismissed'];
         const incidents = ['Physical Injury', 'Theft (Petty)', 'Boundary Dispute', 'Grave Threats', 'Noise Barrage'];
+        const blotterSeqByYearMonth = new Map();
         
         for (let i = 0; i < 5; i++) {
             const complainant = getRandomElement(residentsToInsert);
@@ -240,9 +241,16 @@ async function repopulateDatabase() {
             while (respondent.Resident_ID === complainant.Resident_ID) {
                 respondent = getRandomElement(residentsToInsert);
             }
+
+            const incidentDate = getRandomDate(new Date(2025, 0, 1), new Date());
+            const year = incidentDate.getFullYear();
+            const month = String(incidentDate.getMonth() + 1).padStart(2, '0');
+            const yearMonthKey = `${year}-${month}`;
+            const nextSeq = (blotterSeqByYearMonth.get(yearMonthKey) || 0) + 1;
+            blotterSeqByYearMonth.set(yearMonthKey, nextSeq);
             
             blotterCases.push({
-                Case_Number: `CASE-2025-${String(i+1).padStart(3, '0')}`,
+                Case_Number: `BLOT-${year}-${month}-${String(nextSeq).padStart(4, '0')}`,
                 Complainant_Details: JSON.stringify({
                     name: `${complainant.First_Name} ${complainant.Last_Name}`,
                     id: complainant.Resident_ID
@@ -255,7 +263,7 @@ async function repopulateDatabase() {
                 respondent_resident_id: respondent.Resident_ID,
                 Incident_Type: getRandomElement(incidents), // Ensure these match ENUM
                 Narrative: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-                DateTime_Incident: getRandomDate(new Date(2025, 0, 1), new Date()),
+                DateTime_Incident: incidentDate,
                 Location_Sitio: getRandomElement(SITIOS).name,
                 status: 'Active', // Safe default
                 created_at: new Date(),

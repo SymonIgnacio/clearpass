@@ -9,6 +9,9 @@ module.exports = (db) => {
   // GET all residents
   router.get('/', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk']), validateSearch, asyncHandler(residentController.getAll));
   
+  // GET export residents
+  router.get('/export', verifyToken, checkRole(['admin', 'captain', 'secretary']), asyncHandler(residentController.exportResidents));
+  
   // GET current user's resident data
   router.get('/me', verifyToken, asyncHandler(async (req, res) => {
     const [rows] = await db.execute(`
