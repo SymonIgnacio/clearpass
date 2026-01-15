@@ -25,7 +25,7 @@
     "test:all": "node scripts/test-all.cjs",
     "verify:completion": "node scripts/verify-completion.js",
     "memory-bank": "node memory-bank/system/cli.cjs",
-    "audit": "node memory-bank/system/cli.cjs audit"
+    "audit": "node memory-bank/system/cli.cjs audit",
     "start:prod": "pm2 start ecosystem.config.cjs"
   },
   "dependencies": {

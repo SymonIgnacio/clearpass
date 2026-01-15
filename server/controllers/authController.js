@@ -128,6 +128,10 @@ const login = async (req, res) => {
     }
 
     // CLEARPASS: JWT with role (Database Aligned)
+    const signOptions = mfaRequired
+      ? { expiresIn: process.env.MFA_PENDING_JWT_EXPIRES_IN || '15m' }
+      : {};
+
     const token = jwt.sign(
       {
         id: user.id,
@@ -138,21 +142,18 @@ const login = async (req, res) => {
         mfa_verified: !mfaRequired,
       },
       process.env.JWT_SECRET,
-      {
-        expiresIn: mfaRequired
-          ? process.env.MFA_PENDING_JWT_EXPIRES_IN || '15m'
-          : process.env.JWT_EXPIRES_IN || '24h',
-      }
+      signOptions
     );
 
     // Set httpOnly cookie
-    res.cookie('authToken', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    });
+    if (!mfaRequired) {
+      res.cookie('authToken', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year (effectively indefinite)
+      });
+    }
 
     const auditDetails = {
       user_id: user.id,
@@ -405,6 +406,7 @@ const verifyMfaOtpCode = async (req, res) => {
     const user = users[0];
     const normalizedRole = normalizeRole(user.role);
 
+    // Generate full JWT token (No expiration)
     const token = jwt.sign(
       {
         id: user.id,
@@ -413,15 +415,15 @@ const verifyMfaOtpCode = async (req, res) => {
         role_name: user.role_name,
         mfa_verified: true,
       },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+      process.env.JWT_SECRET
+      // No expiresIn option means the token never expires
     );
 
     res.cookie('authToken', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000,
+      sameSite: 'lax', // Needed for some cross-site scenarios, or 'strict' if same domain
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year (effectively indefinite)
     });
 
     const auditDetails = {
