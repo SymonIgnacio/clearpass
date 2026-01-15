@@ -82,6 +82,19 @@ Once the Main App is deployed, the database will be empty. You need to create th
 
 ---
 
+## Step 6: Verify & Maintain
+
+### 24/7 Availability
+
+Once deployed, your application runs on Railway's cloud servers. **It will remain online even if your local computer is turned off.**
+
+### Session Management
+
+- **Indefinite Sessions:** By default, user sessions are set to last indefinitely (1 year).
+- **Force Logout:** If you need to log out all users (e.g., in case of a security breach), simply change the `JWT_SECRET` variable in Railway. This will immediately invalidate all active sessions.
+
+---
+
 ## Alternative: Vercel / Netlify (Frontend Only)
 
 If you prefer to host the Frontend on Vercel or Netlify for their CDN capabilities:

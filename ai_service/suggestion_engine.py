@@ -11,7 +11,21 @@ from smart_suggestions import analyze_crime_patterns
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+# Configure CORS to allow requests from backend and frontend
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            os.getenv('FRONTEND_URL', '*'),
+            os.getenv('BACKEND_URL', '*'),
+            "https://*.netlify.app",
+            "https://*.vercel.app",
+            "http://localhost:3002",
+            "http://localhost:5173"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 swagger = Swagger(app)
 
 # Mock data for patrol suggestions when AI service is not available

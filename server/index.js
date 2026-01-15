@@ -96,7 +96,7 @@ if (process.env.NODE_ENV === 'production') {
 // CORS configuration
 const corsOrigins =
   process.env.NODE_ENV === 'production'
-    ? [process.env.FRONTEND_URL || 'https://glistening-lamington-a9e2b7.netlify.app']
+    ? [process.env.FRONTEND_URL].filter(Boolean)
     : [
         'http://localhost:3002',
         'http://localhost:5173',
@@ -110,16 +110,17 @@ app.use(
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
 
-      if (process.env.NODE_ENV === 'production' && origin && origin.includes('netlify.app')) {
+      // Allow any Netlify or Vercel preview/production URL
+      if (
+        origin.endsWith('.netlify.app') ||
+        origin.endsWith('.vercel.app') ||
+        (process.env.NODE_ENV !== 'production' &&
+          (origin.includes('localhost') || origin.includes('127.0.0.1')))
+      ) {
         return callback(null, true);
       }
 
       if (corsOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      // Allow localhost with any port for development
-      if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
         return callback(null, true);
       }
 
