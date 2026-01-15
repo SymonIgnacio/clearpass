@@ -49,13 +49,19 @@ import {
   Error,
   Warning,
   Download,
-  Refresh
+  Refresh,
+  Visibility
 } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
+import { useNotifications } from '../contexts/NotificationContext'
 
 import WriteProtected from '../components/WriteProtected'
+import ConfirmationModal from '../components/ConfirmationModal'
+import QRCodeModal from '../components/QRCodeModal'
+import CredentialsModal from '../components/CredentialsModal'
 
 const Residents = () => {
+  const { notify } = useNotifications()
   const [residents, setResidents] = useState([])
   const [households, setHouseholds] = useState([])
   const [sitios, setSitios] = useState([])
@@ -63,10 +69,20 @@ const Residents = () => {
   const [openHousehold, setOpenHousehold] = useState(false)
   const [openBulkImport, setOpenBulkImport] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [viewOnly, setViewOnly] = useState(false)
   const [selectedHousehold, setSelectedHousehold] = useState(null)
   const [tabValue, setTabValue] = useState(0)
   const [duplicateCheck, setDuplicateCheck] = useState(null)
   const [bulkImportResult, setBulkImportResult] = useState(null)
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false)
+  const [confirmationAction, setConfirmationAction] = useState(null)
+  
+  // New modal states
+  const [qrModalOpen, setQrModalOpen] = useState(false)
+  const [selectedQrCode, setSelectedQrCode] = useState(null)
+  const [selectedResidentName, setSelectedResidentName] = useState('')
+  const [credentialsModalOpen, setCredentialsModalOpen] = useState(false)
+  const [newCredentials, setNewCredentials] = useState(null)
 
   const [formData, setFormData] = useState({
     household_id: '',
@@ -201,14 +217,14 @@ const Residents = () => {
 
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB')
+      notify('File size must be less than 5MB', 'warning')
       return
     }
 
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
     if (!allowedTypes.includes(file.type)) {
-      alert('Only JPG, PNG, and PDF files are allowed')
+      notify('Only JPG, PNG, and PDF files are allowed', 'warning')
       return
     }
 
@@ -221,7 +237,8 @@ const Residents = () => {
     }))
   }
 
-  const handleOpenDialog = (resident = null) => {
+  const handleOpenDialog = (resident = null, isViewOnly = false) => {
+    setViewOnly(isViewOnly)
     if (resident) {
       setEditing(resident)
       setFormData({
@@ -281,40 +298,50 @@ const Residents = () => {
     setOpen(false)
     setEditing(null)
     setDuplicateCheck(null)
+    setViewOnly(false)
   }
 
   const handleSave = async () => {
     // Form validation
     if (!formData.household_id || formData.household_id === '') {
-      alert('Please select a household for the resident.')
+      notify('Please select a household for the resident.', 'warning')
       return
     }
 
     if (!formData.first_name || !formData.first_name.trim()) {
-      alert('First name is required.')
+      notify('First name is required.', 'warning')
       return
     }
 
     if (!formData.last_name || !formData.last_name.trim()) {
-      alert('Last name is required.')
+      notify('Last name is required.', 'warning')
       return
     }
 
     if (!formData.birthdate) {
-      alert('Birthdate is required.')
+      notify('Birthdate is required.', 'warning')
       return
     }
 
     if (!formData.email || !formData.email.trim()) {
-      alert('Email address is required.')
+      notify('Email address is required.', 'warning')
       return
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email)) {
-      alert('Please enter a valid email address.')
+      notify('Please enter a valid email address.', 'warning')
       return
+    }
+
+    // Mobile number validation (if provided)
+    if (formData.mobile_number && formData.mobile_number.trim()) {
+      const mobileRegex = /^(09|\+639)\d{9}$/
+      if (!mobileRegex.test(formData.mobile_number.replace(/\s/g, ''))) {
+        notify('Please enter a valid PH mobile number (e.g., 09123456789).', 'warning')
+        return
+      }
     }
 
     // Validate vulnerability documents
@@ -327,7 +354,7 @@ const Residents = () => {
 
     for (const check of vulnerabilityChecks) {
       if (formData[check.field] && !formData.documents[check.docType]) {
-        alert(`Please upload supporting document for ${check.name} status.`)
+        notify(`Please upload supporting document for ${check.name} status.`, 'warning')
         return
       }
     }
@@ -353,13 +380,9 @@ const Residents = () => {
         }
       })
 
-      // Use fetch directly for FormData
-      const token = localStorage.getItem('authToken')
-      const response = await fetch(`/api/${endpoint}`, {
+      // Use apiRequest for FormData
+      const response = await apiRequest(endpoint, {
         method: method.toUpperCase(),
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
         body: submitData
       })
 
@@ -370,55 +393,62 @@ const Residents = () => {
 
         // Show different messages for create vs update
         if (editing) {
-          alert('Resident updated successfully!')
+          notify('Resident updated successfully!', 'success')
         } else {
           // Show generated credentials for new resident
-          const credentialsMessage = `✅ Resident Created Successfully!
-
-🆔 Resident ID: ${result.resident_code}
-👤 User Account: ${result.user_email}
-🔐 Temporary Password: ${result.temp_password}
-
-📝 Instructions: Provide these credentials to the resident for their first login.
-The resident can now login with their email and this temporary password.
-
-Keep these credentials secure and provide them to the resident privately.`
-
-          alert(credentialsMessage)
+          setNewCredentials(result)
+          setCredentialsModalOpen(true)
         }
       } else {
         const error = await response.json()
-        alert('Error: ' + (error.error || 'Unknown error'))
+        notify('Error: ' + (error.error || 'Unknown error'), 'error')
       }
     } catch (error) {
       console.error('Error saving resident:', error)
-      alert('Error saving resident: ' + error.message)
+      notify('Error saving resident: ' + error.message, 'error')
     }
   }
 
-  const handleArchive = async (residentId) => {
-    const reason = prompt('Enter departure reason:')
-    if (!reason) return
-
-    try {
-      const response = await apiRequest(`residents/${residentId}/archive`, {
-        method: 'put',
-        body: {
-          departure_reason: reason,
-          departure_date: new Date().toISOString()
-        }
-      })
-
-      if (response.ok) {
-        fetchResidents()
-        alert('Resident archived successfully')
-      } else {
-        alert('Error archiving resident')
-      }
-    } catch (error) {
-      console.error('Error archiving resident:', error)
-      alert('Error archiving resident: ' + error.message)
+  const handleConfirmationConfirm = (inputValue) => {
+    if (confirmationAction && confirmationAction.onConfirm) {
+      confirmationAction.onConfirm(inputValue)
     }
+    setConfirmationModalOpen(false)
+    setConfirmationAction(null)
+  }
+
+  const handleArchive = async (residentId) => {
+    setConfirmationAction({
+      title: 'Archive Resident',
+      message: 'Please provide a reason for archiving this resident. This action will move the resident to the archive list.',
+      icon: 'warning',
+      showInput: true,
+      inputLabel: 'Departure Reason',
+      inputRequired: true,
+      confirmText: 'Archive',
+      onConfirm: async (reason) => {
+        try {
+          const response = await apiRequest(`residents/${residentId}/archive`, {
+            method: 'put',
+            body: {
+              departure_reason: reason,
+              departure_date: new Date().toISOString()
+            }
+          })
+
+          if (response.ok) {
+            fetchResidents()
+            notify('Resident archived successfully', 'success')
+          } else {
+            notify('Error archiving resident', 'error')
+          }
+        } catch (error) {
+          console.error('Error archiving resident:', error)
+          notify('Error archiving resident: ' + error.message, 'error')
+        }
+      }
+    })
+    setConfirmationModalOpen(true)
   }
 
   const handleBulkImport = async (event) => {
@@ -429,13 +459,9 @@ Keep these credentials secure and provide them to the resident privately.`
     formDataUpload.append('file', file)
 
     try {
-      // For file uploads, we need to use fetch directly since apiRequest expects JSON
-      const token = localStorage.getItem('authToken')
-      const response = await fetch('/api/residents/bulk-import', {
+      // For file uploads, we can use apiRequest as it handles FormData correctly
+      const response = await apiRequest('/residents/bulk-import', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
         body: formDataUpload
       })
 
@@ -452,21 +478,23 @@ Keep these credentials secure and provide them to the resident privately.`
     }
   }
 
-  const generateQR = async (residentId) => {
+  const generateQR = async (resident) => {
     try {
-      const response = await apiRequest(`residents/${residentId}/generate-qr`, {
+      const response = await apiRequest(`residents/${resident.Resident_ID}/generate-qr`, {
         method: 'POST'
       })
 
       if (response.ok) {
         const result = await response.json()
-        alert(`QR Code generated: ${result.qr_code}`)
-        // In a real app, this would open a print dialog or download the ID
-        window.open(`/print-id/${result.qr_code}`, '_blank')
+        
+        // Open the QR Modal instead of alert
+        setSelectedQrCode(result.qr_code)
+        setSelectedResidentName(`${resident.First_Name} ${resident.Last_Name}`)
+        setQrModalOpen(true)
       }
     } catch (error) {
       console.error('Error generating QR:', error)
-      alert('Error generating QR code')
+      notify('Error generating QR code', 'error')
     }
   }
 
@@ -539,11 +567,8 @@ Keep these credentials secure and provide them to the resident privately.`
       if (dateTo) params.append('dateTo', dateTo)
 
       // Call the PDF export endpoint
-      const response = await fetch(`/api/admin/reports/pdf/residents?${params}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
+      const response = await apiRequest(`admin/reports/pdf/residents?${params}`, {
+        method: 'GET'
       })
 
       if (!response.ok) {
@@ -561,10 +586,10 @@ Keep these credentials secure and provide them to the resident privately.`
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
 
-      alert('Residents PDF report downloaded successfully!')
+      notify('Residents PDF report downloaded successfully!', 'success')
     } catch (error) {
       console.error('PDF generation error:', error)
-      alert(`Failed to generate PDF: ${error.message}`)
+      notify(`Failed to generate PDF: ${error.message}`, 'error')
     }
   }
 
@@ -775,8 +800,8 @@ Keep these credentials secure and provide them to the resident privately.`
             </Box>
           </Paper>
 
-          <TableContainer component={Paper}>
-            <Table>
+          <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 900 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Photo</TableCell>
@@ -833,23 +858,35 @@ Keep these credentials secure and provide them to the resident privately.`
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <Tooltip title="Edit">
-                          <IconButton size="small" onClick={() => handleOpenDialog(resident)}>
-                            <Edit />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Generate QR ID">
-                          <IconButton size="small" onClick={() => generateQR(resident.Resident_ID)}>
-                            <QrCode />
-                          </IconButton>
-                        </Tooltip>
-                        {resident.Residency_Status === 'Active' && (
-                          <Tooltip title="Archive Resident">
-                            <IconButton size="small" color="error" onClick={() => handleArchive(resident.Resident_ID)}>
-                              <Delete />
+                        <WriteProtected fallback={
+                          <Tooltip title="View Details">
+                            <IconButton size="small" onClick={() => handleOpenDialog(resident, true)}>
+                              <Visibility />
                             </IconButton>
                           </Tooltip>
-                        )}
+                        }>
+                          <Tooltip title="Edit">
+                            <IconButton size="small" onClick={() => handleOpenDialog(resident)}>
+                              <Edit />
+                            </IconButton>
+                          </Tooltip>
+                        </WriteProtected>
+                        <WriteProtected>
+                          <Tooltip title="Generate QR ID">
+                            <IconButton size="small" onClick={() => generateQR(resident)}>
+                              <QrCode />
+                            </IconButton>
+                          </Tooltip>
+                        </WriteProtected>
+                        <WriteProtected>
+                          {resident.Residency_Status === 'Active' && (
+                            <Tooltip title="Archive Resident">
+                              <IconButton size="small" color="error" onClick={() => handleArchive(resident.Resident_ID)}>
+                                <Delete />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </WriteProtected>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -863,8 +900,8 @@ Keep these credentials secure and provide them to the resident privately.`
       {tabValue === 1 && (
         <Box>
           <Typography variant="h6" sx={{ mb: 2 }}>Household Management</Typography>
-          <TableContainer component={Paper}>
-            <Table>
+          <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 700 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Household #</TableCell>
@@ -952,12 +989,12 @@ Keep these credentials secure and provide them to the resident privately.`
           gap: 1 
         }}>
           <People />
-          {editing ? 'Edit Resident Information' : 'Add New Resident'}
+          {viewOnly ? 'View Resident Information' : (editing ? 'Edit Resident Information' : 'Add New Resident')}
         </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
+        <DialogContent sx={{ p: 3, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'background.default' : 'white' }}>
           <Box sx={{ pt: 1 }}>
             {/* Duplicate Check */}
-            {!editing && formData.first_name && formData.last_name && formData.birthdate && (
+            {!editing && !viewOnly && formData.first_name && formData.last_name && formData.birthdate && (
               <Box sx={{ mb: 3 }}>
                 <Button variant="outlined" onClick={checkDuplicate} sx={{ mb: 1 }}>
                   Check for Duplicates
@@ -980,7 +1017,8 @@ Keep these credentials secure and provide them to the resident privately.`
             )}
 
             {/* Household Information Section */}
-            <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+            <fieldset disabled={viewOnly} style={{ border: 'none', padding: 0, margin: 0, width: '100%' }}>
+            <Paper sx={{ p: 2, mb: 3, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'grey.50' }}>
               <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
                 Household Information
               </Typography>
@@ -1391,21 +1429,24 @@ Keep these credentials secure and provide them to the resident privately.`
                 )}
               </Grid>
             </Paper>
+            </fieldset>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 3, bgcolor: 'grey.50', gap: 1 }}>
+        <DialogActions sx={{ p: 3, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'grey.50', gap: 1 }}>
           <Button onClick={handleCloseDialog} variant="outlined" size="large">
-            Cancel
+            {viewOnly ? 'Close' : 'Cancel'}
           </Button>
-          <Button 
-            onClick={handleSave} 
-            variant="contained" 
-            size="large"
-            startIcon={editing ? <Edit /> : <Add />}
-            sx={{ minWidth: 140 }}
-          >
-            {editing ? 'Update Resident' : 'Add Resident'}
-          </Button>
+          {!viewOnly && (
+            <Button 
+              onClick={handleSave} 
+              variant="contained" 
+              size="large"
+              startIcon={editing ? <Edit /> : <Add />}
+              sx={{ minWidth: 140 }}
+            >
+              {editing ? 'Update Resident' : 'Add Resident'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 
@@ -1576,6 +1617,39 @@ Keep these credentials secure and provide them to the resident privately.`
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmationModal
+        open={confirmationModalOpen}
+        onClose={() => {
+          if (!confirmationAction?.type || confirmationAction.type === 'info' || confirmationAction.type === 'error') {
+            setConfirmationModalOpen(false)
+            setConfirmationAction(null)
+          } else {
+            setConfirmationModalOpen(false)
+          }
+        }}
+        onConfirm={handleConfirmationConfirm}
+        title={confirmationAction?.title}
+        message={confirmationAction?.message}
+        type={confirmationAction?.icon || 'info'}
+        showInput={confirmationAction?.showInput}
+        inputLabel={confirmationAction?.inputLabel}
+        inputRequired={confirmationAction?.inputRequired}
+      />
+
+      {/* New Modals */}
+      <QRCodeModal 
+        open={qrModalOpen} 
+        onClose={() => setQrModalOpen(false)} 
+        qrCode={selectedQrCode}
+        residentName={selectedResidentName}
+      />
+
+      <CredentialsModal
+        open={credentialsModalOpen}
+        onClose={() => setCredentialsModalOpen(false)}
+        credentials={newCredentials}
+      />
     </Box>
   )
 }

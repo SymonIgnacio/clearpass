@@ -39,10 +39,9 @@ import {
   Error,
   Info
 } from '@mui/icons-material';
-import { useAuth } from '../../contexts/AuthContext';
+import { apiRequest } from '../../utils/api';
 
 const SystemLogs = () => {
-  const { user } = useAuth();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -78,15 +77,11 @@ const SystemLogs = () => {
       setLoading(true);
       setError('');
 
-      const queryParams = new URLSearchParams({
-        page: page + 1,
-        limit: rowsPerPage,
-        ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== ''))
-      });
-
-      const response = await fetch(`/api/admin/logs?${queryParams}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+      const response = await apiRequest('/admin/logs', {
+        params: {
+          page: page + 1,
+          limit: rowsPerPage,
+          ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== ''))
         }
       });
 
@@ -125,14 +120,10 @@ const SystemLogs = () => {
 
   const handleExportLogs = async () => {
     try {
-      const queryParams = new URLSearchParams({
-        export: 'csv',
-        ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== ''))
-      });
-
-      const response = await fetch(`/api/admin/logs/export?${queryParams}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+      const response = await apiRequest('/admin/logs/export', {
+        params: {
+          export: 'csv',
+          ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== ''))
         }
       });
 

@@ -1,15 +1,59 @@
-const crypto = require('crypto');
-const db = require('../database');
+// const db = require('../database');
+const { ROLES } = require('../config/roles');
+const { allocateBlotterCaseNumber } = require('../utils/blotterCaseNumber');
 
 exports.getAll = async (req, res) => {
+  const db = req.app.locals.db;
   try {
-    const [rows] = await db.execute(`
+    const { search, status, page = 1, limit = 50 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    let whereConditions = [];
+    let values = [];
+
+    if (search) {
+      whereConditions.push(
+        '(Case_Number LIKE ? OR Incident_Type LIKE ? OR Complainant_Details LIKE ? OR Narrative LIKE ?)'
+      );
+      const searchTerm = `%${search}%`;
+      values.push(searchTerm, searchTerm, searchTerm, searchTerm);
+    }
+
+    if (status) {
+      whereConditions.push('status = ?');
+      values.push(status);
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    // Count query
+    const [countResult] = await db.execute(
+      `SELECT COUNT(*) as total FROM blotter b ${whereClause}`,
+      values
+    );
+    const total = countResult[0].total;
+
+    const [rows] = await db.execute(
+      `
       SELECT b.*, s.name as sitio_name
       FROM blotter b
       LEFT JOIN sitios s ON b.Location_Sitio = s.name
-      ORDER BY b.created_at DESC
-    `);
-    res.json(rows);
+      ${whereClause}
+      ORDER BY b.DateTime_Incident DESC
+      LIMIT ? OFFSET ?
+    `,
+      [...values, parseInt(limit), offset]
+    );
+
+    res.json({
+      data: rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
   } catch (error) {
     console.error('Error fetching blotter:', error);
     res.status(500).json({ error: 'Failed to fetch blotter records' });
@@ -17,24 +61,26 @@ exports.getAll = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
-  // SECURITY PATCH: Captain Role Read-Only Enforcement (Database Role 2)
-  if (req.user && req.user.role === 2) {
-    return res.status(403).json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
+  const db = req.app.locals.db;
+  if (req.user && req.user.role === ROLES.CAPTAIN) {
+    return res
+      .status(403)
+      .json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
   }
 
   try {
-    const { 
-      Case_Number, 
-      Complainant_Details, 
+    const {
+      Complainant_Details,
       complainant_resident_id,
-      Respondent_Details, 
+      Respondent_Details,
       respondent_resident_id,
       respondent_id, // Keep for backward compatibility
-      Incident_Type, 
-      Narrative, 
-      DateTime_Incident, 
-      Location_Sitio, 
-      Status 
+      Incident_Type,
+      Narrative,
+      DateTime_Incident,
+      Location_Sitio,
+      Status,
+      status,
     } = req.body;
 
     if (!Complainant_Details || !Incident_Type || !Narrative || !Location_Sitio) {
@@ -43,33 +89,36 @@ exports.create = async (req, res) => {
 
     // Validate complainant resident ID if provided
     if (complainant_resident_id) {
-      const [complainantCheck] = await db.execute('SELECT Resident_ID FROM residents WHERE Resident_ID = ?', [complainant_resident_id]);
+      const [complainantCheck] = await db.execute(
+        'SELECT Resident_ID FROM residents WHERE Resident_ID = ?',
+        [complainant_resident_id]
+      );
       if (complainantCheck.length === 0) {
-        return res.status(400).json({ error: 'Invalid complainant_resident_id - resident not found' });
+        return res
+          .status(400)
+          .json({ error: 'Invalid complainant_resident_id - resident not found' });
       }
     }
 
     // Validate respondent resident ID if provided (use new field or fallback to old)
     const finalRespondentId = respondent_resident_id || respondent_id;
     if (finalRespondentId) {
-      const [residentCheck] = await db.execute('SELECT Resident_ID FROM residents WHERE Resident_ID = ?', [finalRespondentId]);
+      const [residentCheck] = await db.execute(
+        'SELECT Resident_ID FROM residents WHERE Resident_ID = ?',
+        [finalRespondentId]
+      );
       if (residentCheck.length === 0) {
-        return res.status(400).json({ error: 'Invalid respondent_resident_id - resident not found' });
+        return res
+          .status(400)
+          .json({ error: 'Invalid respondent_resident_id - resident not found' });
       }
     }
 
-    let caseNumber = Case_Number;
-    if (!caseNumber) {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      // Use cryptographically secure random number
-      const randomBytes = crypto.randomBytes(2);
-      const sequence = String(randomBytes.readUInt16BE(0) % 9999 + 1).padStart(4, '0');
-      caseNumber = `BLOT-${year}-${month}-${sequence}`;
-    }
+    const caseNumber = await allocateBlotterCaseNumber(db, { incidentDate: DateTime_Incident });
+    const finalStatus = status ?? Status ?? 'Pending';
 
-    const [result] = await db.execute(`
+    const [result] = await db.execute(
+      `
       INSERT INTO blotter (
         Case_Number, 
         Complainant_Details, 
@@ -81,24 +130,30 @@ exports.create = async (req, res) => {
         Narrative, 
         DateTime_Incident, 
         Location_Sitio, 
-        Status
+        status
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      caseNumber, 
-      JSON.stringify(Complainant_Details), 
-      complainant_resident_id || null,
-      Respondent_Details ? JSON.stringify(Respondent_Details) : null, 
-      finalRespondentId || null,
-      finalRespondentId || null, // Keep for backward compatibility
-      Incident_Type, 
-      Narrative, 
-      DateTime_Incident, 
-      Location_Sitio, 
-      Status || 'Pending'
-    ]);
+    `,
+      [
+        caseNumber,
+        JSON.stringify(Complainant_Details),
+        complainant_resident_id || null,
+        Respondent_Details ? JSON.stringify(Respondent_Details) : null,
+        finalRespondentId || null,
+        finalRespondentId || null, // Keep for backward compatibility
+        Incident_Type,
+        Narrative,
+        DateTime_Incident,
+        Location_Sitio,
+        finalStatus,
+      ]
+    );
 
-    res.status(201).json({ id: result.insertId, Case_Number: caseNumber, message: 'Blotter record created successfully' });
+    res.status(201).json({
+      id: result.insertId,
+      Case_Number: caseNumber,
+      message: 'Blotter record created successfully',
+    });
   } catch (error) {
     console.error('Error creating blotter record:', error);
     res.status(500).json({ error: 'Failed to create blotter record' });
@@ -106,25 +161,64 @@ exports.create = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-  // SECURITY PATCH: Captain Role Read-Only Enforcement (Database Role 2)
-  if (req.user && req.user.role === 2) {
-    return res.status(403).json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
+  const db = req.app.locals.db;
+  if (req.user && req.user.role === ROLES.CAPTAIN) {
+    return res
+      .status(403)
+      .json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
   }
 
   try {
-    const { Complainant_Details, Respondent_Details, Incident_Type, Narrative, DateTime_Incident, Location_Sitio, Status, Hearing_Schedule } = req.body;
+    const {
+      Complainant_Details,
+      Respondent_Details,
+      Incident_Type,
+      Narrative,
+      DateTime_Incident,
+      Location_Sitio,
+      Status,
+      Hearing_Schedule,
+    } = req.body;
 
     const updateFields = [];
     const values = [];
 
-    if (Complainant_Details !== undefined) { updateFields.push('Complainant_Details = ?'); values.push(JSON.stringify(Complainant_Details)); }
-    if (Respondent_Details !== undefined) { updateFields.push('Respondent_Details = ?'); values.push(Respondent_Details ? JSON.stringify(Respondent_Details) : null); }
-    if (Incident_Type !== undefined) { updateFields.push('Incident_Type = ?'); values.push(Incident_Type); }
-    if (Narrative !== undefined) { updateFields.push('Narrative = ?'); values.push(Narrative); }
-    if (DateTime_Incident !== undefined) { updateFields.push('DateTime_Incident = ?'); values.push(DateTime_Incident); }
-    if (Location_Sitio !== undefined) { updateFields.push('Location_Sitio = ?'); values.push(Location_Sitio); }
-    if (Status !== undefined) { updateFields.push('Status = ?'); values.push(Status); }
-    if (Hearing_Schedule !== undefined) { updateFields.push('Hearing_Schedule = ?'); values.push(Hearing_Schedule); }
+    if (Complainant_Details !== undefined) {
+      updateFields.push('Complainant_Details = ?');
+      values.push(JSON.stringify(Complainant_Details));
+    }
+    if (Respondent_Details !== undefined) {
+      updateFields.push('Respondent_Details = ?');
+      values.push(Respondent_Details ? JSON.stringify(Respondent_Details) : null);
+    }
+    if (Incident_Type !== undefined) {
+      updateFields.push('Incident_Type = ?');
+      values.push(Incident_Type);
+    }
+    if (Narrative !== undefined) {
+      updateFields.push('Narrative = ?');
+      values.push(Narrative);
+    }
+    if (DateTime_Incident !== undefined) {
+      updateFields.push('DateTime_Incident = ?');
+      values.push(DateTime_Incident);
+    }
+    if (Location_Sitio !== undefined) {
+      updateFields.push('Location_Sitio = ?');
+      values.push(Location_Sitio);
+    }
+    if (Status !== undefined) {
+      updateFields.push('status = ?');
+      values.push(Status);
+    }
+    if (Hearing_Schedule !== undefined) {
+      updateFields.push('Hearing_Schedule = ?');
+      values.push(Hearing_Schedule);
+    }
+    if (req.body.resolution_notes !== undefined) {
+      updateFields.push('resolution_notes = ?');
+      values.push(req.body.resolution_notes);
+    }
 
     if (updateFields.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
@@ -142,9 +236,11 @@ exports.update = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
-  // SECURITY PATCH: Captain Role Read-Only Enforcement (Database Role 2)
-  if (req.user && req.user.role === 2) {
-    return res.status(403).json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
+  const db = req.app.locals.db;
+  if (req.user && req.user.role === ROLES.CAPTAIN) {
+    return res
+      .status(403)
+      .json({ success: false, message: 'Security Alert: Captains are Read-Only.' });
   }
 
   try {

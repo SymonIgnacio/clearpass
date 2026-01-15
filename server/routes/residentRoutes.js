@@ -4,10 +4,14 @@ const { verifyToken, checkRole, enforceReadOnly } = require('../middleware/authM
 const { asyncHandler } = require('../middleware/errorHandler');
 const { validateResident, validateId, validateSearch, sanitizeInput } = require('../middleware/validation');
 const residentController = require('../controllers/residentController');
+const { cacheMiddleware } = require('../utils/cache');
 
 module.exports = (db) => {
   // GET all residents
-  router.get('/', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk']), validateSearch, asyncHandler(residentController.getAll));
+  router.get('/', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk']), validateSearch, cacheMiddleware(300), asyncHandler(residentController.getAll));
+  
+  // GET export residents
+  router.get('/export', verifyToken, checkRole(['admin', 'captain', 'secretary']), asyncHandler(residentController.exportResidents));
   
   // GET current user's resident data
   router.get('/me', verifyToken, asyncHandler(async (req, res) => {
@@ -39,22 +43,28 @@ module.exports = (db) => {
   router.post('/check-duplicate', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(residentController.checkDuplicate));
   
   // PUT update resident
-  router.put('/:id', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary', 'clerk']), validateId, asyncHandler(residentController.update));
+  router.put('/:id', verifyToken, enforceReadOnly, residentController.uploadMiddleware, checkRole(['admin', 'secretary', 'clerk']), validateId, asyncHandler(residentController.update));
   
   // DELETE (archive) resident
   router.delete('/:id', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary']), validateId, asyncHandler(residentController.archive));
   
+  // PUT toggle resident status
+  router.put('/:id/status', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary']), validateId, asyncHandler(residentController.toggleStatus));
+
   // POST generate QR code
-  router.post('/:id/qr', verifyToken, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(residentController.generateQR));
+  router.post('/:id/generate-qr', verifyToken, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(residentController.generateQR));
   
   // GET household members
   router.get('/household/:id/members', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk']), asyncHandler(residentController.getHouseholdMembers));
   
   // POST file upload for verification
-  router.post('/verification/upload', verifyToken, asyncHandler(async (req, res) => {
-    // Placeholder for file upload implementation
-    res.json({ message: 'File upload endpoint - to be implemented', files: req.files || [] });
-  }));
+  router.post('/verification/upload', verifyToken, residentController.uploadMiddleware, asyncHandler(residentController.uploadVerificationDocs));
+
+  router.get('/:id/documents', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident']), validateId, asyncHandler(residentController.listDocuments));
+  router.get('/:id/documents/:docId/download', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident']), validateId, asyncHandler(residentController.downloadDocument));
+
+  // GET resident blotter history
+  router.get('/:id/blotter-history', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident']), validateId, asyncHandler(residentController.getBlotterHistory));
 
   return router;
 };

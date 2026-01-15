@@ -1,6 +1,7 @@
-exports.up = function(knex) {
-  return knex.schema
-    .createTable('resident_applications', function(table) {
+exports.up = async function(knex) {
+  const hasApps = await knex.schema.hasTable('resident_applications');
+  if (!hasApps) {
+    await knex.schema.createTable('resident_applications', function(table) {
       table.string('application_id', 50).primary();
       table.string('first_name', 100).notNullable();
       table.string('middle_name', 100);
@@ -31,8 +32,12 @@ exports.up = function(knex) {
       table.index(['email']);
       table.index(['status']);
       table.index(['created_at']);
-    })
-    .createTable('application_documents', function(table) {
+    });
+  }
+
+  const hasAppDocs = await knex.schema.hasTable('application_documents');
+  if (!hasAppDocs) {
+    await knex.schema.createTable('application_documents', function(table) {
       table.increments('id').primary();
       table.string('application_id', 50).notNullable();
       table.string('document_type', 50).notNullable();
@@ -48,8 +53,12 @@ exports.up = function(knex) {
       table.index(['application_id']);
       table.index(['document_type']);
       table.index(['verification_status']);
-    })
-    .createTable('resident_documents', function(table) {
+    });
+  }
+
+  const hasResDocs = await knex.schema.hasTable('resident_documents');
+  if (!hasResDocs) {
+    await knex.schema.createTable('resident_documents', function(table) {
       table.increments('id').primary();
       table.string('resident_id', 50).notNullable();
       table.string('document_type', 50).notNullable();
@@ -66,6 +75,7 @@ exports.up = function(knex) {
       table.index(['document_type']);
       table.index(['verification_status']);
     });
+  }
 };
 
 exports.down = function(knex) {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Card, CardContent, Typography, TextField, Button, MenuItem, Alert } from '@mui/material';
-import { useAuth } from '../contexts/AuthContext';
+import { Box, Card, CardContent, Typography, TextField, Button, Alert, Autocomplete } from '@mui/material';
+import { useAuth } from '../contexts/useAuth';
 import { apiRequest } from '../utils/api';
 
 const ResidentBlotterReport = () => {
@@ -15,14 +15,16 @@ const ResidentBlotterReport = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  const incidentTypes = [
-    'Physical Injury',
-    'Theft (Petty)',
-    'Unjust Vexation',
-    'Grave Threats',
-    'Malicious Mischief',
-    'Noise Barrage',
-    'Other'
+  // Common keywords for suggestions (matches AI service mapping)
+  const incidentSuggestions = [
+    "Physical Injury", "Binugbog (Beaten)", "Suntukan (Fistfight)", "Sinaktan (Hurt)",
+    "Theft", "Ninakawan (Robbed)", "Nawala (Lost Item)", "Snatcher", "Holdup",
+    "Noise Complaint", "Maingay (Noisy)", "Videoke", "Nagkakantahan",
+    "Grave Threats", "Banta (Threat)", "Tinatakot (Threatening)", "Papatayin",
+    "Vandalism", "Sira (Damaged)", "Binasag",
+    "Drug Related", "Adik (Addict)", "Droga",
+    "Sexual Harassment", "Bastos (Rude/Lewd)", "Hinipo",
+    "Dispute", "Nag-aaway (Fighting)", "Away Kapitbahay (Neighbor Dispute)"
   ];
 
   const handleChange = (e) => {
@@ -65,7 +67,7 @@ const ResidentBlotterReport = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
+    <Box sx={{ width: '100%', mx: 'auto', p: 3 }}>
       <Card>
         <CardContent>
           <Typography variant="h5" gutterBottom>File Blotter Report</Typography>
@@ -78,20 +80,27 @@ const ResidentBlotterReport = () => {
           )}
 
           <form onSubmit={handleSubmit}>
-            <TextField
-              select
-              fullWidth
-              label="Incident Type"
-              name="incident_type"
+            <Autocomplete
+              freeSolo
+              options={incidentSuggestions}
               value={formData.incident_type}
-              onChange={handleChange}
-              required
-              sx={{ mb: 2 }}
-            >
-              {incidentTypes.map(type => (
-                <MenuItem key={type} value={type}>{type}</MenuItem>
-              ))}
-            </TextField>
+              onChange={(event, newValue) => {
+                setFormData(prev => ({ ...prev, incident_type: newValue || '' }));
+              }}
+              onInputChange={(event, newInputValue) => {
+                setFormData(prev => ({ ...prev, incident_type: newInputValue }));
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  label="Nature of Incident (e.g., Noise Complaint, Theft, Maingay)"
+                  name="incident_type"
+                  required
+                  sx={{ mb: 2 }}
+                />
+              )}
+            />
 
             <TextField
               fullWidth

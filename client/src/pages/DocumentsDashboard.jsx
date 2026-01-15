@@ -12,8 +12,6 @@ import {
   Tabs,
   Tab,
   Paper,
-  Avatar,
-  LinearProgress,
   IconButton,
   Tooltip,
   Dialog,
@@ -25,12 +23,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Badge,
   Table,
   TableBody,
   TableCell,
@@ -38,7 +30,10 @@ import {
   TableHead,
   TableRow,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  LinearProgress,
+  Snackbar,
+  TablePagination
 } from '@mui/material';
 import {
   Description,
@@ -49,29 +44,60 @@ import {
   Assessment,
   Refresh,
   Warning,
-  CheckCircle,
-  Error,
-  Info,
-  Assignment,
   Settings,
   Article,
-  Print,
-  Download
+  Download,
+  Assignment,
+  PendingActions,
+  CheckCircle,
+  Cancel,
+  Visibility
 } from '@mui/icons-material';
 import { apiRequest } from '../utils/api';
+import { ROLES } from '../utils/roles';
+import { useAuth } from '../contexts/useAuth';
+import ConfirmationModal from '../components/ConfirmationModal';
+import RejectionModal from '../components/RejectionModal';
 
 // Color palette for charts
 const COLORS = ['#1DB954', '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8'];
 
-const DocumentsDashboard = ({ user }) => {
+const DocumentsDashboard = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [certificates, setCertificates] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [certificateTypes, setCertificateTypes] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [residents, setResidents] = useState([]);
   const [stats, setStats] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+
+  // Pagination State
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Snackbar State
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+
+  const showSnackbar = (message, severity = 'info') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setSnackbar({ ...snackbar, open: false });
+  };
 
   // Certificate issuing states - Manual input with template selection
   const [showIssueDialog, setShowIssueDialog] = useState(false);
@@ -92,8 +118,7 @@ const DocumentsDashboard = ({ user }) => {
 
   // File upload states
   const [uploadingFile, setUploadingFile] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-
+  
   // Template management states
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -122,6 +147,9 @@ const DocumentsDashboard = ({ user }) => {
     is_active: true
   });
 
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState(null);
+
   // Document type options
   const documentTypes = [
     { value: 'barangay_clearance', label: 'Barangay Clearance' },
@@ -149,19 +177,18 @@ const DocumentsDashboard = ({ user }) => {
     console.log('User role:', user?.role);
 
     try {
-      // Allow access for secretary and higher roles (IT Admin 1, Secretary 6, Captain 5)
-      const hasManagementAccess = [1, 5, 6].includes(user?.role); // IT Admin, Captain, Secretary
-      console.log('Has management access (templates/cert types):', hasManagementAccess);
-
-      // Only fetch template stats if user has IT Admin/Captain role
-      const shouldFetchStats = [1, 5].includes(user?.role); // IT Admin, Captain
-      console.log('Should fetch template stats:', shouldFetchStats);
+      // Fetch templates/types for ALL staff (Admin, Captain, Secretary, Clerk) as they are needed for issuing/viewing
+      const hasManagementAccess = [ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.CLERK].includes(user?.role);
+      
+      // Only fetch template stats for Admin/Captain/Secretary
+      const shouldFetchStats = [ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY].includes(user?.role);
 
       // Load all data in parallel
       const [
         certificatesRes,
         templatesRes,
         certTypesRes,
+        requestsRes,
         residentsRes,
         statsRes
       ] = await Promise.all([
@@ -181,6 +208,12 @@ const DocumentsDashboard = ({ user }) => {
               return { data: [] };
             })
           : Promise.resolve({ data: [] }),
+        hasManagementAccess
+          ? apiRequest('certificate-requests/admin/all?limit=100').catch((err) => {
+              console.error('Requests API failed:', err);
+              return { data: [] };
+            })
+          : Promise.resolve({ data: [] }),
         apiRequest('residents?limit=1000').catch((err) => {
           console.error('Residents API failed:', err);
           return { data: [] };
@@ -189,18 +222,10 @@ const DocumentsDashboard = ({ user }) => {
           ? apiRequest('templates/stats').catch((err) => {
               console.error('=== TEMPLATE STATS API FAILURE ===');
               console.error('Error details:', err);
-              console.error('User:', { id: user?.id, role: user?.role });
-              console.error('API URL:', import.meta.env.VITE_API_URL || 'http://localhost:3001');
               return { data: null };
             })
           : Promise.resolve({ data: null })
       ]);
-
-      console.log('Raw API responses received');
-      console.log('Certificates response status:', certificatesRes.status || 'OK');
-      console.log('Templates response status:', templatesRes.status || 'OK');
-      console.log('Cert types response status:', certTypesRes.status || 'OK');
-      console.log('Stats response status:', statsRes.status || 'N/A');
 
       const certData = certificatesRes.json
         ? await certificatesRes.json().catch((err) => {
@@ -221,37 +246,36 @@ const DocumentsDashboard = ({ user }) => {
           })
         : certTypesRes;
       const certTypesData = certTypesResponse.data || [];
+      const requestsResponse = requestsRes.json
+        ? await requestsRes.json().catch((err) => {
+            console.error('Failed to parse requests JSON:', err);
+            return { data: [] };
+          })
+        : requestsRes;
+      const requestsData = requestsResponse.data || [];
       const residentsData = residentsRes.json
         ? await residentsRes.json().catch((err) => {
             console.error('Failed to parse residents JSON:', err);
             return { data: [] };
           })
         : residentsRes;
-      // Check if stats request was successful (only for admin/captain)
-      const statsData = shouldFetchStats && statsRes.ok ?
+      
+      const statsData = shouldFetchStats && statsRes && statsRes.ok ?
         await statsRes.json().catch((err) => {
           console.error('Failed to parse stats JSON:', err);
           return null;
         }) : null;
 
-      console.log('Parsed data counts:');
-      console.log('certData:', certData.length || 'null');
-      console.log('templateData.data:', templateData.data?.length || 'null');
-      console.log('certTypesData:', certTypesData.length || 'null');
-      console.log('residentsData.data:', residentsData.data?.length || 'null');
-      console.log('statsData:', statsData ? 'has data' : 'null');
-
       setCertificates(certData || []);
       setTemplates(templateData.data || []);
       setCertificateTypes(certTypesData || []);
+      setRequests(requestsData || []);
       setResidents(residentsData.data || []);
       setStats(statsData);
 
       setLastUpdated(new Date());
-      console.log('=== LOAD ALL DATA COMPLETE ===');
     } catch (error) {
       console.error('Error loading data:', error);
-      console.error('Stack trace:', error.stack);
     } finally {
       setLoading(false);
     }
@@ -295,16 +319,16 @@ const DocumentsDashboard = ({ user }) => {
       const data = await response.json();
 
       if (response.ok) {
-        alert('Certificate issued successfully!');
+        showSnackbar('Certificate issued successfully!', 'success');
         setShowIssueDialog(false);
         resetCertificateForm();
         loadAllData();
       } else {
-        alert(`Error: ${data.error || 'Failed to issue certificate'}`);
+        showSnackbar(`Error: ${data.error || 'Failed to issue certificate'}`, 'error');
       }
     } catch (error) {
       console.error('Error issuing certificate:', error);
-      alert('Network error occurred');
+      showSnackbar('Network error occurred', 'error');
     }
   };
 
@@ -328,7 +352,9 @@ const DocumentsDashboard = ({ user }) => {
     });
   };
 
+  // --- TEMPLATE MANAGEMENT ACTIONS (ADMIN ONLY) ---
   const handleCreateTemplate = async () => {
+    if (user?.role !== ROLES.ADMIN) return;
     try {
       const response = await apiRequest('templates', {
         method: 'POST',
@@ -337,21 +363,22 @@ const DocumentsDashboard = ({ user }) => {
       });
 
       if (response.ok) {
-        alert('Template created successfully!');
+        showSnackbar('Template created successfully!', 'success');
         setShowTemplateModal(false);
         resetTemplateForm();
         loadAllData();
       } else {
         const error = await response.json();
-        alert(`Error: ${error.message || 'Failed to create template'}`);
+        showSnackbar(`Error: ${error.message || 'Failed to create template'}`, 'error');
       }
     } catch (error) {
       console.error('Error creating template:', error);
-      alert('Network error occurred');
+      showSnackbar('Network error occurred', 'error');
     }
   };
 
   const handleUpdateTemplate = async () => {
+    if (user?.role !== ROLES.ADMIN) return;
     try {
       const response = await apiRequest(`templates/${selectedTemplate.id}`, {
         method: 'PUT',
@@ -360,85 +387,129 @@ const DocumentsDashboard = ({ user }) => {
       });
 
       if (response.ok) {
-        alert('Template updated successfully!');
+        showSnackbar('Template updated successfully!', 'success');
         setShowTemplateModal(false);
         setSelectedTemplate(null);
         resetTemplateForm();
         loadAllData();
       } else {
         const error = await response.json();
-        alert(`Error: ${error.message || 'Failed to update template'}`);
+        showSnackbar(`Error: ${error.message || 'Failed to update template'}`, 'error');
       }
     } catch (error) {
       console.error('Error updating template:', error);
-      alert('Network error occurred');
+      showSnackbar('Network error occurred', 'error');
     }
   };
 
   const handleDeleteTemplate = async (templateId, templateName) => {
-    if (!window.confirm(`Are you sure you want to delete "${templateName}"?`)) {
-      return;
-    }
+    if (user?.role !== ROLES.ADMIN) return;
+    setConfirmationAction({
+      type: 'delete_template',
+      id: templateId,
+      title: 'Delete Template',
+      message: `Are you sure you want to delete "${templateName}"?`,
+      icon: 'warning'
+    })
+    setConfirmationModalOpen(true)
+  }
 
+  const handleDeleteTemplateConfirm = async () => {
     try {
-      const response = await apiRequest(`templates/${templateId}`, { method: 'DELETE' });
+      const response = await apiRequest(`templates/${confirmationAction.id}`, { method: 'DELETE' });
 
       if (response.ok) {
-        alert('Template deleted successfully!');
+        showSnackbar('Template deleted successfully!', 'success');
         loadAllData();
       } else {
-        alert('Failed to delete template');
+        showSnackbar('Failed to delete template', 'error');
       }
     } catch (error) {
       console.error('Error deleting template:', error);
-      alert('Network error occurred');
+      showSnackbar('Network error occurred', 'error');
     }
-  };
+  }
 
   const handleDuplicateTemplate = async (templateId) => {
-    const newName = prompt('Enter new template name:');
-    if (!newName) return;
+    if (user?.role !== ROLES.ADMIN) return;
+    setConfirmationAction({
+      type: 'duplicate_template',
+      id: templateId,
+      title: 'Duplicate Template',
+      message: 'Enter name for the new template:',
+      icon: 'info',
+      showInput: true,
+      inputLabel: 'New Template Name'
+    })
+    setConfirmationModalOpen(true)
+  }
+
+  const handleDuplicateTemplateConfirm = async (inputValue) => {
+    if (!inputValue) return;
 
     try {
-      const response = await apiRequest(`templates/${templateId}/duplicate`, {
+      const response = await apiRequest(`templates/${confirmationAction.id}/duplicate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ new_template_name: newName })
+        body: JSON.stringify({ new_template_name: inputValue })
       });
 
       if (response.ok) {
-        alert('Template duplicated successfully!');
+        showSnackbar('Template duplicated successfully!', 'success');
         loadAllData();
       } else {
-        alert('Failed to duplicate template');
+        showSnackbar('Failed to duplicate template', 'error');
       }
     } catch (error) {
       console.error('Error duplicating template:', error);
-      alert('Network error occurred');
+      showSnackbar('Network error occurred', 'error');
     }
-  };
+  }
 
   const handleDeleteTemplateWithFile = async (templateId, templateName) => {
-    if (!window.confirm(`Are you sure you want to delete "${templateName}" and its associated file? This action cannot be undone.`)) {
-      return;
-    }
+    if (user?.role !== ROLES.ADMIN) return;
+    setConfirmationAction({
+      type: 'delete_template_file',
+      id: templateId,
+      title: 'Delete Template & File',
+      message: `Are you sure you want to delete "${templateName}" and its associated file? This action cannot be undone.`,
+      icon: 'warning'
+    })
+    setConfirmationModalOpen(true)
+  }
 
+  const handleDeleteTemplateWithFileConfirm = async () => {
     try {
-      const response = await apiRequest(`templates/${templateId}/with-file`, { method: 'DELETE' });
+      const response = await apiRequest(`templates/${confirmationAction.id}/with-file`, { method: 'DELETE' });
 
       if (response.ok) {
-        alert('Template and file deleted successfully!');
+        showSnackbar('Template and file deleted successfully!', 'success');
         loadAllData();
       } else {
-        alert('Failed to delete template and file');
+        showSnackbar('Failed to delete template and file', 'error');
       }
     } catch (error) {
       console.error('Error deleting template with file:', error);
-      alert('Network error occurred');
+      showSnackbar('Network error occurred', 'error');
     }
-  };
+  }
+
+  const handleConfirmationConfirm = async (inputValue) => {
+    setConfirmationModalOpen(false)
+    
+    if (confirmationAction.type === 'delete_template') {
+      await handleDeleteTemplateConfirm()
+    } else if (confirmationAction.type === 'duplicate_template') {
+      await handleDuplicateTemplateConfirm(inputValue)
+    } else if (confirmationAction.type === 'delete_template_file') {
+      await handleDeleteTemplateWithFileConfirm()
+    }
+
+    setConfirmationAction(null)
+  }
 
   const handleFileUpload = async (event) => {
+    if (user?.role !== ROLES.ADMIN) return;
     const file = event.target.files[0];
     if (!file) return;
 
@@ -449,34 +520,30 @@ const DocumentsDashboard = ({ user }) => {
 
     setUploadingFile(true);
     try {
-      // Use the correct server URL instead of relative path
-      const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${serverUrl}/api/templates/upload`, {
+      const response = await apiRequest('/templates/upload', {
         method: 'POST',
-        body: formData,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
+        body: formData
       });
 
       if (response.ok) {
-        alert('Template file uploaded successfully!');
+        showSnackbar('Template file uploaded successfully!', 'success');
         setShowUploadDialog(false);
         setUploadFormData({ template_name: '', document_type: 'barangay_clearance' });
         loadAllData();
       } else {
         const error = await response.json();
-        alert(`Upload failed: ${error.message || 'Unknown error'}`);
+        showSnackbar(`Upload failed: ${error.message || 'Unknown error'}`, 'error');
       }
     } catch (error) {
       console.error('Error uploading file:', error);
-      alert('Network error occurred during upload');
+      showSnackbar('Network error occurred during upload', 'error');
     } finally {
       setUploadingFile(false);
     }
   };
 
   const handleEditTemplate = (template) => {
+    if (user?.role !== ROLES.ADMIN) return;
     setSelectedTemplate(template);
     setTemplateFormData({
       template_name: template.template_name,
@@ -530,6 +597,14 @@ const DocumentsDashboard = ({ user }) => {
       default: return 'default';
     }
   };
+
+  // Determine Tab Visibility
+  const canIssue = [ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK].includes(Number(user?.role));
+  const canViewTemplates = [ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY].includes(Number(user?.role));
+  const canViewTypes = [ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY].includes(Number(user?.role));
+  const canViewAnalytics = [ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY].includes(Number(user?.role));
+  const canManage = Number(user?.role) === ROLES.ADMIN; // STRICTLY ADMIN ONLY
+  const canProcessRequests = [ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK].includes(Number(user?.role));
 
   if (loading) {
     return (
@@ -597,132 +672,106 @@ const DocumentsDashboard = ({ user }) => {
         </Box>
       </Box>
 
-      {/* Stats Overview */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{
-            background: 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)',
-            border: '1px solid #e8eaed'
-          }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="h6" sx={{ color: '#d32f2f', fontWeight: 500 }}>
-                  Total Certificates
+      {/* Stats Overview - Only for Admin/Captain/Secretary */}
+      {canViewAnalytics && (
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{
+              background: 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)',
+              border: '1px solid #e8eaed'
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" sx={{ color: '#d32f2f', fontWeight: 500 }}>
+                    Total Certificates
+                  </Typography>
+                  <Description sx={{ color: '#d32f2f', fontSize: 28 }} />
+                </Box>
+                <Typography variant="h3" sx={{ fontWeight: 700, color: '#d32f2f', mb: 1 }}>
+                  {certificates.length}
                 </Typography>
-                <Description sx={{ color: '#d32f2f', fontSize: 28 }} />
-              </Box>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: '#d32f2f', mb: 1 }}>
-                {certificates.length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Issued documents
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid xs={12} sm={6} md={3}>
-          <Card sx={{
-            background: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)',
-            border: '1px solid #e8eaed'
-          }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="h6" sx={{ color: '#2e7d32', fontWeight: 500 }}>
-                  Active Templates
+                <Typography variant="body2" color="text.secondary">
+                  Issued documents
                 </Typography>
-                <Article sx={{ color: '#2e7d32', fontSize: 28 }} />
-              </Box>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: '#2e7d32', mb: 1 }}>
-                {stats?.active || 0}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Available templates
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
 
-        <Grid xs={12} sm={6} md={3}>
-          <Card sx={{
-            background: 'linear-gradient(135deg, #fff3e0 0%, #ffecb3 100%)',
-            border: '1px solid #e8eaed'
-          }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="h6" sx={{ color: '#f57c00', fontWeight: 500 }}>
-                  This Month
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{
+              background: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)',
+              border: '1px solid #e8eaed'
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" sx={{ color: '#2e7d32', fontWeight: 500 }}>
+                    Active Templates
+                  </Typography>
+                  <Article sx={{ color: '#2e7d32', fontSize: 28 }} />
+                </Box>
+                <Typography variant="h3" sx={{ fontWeight: 700, color: '#2e7d32', mb: 1 }}>
+                  {stats?.active || 0}
                 </Typography>
-                <Assessment sx={{ color: '#f57c00', fontSize: 28 }} />
-              </Box>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: '#f57c00', mb: 1 }}>
-                {certificates.filter(cert =>
-                  new Date(cert.date_issued || cert.issued_date).getMonth() === new Date().getMonth()
-                ).length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Certificates issued
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid xs={12} sm={6} md={3}>
-          <Card sx={{
-            background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
-            border: '1px solid #e8eaed'
-          }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 500 }}>
-                  Template Types
+                <Typography variant="body2" color="text.secondary">
+                  Available templates
                 </Typography>
-                <Settings sx={{ color: '#1976d2', fontSize: 28 }} />
-              </Box>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: '#1976d2', mb: 1 }}>
-                {stats?.by_type?.length || 0}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Document categories
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
 
-      {/* Residency Verification Notice */}
-      {user?.residency_status === 'pending' && (
-        <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
-          <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-            ⚠️ Residency Verification Required
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            You must complete residency verification before requesting certificates or documents.
-          </Typography>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => window.open('/settings', '_blank')}
-            sx={{ mr: 1 }}
-          >
-            Complete Verification
-          </Button>
-        </Alert>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{
+              background: 'linear-gradient(135deg, #fff3e0 0%, #ffecb3 100%)',
+              border: '1px solid #e8eaed'
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" sx={{ color: '#f57c00', fontWeight: 500 }}>
+                    This Month
+                  </Typography>
+                  <Assessment sx={{ color: '#f57c00', fontSize: 28 }} />
+                </Box>
+                <Typography variant="h3" sx={{ fontWeight: 700, color: '#f57c00', mb: 1 }}>
+                  {certificates.filter(cert =>
+                    new Date(cert.date_issued || cert.issued_date).getMonth() === new Date().getMonth()
+                  ).length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Certificates issued
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{
+              background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
+              border: '1px solid #e8eaed'
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 500 }}>
+                    Template Types
+                  </Typography>
+                  <Settings sx={{ color: '#1976d2', fontSize: 28 }} />
+                </Box>
+                <Typography variant="h3" sx={{ fontWeight: 700, color: '#1976d2', mb: 1 }}>
+                  {stats?.by_type?.length || 0}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Document categories
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       )}
 
       {/* Main Content Tabs */}
       <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
         <Tabs
           value={activeTab}
-          onChange={(e, newValue) => {
-            // Handle tab restrictions
-            if (newValue === 2 || newValue === 3) { // Document Templates and Certificate Types
-              if (user?.role === 3) {
-                return; // Clerk cannot access these tabs
-              }
-            }
-            setActiveTab(newValue);
-          }}
+          onChange={(e, newValue) => setActiveTab(newValue)}
           sx={{
             borderBottom: 1,
             borderColor: 'divider',
@@ -735,454 +784,515 @@ const DocumentsDashboard = ({ user }) => {
             }
           }}
         >
+          {canIssue && (
+            <Tab
+              icon={<Add />}
+              label="Issue Certificates"
+              iconPosition="start"
+              disabled={user?.residency_status === 'pending'}
+            />
+          )}
+
+          {canProcessRequests && (
+             <Tab
+               icon={<PendingActions />}
+               label="Certificate Requests"
+               iconPosition="start"
+             />
+          )}
+          
+          {/* Certificate History - Visible to All Staff */}
           <Tab
-            icon={<Add />}
-            label="Issue Certificates"
-            iconPosition="start"
-            disabled={user?.residency_status === 'pending'}
-          />
-          <Tab
-            icon={<Settings />}
-            label="Document Templates"
+            icon={<Description />}
+            label="Certificate History"
             iconPosition="start"
           />
-          {user?.role !== 3 && (
+          
+          {canViewTemplates && (
+            <Tab
+              icon={<Settings />}
+              label="Document Templates"
+              iconPosition="start"
+            />
+          )}
+          
+          {canViewTypes && (
             <Tab
               icon={<Assignment />}
               label="Certificate Types"
               iconPosition="start"
             />
           )}
-          <Tab
-            icon={<Assessment />}
-            label="Document Analytics"
-            iconPosition="start"
-          />
+          
+          {canViewAnalytics && (
+            <Tab
+              icon={<Assessment />}
+              label="Document Analytics"
+              iconPosition="start"
+            />
+          )}
         </Tabs>
 
         <Box sx={{ p: 3, minHeight: 500 }}>
-          {activeTab === 0 && (
-            <Box>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
-                <Add sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Issue New Certificate
-              </Typography>
+          {/* LOGIC TO RENDER CORRECT TAB CONTENT BASED ON INDEX AND VISIBILITY */}
+          {(() => {
+            // Map tab index to content
+            // We need to calculate the index dynamically based on visibility
+            const tabs = [];
+            if (canIssue) tabs.push('issue');
+            if (canProcessRequests) tabs.push('requests');
+            tabs.push('history'); // Always present
+            if (canViewTemplates) tabs.push('templates');
+            if (canViewTypes) tabs.push('types');
+            if (canViewAnalytics) tabs.push('analytics');
 
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Manual Certificate Creation
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Manually enter all certificate information for custom documents
-                  </Typography>
+            const currentTabName = tabs[activeTab];
 
-                  <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-                    <Typography variant="body2">
-                      <strong>Super Admin Feature:</strong> Create certificates with custom information. All fields are manually entered for complete control over certificate content.
+            switch (currentTabName) {
+              case 'issue':
+                return (
+                  <Box>
+                    <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
+                      <Add sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      Issue New Certificate
                     </Typography>
-                  </Alert>
 
-                  {/* Template Selection */}
-                  <Box sx={{ mb: 3 }}>
-                    <Typography variant="h6" gutterBottom>
-                      Select Document Template (Required)
-                    </Typography>
-                    <FormControl fullWidth required sx={{ mb: 2 }}>
-                      <InputLabel>Choose Template *</InputLabel>
-                      <Select
-                        value={selectedCertificateTemplate}
-                        onChange={(e) => setSelectedCertificateTemplate(e.target.value)}
-                        label="Choose Template *"
-                        required
-                      >
-                        {templates.filter(t => t.is_active).map((template) => (
-                          <MenuItem key={template.id} value={template.id}>
-                            {template.template_name} ({documentTypes.find(dt => dt.value === template.document_type)?.label || template.document_type})
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    {selectedCertificateTemplate && (
-                      <Alert severity="success" sx={{ borderRadius: 2 }}>
-                        <Typography variant="body2">
-                          <strong>Template Selected:</strong> {templates.find(t => t.id === selectedCertificateTemplate)?.template_name}
-                          <br />
-                          This template will be used for generating the certificate.
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                          Manual Certificate Creation
                         </Typography>
-                      </Alert>
-                    )}
-                    {!selectedCertificateTemplate && (
-                      <Alert severity="warning" sx={{ borderRadius: 2 }}>
-                        <Typography variant="body2">
-                          Please select a document template first before issuing a certificate.
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                          Manually enter all certificate information for custom documents
                         </Typography>
-                      </Alert>
-                    )}
-                  </Box>
 
-                  <Grid container spacing={2}>
-                <Grid xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Resident Name"
-                        value={certificateFormData.manual_resident_name}
-                        onChange={(e) => setCertificateFormData({
-                          ...certificateFormData,
-                          manual_resident_name: e.target.value
-                        })}
-                        required
-                      />
-                    </Grid>
+                        <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+                          <Typography variant="body2">
+                            <strong>Super Admin Feature:</strong> Create certificates with custom information. All fields are manually entered for complete control over certificate content.
+                          </Typography>
+                        </Alert>
 
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Certificate Type"
-                        value={certificateFormData.manual_certificate_type}
-                        onChange={(e) => setCertificateFormData({
-                          ...certificateFormData,
-                          manual_certificate_type: e.target.value
-                        })}
-                        required
-                      />
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Address"
-                        value={certificateFormData.manual_address}
-                        onChange={(e) => setCertificateFormData({
-                          ...certificateFormData,
-                          manual_address: e.target.value
-                        })}
-                        required
-                      />
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
-                        label="Purpose"
-                        value={certificateFormData.manual_purpose}
-                        onChange={(e) => setCertificateFormData({
-                          ...certificateFormData,
-                          manual_purpose: e.target.value
-                        })}
-                        required
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={4}>
-                      <TextField
-                        fullWidth
-                        type="date"
-                        label="Issued Date"
-                        value={certificateFormData.manual_issued_date}
-                        onChange={(e) => setCertificateFormData({
-                          ...certificateFormData,
-                          manual_issued_date: e.target.value
-                        })}
-                        InputLabelProps={{ shrink: true }}
-                        required
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Valid Until (Optional)"
-                        value={certificateFormData.manual_valid_until}
-                        onChange={(e) => setCertificateFormData({
-                          ...certificateFormData,
-                          manual_valid_until: e.target.value
-                        })}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Control Number (Optional)"
-                        value={certificateFormData.manual_control_number}
-                        onChange={(e) => setCertificateFormData({
-                          ...certificateFormData,
-                          manual_control_number: e.target.value
-                        })}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Signatory Captain"
-                        value={certificateFormData.manual_signatory_captain}
-                        onChange={(e) => setCertificateFormData({
-                          ...certificateFormData,
-                          manual_signatory_captain: e.target.value
-                        })}
-                        required
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Signatory Secretary"
-                        value={certificateFormData.manual_signatory_secretary}
-                        onChange={(e) => setCertificateFormData({
-                          ...certificateFormData,
-                          manual_signatory_secretary: e.target.value
-                        })}
-                        required
-                      />
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Location"
-                        value={certificateFormData.manual_location}
-                        onChange={(e) => setCertificateFormData({
-                          ...certificateFormData,
-                          manual_location: e.target.value
-                        })}
-                        required
-                      />
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        onClick={() => {
-                          setCertificateFormData(prev => ({ ...prev, use_manual_input: true }));
-                          setShowIssueDialog(true);
-                        }}
-                        disabled={!certificateFormData.manual_resident_name || !certificateFormData.manual_certificate_type || !certificateFormData.manual_purpose || !selectedCertificateTemplate}
-                        sx={{ backgroundColor: '#1DB954', py: 1.5 }}
-                      >
-                        Create Certificate
-                      </Button>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Box>
-          )}
-
-          {activeTab === 1 && (
-            <Box>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
-                <Description sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Certificate History
-              </Typography>
-
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Certificate #</TableCell>
-                      <TableCell>Resident</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Purpose</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Issued Date</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {certificates.map((cert) => (
-                      <TableRow key={cert.id || cert.control_no}>
-                        <TableCell>{cert.control_no || cert.certificate_number}</TableCell>
-                        <TableCell>{cert.resident_name}</TableCell>
-                        <TableCell>{cert.certificate_type}</TableCell>
-                        <TableCell>{cert.purpose}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={cert.status}
-                            color={getStatusColor(cert.status)}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>{new Date(cert.date_issued || cert.issued_date).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => window.open(`/api/documents/requests/${cert.request_id || cert.id}/download`, '_blank')}
-                          >
-                            <Download fontSize="small" />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Box>
-          )}
-
-          {activeTab === (user?.role !== 3 ? 2 : 0) && user?.role !== 3 && (
-            <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 500 }}>
-                  <Settings sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Document Templates
-                </Typography>
-                {[1, 5].includes(user?.role) ? (
-                  <Button
-                    variant="outlined"
-                    startIcon={<Download />}
-                    onClick={() => setShowUploadDialog(true)}
-                    sx={{ borderColor: '#FF6B6B', color: '#FF6B6B' }}
-                  >
-                    Upload File
-                  </Button>
-                ) : null}
-              </Box>
-
-              {/* Create Template Button for Secretary */}
-              <Box sx={{ mb: 3 }}>
-                {[1, 5].includes(user?.role) && (
-                  <Button
-                    variant="contained"
-                    startIcon={<Add />}
-                    onClick={() => setShowTemplateModal(true)}
-                    sx={{ backgroundColor: '#1DB954' }}
-                  >
-                    Create Template
-                  </Button>
-                )}
-              </Box>
-
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Template Name</TableCell>
-                      <TableCell>Document Type</TableCell>
-                      <TableCell>File</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Last Updated</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {templates.map((template) => (
-                      <TableRow key={template.id}>
-                        <TableCell>{template.template_name}</TableCell>
-                        <TableCell>
-                          {documentTypes.find(dt => dt.value === template.document_type)?.label || template.document_type}
-                        </TableCell>
-                        <TableCell>
-                          {template.file_data ? (
-                            <Chip
-                              label={`${template.original_filename || 'File'} (${Math.round((template.file_size || 0) / 1024)}KB)`}
-                              size="small"
-                              color="primary"
-                              variant="outlined"
-                            />
-                          ) : (
-                            <Chip
-                              label="No file"
-                              size="small"
-                              variant="outlined"
-                            />
+                        {/* Template Selection */}
+                        <Box sx={{ mb: 3 }}>
+                          <Typography variant="h6" gutterBottom>
+                            Select Document Template (Required)
+                          </Typography>
+                          <FormControl fullWidth required sx={{ mb: 2 }}>
+                            <InputLabel>Choose Template *</InputLabel>
+                            <Select
+                              value={selectedCertificateTemplate}
+                              onChange={(e) => setSelectedCertificateTemplate(e.target.value)}
+                              label="Choose Template *"
+                              required
+                            >
+                              {templates.filter(t => t.is_active).map((template) => (
+                                <MenuItem key={template.id} value={template.id}>
+                                  {template.template_name} ({documentTypes.find(dt => dt.value === template.document_type)?.label || template.document_type})
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          {selectedCertificateTemplate && (
+                            <Alert severity="success" sx={{ borderRadius: 2 }}>
+                              <Typography variant="body2">
+                                <strong>Template Selected:</strong> {templates.find(t => t.id === selectedCertificateTemplate)?.template_name}
+                                <br />
+                                This template will be used for generating the certificate.
+                              </Typography>
+                            </Alert>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={template.is_active ? 'Active' : 'Inactive'}
-                            color={template.is_active ? 'success' : 'default'}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>{new Date(template.updated_at).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <IconButton size="small" onClick={() => handleEditTemplate(template)}>
-                              <Edit fontSize="small" />
-                            </IconButton>
-                            <IconButton size="small" onClick={() => handleDuplicateTemplate(template.id)}>
-                              <ContentCopy fontSize="small" />
-                            </IconButton>
-                            {template.file_data && (
-                              <IconButton size="small" color="primary" onClick={() => window.open(`/api/templates/${template.id}/download`, '_blank')}>
-                                <Download fontSize="small" />
-                              </IconButton>
-                            )}
-                            {!template.template_name.startsWith('Default ') && (user?.role === 'admin' || user?.role === 'captain') && (
-                              <IconButton size="small" color="error" onClick={() => handleDeleteTemplateWithFile(template.id, template.template_name)}>
-                                <Delete fontSize="small" />
-                              </IconButton>
-                            )}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Box>
-          )}
-
-          {activeTab === (user?.role !== 'clerk' ? 3 : 4) && user?.role !== 'clerk' && (
-            <CertificateTypesManagement
-              user={user}
-              certificateTypes={certificateTypes}
-              loadAllData={loadAllData}
-            />
-          )}
-
-          {activeTab === 4 && (
-            <Box>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
-                <Assessment sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Document Analytics
-              </Typography>
-
-              <Grid container spacing={3}>
-                <Grid xs={12} md={6}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Certificate Types Distribution
-                      </Typography>
-                      <Box sx={{ height: 300 }}>
-                        {/* Simple chart placeholder */}
-                        <Box sx={{ p: 2 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            Most issued certificates by type
-                          </Typography>
+                          {!selectedCertificateTemplate && (
+                            <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                              <Typography variant="body2">
+                                Please select a document template first before issuing a certificate.
+                              </Typography>
+                            </Alert>
+                          )}
                         </Box>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
 
-                <Grid item xs={12} md={6}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Monthly Trends
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth
+                              label="Resident Name"
+                              value={certificateFormData.manual_resident_name}
+                              onChange={(e) => setCertificateFormData({
+                                ...certificateFormData,
+                                manual_resident_name: e.target.value
+                              })}
+                              required
+                            />
+                          </Grid>
+
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth
+                              label="Certificate Type"
+                              value={certificateFormData.manual_certificate_type}
+                              onChange={(e) => setCertificateFormData({
+                                ...certificateFormData,
+                                manual_certificate_type: e.target.value
+                              })}
+                              required
+                            />
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <TextField
+                              fullWidth
+                              label="Address"
+                              value={certificateFormData.manual_address}
+                              onChange={(e) => setCertificateFormData({
+                                ...certificateFormData,
+                                manual_address: e.target.value
+                              })}
+                              required
+                            />
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <TextField
+                              fullWidth
+                              multiline
+                              rows={3}
+                              label="Purpose"
+                              value={certificateFormData.manual_purpose}
+                              onChange={(e) => setCertificateFormData({
+                                ...certificateFormData,
+                                manual_purpose: e.target.value
+                              })}
+                              required
+                            />
+                          </Grid>
+
+                          <Grid item xs={12} md={4}>
+                            <TextField
+                              fullWidth
+                              type="date"
+                              label="Issued Date"
+                              value={certificateFormData.manual_issued_date}
+                              onChange={(e) => setCertificateFormData({
+                                ...certificateFormData,
+                                manual_issued_date: e.target.value
+                              })}
+                              InputLabelProps={{ shrink: true }}
+                              required
+                            />
+                          </Grid>
+
+                          <Grid item xs={12} md={4}>
+                            <TextField
+                              fullWidth
+                              label="Valid Until (Optional)"
+                              value={certificateFormData.manual_valid_until}
+                              onChange={(e) => setCertificateFormData({
+                                ...certificateFormData,
+                                manual_valid_until: e.target.value
+                              })}
+                            />
+                          </Grid>
+
+                          <Grid item xs={12} md={4}>
+                            <TextField
+                              fullWidth
+                              label="Control Number (Optional)"
+                              value={certificateFormData.manual_control_number}
+                              onChange={(e) => setCertificateFormData({
+                                ...certificateFormData,
+                                manual_control_number: e.target.value
+                              })}
+                            />
+                          </Grid>
+
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth
+                              label="Signatory Captain"
+                              value={certificateFormData.manual_signatory_captain}
+                              onChange={(e) => setCertificateFormData({
+                                ...certificateFormData,
+                                manual_signatory_captain: e.target.value
+                              })}
+                              required
+                            />
+                          </Grid>
+
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth
+                              label="Signatory Secretary"
+                              value={certificateFormData.manual_signatory_secretary}
+                              onChange={(e) => setCertificateFormData({
+                                ...certificateFormData,
+                                manual_signatory_secretary: e.target.value
+                              })}
+                              required
+                            />
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <TextField
+                              fullWidth
+                              label="Location"
+                              value={certificateFormData.manual_location}
+                              onChange={(e) => setCertificateFormData({
+                                ...certificateFormData,
+                                manual_location: e.target.value
+                              })}
+                              required
+                            />
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <Button
+                              variant="contained"
+                              fullWidth
+                              onClick={() => {
+                                setCertificateFormData(prev => ({ ...prev, use_manual_input: true }));
+                                setShowIssueDialog(true);
+                              }}
+                              disabled={!certificateFormData.manual_resident_name || !certificateFormData.manual_certificate_type || !certificateFormData.manual_purpose || !selectedCertificateTemplate}
+                              sx={{ backgroundColor: '#1DB954', py: 1.5 }}
+                            >
+                              Create Certificate
+                            </Button>
+                          </Grid>
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Box>
+                );
+
+              case 'requests':
+                return (
+                  <CertificateRequestsManagement
+                    user={user}
+                    requests={requests}
+                    loadAllData={loadAllData}
+                    canManage={canManage}
+                    showSnackbar={showSnackbar}
+                  />
+                );
+
+              case 'history':
+                return (
+                  <Box>
+                    <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
+                      <Description sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      Certificate History
+                    </Typography>
+
+                    <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+                      <Table sx={{ minWidth: 900 }}>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Certificate #</TableCell>
+                            <TableCell>Resident</TableCell>
+                            <TableCell>Type</TableCell>
+                            <TableCell>Purpose</TableCell>
+                            <TableCell>Status</TableCell>
+                            <TableCell>Issued Date</TableCell>
+                            <TableCell>Actions</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {certificates
+                            .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                            .map((cert) => (
+                            <TableRow key={cert.id || cert.control_no}>
+                              <TableCell>{cert.control_no || cert.certificate_number}</TableCell>
+                              <TableCell>{cert.resident_name}</TableCell>
+                              <TableCell>{cert.certificate_type}</TableCell>
+                              <TableCell>{cert.purpose}</TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={cert.status}
+                                  color={getStatusColor(cert.status)}
+                                  size="small"
+                                />
+                              </TableCell>
+                              <TableCell>{new Date(cert.date_issued || cert.issued_date).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => window.open(`/api/documents/requests/${cert.request_id || cert.id}/download`, '_blank')}
+                                >
+                                  <Download fontSize="small" />
+                                </IconButton>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                    <TablePagination
+                      rowsPerPageOptions={[5, 10, 25, 50]}
+                      component="div"
+                      count={certificates.length}
+                      rowsPerPage={rowsPerPage}
+                      page={page}
+                      onPageChange={handleChangePage}
+                      onRowsPerPageChange={handleChangeRowsPerPage}
+                    />
+                  </Box>
+                );
+
+              case 'templates':
+                return (
+                  <Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                        <Settings sx={{ mr: 1, verticalAlign: 'middle' }} />
+                        Document Templates
                       </Typography>
-                      <Box sx={{ height: 300 }}>
-                        <Box sx={{ p: 2 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            Certificate issuance trends over time
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </Box>
-          )}
+                      {canManage && (
+                        <Button
+                          variant="outlined"
+                          startIcon={<Download />}
+                          onClick={() => setShowUploadDialog(true)}
+                          sx={{ borderColor: '#FF6B6B', color: '#FF6B6B' }}
+                        >
+                          Upload File
+                        </Button>
+                      )}
+                    </Box>
+
+                    <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+                      <Table sx={{ minWidth: 900 }}>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Template Name</TableCell>
+                            <TableCell>Document Type</TableCell>
+                            <TableCell>File</TableCell>
+                            <TableCell>Status</TableCell>
+                            <TableCell>Last Updated</TableCell>
+                            {canManage && <TableCell>Actions</TableCell>}
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {templates.map((template) => (
+                            <TableRow key={template.id}>
+                              <TableCell>{template.template_name}</TableCell>
+                              <TableCell>
+                                {documentTypes.find(dt => dt.value === template.document_type)?.label || template.document_type}
+                              </TableCell>
+                              <TableCell>
+                                {template.file_data ? (
+                                  <Chip
+                                    label={`${template.original_filename || 'File'} (${Math.round((template.file_size || 0) / 1024)}KB)`}
+                                    size="small"
+                                    color="primary"
+                                    variant="outlined"
+                                    />
+                                ) : (
+                                  <Chip
+                                    label="No file"
+                                    size="small"
+                                    variant="outlined"
+                                  />
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={template.is_active ? 'Active' : 'Inactive'}
+                                  color={template.is_active ? 'success' : 'default'}
+                                  size="small"
+                                />
+                              </TableCell>
+                              <TableCell>{new Date(template.updated_at).toLocaleDateString()}</TableCell>
+                              {canManage && (
+                                <TableCell>
+                                  <Box sx={{ display: 'flex', gap: 1 }}>
+                                    <IconButton size="small" onClick={() => handleEditTemplate(template)}>
+                                      <Edit fontSize="small" />
+                                    </IconButton>
+                                    <IconButton size="small" onClick={() => handleDuplicateTemplate(template.id)}>
+                                      <ContentCopy fontSize="small" />
+                                    </IconButton>
+                                    {template.file_data && (
+                                      <IconButton size="small" color="primary" onClick={() => window.open(`/api/templates/${template.id}/download`, '_blank')}>
+                                        <Download fontSize="small" />
+                                      </IconButton>
+                                    )}
+                                    {!template.template_name.startsWith('Default ') && (
+                                      <IconButton size="small" color="error" onClick={() => handleDeleteTemplateWithFile(template.id, template.template_name)}>
+                                        <Delete fontSize="small" />
+                                      </IconButton>
+                                    )}
+                                  </Box>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                );
+
+              case 'types':
+                return (
+                  <CertificateTypesManagement
+                    user={user}
+                    certificateTypes={certificateTypes}
+                    loadAllData={loadAllData}
+                    canManage={canManage}
+                    showSnackbar={showSnackbar}
+                  />
+                );
+
+              case 'analytics':
+                return (
+                  <Box>
+                    <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
+                      <Assessment sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      Document Analytics
+                    </Typography>
+
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} md={6}>
+                        <Card>
+                          <CardContent>
+                            <Typography variant="h6" gutterBottom>
+                              Certificate Types Distribution
+                            </Typography>
+                            <Box sx={{ height: 300 }}>
+                              {/* Simple chart placeholder */}
+                              <Box sx={{ p: 2 }}>
+                                <Typography variant="body2" color="text.secondary">
+                                  Most issued certificates by type
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+
+                      <Grid item xs={12} md={6}>
+                        <Card>
+                          <CardContent>
+                            <Typography variant="h6" gutterBottom>
+                              Monthly Trends
+                            </Typography>
+                            <Box sx={{ height: 300 }}>
+                              <Box sx={{ p: 2 }}>
+                                <Typography variant="body2" color="text.secondary">
+                                  Certificate issuance trends over time
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                );
+
+              default:
+                return null;
+            }
+          })()}
         </Box>
       </Paper>
 
@@ -1534,6 +1644,31 @@ const DocumentsDashboard = ({ user }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmationModal
+        open={confirmationModalOpen}
+        onClose={() => {
+          setConfirmationModalOpen(false);
+          setConfirmationAction(null);
+        }}
+        onConfirm={handleConfirmationConfirm}
+        title={confirmationAction?.title}
+        message={confirmationAction?.message}
+        type={confirmationAction?.icon || 'info'}
+        showInput={confirmationAction?.showInput}
+        inputLabel={confirmationAction?.inputLabel}
+      />
+
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
@@ -1541,7 +1676,7 @@ const DocumentsDashboard = ({ user }) => {
 export default DocumentsDashboard;
 
 // Certificate Types Management Component
-const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => {
+const CertificateTypesManagement = ({ user, certificateTypes, loadAllData, canManage, showSnackbar }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedType, setSelectedType] = useState(null);
@@ -1558,54 +1693,136 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
     is_active: true
   });
 
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState(null);
+
   const handleCreateType = async (e) => {
     e.preventDefault();
+    if (!canManage) return;
     try {
-      // For now, simulate creating in database
-      alert(`Create Certificate Type: ${formData.name}\n\nThis feature requires backend implementation.`);
-      setShowCreateModal(false);
-      resetForm();
-      loadAllData();
+      // Convert required_data string to array
+      const payload = {
+        ...formData,
+        required_data: formData.required_data 
+          ? formData.required_data.split('\n').map(item => item.trim()).filter(item => item)
+          : []
+      };
+
+      const response = await apiRequest('certificate-types', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        showSnackbar(`Certificate Type created successfully`, 'success');
+        setShowCreateModal(false);
+        resetForm();
+        loadAllData();
+      } else {
+        const data = await response.json();
+        showSnackbar(data.message || 'Failed to create certificate type', 'error');
+      }
     } catch (error) {
       console.error('Error creating certificate type:', error);
-      alert(error.response?.data?.message || 'Failed to create certificate type');
+      showSnackbar(error.response?.data?.message || 'Failed to create certificate type', 'error');
     }
   };
 
   const handleUpdateType = async (e) => {
     e.preventDefault();
+    if (!canManage) return;
     try {
-      // Secretary can update but not create/delete
-      if (user?.role === 'secretary') {
-        alert(`Update Certificate Type: ${formData.name}\n\nSecretary: Price and fee values updated successfully.`);
+      // Convert required_data string to array
+      const payload = {
+        ...formData,
+        required_data: formData.required_data 
+          ? formData.required_data.split('\n').map(item => item.trim()).filter(item => item)
+          : []
+      };
+
+      const response = await apiRequest(`certificate-types/${selectedType.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        showSnackbar(`Certificate Type updated successfully`, 'success');
+        setShowEditModal(false);
+        setSelectedType(null);
+        resetForm();
+        loadAllData();
       } else {
-        alert(`Update Certificate Type: ${formData.name}\n\nThis feature requires backend implementation.`);
+        const data = await response.json();
+        showSnackbar(data.message || 'Failed to update certificate type', 'error');
       }
-      setShowEditModal(false);
-      setSelectedType(null);
-      resetForm();
-      loadAllData();
     } catch (error) {
       console.error('Error updating certificate type:', error);
-      alert(error.response?.data?.message || 'Failed to update certificate type');
+      showSnackbar(error.response?.data?.message || 'Failed to update certificate type', 'error');
     }
   };
 
   const handleDeleteType = async (typeId, typeName) => {
-    if (!window.confirm(`Are you sure you want to delete certificate type "${typeName}"? This may affect existing templates.`)) {
-      return;
-    }
-
+    if (!canManage) return;
+    setConfirmationAction({
+      type: 'delete_cert_type',
+      id: typeId,
+      name: typeName,
+      title: 'Delete Certificate Type',
+      message: `Are you sure you want to delete certificate type "${typeName}"? This may affect existing templates.`,
+      icon: 'warning'
+    })
+    setConfirmationModalOpen(true)
+  }
+  
+  const handleDeleteTypeConfirm = async () => {
     try {
-      alert(`Delete Certificate Type: ${typeName}\n\nThis feature requires backend implementation.`);
-      loadAllData();
+      const response = await apiRequest(`certificate-types/${confirmationAction.id}`, { method: 'DELETE' });
+      
+      if (response.ok) {
+        showSnackbar(`Certificate Type deleted successfully`, 'success');
+        loadAllData();
+      } else {
+        const data = await response.json();
+        showSnackbar(data.message || 'Failed to delete certificate type', 'error');
+      }
     } catch (error) {
       console.error('Error deleting certificate type:', error);
-      alert(error.response?.data?.message || 'Failed to delete certificate type');
+      showSnackbar(error.response?.data?.message || 'Failed to delete certificate type', 'error');
     }
-  };
+  }
+
+  const handleConfirmationConfirm = async () => {
+    setConfirmationModalOpen(false)
+    if (confirmationAction.type === 'delete_cert_type') {
+      await handleDeleteTypeConfirm()
+    }
+    setConfirmationAction(null)
+  }
 
   const handleEditType = (type) => {
+    if (!canManage) return;
+    
+    let parsedRequiredData = '';
+    try {
+      if (type.required_data) {
+        if (Array.isArray(type.required_data)) {
+          parsedRequiredData = type.required_data.join('\n');
+        } else if (typeof type.required_data === 'string') {
+          // Check if it's a JSON string
+          if (type.required_data.trim().startsWith('[')) {
+            parsedRequiredData = JSON.parse(type.required_data).join('\n');
+          } else {
+            parsedRequiredData = type.required_data;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing required_data:', e);
+      parsedRequiredData = type.required_data || '';
+    }
+
     setSelectedType(type);
     setFormData({
       name: type.label || type.name,
@@ -1614,7 +1831,7 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
       description: type.description || '',
       purpose: type.purpose || '',
       when_needed: type.when_needed || '',
-      required_data: type.required_data || '',
+      required_data: parsedRequiredData,
       is_active: type.is_active !== false
     });
     setShowEditModal(true);
@@ -1643,7 +1860,6 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
   // Calculate stats for certificate types
   const hasTemplatesStats = certificateTypes.reduce(
     (acc, type) => {
-      // This is a simplified check - in reality, you'd query which types have templates
       acc.total++;
       acc.withTemplates++; // Assume most have templates for demo
       return acc;
@@ -1664,7 +1880,7 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
             Define available certificate types for your barangay
           </Typography>
         </Box>
-        {(user?.role === 'admin' || user?.role === 'captain') && (
+        {canManage && (
           <Button
             onClick={() => setShowCreateModal(true)}
             variant="contained"
@@ -1678,7 +1894,7 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card sx={{ background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)' }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -1697,7 +1913,7 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
           </Card>
         </Grid>
 
-        <Grid xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card sx={{ background: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)' }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -1716,7 +1932,7 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
           </Card>
         </Grid>
 
-        <Grid xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card sx={{ background: 'linear-gradient(135deg, #fff3e0 0%, #ffecb3 100%)' }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -1743,8 +1959,8 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
             Available Certificate Types
           </Typography>
 
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 700 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>
@@ -1778,15 +1994,15 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
                       />
                     </TableCell>
                     <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEditType(type)}
-                          color="primary"
-                        >
-                          <Edit fontSize="small" />
-                        </IconButton>
-                        {(user?.role === 'admin' || user?.role === 'captain') && (
+                      {canManage && (
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditType(type)}
+                            color="primary"
+                          >
+                            <Edit fontSize="small" />
+                          </IconButton>
                           <IconButton
                             size="small"
                             onClick={() => handleDeleteType(type.id, type.label || type.name)}
@@ -1794,8 +2010,11 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
                           >
                             <Delete fontSize="small" />
                           </IconButton>
-                        )}
-                      </Box>
+                        </Box>
+                      )}
+                      {!canManage && (
+                        <Chip label="Read Only" size="small" variant="outlined" />
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -1846,6 +2065,294 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData }) => 
           handleInputChange={handleInputChange}
         />
       )}
+
+      <ConfirmationModal
+        open={confirmationModalOpen}
+        onClose={() => {
+          setConfirmationModalOpen(false);
+          setConfirmationAction(null);
+        }}
+        onConfirm={handleConfirmationConfirm}
+        title={confirmationAction?.title}
+        message={confirmationAction?.message}
+        type={confirmationAction?.icon || 'info'}
+      />
+    </Box>
+  );
+};
+
+// Certificate Requests Management Component
+const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage, showSnackbar }) => {
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [frontIdUrl, setFrontIdUrl] = useState(null);
+  const [backIdUrl, setBackIdUrl] = useState(null);
+  const [loadingIds, setLoadingIds] = useState(false);
+
+  const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
+  const [rejectionAction, setRejectionAction] = useState(null);
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState(null);
+
+  const handleViewRequest = async (request) => {
+    setSelectedRequest(request);
+    setViewDialogOpen(true);
+    setLoadingIds(true);
+    setFrontIdUrl(null);
+    setBackIdUrl(null);
+
+    try {
+      // Load ID images
+      const [frontRes, backRes] = await Promise.all([
+        apiRequest(`certificate-requests/${request.request_id}/attachment/front`, { responseType: 'blob' }),
+        apiRequest(`certificate-requests/${request.request_id}/attachment/back`, { responseType: 'blob' })
+      ]);
+
+      if (frontRes.ok) {
+        const blob = await frontRes.blob();
+        setFrontIdUrl(URL.createObjectURL(blob));
+      }
+      if (backRes.ok) {
+        const blob = await backRes.blob();
+        setBackIdUrl(URL.createObjectURL(blob));
+      }
+    } catch (error) {
+      console.error('Error loading IDs:', error);
+      showSnackbar('Failed to load ID attachments', 'error');
+    } finally {
+      setLoadingIds(false);
+    }
+  };
+
+  const handleCloseDialog = () => {
+    setViewDialogOpen(false);
+    setSelectedRequest(null);
+    if (frontIdUrl) URL.revokeObjectURL(frontIdUrl);
+    if (backIdUrl) URL.revokeObjectURL(backIdUrl);
+  };
+
+  const handleReject = (id) => {
+    // If id is provided, it's from the table action
+    const requestId = id || selectedRequest?.request_id;
+    if (!requestId) return;
+    
+    setRejectionAction({ id: requestId })
+    setRejectionModalOpen(true)
+  }
+
+  const handleRejectionConfirm = async (reason) => {
+    setRejectionModalOpen(false)
+    try {
+      await apiRequest(`certificate-requests/${rejectionAction.id}/reject`, {
+        method: 'POST',
+        body: { remarks: reason }
+      })
+      showSnackbar('Request rejected successfully', 'success')
+      if (viewDialogOpen) handleCloseDialog()
+      loadAllData()
+    } catch (error) {
+      console.error('Error rejecting request:', error)
+      showSnackbar('Error rejecting request', 'error')
+    }
+    setRejectionAction(null)
+  }
+  
+  const handleApprove = (id) => {
+     // If id is provided, it's from the table action
+     const requestId = id || selectedRequest?.request_id;
+     if (!requestId) return;
+
+     setConfirmationAction({
+       type: 'approve_request',
+       id: requestId,
+       title: 'Approve Request',
+       message: 'Are you sure you want to approve this certificate request?',
+       icon: 'success'
+     })
+     setConfirmationModalOpen(true)
+  }
+
+  const handleConfirmationConfirm = async () => {
+    setConfirmationModalOpen(false)
+    if (confirmationAction.type === 'approve_request') {
+      await handleUpdateStatus('approved')
+    }
+    setConfirmationAction(null)
+  }
+
+  const handleUpdateStatus = async (status, remarks = '') => {
+    const requestId = confirmationAction?.id || selectedRequest?.request_id;
+    if (!requestId) return;
+    
+    try {
+      const response = await apiRequest(`certificate-requests/${requestId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, remarks })
+      });
+
+      if (response.ok) {
+        showSnackbar(`Request ${status} successfully`, 'success');
+        if (viewDialogOpen) handleCloseDialog();
+        loadAllData();
+      } else {
+        const data = await response.json();
+        showSnackbar(data.message || 'Failed to update status', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      showSnackbar('Network error', 'error');
+    }
+  };
+
+  return (
+    <Box>
+      <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
+        <PendingActions sx={{ mr: 1, verticalAlign: 'middle' }} />
+        Certificate Requests
+      </Typography>
+
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Request ID</TableCell>
+              <TableCell>Resident</TableCell>
+              <TableCell>Type</TableCell>
+              <TableCell>Date</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {requests.map((req) => (
+              <TableRow key={req.id}>
+                <TableCell>{req.request_id}</TableCell>
+                <TableCell>{req.resident_name}</TableCell>
+                <TableCell>{req.document_type}</TableCell>
+                <TableCell>{new Date(req.created_at).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  <Chip 
+                    label={req.status} 
+                    color={req.status === 'approved' ? 'success' : req.status === 'pending' ? 'warning' : 'error'}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <IconButton onClick={() => handleViewRequest(req)} color="primary">
+                    <Visibility />
+                  </IconButton>
+                  {req.status === 'pending' && canManage && (
+                    <>
+                      <IconButton onClick={() => handleApprove(req.request_id)} color="success">
+                        <CheckCircle />
+                      </IconButton>
+                      <IconButton onClick={() => handleReject(req.request_id)} color="error">
+                        <Cancel />
+                      </IconButton>
+                    </>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+            {requests.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} align="center">No pending requests</TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Dialog open={viewDialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+        <DialogTitle>Request Details</DialogTitle>
+        <DialogContent>
+          {selectedRequest && (
+            <Box sx={{ pt: 2 }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2">Resident</Typography>
+                  <Typography variant="body1" gutterBottom>{selectedRequest.resident_name}</Typography>
+                  
+                  <Typography variant="subtitle2">Type</Typography>
+                  <Typography variant="body1" gutterBottom>{selectedRequest.document_type}</Typography>
+
+                  <Typography variant="subtitle2">Purpose</Typography>
+                  <Typography variant="body1" gutterBottom>{selectedRequest.request_data?.purpose}</Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2">ID Attachments</Typography>
+                  {loadingIds ? (
+                    <CircularProgress size={24} />
+                  ) : (
+                    <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                      {frontIdUrl && (
+                        <Box>
+                          <Typography variant="caption">Front</Typography>
+                          <img src={frontIdUrl} alt="Front ID" style={{ width: '100%', maxHeight: 150, objectFit: 'contain' }} />
+                        </Box>
+                      )}
+                      {backIdUrl && (
+                        <Box>
+                          <Typography variant="caption">Back</Typography>
+                          <img src={backIdUrl} alt="Back ID" style={{ width: '100%', maxHeight: 150, objectFit: 'contain' }} />
+                        </Box>
+                      )}
+                    </Box>
+                  )}
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Close</Button>
+          {selectedRequest?.status === 'pending' && (
+            <>
+              <Button 
+                color="error" 
+                startIcon={<Cancel />}
+                onClick={() => handleReject()}
+              >
+                Reject
+              </Button>
+              <Button 
+                color="success" 
+                variant="contained" 
+                startIcon={<CheckCircle />}
+                onClick={() => handleApprove()}
+              >
+                Approve
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      <RejectionModal
+        open={rejectionModalOpen}
+        onClose={() => setRejectionModalOpen(false)}
+        onConfirm={handleRejectionConfirm}
+        title="Reject Request"
+        message="Please provide a reason for rejecting this request:"
+        inputLabel="Rejection Remarks"
+      />
+
+      <ConfirmationModal
+        open={confirmationModalOpen}
+        onClose={() => {
+          if (!confirmationAction?.type || confirmationAction.type === 'info' || confirmationAction.type === 'error') {
+            setConfirmationModalOpen(false)
+            setConfirmationAction(null)
+          } else {
+            setConfirmationModalOpen(false)
+          }
+        }}
+        onConfirm={handleConfirmationConfirm}
+        title={confirmationAction?.title}
+        message={confirmationAction?.message}
+        type={confirmationAction?.icon || 'info'}
+      />
     </Box>
   );
 };
@@ -1865,7 +2372,7 @@ const CertificateTypeModal = ({
       <DialogContent>
         <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
           <Grid container spacing={3}>
-            <Grid xs={12} md={6}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Certificate Type Name"
@@ -1876,7 +2383,7 @@ const CertificateTypeModal = ({
               />
             </Grid>
 
-            <Grid xs={12} md={6}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 type="number"
@@ -1889,7 +2396,7 @@ const CertificateTypeModal = ({
           </Grid>
 
           <Grid container spacing={3}>
-            <Grid xs={12} md={6}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 type="number"
@@ -1900,7 +2407,7 @@ const CertificateTypeModal = ({
               />
             </Grid>
 
-            <Grid xs={12} md={6}>
+            <Grid item xs={12} md={6}>
               <Box sx={{ pt: 2 }}>
                 <FormControlLabel
                   control={
@@ -1953,7 +2460,7 @@ const CertificateTypeModal = ({
 
           <Alert severity="info" sx={{ borderRadius: 2 }}>
             <Typography variant="body2">
-              <strong>Note:</strong> This feature is currently in demo mode. The backend implementation for creating/updating certificate types will be added soon.
+              <strong>Note:</strong> Required data items will be displayed to residents when requesting this certificate.
             </Typography>
           </Alert>
         </Box>

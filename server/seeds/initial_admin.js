@@ -15,8 +15,11 @@ exports.seed = async function(knex) {
     return;
   }
   
-  // Hash default password: admin123
-  const hashedPassword = await bcrypt.hash('admin123', 10);
+  const seedPassword = process.env.SEED_DEFAULT_PASSWORD;
+  if (!seedPassword) {
+    throw new Error('SEED_DEFAULT_PASSWORD is required for admin seeding');
+  }
+  const hashedPassword = await bcrypt.hash(seedPassword, 10);
   
   // Insert default admin user
   await knex('users').insert({
@@ -25,7 +28,7 @@ exports.seed = async function(knex) {
     full_name: 'System Administrator',
     email: 'admin@barangay.local',
     contact_number: '09123456789',
-    role: 5, // IT Admin role
+    role: 1,
     is_active: true,
     created_at: knex.fn.now(),
     updated_at: knex.fn.now()
@@ -33,6 +36,4 @@ exports.seed = async function(knex) {
   
   console.log('✅ Default admin user created');
   console.log('   Username: admin');
-  console.log('   Password: admin123');
-  console.log('   ⚠️  CHANGE PASSWORD IMMEDIATELY IN PRODUCTION');
 };

@@ -1,0 +1,91 @@
+{
+  "generated_at": "2026-01-11T00:00:00.000Z",
+  "strategy": "Conservative + confirmed-unreferenced cleanup. Removes generated artifacts and code files confirmed unreferenced by route/import scan and repo-wide string search.",
+  "files": [
+    {
+      "path": "ai_service/__pycache__/smart_suggestions.cpython-312.pyc",
+      "rationale": "Generated Python bytecode cache"
+    },
+    {
+      "path": "tests/__pycache__/test_chatbot_engine.cpython-312.pyc",
+      "rationale": "Generated Python bytecode cache"
+    },
+    {
+      "path": "client/src/__tests__/pages/admin/debug_output.html",
+      "rationale": "Debug artifact not used by build/test runtime"
+    },
+    {
+      "path": "client/test_output.txt",
+      "rationale": "Test output artifact"
+    },
+    {
+      "path": "server/index.js.backup",
+      "rationale": "Deprecated server entry backup"
+    },
+    {
+      "path": "server/controllers/templateController.js",
+      "rationale": "Unreferenced controller (templateRoutes uses direct SQL; no imports found)"
+    },
+    {
+      "path": "server/monitoring.js",
+      "rationale": "Unreferenced legacy module (no requires/imports found)"
+    },
+    {
+      "path": "server/websocket.js",
+      "rationale": "Unreferenced legacy module (replaced by services/websocketService.js)"
+    },
+    {
+      "path": "server/permissions.js",
+      "rationale": "Unreferenced legacy module (no requires/imports found)"
+    },
+    {
+      "path": "server/security-alerts.js",
+      "rationale": "Unreferenced legacy module (no requires/imports found)"
+    },
+    {
+      "path": "server/health-check.js",
+      "rationale": "Unreferenced legacy module (healthCheck middleware is used instead)"
+    },
+    {
+      "path": "server/aiService.js",
+      "rationale": "Unreferenced legacy module (AI routes use controllers/services instead)"
+    },
+    {
+      "path": "server/notificationService.js",
+      "rationale": "Unreferenced legacy module (notificationController + websocketService used instead)"
+    },
+    {
+      "path": "client/src/components/BantayChatbot.jsx",
+      "rationale": "Unreferenced component (not imported by App/Sidebar and only referenced in an outdated unit test mock)"
+    },
+    {
+      "path": "client/src/pages/DocumentTemplates.jsx",
+      "rationale": "Unreferenced page (no route/import references found)"
+    },
+    {
+      "path": "client/src/pages/ResidentSettings.jsx",
+      "rationale": "Unreferenced page (no route/import references found)"
+    },
+    {
+      "path": "client/src/pages/ResidentOpenRegister.jsx",
+      "rationale": "Unreferenced page (no route/import references found)"
+    },
+    {
+      "path": "client/src/pages/RequestDocument.jsx",
+      "rationale": "Unreferenced page (no route/import references found)"
+    },
+    {
+      "path": "client/src/pages/CertificateTypes.jsx",
+      "rationale": "Unreferenced page (no route/import references found)"
+    },
+    {
+      "path": "client/src/pages/QRVerification.jsx",
+      "rationale": "Unreferenced page (no route/import references found)"
+    },
+    {
+      "path": "client/src/pages/Register.jsx",
+      "rationale": "Unreferenced page (replaced by ResidentRegister/ResidentOpenRegister; not routed)"
+    }
+  ]
+}
+

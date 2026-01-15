@@ -123,7 +123,7 @@ export const canViewSection = (section, user) => {
 
   switch (section) {
     case 'it-admin':
-      return roleId === 5;
+      return roleId === 1;
     case 'captain':
       return roleId === 2;
     case 'secretary':

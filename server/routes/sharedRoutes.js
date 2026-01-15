@@ -14,8 +14,8 @@ module.exports = (db) => {
     res.json([]); // Return empty array - simplified system
   }));
 
-  // Programs - Captain and Secretary access
-  router.get('/programs', verifyToken, checkRole(['captain', 'secretary']), asyncHandler(async (req, res) => {
+  // Programs - Captain, Secretary, and Admin access
+  router.get('/programs', verifyToken, checkRole(['captain', 'secretary', 'admin']), asyncHandler(async (req, res) => {
     const [programs] = await db.execute('SELECT * FROM community_programs ORDER BY program_date DESC');
     res.json(programs);
   }));
@@ -23,7 +23,22 @@ module.exports = (db) => {
   // Templates - Clerk, Captain, and Secretary access
   router.get('/templates', verifyToken, checkRole(['captain', 'admin', 'secretary', 'clerk']), asyncHandler(async (req, res) => {
     try {
-      const [templates] = await db.execute('SELECT * FROM templates WHERE is_active = true ORDER BY name');
+      const [templates] = await db.execute(
+        `
+          SELECT
+            id,
+            template_name,
+            document_type,
+            certificate_type_id,
+            template_content,
+            is_active,
+            created_at,
+            updated_at
+          FROM document_templates
+          WHERE is_active = 1
+          ORDER BY template_name
+        `
+      );
       res.json(templates);
     } catch (error) {
       res.json([]); // Return empty array if table doesn't exist
@@ -113,7 +128,10 @@ module.exports = (db) => {
 
   // Document QR verification (public endpoint)
   router.post('/documents/verify-qr', asyncHandler(async (req, res) => {
-    const { qr_hash } = req.body;
+    const qr_hash = req.body?.qr_hash || req.body?.qr_code_data;
+    if (!qr_hash) {
+      return res.status(400).json({ status: 'INVALID', message: 'QR value is required' });
+    }
     const [certs] = await db.execute('SELECT * FROM certificates_log WHERE qr_validation_string = ?', [qr_hash]);
     if (certs.length === 0) return res.json({ status: 'INVALID', message: 'QR code not found' });
     res.json({ status: 'VALID', certificate: certs[0] });

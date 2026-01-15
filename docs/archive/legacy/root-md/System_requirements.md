@@ -1,0 +1,214 @@
+## Role ID Mapping (Source of Truth: Database `roles.id`)
+
+The role IDs in this document are aligned to the live database role IDs (Option A: DB is source of truth).
+
+| DB Role ID | Role Name |
+| --- | --- |
+| 1 | IT Admin |
+| 2 | Captain |
+| 3 | Secretary |
+| 4 | Clerk |
+| 6 | Blotter Officer |
+| 12 | Resident |
+
+## Implementation Notes
+
+- JWT is stored in an httpOnly cookie named `authToken`.
+- JWT payload includes `id`, `username`, `role` (numeric), `role_name`, and `mfa_verified` (boolean).
+- MFA (OTP) endpoints:
+  - `POST /api/auth/mfa/request`
+  - `POST /api/auth/mfa/verify`
+
+---
+
+### ROLE 1: IT Admin (System & Technical Authority)
+**Purpose**
+Responsible for maintaining system availability, security, configuration, and RBAC enforcement. This role has FULL ACCESS to all system modules and data for technical maintenance and troubleshooting purposes, but does not participate in operational barangay transactions.
+
+**Full System Access**
+• Complete access to all modules, pages, and data across the entire system
+• Can view and access any page that other roles can access
+• Full administrative privileges for system maintenance and support
+• Emergency access to all operational data when needed for technical issues
+
+**Primary Modules, Pages, and Access**
+• IT Admin Dashboard (/admin/dashboard) – Monitor system health, usage, uptime, and logs
+• User & Role Management (/admin/users) – Manage staff accounts and role assignments
+• System Logs & Audit Trail (/admin/logs) – Review security and activity records
+• System Configuration (/admin/settings) – Configure SMS, QR rules, and sessions
+• Backup & Restore (/admin/backup) – Ensure data continuity
+• AI Analytics (Technical View) (/admin/ai-analytics) – Monitor AI model accuracy (read-only)
+
+**Additional Access for System Maintenance**
+• Can access all Secretary, Captain, Clerk, and Blotter Officer modules when needed
+• Full read access to resident data, blotter cases, and certificate records
+• Can troubleshoot and maintain any part of the system
+• Override access for emergency system maintenance
+
+---
+
+### ROLE 4: Administrative Clearance Clerks
+**Purpose**
+Handle certificate processing and resident verification based on validated data.
+
+**Core Restrictions**
+. Cannot manually register residents (Read-Only View)
+. Cannot handle blotter cases
+. No "Edit" or "Delete" access in Resident Records
+
+**Modules, Pages, and Access**
+• Clerk Dashboard (/clerk/dashboard) – View request workload and processing KPIs
+• Resident Verification (/residents) – View-only access to verify resident profiles
+• Clearance Processing (/clerk/clearances) – Process certificate requests
+• Document Issuance (/clerk/documents) – Generate and release certificates
+• Notifications (/clerk/notifications) – Receive real-time task alerts
+• AI Workload Insights (/clerk/ai-insights) – Forecast certificate demand
+
+---
+
+### ROLE 6: Blotter Officer
+**Purpose**
+Sole authority for validating, investigating, classifying, and resolving blotter cases.
+
+**Modules, Pages, and Access**
+• Blotter Dashboard (/officer/dashboard) – Monitor case status and KPIs
+• Resident-Submitted Complaints (/officer/cases) – Review complaints filed online
+• New Case Encoding (/officer/new-case) – Encode validated complaints
+• Case Review & Timeline (/officer/case/:id) – Manage case progress and evidence
+• Hearing Attendance Logs (/officer/attendance) – Track QR-based attendance
+• Blotter Reports (/officer/reports) – Generate monthly summaries
+• AI Crime Analytics (/officer/ai-analytics) – Identify crime patterns and hotspots
+
+---
+
+### ROLE 12: Residents (Expanded Capabilities)
+**Purpose**
+Enable residents to digitally access barangay services, self-register with document verification, apply for beneficiary status with proof requirements, request certificates, and safely file blotter complaints, including vulnerable cases.
+
+**Document Verification Requirements**
+• All vulnerability declarations (4Ps, PWD, Solo Parent, OSY) require supporting documents
+• Accepted formats: JPG, PNG, PDF (max 5MB per file)
+• Required documents by category:
+- 4Ps: Pantawid ID or Certificate from DSWD
+- PWD: PWD ID or Medical Certificate
+- Solo Parent: Solo Parent ID or Court Documents
+- OSY: School Certificate or Barangay Certification
+  • Documents are reviewed and verified by Secretary before approval
+
+**Open Registration System**
+• Residents can self-register online without pre-existing household assignment
+• Registration requires valid government-issued ID upload for identity verification
+• Accepted IDs: National ID, Driver's License, Passport, Voter's ID, SSS/GSIS ID
+• All registrations are pending verification until Secretary approval
+• Verified residents gain full access to barangay services
+
+**Modules, Pages, and Access**
+• Resident Registration (/resident/register) – Submit personal details, valid ID, and supporting documents
+• Document Upload Interface – Secure file upload with preview and validation
+• Resident Login (/resident/login) – Secure access to the resident portal
+• Resident Dashboard (/resident/dashboard) – View request status, profile, and announcements
+• Profile & Identity Verification (/resident/profile) – Manage personal data and document uploads
+• Blotter Complaint Filing (/resident/blotter-report) – File digital complaints without face-to-face interaction
+**Vulnerability Support (Integrated):**
+Residents may declare vulnerability during blotter filing, such as:
+• Women / Children
+• Senior Citizens
+• Persons with Disability (PWD)
+• Victims of domestic violence or abuse
+• Threatened or at-risk individuals
+. Vulnerability-tagged cases are flagged for priority review, handled confidentially, and visible only to authorized roles (Blotter Officer).
+• Clearance Requests (/resident/request-clearance) – Request certificates subject to eligibility
+• My Requests & History (/resident/requests) – Track submitted requests
+• Barangay Announcements (/resident/announcements) – View official notices
+
+---
+
+### ROLE 2: Barangay Captain (Executive – Read Only)
+**Purpose**
+Provide executive oversight and data-driven governance without performing operational actions.
+
+**Core Restrictions**
+. No encoding
+. No approvals
+. No modifications (View-Only access to Residents)
+. No access to operational Reports (Users, Blotter, Certificates, etc.)
+
+**Modules, Pages, and Access**
+• Executive Dashboard (/captain/dashboard) – High-level barangay statistics
+• Resident Statistics (/residents) – Read-only view of population data (No Edit/Delete/QR)
+• Blotter Monitoring (/blotter) – Read-only view of blotter trends
+• AI Insights (/reports?tab=ai) – Exclusive access to AI Analytics tab (Other tabs hidden)
+
+---
+
+### ROLE 3: Barangay Secretary
+**Purpose**
+Primary administrative authority responsible for resident validation, document verification, beneficiary approval with proof review, and clearance supervision.
+
+**Resident Verification Process & Validation Rules**
+• Registration Review:
+- Verify completeness of personal data (Name, Birthdate, Address, Civil Status).
+- Cross-reference uploaded Government ID with input details.
+- Check for duplicate existing records to prevent redundancy.
+  • Residency Status Validation:
+- Confirm residency duration (must be > 6 months for certain privileges).
+- Validate "Sitio" assignment matches official barangay map.
+- Approve "Active" status only after full document verification.
+- Reject applications with blurred, expired, or mismatching IDs.
+
+**Vulnerability Assessment Procedures**
+• Vulnerability Declaration Verification:
+- 4Ps: Verify Pantawid Pamilya ID or DSWD Certification validity.
+- PWD: Check PWD ID authenticity and validity period.
+- Senior Citizen: Confirm birthdate (60+ years old) via OSCA ID or Birth Certificate.
+- Solo Parent: Validate Solo Parent ID or DSWD/Court documents.
+- Out of School Youth (OSY): Verify certification from school or barangay records.
+  • Periodic Re-assessment:
+- Schedule annual review of vulnerability status.
+- Flag expired documents for renewal notifications.
+
+**Required Permissions & Access Levels**
+• Full Read/Write Access:
+- Resident Profiles (PII data).
+- Verification Queues (Residency & Vulnerability).
+- Certificate Issuance & Logs.
+  • Read-Only Access:
+- System Logs (for audit purposes).
+- Financial/Budget Reports (if applicable).
+  • Restricted Actions:
+- **NO ACCESS** to Blotter Records (Removed).
+- Cannot delete system logs.
+- Cannot modify IT Admin accounts.
+- Cannot purge database records permanently (archive only).
+
+**Core Restrictions**
+. Cannot encode blotter cases (Conflict of Interest separation).
+. Cannot access system configuration/backend settings.
+
+**Modules, Pages, and Access**
+• Secretary Dashboard (/secretary/dashboard) – Overview of operations and pending verifications
+• Resident Records Oversight (/secretary/residents) – Validate resident registrations and documents
+• Document Verification Queue (/secretary/document-verification) – Review uploaded documents
+• Beneficiary Validation (/secretary/beneficiaries) – Approve PWD, Senior, and other statuses with proof
+• Clearance Oversight (/secretary/clearances) – Supervise and override approvals
+• Reports & Analytics (/secretary/reports) – Generate administrative reports
+• AI Risk & Demand Insights (/secretary/ai-analytics) – Identify high-risk areas
+• Administrative Settings (/secretary/settings) – Manage barangay policies and seals
+
+---
+
+### AI Predictive Analytics (Cross-Role)
+**Capabilities**
+• Population growth forecasting
+• Certificate demand prediction
+• Crime hotspot identification
+• Beneficiary and vulnerability service demand analysis
+• Document verification fraud detection patterns
+• Registration approval workflow optimization
+
+### System Security & Compliance
+• All uploaded documents are encrypted and stored securely
+• Document access is logged and audited
+• GDPR-compliant data handling for personal documents
+• Automatic document retention and disposal policies
+• Multi-factor authentication for document verification roles

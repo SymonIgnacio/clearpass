@@ -1,0 +1,987 @@
+{
+  "generated_at": "2026-01-11T00:56:27.060Z",
+  "entrypoints": [
+    "server/index.js",
+    "server/routes.js",
+    "client/src/main.jsx",
+    "scripts/health-check.js",
+    "scripts/run-tests.js",
+    "scripts/verify-completion.js",
+    "scripts/database/audit_schema.js",
+    "scripts/database/migrate.cjs",
+    "scripts/database/verify_schema_usage.cjs",
+    "test-captain.cjs",
+    "test-rbac.cjs",
+    "test-roles.cjs",
+    "test-roles.js",
+    "tests/__tests__/security.test.js",
+    "server/setup-test-db.js",
+    "server/test-db-connection.js",
+    "server/test-setup.js",
+    "server/__tests__/api-integration.test.js",
+    "server/__tests__/auditMiddlewareDbLogging.test.js",
+    "server/__tests__/authController.test.js",
+    "server/__tests__/authMiddlewareNormalization.test.js",
+    "server/__tests__/certificates.test.js",
+    "server/__tests__/controllers-expanded.test.js",
+    "server/__tests__/controllers.test.js",
+    "server/__tests__/documentDownloadsAuditTrail.test.js",
+    "server/__tests__/documentRequestsAuditTrail.test.js",
+    "server/__tests__/documentRequestsIdor.test.js",
+    "server/__tests__/documentRequestsLifecycle.test.js",
+    "server/__tests__/exhaustive-complete.test.js",
+    "server/__tests__/file-validation.test.js",
+    "server/__tests__/mfaMiddleware.test.js",
+    "server/__tests__/mfaOtpFlow.test.js",
+    "server/__tests__/rbacSmokeTokens.test.js",
+    "server/__tests__/residentDocumentsDownload.test.js",
+    "server/__tests__/residentEncryptedDocumentDownload.test.js",
+    "server/__tests__/residents.test.js",
+    "server/__tests__/secretaryApplicationDocumentsDownload.test.js",
+    "server/__tests__/seededUsersDbVerification.test.js",
+    "server/__tests__/system-comprehensive.test.js",
+    "server/__tests__/systemAssetsUploadAndFetch.test.js",
+    "server/tests/integration/api.test.js",
+    "client/src/__tests__/App.test.jsx",
+    "client/src/__tests__/pages/Users.test.jsx",
+    "client/src/__tests__/pages/admin/StaffManagement.test.jsx",
+    "client/src/test/setup.js",
+    "client/src/pages/__tests__/DocumentVerification.openFileFromEndpoint.test.jsx",
+    "server/migrations/20250101000000_initial_schema.js",
+    "server/migrations/20250102000000_account_hierarchy.js",
+    "server/migrations/20250103000000_document_requests.js",
+    "server/migrations/20250104000000_resident_signup_requests.js",
+    "server/migrations/20250105000000_document_templates.js",
+    "server/migrations/20250106000000_add_file_blob_storage.js",
+    "server/migrations/20250106000000_create_audit_logs.js",
+    "server/migrations/20250107000000_add_notifications.js",
+    "server/migrations/20250115000000_rename_mobile_to_email_residents.js",
+    "server/migrations/20250117000000_add_login_attempts_table.js",
+    "server/migrations/20250118000000_add_blob_storage_verification.js",
+    "server/migrations/20250120000000_alter_file_data_to_mediumblob.js",
+    "server/migrations/20250121000000_standardize_themis_roles.js",
+    "server/migrations/20250122000000_themis_clearpass_schema.js",
+    "server/migrations/20250123000000_fix_residents_mobile_column.js",
+    "server/migrations/20250124000000_add_community_programs.js",
+    "server/migrations/20250124000000_add_document_verification_tables.js",
+    "server/migrations/20250124000001_add_email_to_residents.js",
+    "server/migrations/20251230000000_add_verification_file_column.js",
+    "server/migrations/20251230_add_auth_to_residents.js",
+    "server/migrations/20251231000000_census_first_auth_schema.js",
+    "server/migrations/20260105000000_add_announcements_table.js",
+    "server/migrations/20260111120000_remediation_fixes.js",
+    "server/migrations/20260111123000_add_validation_audit_columns.js",
+    "server/migrations/20260111124500_fix_seeded_user_roles.js",
+    "server/migrations/20260111130000_repair_roles_and_document_requests.js",
+    "server/migrations/20260111133000_create_system_assets.js",
+    "server/migrations/20260111160000_add_document_encryption_and_retention.js",
+    "server/migrations/20260111170000_create_mfa_otp_challenges.js",
+    "server/migrations/20260111174000_enforce_role_integrity.js",
+    "server/migrations/20260111183000_drop_legacy_audit_log.js",
+    "server/migrations/20260111184000_create_system_settings.js",
+    "server/seeds/01_initial_data.js",
+    "server/seeds/02_hierarchy_setup.js",
+    "server/seeds/03_initial_staff_users.js",
+    "server/seeds/initial_admin.js"
+  ],
+  "totals": {
+    "all_files": 460,
+    "code_files": 301,
+    "reachable_code_files": 190,
+    "unreachable_code_files": 111
+  },
+  "unreachable": [
+    {
+      "path": "client/src/pages/Settings.jsx",
+      "bucket": "candidate",
+      "preserve": true,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 31532,
+      "mtime_iso": "2026-01-10T19:28:13.223Z"
+    },
+    {
+      "path": "client/src/pages/ResidentSettings.jsx",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 28713,
+      "mtime_iso": "2026-01-10T19:28:56.889Z"
+    },
+    {
+      "path": "server/controllers/templateController.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 27520,
+      "mtime_iso": "2025-12-14T07:39:40.606Z"
+    },
+    {
+      "path": "client/src/pages/DocumentTemplates.jsx",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 23868,
+      "mtime_iso": "2025-12-12T22:38:04.793Z"
+    },
+    {
+      "path": "scripts/verification/system-health-check.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 22167,
+      "mtime_iso": "2025-12-14T07:22:15.332Z"
+    },
+    {
+      "path": "scripts/database/seeds/generate_ai_data.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 22075,
+      "mtime_iso": "2025-12-11T20:41:20.821Z"
+    },
+    {
+      "path": "client/src/pages/CertificateTypes.jsx",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 19249,
+      "mtime_iso": "2025-12-12T22:37:35.753Z"
+    },
+    {
+      "path": "client/src/pages/ResidentOpenRegister.jsx",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 18777,
+      "mtime_iso": "2026-01-10T19:12:12.038Z"
+    },
+    {
+      "path": "client/src/components/BantayChatbot.jsx",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 17828,
+      "mtime_iso": "2025-12-30T21:21:27.303Z"
+    },
+    {
+      "path": "client/src/pages/RequestDocument.jsx",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 16916,
+      "mtime_iso": "2025-12-30T21:21:27.311Z"
+    },
+    {
+      "path": "server/monitoring.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 16697,
+      "mtime_iso": "2025-12-14T18:30:14.916Z"
+    },
+    {
+      "path": "scripts/audit_config.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 12540,
+      "mtime_iso": "2026-01-02T17:24:50.273Z"
+    },
+    {
+      "path": "server/websocket.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 11982,
+      "mtime_iso": "2025-12-18T16:05:27.317Z"
+    },
+    {
+      "path": "scripts/refactor_db.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 11157,
+      "mtime_iso": "2026-01-03T20:20:46.675Z"
+    },
+    {
+      "path": "server/permissions.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 10869,
+      "mtime_iso": "2026-01-08T21:58:30.735Z"
+    },
+    {
+      "path": "client/src/pages/Register.jsx",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 10483,
+      "mtime_iso": "2025-12-30T21:21:27.310Z"
+    },
+    {
+      "path": "scripts/cleanup/scan_unused_files.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 10481,
+      "mtime_iso": "2026-01-11T00:55:40.002Z"
+    },
+    {
+      "path": "client/src/pages/QRVerification.jsx",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 9830,
+      "mtime_iso": "2026-01-10T19:19:06.047Z"
+    },
+    {
+      "path": "scripts/audit_api_route.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 9392,
+      "mtime_iso": "2026-01-03T20:20:44.742Z"
+    },
+    {
+      "path": "scripts/audit_ai_service.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 8900,
+      "mtime_iso": "2026-01-03T20:20:44.416Z"
+    },
+    {
+      "path": "scripts/refactor_db_full.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 8544,
+      "mtime_iso": "2026-01-03T20:20:47.006Z"
+    },
+    {
+      "path": "server/controllers/programController.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 8294,
+      "mtime_iso": "2026-01-06T12:49:49.005Z"
+    },
+    {
+      "path": "scripts/database/seeds/add_bulk_blotter.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 8169,
+      "mtime_iso": "2025-12-30T21:21:27.295Z"
+    },
+    {
+      "path": "server/notificationService.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 8028,
+      "mtime_iso": "2025-12-30T21:21:27.326Z"
+    },
+    {
+      "path": "scripts/validate-env.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 7795,
+      "mtime_iso": "2026-01-04T23:04:52.378Z"
+    },
+    {
+      "path": "scripts/audit_db_connection.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 7260,
+      "mtime_iso": "2026-01-03T20:20:45.052Z"
+    },
+    {
+      "path": "scripts/align_users.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 7230,
+      "mtime_iso": "2026-01-03T20:20:44.089Z"
+    },
+    {
+      "path": "client/src/pages/Certificates.jsx",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 7084,
+      "mtime_iso": "2025-11-30T23:10:43.094Z"
+    },
+    {
+      "path": "client/src/utils/permissions.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 7075,
+      "mtime_iso": "2026-01-10T18:45:44.535Z"
+    },
+    {
+      "path": "scripts/merge_admins.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 7003,
+      "mtime_iso": "2026-01-03T20:20:46.366Z"
+    },
+    {
+      "path": "server/health-check.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 6832,
+      "mtime_iso": "2026-01-10T23:17:40.910Z"
+    },
+    {
+      "path": "scripts/update_roles_table.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 6712,
+      "mtime_iso": "2026-01-03T20:20:47.637Z"
+    },
+    {
+      "path": "scripts/verification/validate-fixes.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 6598,
+      "mtime_iso": "2025-12-11T21:45:35.212Z"
+    },
+    {
+      "path": "scripts/verification/audit-system.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 6546,
+      "mtime_iso": "2026-01-03T20:20:49.327Z"
+    },
+    {
+      "path": "server/security-alerts.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 5958,
+      "mtime_iso": "2025-12-14T07:25:10.565Z"
+    },
+    {
+      "path": "scripts/database/migrate.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 5927,
+      "mtime_iso": "2026-01-04T22:58:10.476Z"
+    },
+    {
+      "path": "scripts/seed_themis_users.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 5793,
+      "mtime_iso": "2026-01-03T20:20:47.324Z"
+    },
+    {
+      "path": "server/ssl-config.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 5774,
+      "mtime_iso": "2025-12-14T18:32:39.555Z"
+    },
+    {
+      "path": "server/run_sql.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 5243,
+      "mtime_iso": "2025-12-18T17:22:11.407Z"
+    },
+    {
+      "path": "scripts/update_user_roles.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 5224,
+      "mtime_iso": "2026-01-03T20:20:47.973Z"
+    },
+    {
+      "path": "scripts/database/migrations/run_clearpass_migration.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 5220,
+      "mtime_iso": "2026-01-03T20:20:01.658Z"
+    },
+    {
+      "path": "server/test_db.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 5177,
+      "mtime_iso": "2025-12-18T18:09:41.853Z"
+    },
+    {
+      "path": "server/create_templates_table.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 5024,
+      "mtime_iso": "2025-12-11T19:06:38.723Z"
+    },
+    {
+      "path": "scripts/database/fixes/fix_login_attempts_table.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 4940,
+      "mtime_iso": "2025-12-14T04:15:33.679Z"
+    },
+    {
+      "path": "tests/test_permissions.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 4905,
+      "mtime_iso": "2025-12-17T21:21:43.275Z"
+    },
+    {
+      "path": "server/aiService.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 4671,
+      "mtime_iso": "2026-01-04T17:49:20.008Z"
+    },
+    {
+      "path": "scripts/database/seeds/add_sample_blotter.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 4487,
+      "mtime_iso": "2025-12-18T18:10:09.578Z"
+    },
+    {
+      "path": "scripts/database/seeds/add_sample_blotter.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 4487,
+      "mtime_iso": "2025-12-18T18:09:53.617Z"
+    },
+    {
+      "path": "scripts/database/fixes/fix_table_schema.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 4360,
+      "mtime_iso": "2026-01-03T20:20:48.645Z"
+    },
+    {
+      "path": "scripts/testing/test_fixes.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 4297,
+      "mtime_iso": "2026-01-02T20:44:28.375Z"
+    },
+    {
+      "path": "scripts/system-status.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 4237,
+      "mtime_iso": "2026-01-04T23:06:54.852Z"
+    },
+    {
+      "path": "server/validate-system.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 4202,
+      "mtime_iso": "2026-01-10T23:17:34.902Z"
+    },
+    {
+      "path": "scripts/verification/verify-database.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 4104,
+      "mtime_iso": "2026-01-03T20:20:01.987Z"
+    },
+    {
+      "path": "scripts/database/fixes/fix_duplicate_users.mjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 4075,
+      "mtime_iso": "2025-12-12T23:48:41.305Z"
+    },
+    {
+      "path": "eslint.config.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 4030,
+      "mtime_iso": "2025-12-11T16:36:19.119Z"
+    },
+    {
+      "path": "scripts/verification/verify-system-health.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 4010,
+      "mtime_iso": "2026-01-03T19:44:10.172Z"
+    },
+    {
+      "path": "scripts/cleanup/apply_cleanup.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 3945,
+      "mtime_iso": "2026-01-11T00:56:09.476Z"
+    },
+    {
+      "path": "server/run-tests.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 3830,
+      "mtime_iso": "2026-01-04T22:00:45.292Z"
+    },
+    {
+      "path": "scripts/database/seeds/create_staff_users.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 3813,
+      "mtime_iso": "2025-12-12T19:13:01.053Z"
+    },
+    {
+      "path": "scripts/api-tests.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 3732,
+      "mtime_iso": "2026-01-04T23:06:04.498Z"
+    },
+    {
+      "path": "server/swagger.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 3708,
+      "mtime_iso": "2026-01-04T20:46:03.090Z"
+    },
+    {
+      "path": "debug-dashboard.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 3374,
+      "mtime_iso": "2026-01-08T21:36:21.157Z"
+    },
+    {
+      "path": "client/tailwind.config.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 3352,
+      "mtime_iso": "2026-01-06T12:10:17.419Z"
+    },
+    {
+      "path": "scripts/create_blotter_participants.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 3072,
+      "mtime_iso": "2026-01-02T19:24:59.507Z"
+    },
+    {
+      "path": "scripts/database/create_table.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 3061,
+      "mtime_iso": "2025-12-11T19:33:56.229Z"
+    },
+    {
+      "path": "server/utils/cache.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 2997,
+      "mtime_iso": "2026-01-04T21:26:14.588Z"
+    },
+    {
+      "path": "scripts/verify_blotter_participants.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 2966,
+      "mtime_iso": "2026-01-03T20:20:48.311Z"
+    },
+    {
+      "path": "server/services/DatabaseService.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 2803,
+      "mtime_iso": "2026-01-09T17:36:24.680Z"
+    },
+    {
+      "path": "scripts/cleanup/generate_cleanup_plan.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 2586,
+      "mtime_iso": "2026-01-11T00:56:21.037Z"
+    },
+    {
+      "path": "scripts/test_officer_login.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 2578,
+      "mtime_iso": "2026-01-02T19:28:28.257Z"
+    },
+    {
+      "path": "tests/simple_login_test.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 2552,
+      "mtime_iso": "2025-12-17T21:45:35.096Z"
+    },
+    {
+      "path": "scripts/verification/check_db.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 2473,
+      "mtime_iso": "2025-11-30T21:53:23.182Z"
+    },
+    {
+      "path": "server/utils/performance.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 2348,
+      "mtime_iso": "2026-01-04T20:53:51.873Z"
+    },
+    {
+      "path": "client/src/pages/admin/Backup.jsx",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 2282,
+      "mtime_iso": "2026-01-06T12:00:19.262Z"
+    },
+    {
+      "path": "server/simple_create.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 2206,
+      "mtime_iso": "2025-12-18T17:33:18.581Z"
+    },
+    {
+      "path": "scripts/database/migrations/run_migration.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 2156,
+      "mtime_iso": "2026-01-03T20:20:01.349Z"
+    },
+    {
+      "path": "server/create_test_user.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 2143,
+      "mtime_iso": "2025-12-30T21:21:27.319Z"
+    },
+    {
+      "path": "scripts/testing/test_login.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1995,
+      "mtime_iso": "2026-01-02T21:42:22.616Z"
+    },
+    {
+      "path": "scripts/verification/verify_blotter_participants.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1954,
+      "mtime_iso": "2026-01-02T18:28:40.849Z"
+    },
+    {
+      "path": "server/routes/performanceRoutes.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1936,
+      "mtime_iso": "2026-01-04T22:31:08.229Z"
+    },
+    {
+      "path": "server/routes/censusRoutes.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1811,
+      "mtime_iso": "2026-01-06T12:40:49.383Z"
+    },
+    {
+      "path": "scripts/database/migrations/migrate_db.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1800,
+      "mtime_iso": "2025-12-11T19:53:49.172Z"
+    },
+    {
+      "path": "scripts/testing/test_db.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1778,
+      "mtime_iso": "2026-01-03T20:20:48.967Z"
+    },
+    {
+      "path": "server/utils/seed_hashes.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1769,
+      "mtime_iso": "2026-01-10T22:47:39.737Z"
+    },
+    {
+      "path": "scripts/verification/check_users.mjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1755,
+      "mtime_iso": "2025-12-12T23:43:35.617Z"
+    },
+    {
+      "path": "server/check_tables.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1666,
+      "mtime_iso": "2025-12-18T17:33:57.670Z"
+    },
+    {
+      "path": "tests/debug_login.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1462,
+      "mtime_iso": "2025-12-17T21:46:51.946Z"
+    },
+    {
+      "path": "scripts/check_roles_table.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1416,
+      "mtime_iso": "2026-01-03T20:20:45.722Z"
+    },
+    {
+      "path": "scripts/maintenance/cleanup_residents.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1343,
+      "mtime_iso": "2025-12-13T22:27:40.665Z"
+    },
+    {
+      "path": "scripts/debug-routes.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1325,
+      "mtime_iso": "2026-01-04T23:06:25.366Z"
+    },
+    {
+      "path": "scripts/check_users_structure.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1214,
+      "mtime_iso": "2026-01-03T20:20:46.054Z"
+    },
+    {
+      "path": "scripts/maintenance/update_officer_password.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1159,
+      "mtime_iso": "2025-12-17T20:56:05.854Z"
+    },
+    {
+      "path": "scripts/simple-health-check.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1131,
+      "mtime_iso": "2026-01-04T23:05:41.844Z"
+    },
+    {
+      "path": "scripts/verification/check_users_table.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1120,
+      "mtime_iso": "2026-01-02T18:38:36.691Z"
+    },
+    {
+      "path": "scripts/testing/test_officer_login.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1120,
+      "mtime_iso": "2025-12-14T01:09:38.076Z"
+    },
+    {
+      "path": "server/middleware/healthCheck.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1062,
+      "mtime_iso": "2026-01-03T20:36:40.101Z"
+    },
+    {
+      "path": "scripts/simple-env-check.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 1028,
+      "mtime_iso": "2026-01-04T23:05:15.049Z"
+    },
+    {
+      "path": "scripts/test_login_simple.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 983,
+      "mtime_iso": "2026-01-02T19:29:47.359Z"
+    },
+    {
+      "path": "scripts/database/migrations/run_specific_migration.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 839,
+      "mtime_iso": "2025-12-14T07:11:48.812Z"
+    },
+    {
+      "path": "scripts/check_roles.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 775,
+      "mtime_iso": "2026-01-03T20:20:45.368Z"
+    },
+    {
+      "path": "server/config/constants.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 735,
+      "mtime_iso": "2026-01-03T20:45:36.044Z"
+    },
+    {
+      "path": "scripts/seed-database.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 734,
+      "mtime_iso": "2026-01-08T23:48:18.786Z"
+    },
+    {
+      "path": "scripts/seed-database.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 734,
+      "mtime_iso": "2026-01-08T23:47:39.931Z"
+    },
+    {
+      "path": "scripts/verification/check_users.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 662,
+      "mtime_iso": "2025-11-30T21:52:27.743Z"
+    },
+    {
+      "path": "client/vite.config.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 524,
+      "mtime_iso": "2026-01-06T12:06:14.678Z"
+    },
+    {
+      "path": "client/.prettierrc.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 498,
+      "mtime_iso": "2025-11-30T20:57:31.751Z"
+    },
+    {
+      "path": "server/middleware/performanceMetrics.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 485,
+      "mtime_iso": "2026-01-03T20:45:45.633Z"
+    },
+    {
+      "path": "server/.prettierrc.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 406,
+      "mtime_iso": "2025-11-30T20:56:34.144Z"
+    },
+    {
+      "path": "server/middleware/compression.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 340,
+      "mtime_iso": "2026-01-03T20:45:40.840Z"
+    },
+    {
+      "path": "scripts/testing/test_auth.cjs",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 307,
+      "mtime_iso": "2025-12-30T21:21:27.336Z"
+    },
+    {
+      "path": "client/postcss.config.js",
+      "bucket": "candidate",
+      "preserve": false,
+      "rationale": "Unreferenced by dependency graph",
+      "size_bytes": 86,
+      "mtime_iso": "2025-12-14T19:37:50.809Z"
+    }
+  ],
+  "notes": [
+    "This scan uses static parsing of import/require statements and may miss runtime-dynamic imports.",
+    "Version control history is not available from this environment; findings are based on current workspace state only."
+  ]
+}

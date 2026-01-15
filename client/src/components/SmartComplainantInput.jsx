@@ -15,16 +15,18 @@ const SmartComplainantInput = ({ value, onChange, label = "Complainant Name" }) 
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
-  useEffect(() => {
-    fetchResidents();
-  }, []);
-
-  const fetchResidents = useCallback(async () => {
+  const fetchResidents = useCallback(async (search = '') => {
     try {
       setLoading(true);
-      const response = await apiRequest('residents');
-      const data = await response.json();
-      setResidents(data.map(resident => ({
+      const params = {};
+      if (search) params.search = search;
+      
+      const response = await apiRequest('residents', { params });
+      const responseData = await response.json();
+      // Handle { data: [], pagination: {} } format or direct array
+      const residentsList = Array.isArray(responseData) ? responseData : (responseData.data || []);
+      
+      setResidents(residentsList.map(resident => ({
         id: resident.Resident_ID,
         name: `${resident.First_Name} ${resident.Middle_Name || ''} ${resident.Last_Name}`.trim(),
         address: `Household ${resident.Household_ID}`,
@@ -33,10 +35,23 @@ const SmartComplainantInput = ({ value, onChange, label = "Complainant Name" }) 
       })));
     } catch (error) {
       console.error('Error fetching residents:', error);
+      setResidents([]);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      // Only search if inputValue is not empty to avoid fetching all on every keystroke if we wanted to restrict
+      // But initially we might want to show some.
+      // If we want to show all initially, we can keep the initial fetch.
+      fetchResidents(inputValue);
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [inputValue, fetchResidents]);
+
 
   const handleChange = (event, newValue) => {
     if (typeof newValue === 'string') {

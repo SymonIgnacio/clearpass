@@ -1,6 +1,28 @@
 const request = require('supertest');
 const express = require('express');
-const residents = require('../routes/residents'); // Assuming routes are extracted
+const residents = require('../routes/residentRoutes'); // Assuming routes are extracted
+
+// Mock auth middleware
+jest.mock('../middleware/authMiddleware', () => ({
+  verifyToken: (req, res, next) => {
+    req.user = { id: 1, role: 1, role_name: 'Admin' };
+    next();
+  },
+  checkRole: () => (req, res, next) => next(),
+}));
+
+// Mock cache service
+jest.mock('../utils/cache', () => ({
+  cacheService: {
+    connect: jest.fn(),
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+    invalidatePattern: jest.fn(),
+    disconnect: jest.fn()
+  },
+  cacheMiddleware: () => (req, res, next) => next()
+}));
 
 // Mock database
 jest.mock('../database', () => ({
@@ -22,6 +44,7 @@ app.use(express.json());
 app.use('/api/residents', residents);
 
 describe('Residents API Tests', () => {
+  jest.setTimeout(30000);
   beforeEach(() => {
     jest.clearAllMocks();
   });

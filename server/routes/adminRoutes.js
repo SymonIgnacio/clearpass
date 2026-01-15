@@ -4,12 +4,19 @@ const { verifyToken, verifyRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { ROLES } = require('../config/roles');
 const adminController = require('../controllers/adminController');
+const { requireMfaForRoles } = require('../middleware/mfaMiddleware');
 
 module.exports = (db) => {
+  const requireVerificationMfa = requireMfaForRoles([ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK]);
   // User Management
+  router.get('/roles', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
+    const [roles] = await db.execute('SELECT * FROM roles ORDER BY hierarchy_level');
+    res.json(roles);
+  }));
+
   router.get('/users', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const [users] = await db.execute(`
-      SELECT u.id, u.username, u.full_name, u.email, u.contact_number, u.position, 
+      SELECT u.id, u.username, u.full_name, u.email, u.contact_number, 
              u.role, u.is_active, u.created_at, u.last_login,
              CASE u.role
                WHEN 1 THEN 'IT Admin'
@@ -27,15 +34,29 @@ module.exports = (db) => {
     res.json(users);
   }));
 
+  // Staff Management
+  router.get('/staff', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getAllStaff));
+  router.post('/staff', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.createStaff));
+  router.put('/staff/:id', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.updateStaff));
+  router.delete('/staff/:id', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.deleteStaff));
+
+  // Role Management (CRUD)
+  router.post('/roles', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.createRole));
+  router.put('/roles/:id', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.updateRole));
+  router.delete('/roles/:id', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.deleteRole));
+
   // Residents Verification Queue
   router.get('/residents-verification', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
+    // Join with vulnerabilities table to get vulnerability status
     const [residents] = await db.execute(`
-      SELECT r.*, s.name as sitio_name, h.Household_Number
+      SELECT r.*, s.name as sitio_name, h.Household_Number,
+             v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent, v.Is_Out_of_School_Youth
       FROM residents r
       LEFT JOIN sitios s ON r.Sitio_ID = s.id
       LEFT JOIN households h ON r.Household_ID = h.Household_ID
+      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
       WHERE r.Residency_Status = 'Pending' 
-         OR (r.Is_4Ps = 1 OR r.Is_PWD = 1 OR r.Is_Senior = 1 OR r.Is_Solo_Parent = 1 OR r.Is_Out_of_School_Youth = 1)
+         OR (v.Is_4Ps = 1 OR v.Is_PWD = 1 OR v.Is_Senior = 1 OR v.Is_Solo_Parent = 1 OR v.Is_Out_of_School_Youth = 1)
          AND r.verified_at IS NULL
       ORDER BY r.created_at DESC
     `);
@@ -44,7 +65,7 @@ module.exports = (db) => {
   }));
 
   // Verify Resident
-  router.post('/verify-resident/:id', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
+  router.post('/verify-resident/:id', verifyToken, requireVerificationMfa, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { verification_type } = req.body;
     
@@ -72,6 +93,7 @@ module.exports = (db) => {
   router.get('/reports/residents', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getResidentsReport));
   router.get('/reports/system', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getSystemReport));
   router.get('/reports/security', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getSecurityReport));
+  router.get('/reports/pdf/:type', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.generatePDFReport));
   
   // Detailed reports (with pagination and filters)
   router.get('/reports/detailed/users', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getDetailedUsersReport));
@@ -80,7 +102,7 @@ module.exports = (db) => {
   router.get('/reports/detailed/residents', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getDetailedResidentsReport));
   
   // System Logs & Audit Trail
-  router.get('/logs', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
+  router.get('/logs', verifyToken, requireVerificationMfa, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const {
       page = 1,
       limit = 25,
@@ -161,7 +183,7 @@ module.exports = (db) => {
   }));
 
   // Export logs as CSV
-  router.get('/logs/export', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
+  router.get('/logs/export', verifyToken, requireVerificationMfa, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const {
       event_type,
       user_role,

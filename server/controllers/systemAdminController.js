@@ -87,7 +87,7 @@ class SystemAdminController {
       // Create notifications for all residents if target is 'all' or 'residents'
       if (target_audience === 'all' || target_audience === 'residents') {
         const [residents] = await this.db.execute(
-          'SELECT id FROM users WHERE role_id = 12 AND is_active = 1'
+          'SELECT id FROM users WHERE role = 12 AND is_active = 1'
         );
         
         if (residents.length > 0 && global.createBulkNotification) {
@@ -159,6 +159,15 @@ class SystemAdminController {
 
   async getSettings(req, res) {
     try {
+      const [assets] = await this.db.execute(
+        `SELECT asset_type, id
+         FROM system_assets
+         WHERE asset_type IN ('seal','letterhead')
+         ORDER BY created_at DESC`
+      );
+      const seal = assets.find(a => a.asset_type === 'seal');
+      const letterhead = assets.find(a => a.asset_type === 'letterhead');
+
       // Return default settings for secretary settings page
       const settings = {
         barangay_name: 'Barangay Batia',
@@ -167,8 +176,8 @@ class SystemAdminController {
         secretary_name: 'Secretary Maria Santos',
         contact_number: '+63 123 456 7890',
         email: 'barangay.batia@bocaue.gov.ph',
-        seal_image: null,
-        letterhead_image: null,
+        seal_image: seal ? `/api/system-admin/assets/seal/latest` : null,
+        letterhead_image: letterhead ? `/api/system-admin/assets/letterhead/latest` : null,
         auto_approve_certificates: false,
         require_id_verification: true,
         notification_email: true,
@@ -208,17 +217,65 @@ class SystemAdminController {
         return res.status(400).json({ success: false, message: 'No file uploaded' });
       }
 
-      // In production, save file to storage and return path
-      const filePath = `/uploads/${type}/${file.filename}`;
+      const normalizedType = String(type || '').toLowerCase();
+      if (!['seal', 'letterhead'].includes(normalizedType)) {
+        return res.status(400).json({ success: false, message: 'Invalid type' });
+      }
+
+      const relativePath = `/uploads/system-assets/${file.filename}`;
+      const [result] = await this.db.execute(
+        `INSERT INTO system_assets (asset_type, file_path, mime_type, original_name, uploaded_by)
+         VALUES (?, ?, ?, ?, ?)`,
+        [normalizedType, relativePath, file.mimetype, file.originalname, req.user?.id || null]
+      );
       
       res.json({
         success: true,
-        file_path: filePath,
-        message: `${type} uploaded successfully`
+        file_path: `/api/system-admin/assets/${normalizedType}/latest`,
+        asset_id: result.insertId,
+        message: `${normalizedType} uploaded successfully`
       });
     } catch (error) {
       console.error('Error uploading file:', error);
       res.status(500).json({ success: false, message: 'Failed to upload file' });
+    }
+  }
+
+  async getLatestAsset(req, res) {
+    try {
+      const assetType = String(req.params.type || '').toLowerCase();
+      if (!['seal', 'letterhead'].includes(assetType)) {
+        return res.status(400).json({ success: false, message: 'Invalid type' });
+      }
+
+      const [rows] = await this.db.execute(
+        `SELECT file_path, mime_type, original_name
+         FROM system_assets
+         WHERE asset_type = ?
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [assetType]
+      );
+
+      if (!rows.length) {
+        return res.status(404).json({ success: false, message: 'Not found' });
+      }
+
+      const row = rows[0];
+      const safePath = String(row.file_path || '');
+      const absolute = path.join(__dirname, '..', safePath.replace(/^\//, ''));
+      const assetsRoot = path.join(__dirname, '../uploads/system-assets');
+      const relToRoot = path.relative(assetsRoot, absolute);
+      if (relToRoot.startsWith('..') || path.isAbsolute(relToRoot)) {
+        return res.status(400).json({ success: false, message: 'Invalid path' });
+      }
+
+      res.setHeader('Content-Type', row.mime_type || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `inline; filename="${row.original_name || 'asset'}"`);
+      return res.sendFile(absolute);
+    } catch (error) {
+      console.error('Error fetching asset:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch asset' });
     }
   }
 

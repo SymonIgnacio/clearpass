@@ -21,7 +21,7 @@ import {
   Pagination
 } from '@mui/material';
 import { Cancel as CancelIcon, Download as DownloadIcon } from '@mui/icons-material';
-import axios from 'axios';
+import { apiRequest } from '../utils/api';
 
 const RequestHistory = () => {
   const [requests, setRequests] = useState([]);
@@ -37,13 +37,14 @@ const RequestHistory = () => {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/certificate-requests/my-requests', {
+      const response = await apiRequest('/certificate-requests/my-requests', {
         params: { page: pagination.page, limit: pagination.limit }
       });
+      const data = await response.json();
       
-      if (response.data.success) {
-        setRequests(response.data.data);
-        setPagination(prev => ({ ...prev, total: response.data.pagination.total }));
+      if (data.success) {
+        setRequests(data.data);
+        setPagination(prev => ({ ...prev, total: data.pagination.total }));
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to load requests' });
@@ -54,9 +55,12 @@ const RequestHistory = () => {
 
   const handleCancelRequest = async () => {
     try {
-      const response = await axios.put(`/api/certificate-requests/${cancelDialog.requestId}/cancel`);
+      const response = await apiRequest(`/certificate-requests/${cancelDialog.requestId}/cancel`, {
+        method: 'PUT'
+      });
+      const data = await response.json();
       
-      if (response.data.success) {
+      if (data.success) {
         setMessage({ type: 'success', text: 'Request cancelled successfully' });
         fetchRequests();
       }
@@ -96,7 +100,7 @@ const RequestHistory = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+    <Box sx={{ width: '100%', mx: 'auto', p: 3 }}>
       <Typography variant="h4" gutterBottom>
         My Certificate Requests
       </Typography>

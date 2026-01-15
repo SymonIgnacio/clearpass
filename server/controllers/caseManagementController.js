@@ -1,3 +1,6 @@
+const { allocateBlotterCaseNumber } = require('../utils/blotterCaseNumber');
+const ExcelJS = require('exceljs');
+
 class CaseManagementController {
   constructor(db) {
     this.db = db;
@@ -151,17 +154,17 @@ class CaseManagementController {
     try {
       const {
         incident_type, description, location, incident_date,
-        complainant, respondent, witnesses, case_number
+        complainant, respondent, witnesses
       } = req.body;
 
-      const caseId = case_number || `BLT-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+      const caseId = await allocateBlotterCaseNumber(this.db, { incidentDate: incident_date });
 
       await this.db.execute(`
         INSERT INTO blotter (
           Case_Number, Incident_Type, Description, Location_Sitio,
-          DateTime_Incident, Status, Complainant_Details, Respondent_Details,
+          DateTime_Incident, status, Complainant_Details, Respondent_Details,
           created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, NOW(), NOW())
+        ) VALUES (?, ?, ?, ?, ?, 'Pending', ?, ?, NOW(), NOW())
       `, [
         caseId, incident_type, description, location, incident_date,
         JSON.stringify(complainant), JSON.stringify(respondent)
@@ -326,17 +329,39 @@ class CaseManagementController {
     try {
       const { type, start_date, end_date, format } = req.body;
 
-      const reportData = `Blotter Report\nType: ${type}\nPeriod: ${start_date} to ${end_date}\nGenerated: ${new Date().toISOString()}`;
+      // In a real implementation, fetch data based on type/dates
+      // For now, we'll create a basic workbook
       
       if (format === 'pdf') {
+         // PDF generation would go here (requires pdfkit or similar)
+         // For now, fallback to simple text
+        const reportData = `Blotter Report\nType: ${type}\nPeriod: ${start_date} to ${end_date}\nGenerated: ${new Date().toISOString()}`;
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="blotter-report-${type}.pdf"`);
+        res.send(Buffer.from(reportData));
       } else {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Blotter Report');
+        
+        worksheet.columns = [
+          { header: 'Report Type', key: 'type', width: 20 },
+          { header: 'Start Date', key: 'start', width: 15 },
+          { header: 'End Date', key: 'end', width: 15 },
+          { header: 'Generated At', key: 'generated', width: 25 }
+        ];
+        
+        worksheet.addRow({
+          type: type,
+          start: start_date,
+          end: end_date,
+          generated: new Date().toISOString()
+        });
+        
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="blotter-report-${type}.xlsx"`);
+        
+        await workbook.xlsx.write(res);
       }
-      
-      res.send(Buffer.from(reportData));
     } catch (error) {
       console.error('Error exporting report:', error);
       res.status(500).json({ success: false, message: 'Failed to export report' });
@@ -384,6 +409,10 @@ class CaseManagementController {
       console.error('Error fetching cases:', error);
       res.status(500).json({ success: false, message: 'Failed to fetch cases' });
     }
+  }
+
+  async getCasesByOfficer(req, res) {
+    return this.getCases(req, res);
   }
 }
 

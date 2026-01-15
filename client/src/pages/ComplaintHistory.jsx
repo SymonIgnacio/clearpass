@@ -15,7 +15,7 @@ import {
   CircularProgress,
   Pagination
 } from '@mui/material';
-import axios from 'axios';
+import { apiRequest } from '../utils/api';
 
 const ComplaintHistory = () => {
   const [complaints, setComplaints] = useState([]);
@@ -30,13 +30,14 @@ const ComplaintHistory = () => {
   const fetchComplaints = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/blotter-complaints/my-complaints', {
+      const response = await apiRequest('/blotter-complaints/my-complaints', {
         params: { page: pagination.page, limit: pagination.limit }
       });
+      const data = await response.json();
       
-      if (response.data.success) {
-        setComplaints(response.data.data);
-        setPagination(prev => ({ ...prev, total: response.data.pagination.total }));
+      if (data.success) {
+        setComplaints(data.data);
+        setPagination(prev => ({ ...prev, total: data.pagination.total }));
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to load complaints' });
@@ -76,7 +77,7 @@ const ComplaintHistory = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+    <Box sx={{ width: '100%', mx: 'auto', p: 3 }}>
       <Typography variant="h4" gutterBottom>
         My Blotter Complaints
       </Typography>

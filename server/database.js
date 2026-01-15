@@ -1,11 +1,13 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
+const { allocateBlotterCaseNumber } = require('./utils/blotterCaseNumber');
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'barangay_management',
+  // Force test database when running tests, regardless of .env DB_NAME
+  database: process.env.NODE_ENV === 'test' ? 'barangay_management_test' : (process.env.DB_NAME || 'barangay_management'),
   port: process.env.DB_PORT || 3306,
   waitForConnections: true,
   connectionLimit: 10,
@@ -22,7 +24,10 @@ const db = {
   getConnection: () => pool.getConnection(),
   
   // Execute query
-  execute: (sql, params) => pool.execute(sql, params)
+  execute: (sql, params) => pool.execute(sql, params),
+
+  // Close pool (for testing)
+  end: () => pool.end()
 };
 
 // Get all residents with sitio information (OPTIMIZED)
@@ -199,13 +204,13 @@ async function createBlotterRecord(blotterData) {
       recorded_by
     } = blotterData;
 
-    const case_number = `BLOT-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+    const case_number = await allocateBlotterCaseNumber(db, { incidentDate: `${incident_date} ${incident_time}` });
 
     const [result] = await connection.execute(`
       INSERT INTO blotter (
         Case_Number, Complainant_Details, Respondent_Details,
         Incident_Type, DateTime_Incident, Location_Sitio,
-        Narrative, Status
+        Narrative, status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       case_number,

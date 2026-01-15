@@ -1,24 +1,26 @@
 // Role utility functions for consistent role handling across the application
 
 // THEMIS role definitions (numeric) - SYNCHRONIZED WITH BACKEND
-// CRITICAL DATABASE ALIGNMENT: CAPTAIN=2, SECRETARY=3, CLERK=4, ADMIN=5, BLOTTER_OFFICER=6, RESIDENT=12
+// CRITICAL DATABASE ALIGNMENT: CAPTAIN=2, SECRETARY=3, CLERK=4, ADMIN=1, BLOTTER_OFFICER=6, RESIDENT=12
 export const THEMIS_ROLES = {
   2: { id: 2, key: 'captain', name: 'Captain', displayName: 'Barangay Captain' },
   3: { id: 3, key: 'secretary', name: 'Secretary', displayName: 'Barangay Secretary' },
   4: { id: 4, key: 'clerk', name: 'Clerk', displayName: 'Barangay Clerk' },
-  5: { id: 5, key: 'admin', name: 'Admin', displayName: 'IT Admin' },
+  1: { id: 1, key: 'admin', name: 'Admin', displayName: 'IT Admin' },
   6: { id: 6, key: 'blotter_officer', name: 'Blotter Officer', displayName: 'Blotter Officer' },
-  12: { id: 12, key: 'resident', name: 'Resident', displayName: 'Resident' }
+  12: { id: 12, key: 'resident', name: 'Resident', displayName: 'Resident' },
+  13: { id: 13, key: 'guest', name: 'Guest', displayName: 'Guest' }
 };
 
 // Legacy role mapping for backward compatibility
 export const ROLE_MAPPING = {
-  'admin': THEMIS_ROLES[5],
+  'admin': THEMIS_ROLES[1],
   'captain': THEMIS_ROLES[2],
   'secretary': THEMIS_ROLES[3],
   'clerk': THEMIS_ROLES[4],
   'blotter_officer': THEMIS_ROLES[6],
-  'resident': THEMIS_ROLES[12]
+  'resident': THEMIS_ROLES[12],
+  'guest': THEMIS_ROLES[13]
 };
 
 /**
@@ -161,9 +163,10 @@ export const ROLES = {
   CAPTAIN: 2,
   SECRETARY: 3,
   CLERK: 4,
-  ADMIN: 5,
+  ADMIN: 1,
   BLOTTER_OFFICER: 6,
-  RESIDENT: 12
+  RESIDENT: 12,
+  GUEST: 13
 };
 
 export const ROLE_KEYS = {
@@ -172,5 +175,6 @@ export const ROLE_KEYS = {
   CLERK: 'clerk',
   ADMIN: 'admin',
   BLOTTER_OFFICER: 'blotter_officer',
-  RESIDENT: 'resident'
+  RESIDENT: 'resident',
+  GUEST: 'guest'
 };

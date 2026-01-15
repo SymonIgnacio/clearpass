@@ -1,17 +1,17 @@
-import React, { lazy, Suspense } from 'react'
+import { lazy, Suspense, useMemo } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
-import { Container, Box, CircularProgress } from '@mui/material'
+import { Box, CircularProgress } from '@mui/material'
 
 // Eager load critical components
-import Sidebar from './components/Sidebar'
-import Header from './components/Header'
+import AppShell from './components/AppShell'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthProvider } from './contexts/AuthContext'
-import { ROLES } from './utils/roles'
+import { useAuth } from './contexts/useAuth'
+import { useThemeMode } from './contexts/ThemeModeContext.jsx'
 
 // Import critical pages directly to avoid dynamic import issues
 import Login from './pages/Login'
@@ -19,20 +19,17 @@ import ResidentLogin from './pages/ResidentLogin'
 import ResidentRegister from './pages/ResidentRegister'
 import OfficerLogin from './pages/OfficerLogin'
 import Unauthorized from './pages/Unauthorized'
+import MfaOtp from './pages/MfaOtp'
 
 // Lazy load non-critical pages
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const ResidentDashboard = lazy(() => import('./pages/ResidentDashboard'))
 const Residents = lazy(() => import('./pages/Residents'))
-const Users = lazy(() => import('./pages/Users'))
 const Blotter = lazy(() => import('./pages/Blotter'))
 const DocumentsDashboard = lazy(() => import('./pages/DocumentsDashboard'))
 const Census = lazy(() => import('./pages/Census'))
-const QRVerification = lazy(() => import('./pages/QRVerification'))
 const CommunityEvents = lazy(() => import('./pages/CommunityEvents'))
 const Settings = lazy(() => import('./pages/Settings'))
-const SuperAdminSettings = lazy(() => import('./pages/SuperAdminSettings'))
-const ResidentSettings = lazy(() => import('./pages/ResidentSettings'))
 const CertificateRequest = lazy(() => import('./pages/CertificateRequest'))
 const RequestHistory = lazy(() => import('./pages/RequestHistory'))
 const AdminBackup = lazy(() => import('./pages/AdminBackup'))
@@ -43,18 +40,31 @@ const ResidentProfile = lazy(() => import('./pages/ResidentProfile'))
 const ComplaintHistory = lazy(() => import('./pages/ComplaintHistory'))
 const ResidentBlotterReport = lazy(() => import('./pages/ResidentBlotterReport'))
 const SystemLogs = lazy(() => import('./pages/admin/SystemLogs'))
-const Backup = lazy(() => import('./pages/admin/Backup'))
-const AIAnalytics = lazy(() => import('./pages/admin/AIAnalytics'))
 const StaffManagement = lazy(() => import('./pages/admin/StaffManagement'))
-const UserManagement = lazy(() => import('./pages/Users'))
-const Register = lazy(() => import('./pages/Register'))
 const AIPatrol = lazy(() => import('./pages/AIPatrol'))
 const RondaAnalytics = lazy(() => import('./pages/RondaAnalytics'))
-const OfficerNewCase = lazy(() => import('./pages/OfficerNewCase'))
 const OfficerAttendance = lazy(() => import('./pages/OfficerAttendance'))
 const OfficerReports = lazy(() => import('./pages/OfficerReports'))
 const SecretarySettings = lazy(() => import('./pages/SecretarySettings'))
 const AccountVerification = lazy(() => import('./components/AccountVerification'))
+const BeneficiaryValidation = lazy(() => import('./pages/BeneficiaryValidation'))
+const AdminReports = lazy(() => import('./pages/AdminReports'))
+const DocumentVerification = lazy(() => import('./pages/DocumentVerification'))
+const QRCodeGenerator = lazy(() => import('./pages/QRCodeGenerator'))
+
+const ClerkDashboard = lazy(() => import('./pages/dashboards/ClerkDashboard'))
+const BlotterDashboard = lazy(() => import('./pages/dashboards/BlotterDashboard'))
+
+// Role-based dashboard redirector
+const RoleBasedDashboard = () => {
+  const { user } = useAuth()
+  
+  if (user && parseInt(user.role) === 12) {
+    return <Navigate to="/resident/dashboard" replace />
+  }
+  
+  return <Dashboard />
+}
 
 // Loading component
 const LoadingFallback = () => (
@@ -63,9 +73,11 @@ const LoadingFallback = () => (
   </Box>
 )
 
-const theme = createTheme({
+const createAppTheme = (mode) => {
+  const isDark = mode === 'dark'
+  return createTheme({
   palette: {
-    mode: 'light',
+    mode,
     primary: {
       main: '#1a73e8', // Google Blue
       light: '#4285f4',
@@ -99,14 +111,14 @@ const theme = createTheme({
       dark: '#2e7d32',
     },
     background: {
-      default: '#f8f9fa', // Google Gray 50
-      paper: '#ffffff',
+      default: isDark ? '#121212' : '#f8f9fa',
+      paper: isDark ? '#1e1e1e' : '#ffffff', // Slightly lighter for paper in dark mode
     },
     text: {
-      primary: '#202124', // Google Gray 900
-      secondary: '#5f6368', // Google Gray 600
+      primary: isDark ? '#ffffff' : '#202124', // Pure white for max contrast
+      secondary: isDark ? '#b0b3b8' : '#5f6368', // Lighter grey for secondary
     },
-    divider: '#e8eaed',
+    divider: isDark ? 'rgba(255, 255, 255, 0.12)' : '#e8eaed',
   },
   typography: {
     fontFamily: '"Google Sans", "Roboto", "Helvetica", "Arial", sans-serif',
@@ -220,7 +232,7 @@ const theme = createTheme({
         root: {
           borderRadius: 12,
           boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
-          border: '1px solid #e8eaed',
+          border: isDark ? '1px solid #3c4043' : '1px solid #e8eaed',
         },
       },
     },
@@ -246,10 +258,10 @@ const theme = createTheme({
           '& .MuiOutlinedInput-root': {
             borderRadius: 8,
             '& fieldset': {
-              borderColor: '#dadce0',
+              borderColor: isDark ? '#5f6368' : '#dadce0',
             },
             '&:hover fieldset': {
-              borderColor: '#bdc1c6',
+              borderColor: isDark ? '#9aa0a6' : '#bdc1c6',
             },
             '&.Mui-focused fieldset': {
               borderColor: '#1a73e8',
@@ -270,8 +282,8 @@ const theme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: '#ffffff',
-          color: '#202124',
+          backgroundColor: isDark ? '#202124' : '#ffffff',
+          color: isDark ? '#e8eaed' : '#202124',
           boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
         },
       },
@@ -280,14 +292,27 @@ const theme = createTheme({
       styleOverrides: {
         paper: {
           borderRadius: 0,
-          borderRight: '1px solid #e8eaed',
+          borderRight: isDark ? '1px solid #3c4043' : '1px solid #e8eaed',
+        },
+      },
+    },
+    MuiCssBaseline: {
+      styleOverrides: {
+        'input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, input:-webkit-autofill:active': {
+          WebkitBoxShadow: `0 0 0 1000px ${isDark ? '#1f1f1f' : '#ffffff'} inset !important`,
+          WebkitTextFillColor: `${isDark ? '#e8eaed' : '#202124'} !important`,
+          caretColor: isDark ? '#e8eaed' : '#202124',
+          transition: 'background-color 5000s ease-in-out 0s',
         },
       },
     },
   },
-})
+  })
+}
 
 function App() {
+  const { mode } = useThemeMode()
+  const theme = useMemo(() => createAppTheme(mode), [mode])
 
   return (
     <ErrorBoundary>
@@ -302,85 +327,85 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/resident/login" element={<ResidentLogin />} />
               <Route path="/resident/register" element={<ResidentRegister />} />
-              {/* SECURITY: Public signup disabled per business rules */}
-              {/* <Route path="/signup" element={<Register />} /> */}
+              <Route path="/signup" element={<ResidentRegister />} />
               <Route path="/officerlogin" element={<OfficerLogin />} />
               <Route path="/verify-account" element={<AccountVerification />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
+              <Route
+                path="/mfa"
+                element={
+                  <ProtectedRoute>
+                    <MfaOtp />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Protected Layout Route */}
               <Route
                 path="/"
                 element={
                   <ProtectedRoute>
-                    <Box sx={{
-                      display: 'flex',
-                      minHeight: '100vh',
-                      backgroundColor: 'background.default'
-                    }}>
-                      <Sidebar />
-                      <Box
-                        component="main"
-                        sx={{
-                          flexGrow: 1,
-                          marginLeft: '280px', // Account for sidebar width
-                          transition: 'margin-left 0.3s ease-in-out',
-                        }}
-                      >
-                        <Header />
-                        <Box sx={{
-                          p: 4,
-                          minHeight: 'calc(100vh - 64px)', // Account for header height
-                          backgroundColor: 'background.default'
-                        }}>
-                          <Outlet />
-                        </Box>
-                      </Box>
-                    </Box>
+                    <AppShell>
+                      <Outlet />
+                    </AppShell>
                   </ProtectedRoute>
                 }
               >
               {/* Nested protected routes */}
-            <Route index element={<Dashboard />} />
+            <Route index element={<RoleBasedDashboard />} />
 
             {/* Role-specific dashboard routes */}
             <Route path="admin/dashboard" element={<Dashboard />} />
             <Route path="secretary/dashboard" element={<Dashboard />} />
-            <Route path="clerk/dashboard" element={<Dashboard />} />
-            <Route path="officer/dashboard" element={<Dashboard />} />
-            <Route path="dashboard" element={<Dashboard />} />
-
-            <Route path="residents" element={<Residents />} />
-            <Route path="users" element={
-              <ProtectedRoute requiredRoles={[1, 2, 5]}>
-                <Users />
+            <Route path="clerk/dashboard" element={
+              <ProtectedRoute requiredRoles={[1, 4]}>
+                <ClerkDashboard />
               </ProtectedRoute>
             } />
+            <Route path="officer/dashboard" element={
+              <ProtectedRoute requiredRoles={[1, 6]}>
+                <BlotterDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="dashboard" element={<Dashboard />} />
+
+            <Route path="residents" element={
+              <ProtectedRoute requiredRoles={[1, 2, 3, 4]}>
+                <Residents />
+              </ProtectedRoute>
+            } />
+            <Route path="users" element={<Navigate to="residents" replace />} />
             <Route path="blotter" element={
-              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6]}>
+              <ProtectedRoute requiredRoles={[1, 2, 4, 6]}>
                 <Blotter />
               </ProtectedRoute>
             } />
             <Route path="documents" element={
-              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6]}>
+              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 6]}>
                 <DocumentsDashboard />
               </ProtectedRoute>
             } />
 
             <Route path="census" element={
-              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 5, 6]}>
+              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 6]}>
                 <Census />
               </ProtectedRoute>
             } />
             <Route path="events" element={
-              <ProtectedRoute requiredRoles={[1, 2, 3, 5, 6]}>
+              <ProtectedRoute requiredRoles={[1, 2, 3, 6]}>
                 <CommunityEvents />
               </ProtectedRoute>
             } />
 
-            <Route path="settings" element={
+            <Route path="admin/settings" element={
               <ProtectedRoute requiredRoles={[1]}>
-                <SuperAdminSettings />
+                <Settings />
+              </ProtectedRoute>
+            } />
+
+            <Route path="reports" element={
+              <ProtectedRoute requiredRoles={[1, 2, 3]}>
+                <AdminReports />
               </ProtectedRoute>
             } />
 
@@ -389,35 +414,53 @@ function App() {
             <Route path="qr-verification" element={<Navigate to="/" replace />} />
 
             {/* AI Routes - Available to authenticated staff */}
-            <Route path="ai-dashboard" element={<AIPatrol />} />
-            <Route path="ai-patrol" element={<AIPatrol />} />
-            <Route path="ronda-analytics" element={<RondaAnalytics />} />
+            <Route path="ai-dashboard" element={
+              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 6]}>
+                <AIPatrol />
+              </ProtectedRoute>
+            } />
+            <Route path="ai-patrol" element={
+              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 6]}>
+                <AIPatrol />
+              </ProtectedRoute>
+            } />
+            <Route path="ronda-analytics" element={
+              <ProtectedRoute requiredRoles={[1, 2, 3, 4, 6]}>
+                <RondaAnalytics />
+              </ProtectedRoute>
+            } />
+            <Route path="ai-analytics" element={<Navigate to="/reports" replace />} />
 
             {/* Clerk Routes */}
             <Route path="clerk/ai-insights" element={
-              <ProtectedRoute requiredRoles={[2]}>
+              <ProtectedRoute requiredRoles={[1, 4]}>
                 <ClerkAIInsights />
+              </ProtectedRoute>
+            } />
+            <Route path="clerk/documents" element={
+              <ProtectedRoute requiredRoles={[1, 4]}>
+                <DocumentsDashboard />
               </ProtectedRoute>
             } />
 
             {/* Officer Routes */}
             <Route path="officer/case/:caseId" element={
-              <ProtectedRoute requiredRoles={[3]}>
+              <ProtectedRoute requiredRoles={[1, 6]}>
                 <CaseDetail />
               </ProtectedRoute>
             } />
             <Route path="officer/new-case" element={
-              <ProtectedRoute requiredRoles={[3]}>
-                <OfficerNewCase />
+              <ProtectedRoute requiredRoles={[1, 6]}>
+                <Navigate to="/blotter?new=1" replace />
               </ProtectedRoute>
             } />
             <Route path="officer/attendance" element={
-              <ProtectedRoute requiredRoles={[3]}>
+              <ProtectedRoute requiredRoles={[1, 6]}>
                 <OfficerAttendance />
               </ProtectedRoute>
             } />
             <Route path="officer/reports" element={
-              <ProtectedRoute requiredRoles={[3]}>
+              <ProtectedRoute requiredRoles={[1, 6]}>
                 <OfficerReports />
               </ProtectedRoute>
             } />
@@ -428,12 +471,8 @@ function App() {
                 <StaffManagement />
               </ProtectedRoute>
             } />
-            <Route path="admin/users" element={
-              <ProtectedRoute requiredRoles={[1]}>
-                <Users />
-              </ProtectedRoute>
-            } />
-            <Route path="admin/system-logs" element={
+            <Route path="admin/users" element={<Navigate to="staff" replace />} />
+            <Route path="admin/logs" element={
               <ProtectedRoute requiredRoles={[1]}>
                 <SystemLogs />
               </ProtectedRoute>
@@ -443,60 +482,74 @@ function App() {
                 <AdminBackup />
               </ProtectedRoute>
             } />
-            <Route path="admin/ai-analytics" element={
-              <ProtectedRoute requiredRoles={[1]}>
-                <AIAnalytics />
-              </ProtectedRoute>
-            } />
 
             {/* Resident Routes */}
             <Route path="resident/dashboard" element={
-              <ProtectedRoute requiredRoles={[4]}>
+              <ProtectedRoute requiredRoles={[12]}>
                 <ResidentDashboard />
               </ProtectedRoute>
             } />
             <Route path="resident/request-certificate" element={
-              <ProtectedRoute requiredRoles={[4]}>
+              <ProtectedRoute requiredRoles={[12]}>
                 <CertificateRequest />
               </ProtectedRoute>
             } />
             <Route path="resident/requests" element={
-              <ProtectedRoute requiredRoles={[4]}>
+              <ProtectedRoute requiredRoles={[12]}>
                 <RequestHistory />
               </ProtectedRoute>
             } />
             <Route path="resident/blotter-report" element={
-              <ProtectedRoute requiredRoles={[4]}>
+              <ProtectedRoute requiredRoles={[12]}>
                 <ResidentBlotterReport />
               </ProtectedRoute>
             } />
             <Route path="resident/profile" element={
-              <ProtectedRoute requiredRoles={[4]}>
+              <ProtectedRoute requiredRoles={[12]}>
                 <ResidentProfile />
               </ProtectedRoute>
             } />
             <Route path="resident/complaints" element={
-              <ProtectedRoute requiredRoles={[4]}>
+              <ProtectedRoute requiredRoles={[12]}>
                 <ComplaintHistory />
               </ProtectedRoute>
             } />
 
             <Route path="resident/announcements" element={
-              <ProtectedRoute requiredRoles={[4]}>
+              <ProtectedRoute requiredRoles={[12]}>
                 <ResidentAnnouncements />
               </ProtectedRoute>
             } />
 
             {/* Secretary Routes */}
+            <Route path="secretary/document-verification" element={
+              <ProtectedRoute requiredRoles={[1, 3, 4]}>
+                <DocumentVerification />
+              </ProtectedRoute>
+            } />
+            <Route path="secretary/beneficiaries" element={
+              <ProtectedRoute requiredRoles={[1, 3]}>
+                <BeneficiaryValidation />
+              </ProtectedRoute>
+            } />
             <Route path="secretary/settings" element={
-              <ProtectedRoute requiredRoles={[6]}>
+              <ProtectedRoute requiredRoles={[1, 3]}>
                 <SecretarySettings />
+              </ProtectedRoute>
+            } />
+
+            <Route path="qr-generator" element={
+              <ProtectedRoute requiredRoles={[1, 2, 3]}>
+                <QRCodeGenerator />
               </ProtectedRoute>
             } />
 
                 {/* Backward compatibility redirects */}
                 <Route path="certificates" element={<Navigate to="documents" replace />} />
                 <Route path="document-templates" element={<Navigate to="documents" replace />} />
+
+                {/* Catch-all for 404 */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>
             </Suspense>

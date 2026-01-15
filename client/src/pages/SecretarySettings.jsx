@@ -5,7 +5,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, IconButton
 } from '@mui/material';
 import { Save, Upload, Download, Edit, Delete } from '@mui/icons-material';
-import axios from 'axios';
+import { apiRequest } from '../utils/api';
 
 const SecretarySettings = () => {
   const [settings, setSettings] = useState({
@@ -33,8 +33,9 @@ const SecretarySettings = () => {
 
   const fetchSettings = async () => {
     try {
-      const response = await axios.get('/api/system-admin/settings');
-      setSettings(response.data.data || {});
+      const response = await apiRequest('/system-admin/settings');
+      const data = await response.json();
+      setSettings(data.data || {});
     } catch (error) {
       console.error('Error fetching settings:', error);
     }
@@ -47,10 +48,13 @@ const SecretarySettings = () => {
   const handleSaveSettings = async () => {
     setLoading(true);
     try {
-      await axios.put('/api/system-admin/settings', settings);
+      await apiRequest('/system-admin/settings', {
+        method: 'PUT',
+        body: settings
+      });
       setMessage('Settings saved successfully!');
     } catch (error) {
-      setMessage('Error saving settings: ' + error.response?.data?.message);
+      setMessage('Error saving settings: ' + error.message);
     }
     setLoading(false);
   };
@@ -63,30 +67,31 @@ const SecretarySettings = () => {
     formData.append('type', type);
 
     try {
-      const response = await axios.post('/api/system-admin/upload-seal', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const response = await apiRequest('/system-admin/upload-seal', {
+        method: 'POST',
+        body: formData
       });
+      const data = await response.json();
       
       setSettings(prev => ({ 
         ...prev, 
-        [type === 'seal' ? 'seal_image' : 'letterhead_image']: response.data.file_path 
+        [type === 'seal' ? 'seal_image' : 'letterhead_image']: data.file_path 
       }));
       
       setMessage(`${type === 'seal' ? 'Seal' : 'Letterhead'} uploaded successfully!`);
       setSealDialogOpen(false);
       setSelectedFile(null);
     } catch (error) {
-      setMessage('Error uploading file: ' + error.response?.data?.message);
+      setMessage('Error uploading file: ' + error.message);
     }
   };
 
   const exportSettings = async () => {
     try {
-      const response = await axios.get('/api/system-admin/export-settings', {
-        responseType: 'blob'
-      });
+      const response = await apiRequest('/system-admin/export-settings');
+      const blob = await response.blob();
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', 'barangay-settings.json');
@@ -101,7 +106,9 @@ const SecretarySettings = () => {
   const resetToDefaults = async () => {
     if (window.confirm('Are you sure you want to reset all settings to defaults?')) {
       try {
-        await axios.post('/api/system-admin/reset-settings');
+        await apiRequest('/system-admin/reset-settings', {
+          method: 'POST'
+        });
         fetchSettings();
         setMessage('Settings reset to defaults successfully!');
       } catch (error) {

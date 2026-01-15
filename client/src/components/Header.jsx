@@ -1,12 +1,14 @@
 import React from 'react'
 import { AppBar, Toolbar, Typography, Box, Chip, IconButton, Menu, MenuItem } from '@mui/material'
-import { Security, AccountCircle, Logout } from '@mui/icons-material'
-import { useAuth } from '../contexts/AuthContext'
+import { Security, AccountCircle, Logout, Brightness4, Brightness7, Menu as MenuIcon } from '@mui/icons-material'
+import { useAuth } from '../contexts/useAuth'
+import { useThemeMode } from '../contexts/ThemeModeContext.jsx'
 import NotificationBell from './NotificationBell'
 
-const Header = () => {
+const Header = ({ showMenuButton = false, onOpenSidebar = () => {} }) => {
   const [anchorEl, setAnchorEl] = React.useState(null)
   const { user, logout } = useAuth()
+  const { mode, toggleDarkMode } = useThemeMode()
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget)
@@ -22,9 +24,14 @@ const Header = () => {
   }
 
   return (
-    <AppBar position="static" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+    <AppBar position="sticky" sx={{ top: 0, zIndex: 1100 }}>
       <Toolbar>
         <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+          {showMenuButton && (
+            <IconButton size="large" color="inherit" onClick={onOpenSidebar} aria-label="open navigation">
+              <MenuIcon />
+            </IconButton>
+          )}
           <Security sx={{ mr: 2 }} />
           <Typography variant="h6" noWrap component="div">
             Barangay Batia Management System
@@ -33,6 +40,9 @@ const Header = () => {
 
         {user && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton size="large" color="inherit" onClick={toggleDarkMode} aria-label="toggle dark mode">
+              {mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
+            </IconButton>
             <NotificationBell />
             <Box sx={{ textAlign: 'right' }}>
               <Typography variant="body2" sx={{ fontWeight: 500 }}>

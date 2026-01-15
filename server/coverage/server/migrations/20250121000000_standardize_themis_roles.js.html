@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>0/8</span>
             </div>
         
             
@@ -39,14 +39,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/7</span>
+                <span class='fraction'>0/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>0/8</span>
             </div>
         
             
@@ -107,8 +107,7 @@
 <a name='L42'></a><a href='#L42'>42</a>
 <a name='L43'></a><a href='#L43'>43</a>
 <a name='L44'></a><a href='#L44'>44</a>
-<a name='L45'></a><a href='#L45'>45</a>
-<a name='L46'></a><a href='#L46'>46</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L45'></a><a href='#L45'>45</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -121,20 +120,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -142,60 +127,72 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">'use strict';
 &nbsp;
 /**
- * THEMIS RBAC: Migration to standardize user roles to numeric values (0-5)
- * Ensures consistency between database and application code
+ * RBAC: Migration to standardize legacy string roles to DB-aligned numeric IDs.
+ * Final mapping is enforced by later role integrity migrations.
  */
 &nbsp;
-<span class="cstat-no" title="statement not covered" >exports.up = <span class="fstat-no" title="function not covered" >fu</span>nction(knex) {</span>
-<span class="cstat-no" title="statement not covered" >  return knex.schema.alterTable('users', <span class="fstat-no" title="function not covered" >fu</span>nction(table) {</span>
-    // Ensure role column is TINYINT with proper constraints
-<span class="cstat-no" title="statement not covered" >    table.tinyint('role').notNullable().defaultTo(5).comment('THEMIS Role ID: 0=IT Admin, 1=Captain, 2=Secretary, 3=Clerk, 4=Blotter Officer, 5=Resident').alter();</span>
+<span class="cstat-no" title="statement not covered" >exports.up = <span class="fstat-no" title="function not covered" >fu</span>nction (knex) {</span>
+<span class="cstat-no" title="statement not covered" >  return knex.schema</span>
+    .alterTable('users', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {
+<span class="cstat-no" title="statement not covered" >      table</span>
+        .integer('role')
+        .unsigned()
+        .notNullable()
+        .defaultTo(12)
+        .comment('Role ID aligned to roles.id')
+        .alter();
 &nbsp;
-    // Add PIN column for ResidentID + PIN authentication (THEMIS requirement)
-<span class="cstat-no" title="statement not covered" >    table.string('pin', 6).nullable().comment('6-digit PIN for ResidentID + PIN authentication');</span>
-&nbsp;
-    // Add index for performance
-<span class="cstat-no" title="statement not covered" >    table.index('role');</span>
-  }).then(<span class="fstat-no" title="function not covered" >()</span> =&gt; {
-    // Update any existing string roles to numeric values
-<span class="cstat-no" title="statement not covered" >    return knex('users').update({</span>
-      role: knex.raw(`
+      // Add PIN column for ResidentID + PIN authentication (THEMIS requirement)
+<span class="cstat-no" title="statement not covered" >      table.string('pin', 6).nullable().comment('6-digit PIN for ResidentID + PIN authentication');</span>
+    })
+    .then(<span class="fstat-no" title="function not covered" >()</span> =&gt; {
+      // Update any existing string roles to numeric values
+<span class="cstat-no" title="statement not covered" >      return knex('users').update({</span>
+        role: knex.raw(`
         CASE
-          WHEN role = 'admin' THEN 0
-          WHEN role = 'captain' THEN 1
-          WHEN role = 'secretary' THEN 2
-          WHEN role = 'clerk' THEN 3
-          WHEN role = 'blotter_officer' THEN 4
-          ELSE 5 -- Default to Resident
+          WHEN role = 'admin' THEN 1
+          WHEN role = 'captain' THEN 2
+          WHEN role = 'secretary' THEN 3
+          WHEN role = 'clerk' THEN 4
+          WHEN role = 'tanod' THEN 6
+          WHEN role = 'blotter_officer' THEN 6
+          ELSE 12
         END
-      `)
+      `),
+      });
     });
-  }).then(<span class="fstat-no" title="function not covered" >()</span> =&gt; {
-    // Add certificate status transitions (THEMIS requirement)
-<span class="cstat-no" title="statement not covered" >    return knex.schema.alterTable('certificates_log', <span class="fstat-no" title="function not covered" >fu</span>nction(table) {</span>
-<span class="cstat-no" title="statement not covered" >      table.enu('status', ['PENDING', 'APPROVED_FOR_ISSUANCE', 'COMPLETED']).defaultTo('PENDING').comment('THEMIS Certificate Status: PENDING -&gt; APPROVED_FOR_ISSUANCE -&gt; COMPLETED');</span>
-    });
-  });
 };
 &nbsp;
-<span class="cstat-no" title="statement not covered" >exports.down = <span class="fstat-no" title="function not covered" >fu</span>nction(knex) {</span>
-<span class="cstat-no" title="statement not covered" >  return knex.schema.alterTable('users', <span class="fstat-no" title="function not covered" >fu</span>nction(table) {</span>
-    // Revert to original ENUM (if needed for rollback)
-<span class="cstat-no" title="statement not covered" >    table.enu('role', ['admin', 'captain', 'secretary', 'clerk', 'resident']).defaultTo('resident').alter();</span>
+<span class="cstat-no" title="statement not covered" >exports.down = <span class="fstat-no" title="function not covered" >fu</span>nction (knex) {</span>
+<span class="cstat-no" title="statement not covered" >  return knex.schema.alterTable('users', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {</span>
+<span class="cstat-no" title="statement not covered" >    table.integer('role').unsigned().notNullable().defaultTo(12).alter();</span>
   });
 };
 &nbsp;</pre></td></tr></table></pre>
@@ -205,7 +202,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-04T22:36:42.556Z
+                at 2026-01-13T23:53:07.516Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

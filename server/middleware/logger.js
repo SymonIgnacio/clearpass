@@ -1,4 +1,5 @@
 const winston = require('winston');
+require('winston-daily-rotate-file');
 const path = require('path');
 
 // Create logs directory if it doesn't exist
@@ -23,24 +24,30 @@ const logger = winston.createLogger({
   defaultMeta: { service: 'barangay-api' },
   transports: [
     // Error logs
-    new winston.transports.File({ 
-      filename: path.join(logsDir, 'error.log'), 
+    new winston.transports.DailyRotateFile({
+      filename: path.join(logsDir, 'error-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxSize: '20m',
+      maxFiles: '14d',
       level: 'error',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5
     }),
     // Combined logs
-    new winston.transports.File({ 
-      filename: path.join(logsDir, 'combined.log'),
-      maxsize: 5242880,
-      maxFiles: 5
+    new winston.transports.DailyRotateFile({
+      filename: path.join(logsDir, 'combined-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxSize: '20m',
+      maxFiles: '14d',
     }),
     // Audit logs (for CRUD operations)
-    new winston.transports.File({ 
-      filename: path.join(logsDir, 'audit.log'),
+    new winston.transports.DailyRotateFile({
+      filename: path.join(logsDir, 'audit-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxSize: '20m',
+      maxFiles: '30d',
       level: 'info',
-      maxsize: 5242880,
-      maxFiles: 10
     })
   ]
 });

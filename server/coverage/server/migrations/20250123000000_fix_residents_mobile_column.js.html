@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/9</span>
+                <span class='fraction'>0/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>0/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>0/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/9</span>
+                <span class='fraction'>0/8</span>
             </div>
         
             
@@ -78,16 +78,11 @@
 <a name='L13'></a><a href='#L13'>13</a>
 <a name='L14'></a><a href='#L14'>14</a>
 <a name='L15'></a><a href='#L15'>15</a>
-<a name='L16'></a><a href='#L16'>16</a>
-<a name='L17'></a><a href='#L17'>17</a>
-<a name='L18'></a><a href='#L18'>18</a>
-<a name='L19'></a><a href='#L19'>19</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L16'></a><a href='#L16'>16</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -96,24 +91,20 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >exports.up = <span class="fstat-no" title="function not covered" >fu</span>nction (knex) {</span>
-<span class="cstat-no" title="statement not covered" >  return knex.schema.alterTable('residents', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {</span>
-    // Add Mobile_Number column only if it doesn't exist
-<span class="cstat-no" title="statement not covered" >    table.string('Mobile_Number', 20).nullable().comment('Critical for SMS OTP');</span>
-  }).then(<span class="fstat-no" title="function not covered" >()</span> =&gt; {
-    // Add index separately
-<span class="cstat-no" title="statement not covered" >    return knex.schema.alterTable('residents', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {</span>
-<span class="cstat-no" title="statement not covered" >      table.index('Mobile_Number');</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >exports.up = <span class="fstat-no" title="function not covered" >as</span>ync function (knex) {</span>
+  const hasMobile = <span class="cstat-no" title="statement not covered" >await knex.schema.hasColumn('residents', 'Mobile_Number');</span>
+<span class="cstat-no" title="statement not covered" >  if (!hasMobile) {</span>
+<span class="cstat-no" title="statement not covered" >    await knex.schema.alterTable('residents', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {</span>
+      // Add Mobile_Number column only if it doesn't exist
+<span class="cstat-no" title="statement not covered" >      table.string('Mobile_Number', 20).nullable().comment('Critical for SMS OTP');</span>
     });
-  });
+  }
 };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >exports.down = <span class="fstat-no" title="function not covered" >fu</span>nction (knex) {</span>
 <span class="cstat-no" title="statement not covered" >  return knex.schema.alterTable('residents', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {</span>
-<span class="cstat-no" title="statement not covered" >    table.dropIndex('Mobile_Number');</span>
 <span class="cstat-no" title="statement not covered" >    table.dropColumn('Mobile_Number');</span>
   });
 };
@@ -124,7 +115,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-04T22:36:42.556Z
+                at 2026-01-13T23:53:07.516Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

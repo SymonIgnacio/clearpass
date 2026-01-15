@@ -1,10 +1,11 @@
 import React from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { Box, CircularProgress, Typography } from '@mui/material'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 
 const ProtectedRoute = ({ children, requiredRoles = [] }) => {
   const { user, loading, isAuthenticated } = useAuth()
+  const location = useLocation()
 
   // Show loading while checking authentication
   if (loading) {
@@ -17,12 +18,18 @@ const ProtectedRoute = ({ children, requiredRoles = [] }) => {
 
   // Check authentication status
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />
+    const loginTarget = requiredRoles.includes(12) ? '/login' : '/officerlogin'
+    return <Navigate to={loginTarget} replace />
+  }
+
+  const requiresMfa = [1, 3, 4].includes(Number(user.role)) && user.mfa_verified !== true
+  if (requiresMfa && location.pathname !== '/mfa') {
+    return <Navigate to="/mfa" replace />
   }
 
   // Check role-based access
   if (requiredRoles.length > 0 && user) {
-    const userRole = Number(user.role) // THEMIS hierarchy (1-6)
+    const userRole = Number(user.role)
     const hasAccess = requiredRoles.some(role => Number(role) === userRole)
 
     if (!hasAccess) {

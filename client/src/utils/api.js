@@ -1,5 +1,5 @@
 // API utility functions with cookie-based authentication
-import { addCsrfToken, clearCsrfToken } from './csrf';
+import { addCsrfToken, clearCsrfToken } from './csrf.js';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
   import.meta.env.VITE_API_BASE_URL || 
@@ -7,13 +7,34 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ||
 
 // Generic authenticated fetch function
 export const apiRequest = async (endpoint, options = {}) => {
-  const url = `${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  let url = `${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  
+  // Handle query parameters
+  if (options.params) {
+    const searchParams = new URLSearchParams();
+    Object.entries(options.params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value);
+      }
+    });
+    const queryString = searchParams.toString();
+    if (queryString) {
+      url += (url.includes('?') ? '&' : '?') + queryString;
+    }
+    // Remove params from options to avoid passing it to fetch
+    delete options.params;
+  }
+
   console.log('🔗 API Request:', url, options.method || 'GET');
   
   let headers = {
-    'Content-Type': 'application/json',
     ...options.headers
   };
+
+  // Set default Content-Type to application/json only if not FormData
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
   
   // Skip CSRF token for auth endpoints to avoid circular dependency
   if (['POST', 'PUT', 'DELETE'].includes(options.method) && !endpoint.includes('/auth/')) {
@@ -31,7 +52,7 @@ export const apiRequest = async (endpoint, options = {}) => {
     ...options,
   };
 
-  if (config.body && typeof config.body === 'object') {
+  if (config.body && typeof config.body === 'object' && !(config.body instanceof FormData)) {
     config.body = JSON.stringify(config.body);
   }
 
@@ -49,10 +70,10 @@ export const apiRequest = async (endpoint, options = {}) => {
 
 // Convenience methods
 export const api = {
-  get: (endpoint) => apiRequest(endpoint),
-  post: (endpoint, data) => apiRequest(endpoint, { method: 'POST', body: data }),
-  put: (endpoint, data) => apiRequest(endpoint, { method: 'PUT', body: data }),
-  delete: (endpoint) => apiRequest(endpoint, { method: 'DELETE' }),
+  get: (endpoint, options = {}) => apiRequest(endpoint, { method: 'GET', ...options }),
+  post: (endpoint, data, options = {}) => apiRequest(endpoint, { method: 'POST', body: data, ...options }),
+  put: (endpoint, data, options = {}) => apiRequest(endpoint, { method: 'PUT', body: data, ...options }),
+  delete: (endpoint, options = {}) => apiRequest(endpoint, { method: 'DELETE', ...options }),
 };
 
 // Check if user is authenticated via cookies
@@ -83,10 +104,8 @@ export const logout = async () => {
 export const getResidentProfile = () => api.get('residents/me');
 export const updateResidentProfile = (data) => api.put('residents/me', data);
 export const uploadVerification = (formData) => {
-  const url = `${API_BASE_URL}/residents/verification/upload`;
-  return fetch(url, {
+  return apiRequest('/residents/verification/upload', {
     method: 'POST',
-    credentials: 'include',
     body: formData
   });
 };

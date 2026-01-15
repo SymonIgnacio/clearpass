@@ -4,7 +4,7 @@ import {
   FormControl, InputLabel, Select, Chip, IconButton, Alert
 } from '@mui/material';
 import { Add, Delete } from '@mui/icons-material';
-import axios from 'axios';
+import { apiRequest } from '../utils/api';
 
 const OfficerNewCase = () => {
   const [formData, setFormData] = useState({
@@ -64,22 +64,33 @@ const OfficerNewCase = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const caseNumber = `BLT-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
-      
-      await axios.post('/api/case-management/create', {
-        ...formData,
-        case_number: caseNumber,
-        created_by: 'officer'
+      const response = await apiRequest('/case-management/create', {
+        method: 'POST',
+        body: {
+          incident_type: formData.incident_type,
+          description: formData.description,
+          location: formData.location,
+          incident_date: formData.incident_date,
+          complainant: formData.complainant,
+          respondent: formData.respondent,
+          witnesses: formData.witnesses
+        }
       });
-      
-      setMessage('Case created successfully!');
+
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        setMessage(`Error creating case: ${data?.message || data?.error || `HTTP ${response.status}`}`);
+        return;
+      }
+
+      setMessage(`Case created successfully! Case #: ${data?.case_id || 'N/A'}`);
       setFormData({
         incident_type: '', description: '', location: '', incident_date: '',
         status: 'pending', complainant: { name: '', contact: '', address: '' },
         respondent: { name: '', contact: '', address: '' }, witnesses: []
       });
     } catch (error) {
-      setMessage('Error creating case: ' + error.response?.data?.message);
+      setMessage(`Error creating case: ${error?.message || 'Unknown error'}`);
     }
     setLoading(false);
   };

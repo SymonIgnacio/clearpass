@@ -1,0 +1,156 @@
+DB: barangay_management  Host: localhost  Port: 3306  User: root
+
+== Server Info ==
++---------------------+---------------------+
+| now                 | db                  |
++---------------------+---------------------+
+| 2026-01-11 06:19:59 | barangay_management |
++---------------------+---------------------+
++-----------------+---------------------------------+-------+
+| version         | version_comment                 | os    |
++-----------------+---------------------------------+-------+
+| 10.4.32-MariaDB | mariadb.org binary distribution | Win64 |
++-----------------+---------------------------------+-------+
++-----------------------------------------------------+--------+---------+--------------------+------+
+| sql_mode                                            | tz     | cs      | coll               | lctn |
++-----------------------------------------------------+--------+---------+--------------------+------+
+| NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION | SYSTEM | utf8mb4 | utf8mb4_general_ci |    1 |
++-----------------------------------------------------+--------+---------+--------------------+------+
+
+== Top 20 Tables By Size ==
++--------------------------------+--------+--------------------+------------+----------+---------+----------+
+| TABLE_NAME                     | ENGINE | TABLE_COLLATION    | TABLE_ROWS | total_mb | data_mb | index_mb |
++--------------------------------+--------+--------------------+------------+----------+---------+----------+
+| document_templates             | InnoDB | utf8mb4_general_ci |          3 |     0.47 |    0.41 |     0.06 |
+| blotter                        | InnoDB | utf8mb4_general_ci |        613 |     0.39 |    0.22 |     0.17 |
+| audit_logs                     | InnoDB | utf8mb4_general_ci |          0 |     0.19 |    0.02 |     0.17 |
+| ai_chatbot_conversations       | InnoDB | utf8mb4_general_ci |        200 |     0.16 |    0.06 |     0.09 |
+| certificates_log               | InnoDB | utf8mb4_general_ci |        160 |     0.14 |    0.05 |     0.09 |
+| residents                      | InnoDB | utf8mb4_general_ci |         53 |     0.14 |    0.02 |     0.13 |
+| users                          | InnoDB | utf8mb4_general_ci |          9 |     0.14 |    0.02 |     0.13 |
+| ai_system_logs                 | InnoDB | utf8mb4_general_ci |          0 |     0.11 |    0.02 |     0.09 |
+| ai_appointments                | InnoDB | utf8mb4_general_ci |          0 |     0.09 |    0.02 |     0.08 |
+| ai_ocr_cache                   | InnoDB | utf8mb4_general_ci |          0 |     0.09 |    0.02 |     0.08 |
+| resident_signup_requests       | InnoDB | utf8mb4_general_ci |          0 |     0.09 |    0.02 |     0.08 |
+| vulnerabilities                | InnoDB | utf8mb4_general_ci |         15 |     0.09 |    0.02 |     0.08 |
+| ai_chatbot_faq                 | InnoDB | utf8mb4_general_ci |         12 |     0.08 |    0.02 |     0.06 |
+| application_documents          | InnoDB | utf8mb4_general_ci |          0 |     0.08 |    0.02 |     0.06 |
+| clearance_requests             | InnoDB | utf8mb4_general_ci |          0 |     0.08 |    0.02 |     0.06 |
+| login_attempts                 | InnoDB | utf8mb4_general_ci |          0 |     0.08 |    0.02 |     0.06 |
+| resident_applications          | InnoDB | utf8mb4_general_ci |          0 |     0.08 |    0.02 |     0.06 |
+| resident_documents             | InnoDB | utf8mb4_general_ci |          0 |     0.08 |    0.02 |     0.06 |
+| resident_verification_requests | InnoDB | utf8mb4_general_ci |          0 |     0.08 |    0.02 |     0.06 |
+| vehicles                       | InnoDB | utf8mb4_general_ci |          0 |     0.08 |    0.02 |     0.06 |
++--------------------------------+--------+--------------------+------------+----------+---------+----------+
+
+== Roles Table ==
++-----------------+--------------+------+-----+---------------------+-------------------------------+
+| Field           | Type         | Null | Key | Default             | Extra                         |
++-----------------+--------------+------+-----+---------------------+-------------------------------+
+| id              | int(11)      | NO   | PRI | NULL                | auto_increment                |
+| role_name       | varchar(100) | NO   | UNI | NULL                |                               |
+| description     | text         | YES  |     | NULL                |                               |
+| hierarchy_level | int(11)      | NO   | MUL | 0                   |                               |
+| permissions     | longtext     | YES  |     | NULL                |                               |
+| is_active       | tinyint(1)   | YES  |     | 1                   |                               |
+| created_at      | timestamp    | YES  |     | current_timestamp() |                               |
+| updated_at      | timestamp    | YES  |     | current_timestamp() | on update current_timestamp() |
++-----------------+--------------+------+-----+---------------------+-------------------------------+
++----+-----------------+-------------------------------------------------+-----------------+----------------------------------------------------------------+-----------+---------------------+---------------------+
+| id | role_name       | description                                     | hierarchy_level | permissions                                                    | is_active | created_at          | updated_at          |
++----+-----------------+-------------------------------------------------+-----------------+----------------------------------------------------------------+-----------+---------------------+---------------------+
+|  1 | IT Admin        | IT Admin role                                   |               1 | NULL                                                           |         1 | 2026-01-10 01:28:07 | 2026-01-10 01:28:07 |
+|  2 | Captain         | Barangay Captain with approval authority        |               2 | ["approve_documents","manage_staff","view_reports"]            |         1 | 2025-12-13 05:48:23 | 2026-01-02 23:33:34 |
+|  3 | Secretary       | Barangay Secretary with document management     |               5 | ["manage_documents","approve_certificates","manage_residents"] |         1 | 2025-12-13 05:48:23 | 2026-01-02 23:33:34 |
+|  4 | Clerk           | Administrative Clerk for certificate processing |               4 | ["process_certificates","view_residents","manage_documents"]   |         1 | 2025-12-13 05:48:23 | 2026-01-02 23:33:34 |
+|  6 | Blotter Officer | Blotter Officer role                            |               6 | NULL                                                           |         1 | 2026-01-03 03:27:43 | 2026-01-03 03:27:43 |
+| 12 | Resident        | Resident role                                   |              12 | NULL                                                           |         1 | 2026-01-03 03:27:43 | 2026-01-03 03:27:43 |
++----+-----------------+-------------------------------------------------+-----------------+----------------------------------------------------------------+-----------+---------------------+---------------------+
+
+== Primary Key Missing (if any) ==
+
+== Foreign Keys ==
++-----------------------+----------------------------------------------+---------------------+-----------------------+------------------------+
+| TABLE_NAME            | CONSTRAINT_NAME                              | COLUMN_NAME         | REFERENCED_TABLE_NAME | REFERENCED_COLUMN_NAME |
++-----------------------+----------------------------------------------+---------------------+-----------------------+------------------------+
+| application_documents | application_documents_application_id_foreign | application_id      | resident_applications | application_id         |
+| blotter               | blotter_respondent_id_foreign                | respondent_id       | residents             | Resident_ID            |
+| certificates_log      | certificates_log_ibfk_1                      | resident_id         | residents             | Resident_ID            |
+| community_programs    | community_programs_ibfk_1                    | sitio_id            | sitios                | id                     |
+| document_templates    | fk_document_templates_certificate_type       | certificate_type_id | certificate_types     | id                     |
+| households            | fk_households_head_resident                  | Head_Resident_ID    | residents             | Resident_ID            |
+| households            | households_ibfk_1                            | Sitio_ID            | sitios                | id                     |
+| program_participants  | program_participants_ibfk_1                  | program_id          | community_programs    | id                     |
+| program_participants  | program_participants_ibfk_2                  | resident_id         | residents             | Resident_ID            |
+| residents             | residents_ibfk_1                             | Household_ID        | households            | Household_ID           |
+| resident_documents    | resident_documents_resident_id_foreign       | resident_id         | residents             | Resident_ID            |
+| users                 | fk_users_resident_id                         | resident_id         | residents             | Resident_ID            |
+| users                 | users_ibfk_parent_user_id                    | parent_user_id      | users                 | id                     |
+| vehicles              | vehicles_owner_id_foreign                    | owner_id            | residents             | Resident_ID            |
+| visitors              | visitors_host_resident_id_foreign            | host_resident_id    | residents             | Resident_ID            |
+| vulnerabilities       | vulnerabilities_ibfk_1                       | Resident_ID         | residents             | Resident_ID            |
++-----------------------+----------------------------------------------+---------------------+-----------------------+------------------------+
+
+== Indexes (Key Tables) ==
++-----------------------+----------------------------------------------+------------+--------------+----------------------+-------------+------------+
+| TABLE_NAME            | INDEX_NAME                                   | NON_UNIQUE | SEQ_IN_INDEX | COLUMN_NAME          | CARDINALITY | INDEX_TYPE |
++-----------------------+----------------------------------------------+------------+--------------+----------------------+-------------+------------+
+| blotter               | blotter_respondent_id_foreign                |          1 |            1 | respondent_id        |          43 | BTREE      |
+| blotter               | idx_blotter_created                          |          1 |            1 | created_at           |         613 | BTREE      |
+| blotter               | idx_blotter_date                             |          1 |            1 | DateTime_Incident    |         613 | BTREE      |
+| blotter               | idx_blotter_respondent                       |          1 |            1 | respondent_id        |          43 | BTREE      |
+| blotter               | idx_blotter_sitio                            |          1 |            1 | Location_Sitio       |           8 | BTREE      |
+| blotter               | idx_blotter_status                           |          1 |            1 | status               |           6 | BTREE      |
+| blotter               | idx_blotter_type                             |          1 |            1 | Incident_Type        |          36 | BTREE      |
+| blotter               | PRIMARY                                      |          0 |            1 | Case_Number          |         613 | BTREE      |
+| certificates_log      | idx_certificates_date                        |          1 |            1 | date_issued          |         160 | BTREE      |
+| certificates_log      | idx_certificates_qr                          |          1 |            1 | qr_validation_string |          22 | BTREE      |
+| certificates_log      | idx_certificates_resident                    |          1 |            1 | resident_id          |         160 | BTREE      |
+| certificates_log      | idx_certificates_status                      |          1 |            1 | status               |           4 | BTREE      |
+| certificates_log      | idx_certificates_type                        |          1 |            1 | certificate_type     |          12 | BTREE      |
+| certificates_log      | PRIMARY                                      |          0 |            1 | control_no           |         160 | BTREE      |
+| certificates_log      | qr_validation_string                         |          0 |            1 | qr_validation_string |          22 | BTREE      |
+| document_templates    | document_templates_template_name_unique      |          0 |            1 | template_name        |           3 | BTREE      |
+| document_templates    | idx_document_templates_certificate_type_id   |          1 |            1 | certificate_type_id  |           3 | BTREE      |
+| document_templates    | idx_templates_active_type                    |          1 |            1 | is_active            |           3 | BTREE      |
+| document_templates    | idx_templates_active_type                    |          1 |            2 | document_type        |           3 | BTREE      |
+| document_templates    | PRIMARY                                      |          0 |            1 | id                   |           3 | BTREE      |
+| document_templates    | uk_active_certificate_type_template          |          0 |            1 | certificate_type_id  |           3 | BTREE      |
+| document_templates    | uk_active_certificate_type_template          |          0 |            2 | is_active            |           3 | BTREE      |
+| residents             | idx_residents_birthdate                      |          1 |            1 | Birthdate            |          53 | BTREE      |
+| residents             | idx_residents_household                      |          1 |            1 | Household_ID         |          53 | BTREE      |
+| residents             | idx_residents_mobile                         |          1 |            1 | Email                |          53 | BTREE      |
+| residents             | idx_residents_name                           |          1 |            1 | Last_Name            |          53 | BTREE      |
+| residents             | idx_residents_name                           |          1 |            2 | First_Name           |          53 | BTREE      |
+| residents             | idx_residents_qr                             |          1 |            1 | QR_Hash_String       |          53 | BTREE      |
+| residents             | idx_residents_status                         |          1 |            1 | Residency_Status     |           2 | BTREE      |
+| residents             | PRIMARY                                      |          0 |            1 | Resident_ID          |          53 | BTREE      |
+| residents             | QR_Hash_String                               |          0 |            1 | QR_Hash_String       |          53 | BTREE      |
+| residents             | username                                     |          0 |            1 | username             |           2 | BTREE      |
+| resident_applications | idx_email                                    |          1 |            1 | email                |           0 | BTREE      |
+| resident_applications | idx_status                                   |          1 |            1 | status               |           0 | BTREE      |
+| resident_applications | PRIMARY                                      |          0 |            1 | application_id       |           0 | BTREE      |
+| resident_applications | resident_applications_reviewed_at_index      |          1 |            1 | reviewed_at          |           0 | BTREE      |
+| resident_applications | resident_applications_reviewed_by_index      |          1 |            1 | reviewed_by          |           0 | BTREE      |
+| resident_documents    | PRIMARY                                      |          0 |            1 | id                   |           0 | BTREE      |
+| resident_documents    | resident_documents_document_type_index       |          1 |            1 | document_type        |           0 | BTREE      |
+| resident_documents    | resident_documents_resident_id_index         |          1 |            1 | resident_id          |           0 | BTREE      |
+| resident_documents    | resident_documents_verification_status_index |          1 |            1 | verification_status  |           0 | BTREE      |
+| users                 | idx_firebase_uid                             |          1 |            1 | firebase_uid         |           2 | BTREE      |
+| users                 | idx_resident_id                              |          1 |            1 | resident_id          |           2 | BTREE      |
+| users                 | idx_users_active                             |          1 |            1 | is_active            |           2 | BTREE      |
+| users                 | idx_users_resident                           |          1 |            1 | resident_id          |           2 | BTREE      |
+| users                 | parent_user_id                               |          1 |            1 | parent_user_id       |           2 | BTREE      |
+| users                 | PRIMARY                                      |          0 |            1 | id                   |           9 | BTREE      |
+| users                 | username                                     |          0 |            1 | username             |           9 | BTREE      |
+| users                 | users_pin_code_index                         |          1 |            1 | pin_code             |           4 | BTREE      |
+| users                 | users_role_resident_id_index                 |          1 |            1 | resident_id          |           2 | BTREE      |
++-----------------------+----------------------------------------------+------------+--------------+----------------------+-------------+------------+
+
+== BLOB Columns (if any) ==
++--------------------------------+-------------+------------+-------------+
+| TABLE_NAME                     | COLUMN_NAME | DATA_TYPE  | COLUMN_TYPE |
++--------------------------------+-------------+------------+-------------+
+| document_templates             | file_data   | mediumblob | mediumblob  |
+| resident_verification_requests | file_data   | blob       | blob        |
++--------------------------------+-------------+------------+-------------+

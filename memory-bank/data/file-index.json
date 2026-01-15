@@ -1,0 +1,4820 @@
+{
+  "generated_at": "2026-01-12T23:15:54.006Z",
+  "files": {
+    ".env": {
+      "size_bytes": 711,
+      "mtime_iso": "2026-01-08T21:40:22.368Z",
+      "hash": "91746ebd7d1501a4bcb937f8ef3ccfecdf3b17a709ff6ded75ce2ecfa9b208e8",
+      "type": "",
+      "imports": []
+    },
+    ".env.example": {
+      "size_bytes": 551,
+      "mtime_iso": "2026-01-06T11:38:18.675Z",
+      "hash": "6161e9ed619bc345321165f25a9a085da1ffd15947d89a732c90cd9aef692aa6",
+      "type": ".example",
+      "imports": []
+    },
+    ".gitignore": {
+      "size_bytes": 561,
+      "mtime_iso": "2026-01-03T20:26:20.878Z",
+      "hash": "7c0c23a1f50e529457db0a9dbfe3f69a9ab2cfcaf304a3c255fd267a29e5a57b",
+      "type": "",
+      "imports": []
+    },
+    ".vercelignore": {
+      "size_bytes": 46,
+      "mtime_iso": "2026-01-12T01:59:42.561Z",
+      "hash": "aeb9da2518659d6458082392261936d9c7df7d8bc27242dbbc927002a65fc83d",
+      "type": "",
+      "imports": []
+    },
+    "debug-dashboard.js": {
+      "size_bytes": 3374,
+      "mtime_iso": "2026-01-08T21:36:21.157Z",
+      "hash": "cb9f7c2ab7fc54954f8d30554ace8c80a76b02acd8c2f5e1edc618b36b635964",
+      "type": ".js",
+      "imports": [
+        "./server/database"
+      ]
+    },
+    "DEPLOYMENT_GUIDE_FINAL.md": {
+      "size_bytes": 4270,
+      "mtime_iso": "2026-01-12T03:21:12.537Z",
+      "hash": "8a334a384af0439f119d2ae475217d2b8f8d2a0ebcc291583dba28f572c18a7d",
+      "type": ".md",
+      "imports": []
+    },
+    "DEPLOYMENT_READINESS_REPORT.md": {
+      "size_bytes": 2608,
+      "mtime_iso": "2026-01-12T03:21:12.895Z",
+      "hash": "07d19f7f4fe7ae54292c8ec3a9ac33123254468b2b4d09af89ceb76bf493a25d",
+      "type": ".md",
+      "imports": []
+    },
+    "eslint.config.js": {
+      "size_bytes": 4030,
+      "mtime_iso": "2025-12-11T16:36:19.119Z",
+      "hash": "4aa3587b0cc9720f3fdf5994477fad2f94321e9eee6aefe5c9520a6011f9fb39",
+      "type": ".js",
+      "imports": [
+        "@eslint/js",
+        "globals",
+        "eslint-plugin-react-hooks",
+        "eslint-plugin-react-refresh",
+        "eslint/config"
+      ]
+    },
+    "files_list.txt": {
+      "size_bytes": 9614,
+      "mtime_iso": "2026-01-03T20:19:46.070Z",
+      "hash": "10574d8179a6987cef34e1d4d83d0dd0f4b86c1f74c3e73c43061a03c6297884",
+      "type": ".txt",
+      "imports": []
+    },
+    "package-lock.json": {
+      "size_bytes": 259163,
+      "mtime_iso": "2026-01-02T17:25:43.936Z",
+      "hash": "8078fe7ea24d0471eded4323265e1180647365a72cb329cd2536ecab72156f57",
+      "type": ".json",
+      "imports": []
+    },
+    "package-test.json": {
+      "size_bytes": 549,
+      "mtime_iso": "2026-01-04T22:01:16.019Z",
+      "hash": "92e78b3eef54014bcf919d43e54612d3a87ded4c5fcbe126146fd59d5339cd93",
+      "type": ".json",
+      "imports": []
+    },
+    "package.json": {
+      "size_bytes": 2555,
+      "mtime_iso": "2026-01-12T23:15:48.761Z",
+      "hash": "8ff227ffcc14b9a023f274cc0099aa3e13364c57b3e6f11eab89d4419b820e36",
+      "type": ".json",
+      "imports": []
+    },
+    "run-clearpass.bat": {
+      "size_bytes": 2589,
+      "mtime_iso": "2026-01-12T18:40:57.879Z",
+      "hash": "5f597330abd14ac7b70e2ab32b3e87e2b17e47e18b227248b0dbc3473564c224",
+      "type": ".bat",
+      "imports": []
+    },
+    "run-tests.bat": {
+      "size_bytes": 1072,
+      "mtime_iso": "2026-01-08T23:11:21.148Z",
+      "hash": "62040a5fbc1384747e2f1e62bec92fd29f191dc7c02705e261e1dfa9bc967316",
+      "type": ".bat",
+      "imports": []
+    },
+    "run_migration.bat": {
+      "size_bytes": 959,
+      "mtime_iso": "2025-12-14T07:11:20.456Z",
+      "hash": "6b452b8c41f8b02b38f26a7adba96ab2c2dc86feca5696840804b21a08d06407",
+      "type": ".bat",
+      "imports": []
+    },
+    "test-captain.cjs": {
+      "size_bytes": 3220,
+      "mtime_iso": "2026-01-09T17:32:00.673Z",
+      "hash": "d36e059d35b0713cb16985fd8c3e1e1d5b33f75c7974d0cb8709e3e8c67078b7",
+      "type": ".cjs",
+      "imports": [
+        "axios"
+      ]
+    },
+    "test-rbac.cjs": {
+      "size_bytes": 6192,
+      "mtime_iso": "2026-01-09T17:34:26.147Z",
+      "hash": "6347ed95b9f7e028e83770f6b2042f709360404d8aaceb59cc74c3801f30b507",
+      "type": ".cjs",
+      "imports": [
+        "axios"
+      ]
+    },
+    "test-roles.cjs": {
+      "size_bytes": 2072,
+      "mtime_iso": "2026-01-09T17:29:03.045Z",
+      "hash": "c53d61e13586ebe91682d0221c0ed3d17abade00fff42b9247b62516bf611eb1",
+      "type": ".cjs",
+      "imports": [
+        "./server/config/roles",
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "test-roles.js": {
+      "size_bytes": 2072,
+      "mtime_iso": "2026-01-09T17:28:19.907Z",
+      "hash": "c53d61e13586ebe91682d0221c0ed3d17abade00fff42b9247b62516bf611eb1",
+      "type": ".js",
+      "imports": [
+        "./server/config/roles",
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "USER_CREDENTIALS.md": {
+      "size_bytes": 1741,
+      "mtime_iso": "2026-01-11T20:15:45.286Z",
+      "hash": "b8e08bed4d3fb67873ed9275e6f161ae19934f27e3fde0771891abb011f266de",
+      "type": ".md",
+      "imports": []
+    },
+    "vercel.json": {
+      "size_bytes": 61,
+      "mtime_iso": "2026-01-12T01:59:42.548Z",
+      "hash": "969331b09ff030aeed5964d515f9003c300aa48cfbfc9a79ebf4c568f77e5d1e",
+      "type": ".json",
+      "imports": []
+    },
+    "tests/debug_login.cjs": {
+      "size_bytes": 1462,
+      "mtime_iso": "2025-12-17T21:46:51.946Z",
+      "hash": "61750971949b2fbd0c040d7a720f40f2f69eff484257d0e7cc602cc07f07aa4a",
+      "type": ".cjs",
+      "imports": [
+        "http"
+      ]
+    },
+    "tests/package-lock.json": {
+      "size_bytes": 59744,
+      "mtime_iso": "2026-01-08T22:46:39.747Z",
+      "hash": "2e86216d08d99224bf8af5e7a2ff5bfed7383e6f8fc9bc85a6134877f4f328c2",
+      "type": ".json",
+      "imports": []
+    },
+    "tests/package.json": {
+      "size_bytes": 1389,
+      "mtime_iso": "2026-01-08T23:11:13.345Z",
+      "hash": "a12bfb4e1f90a64592b18ef6e568f1c9fd1df25bb0b1d440b7fd6bf0827d295f",
+      "type": ".json",
+      "imports": []
+    },
+    "tests/README.md": {
+      "size_bytes": 13438,
+      "mtime_iso": "2026-01-08T22:33:20.119Z",
+      "hash": "873d636179ce70110deee7926ce2d8159e375f4c0a622ce69e467388f53facf2",
+      "type": ".md",
+      "imports": []
+    },
+    "tests/requirements.txt": {
+      "size_bytes": 100,
+      "mtime_iso": "2025-12-02T19:41:24.989Z",
+      "hash": "50413c38454ed63149aae832b068970e24ae90e7e18def00bcae360c5fb9a19e",
+      "type": ".txt",
+      "imports": []
+    },
+    "tests/simple_login_test.cjs": {
+      "size_bytes": 2552,
+      "mtime_iso": "2025-12-17T21:45:35.096Z",
+      "hash": "e365271dd3127b7343728044d2d04c779880878b2cc20a2f88ea2177244ea158",
+      "type": ".cjs",
+      "imports": [
+        "http"
+      ]
+    },
+    "tests/test_blotter_analytics.py": {
+      "size_bytes": 6993,
+      "mtime_iso": "2025-12-02T19:38:27.378Z",
+      "hash": "7c211fb8fb3e8c911ff8eae10e9f7bca56161dbd8ff7a5ad79470fb44ed92da8",
+      "type": ".py",
+      "imports": [
+        "unittest.mock",
+        "collections",
+        "pytest",
+        "pandas",
+        "io"
+      ]
+    },
+    "tests/test_chatbot_engine.py": {
+      "size_bytes": 11879,
+      "mtime_iso": "2025-12-02T19:40:44.314Z",
+      "hash": "4c8e0d57b549c9ca48191b8e7b9d24abf77c581b7ffc22c66456c6ad21bb63fe",
+      "type": ".py",
+      "imports": [
+        "unittest.mock",
+        "pytest",
+        "json",
+        "re"
+      ]
+    },
+    "tests/test_chatbot_intents.py": {
+      "size_bytes": 6050,
+      "mtime_iso": "2025-12-02T19:38:12.818Z",
+      "hash": "eddb1552db9a3e493f7e209afede760ba08816edd3937b5bafc63837f70511a2",
+      "type": ".py",
+      "imports": [
+        "unittest.mock",
+        "pytest",
+        "json"
+      ]
+    },
+    "tests/test_field_extraction.py": {
+      "size_bytes": 11087,
+      "mtime_iso": "2025-12-02T19:39:15.979Z",
+      "hash": "b4cff763b55b0e63b2d890172a04230f2d2e7d628d8581c6f8d10c4e4f9924e0",
+      "type": ".py",
+      "imports": [
+        "unittest.mock",
+        "pytest",
+        "re"
+      ]
+    },
+    "tests/test_forecasting.py": {
+      "size_bytes": 8353,
+      "mtime_iso": "2025-12-02T19:38:43.605Z",
+      "hash": "ce9e8a111e6727b9a5648377a2473e7c91d8185863f0265860e11001af1b7984",
+      "type": ".py",
+      "imports": [
+        "unittest.mock",
+        "pytest",
+        "pandas",
+        "numpy"
+      ]
+    },
+    "tests/test_integration_blotter_pipeline.py": {
+      "size_bytes": 15036,
+      "mtime_iso": "2025-12-02T19:40:18.640Z",
+      "hash": "956c694862419e7ffcf1627eebf462e2a2d35e58e76e4e74b11e9b8737373c92",
+      "type": ".py",
+      "imports": [
+        "unittest.mock",
+        "pathlib",
+        "pytest",
+        "pandas",
+        "os",
+        "matplotlib"
+      ]
+    },
+    "tests/test_integration_chatbot_workflow.py": {
+      "size_bytes": 11418,
+      "mtime_iso": "2025-12-02T19:39:35.831Z",
+      "hash": "ca30dd2865f7e13af80def22a7372bc416970db0f0728ecb06acc1e750ab6031",
+      "type": ".py",
+      "imports": [
+        "unittest.mock",
+        "pytest",
+        "json"
+      ]
+    },
+    "tests/test_integration_ocr_to_db_workflow.py": {
+      "size_bytes": 16159,
+      "mtime_iso": "2025-12-02T19:39:58.975Z",
+      "hash": "1dd70181fc9e87a4f4807e99605bfd50c0165ed742702995f68565917a07977f",
+      "type": ".py",
+      "imports": [
+        "unittest.mock",
+        "PIL",
+        "pytest",
+        "os",
+        "tempfile",
+        "io"
+      ]
+    },
+    "tests/test_ocr_engine.py": {
+      "size_bytes": 8805,
+      "mtime_iso": "2025-12-02T19:38:57.809Z",
+      "hash": "32a1939054e8efbe22326055dcade0547fa85279d4ab4540a1fe5e7346fb3b41",
+      "type": ".py",
+      "imports": [
+        "unittest.mock",
+        "PIL",
+        "pytest",
+        "io"
+      ]
+    },
+    "tests/test_permissions.cjs": {
+      "size_bytes": 4905,
+      "mtime_iso": "2025-12-17T21:21:43.275Z",
+      "hash": "c894b91ae309162edbeb10dc719b66b01f48508a5e298a9eef12350b228e4ecb",
+      "type": ".cjs",
+      "imports": [
+        "axios"
+      ]
+    },
+    "tests/__init__.py": {
+      "size_bytes": 332,
+      "mtime_iso": "2025-12-02T19:27:02.448Z",
+      "hash": "83f024dc721e662e5ee389f31166b83a605ea401c0e2cca03b3af082e744b786",
+      "type": ".py",
+      "imports": []
+    },
+    "tests/__tests__/security.test.js": {
+      "size_bytes": 2560,
+      "mtime_iso": "2026-01-03T20:37:27.092Z",
+      "hash": "4f9e150da4f6e8bf5c982d957f5518df0930e5b976b03288c21a8e1d46d69e9d",
+      "type": ".js",
+      "imports": [
+        "supertest"
+      ]
+    },
+    "tests/sample_data/ocr_text_sample.txt": {
+      "size_bytes": 549,
+      "mtime_iso": "2025-12-02T19:27:59.019Z",
+      "hash": "f6640aec5c40c9682ce8ffea4d5890874046a23d27cf5019af2644740fcb275a",
+      "type": ".txt",
+      "imports": []
+    },
+    "tests/sample_data/README.md": {
+      "size_bytes": 925,
+      "mtime_iso": "2025-12-02T19:28:27.146Z",
+      "hash": "fa6a211c46c8c1816721fc8d7711c079b2dda4152c747d071fd03adc3bae572d",
+      "type": ".md",
+      "imports": []
+    },
+    "tests/sample_data/sample_blotter.csv": {
+      "size_bytes": 579,
+      "mtime_iso": "2025-12-02T19:41:48.177Z",
+      "hash": "3024653e451cb2b951d30cf9e0969341129be258ce86f887f410664cf8d2cc95",
+      "type": ".csv",
+      "imports": []
+    },
+    "tests/sample_data/sample_faq.json": {
+      "size_bytes": 789,
+      "mtime_iso": "2025-12-02T19:41:36.328Z",
+      "hash": "4302189cf2627432c7db54f862fd255385b46b8d733349cab1f748feef0477cb",
+      "type": ".json",
+      "imports": []
+    },
+    "sql/seeds/populate_ai_data.sql": {
+      "size_bytes": 16232,
+      "mtime_iso": "2025-12-11T18:43:55.460Z",
+      "hash": "2bdab30a3ce85253d2e0405a660ca58cff6fc2210dbbc4f8b0b143da3dcfb45f",
+      "type": ".sql",
+      "imports": []
+    },
+    "sql/migrations/001_add_performance_indexes.sql": {
+      "size_bytes": 1600,
+      "mtime_iso": "2026-01-03T20:36:54.252Z",
+      "hash": "8f2e7404748837d804e717ab5e64a3206d26b598d6d1954922e96e94f81be964",
+      "type": ".sql",
+      "imports": []
+    },
+    "sql/fixes/fix-blotter-statuses.sql": {
+      "size_bytes": 307,
+      "mtime_iso": "2026-01-03T19:33:55.598Z",
+      "hash": "33d340de54d9846aa3ed8e7a367296a91993923d0effe9e5e3acd4c1a7a9ae2a",
+      "type": ".sql",
+      "imports": []
+    },
+    "sql/fixes/fix_password_hash_column.sql": {
+      "size_bytes": 128,
+      "mtime_iso": "2025-12-13T21:53:50.521Z",
+      "hash": "e76efaff168b814c789edc3cbe8185e51e45634fbeedd8955e400584e8b959d2",
+      "type": ".sql",
+      "imports": []
+    },
+    "sql/fixes/remove_residents.sql": {
+      "size_bytes": 388,
+      "mtime_iso": "2025-12-13T22:27:31.143Z",
+      "hash": "e2b5407a0a71798ac0e470b482590d9289c9df091a7cfde1f2263bee6681a707",
+      "type": ".sql",
+      "imports": []
+    },
+    "server/.env": {
+      "size_bytes": 734,
+      "mtime_iso": "2026-01-12T18:37:10.046Z",
+      "hash": "e0040e035b0519ced9a10fbab7e7775fb7b5b0f61385686f2cd0b1f9921bd5ab",
+      "type": "",
+      "imports": []
+    },
+    "server/.env.example": {
+      "size_bytes": 812,
+      "mtime_iso": "2026-01-12T01:30:12.956Z",
+      "hash": "cbca3cd096c2586ad31632752c08ea8e5049793f9ad5c1783608be1306506dbb",
+      "type": ".example",
+      "imports": []
+    },
+    "server/.prettierignore": {
+      "size_bytes": 1939,
+      "mtime_iso": "2025-11-30T20:56:43.922Z",
+      "hash": "56b0f0d950eddcbc1e25785837b494180c8fbc68642e3947b5e3757329b7108d",
+      "type": "",
+      "imports": []
+    },
+    "server/.prettierrc.js": {
+      "size_bytes": 406,
+      "mtime_iso": "2025-11-30T20:56:34.144Z",
+      "hash": "2022e6c03c10284f10b7698d71f0184ef97b3d5c1fcf445f1701a5232542eea4",
+      "type": ".js",
+      "imports": []
+    },
+    "server/check_tables.js": {
+      "size_bytes": 1666,
+      "mtime_iso": "2025-12-18T17:33:57.670Z",
+      "hash": "af6e4ec31b4d2da356229b073dec702f18271828756a51c0d74f100547fda7ee",
+      "type": ".js",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "server/create_notifications_tables.sql": {
+      "size_bytes": 1773,
+      "mtime_iso": "2025-12-18T17:15:54.554Z",
+      "hash": "24ff912aaa6d18ad166d5fa63b19ceb0b0388fd0444e901400f6c13e0e53ffa0",
+      "type": ".sql",
+      "imports": []
+    },
+    "server/create_templates_table.js": {
+      "size_bytes": 5024,
+      "mtime_iso": "2025-12-11T19:06:38.723Z",
+      "hash": "901bbef2d0a50cdc5c5a7e98d5f6e139186a8a1601d9c4e2317c03e77c68e223",
+      "type": ".js",
+      "imports": [
+        "knex",
+        "./knexfile"
+      ]
+    },
+    "server/create_test_user.js": {
+      "size_bytes": 2143,
+      "mtime_iso": "2025-12-30T21:21:27.319Z",
+      "hash": "ef4a5b1b370e5cb2a245824cf28cb6dad98e2b1a8e04c11fb2223fa682d1f6fd",
+      "type": ".js",
+      "imports": [
+        "knex",
+        "./knexfile",
+        "bcryptjs"
+      ]
+    },
+    "server/database.js": {
+      "size_bytes": 11598,
+      "mtime_iso": "2026-01-09T17:36:12.404Z",
+      "hash": "9966b8628081a9f954127879e757a622c2b168dc9a8e70428463d0662cd8a2c8",
+      "type": ".js",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "server/FINAL_COMPLETION.md": {
+      "size_bytes": 6960,
+      "mtime_iso": "2026-01-04T17:29:53.937Z",
+      "hash": "3b7a129fdcbaba974750a6ec5e825e845b1c358f1f19d8ab4fa9094202510a18",
+      "type": ".md",
+      "imports": []
+    },
+    "server/FIXES_APPLIED.md": {
+      "size_bytes": 8427,
+      "mtime_iso": "2026-01-04T17:27:11.089Z",
+      "hash": "b8ce7d6e1d28524f881aa861a93ec0607499d3f6911063d06f105eada814e047",
+      "type": ".md",
+      "imports": []
+    },
+    "server/index.js": {
+      "size_bytes": 10830,
+      "mtime_iso": "2026-01-12T18:50:44.115Z",
+      "hash": "cbb656c8f04266d01f0f6835bc16a6b8d8cd8dcf32a538ae83b1e0e8dc7a6c1c",
+      "type": ".js",
+      "imports": [
+        "path",
+        "dotenv",
+        "express",
+        "mysql2/promise",
+        "cors",
+        "jsonwebtoken",
+        "express-rate-limit",
+        "helmet",
+        "xss-clean",
+        "cookie-parser",
+        "csurf",
+        "./controllers/authController",
+        "./controllers/residentController",
+        "./controllers/blotterController",
+        "./controllers/certificateController",
+        "./controllers/householdController",
+        "./controllers/userController",
+        "./controllers/adminController",
+        "./middleware/authMiddleware",
+        "./config/roles",
+        "./middleware/errorHandler",
+        "./middleware/validation",
+        "./middleware/auditLogger",
+        "http",
+        "./services/websocketService",
+        "./database",
+        "./jobs/documentRetention",
+        "./routes/residentRoutes",
+        "./routes/blotterRoutes",
+        "./routes/sitioRoutes",
+        "./routes/certificateRoutes",
+        "./routes/certificateRequestRoutes",
+        "./routes/certificateTypeRoutes",
+        "./routes/blotterComplaintRoutes",
+        "./routes/residentProfileRoutes",
+        "./routes/caseManagementRoutes",
+        "./routes/templateRoutes",
+        "./routes/aiAnalyticsRoutes",
+        "./routes/systemAdminRoutes",
+        "./routes/documentRoutes",
+        "./routes/aiRoutes",
+        "./routes/userRoutes",
+        "./routes/adminRoutes",
+        "./routes/notificationRoutes",
+        "./routes/announcementRoutes",
+        "./routes/clerkRoutes",
+        "./routes/captainRoutes",
+        "./routes/secretaryRoutes",
+        "./routes/officerRoutes",
+        "./routes/residentAuthRoutes",
+        "./routes/sharedRoutes",
+        "./routes",
+        "./routes/programRoutes",
+        "./controllers/notificationController"
+      ]
+    },
+    "server/knexfile.js": {
+      "size_bytes": 1991,
+      "mtime_iso": "2026-01-04T22:16:28.625Z",
+      "hash": "66fd5ecbee0fe60b3c038c49250eb94717edb47311e63e8b06a82974c39708da",
+      "type": ".js",
+      "imports": [
+        "dotenv"
+      ]
+    },
+    "server/misalignment.md": {
+      "size_bytes": 21568,
+      "mtime_iso": "2026-01-04T17:27:32.499Z",
+      "hash": "ab796e1d401de47d9744b78bfebadbbb9faa4314f01e3c099f5764f02eb1199a",
+      "type": ".md",
+      "imports": []
+    },
+    "server/package-lock.json": {
+      "size_bytes": 206173,
+      "mtime_iso": "2026-01-11T19:39:45.705Z",
+      "hash": "a8a1dde7e2ec7fec6a7c450dddf5f0ff674caf35ce17b5a38b98de8048d4b38a",
+      "type": ".json",
+      "imports": []
+    },
+    "server/package.json": {
+      "size_bytes": 4352,
+      "mtime_iso": "2026-01-11T19:39:45.588Z",
+      "hash": "e4a1a4c7c5e3b35960e38a014384d208df9df3e87fd8aa30b2e0d8e01591b9a1",
+      "type": ".json",
+      "imports": []
+    },
+    "server/REFACTORING_FIXES.md": {
+      "size_bytes": 7590,
+      "mtime_iso": "2026-01-05T00:07:47.059Z",
+      "hash": "2055d6276016119284dc6c82172067167183cbfcf7c48a6b18277da5ed30f93b",
+      "type": ".md",
+      "imports": []
+    },
+    "server/routes.js": {
+      "size_bytes": 43267,
+      "mtime_iso": "2026-01-12T19:03:30.561Z",
+      "hash": "6eab9fd341b0297d0c53f628e903a5ad4d88bf0e511c303ea264e603363c8bad",
+      "type": ".js",
+      "imports": [
+        "express",
+        "multer",
+        "./middleware/authMiddleware",
+        "./middleware/errorHandler",
+        "./database",
+        "./controllers/authController",
+        "./controllers/adminController",
+        "./controllers/reportController",
+        "./middleware/validate",
+        "./config/roles",
+        "bcryptjs"
+      ]
+    },
+    "server/run-tests.js": {
+      "size_bytes": 3830,
+      "mtime_iso": "2026-01-04T22:00:45.292Z",
+      "hash": "6a64a3918db124334196fc5c22750a5b229a375fab36a80a06b6689b29373ca2",
+      "type": ".js",
+      "imports": [
+        "child_process",
+        "fs",
+        "path"
+      ]
+    },
+    "server/run_sql.js": {
+      "size_bytes": 5243,
+      "mtime_iso": "2025-12-18T17:22:11.407Z",
+      "hash": "b42218e69977788b87bd4becb4a30d5658880b20dc5c040a4a9d381c63f21607",
+      "type": ".js",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "server/server.log": {
+      "size_bytes": 1121,
+      "mtime_iso": "2026-01-04T22:23:41.655Z",
+      "hash": "e4781017a342a02ff1c9c1b0ac9cc5540e8a258e9779e90b5f17c50e16855160",
+      "type": ".log",
+      "imports": []
+    },
+    "server/setup-test-db.js": {
+      "size_bytes": 2933,
+      "mtime_iso": "2026-01-04T22:33:39.695Z",
+      "hash": "e2f720ec06df850b1f6379d6f725d5d3aa642fb3092b5dc8bdc03de31b035a97",
+      "type": ".js",
+      "imports": [
+        "mysql2/promise",
+        "dotenv",
+        "bcryptjs"
+      ]
+    },
+    "server/simple_create.js": {
+      "size_bytes": 2206,
+      "mtime_iso": "2025-12-18T17:33:18.581Z",
+      "hash": "e262e939890714617fb75504ec359be768caf912776fb00caf8d9972cc9e27da",
+      "type": ".js",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "server/ssl-config.js": {
+      "size_bytes": 5774,
+      "mtime_iso": "2025-12-14T18:32:39.555Z",
+      "hash": "6caa94002b4d0d0517954f285d79cfe2f6d00dbb8fb14ef05036bb9a6db82f66",
+      "type": ".js",
+      "imports": [
+        "fs",
+        "path",
+        "crypto"
+      ]
+    },
+    "server/swagger.js": {
+      "size_bytes": 3708,
+      "mtime_iso": "2026-01-04T20:46:03.090Z",
+      "hash": "9735b0441def0af2f80823f9843dba20791280a65c7e134153e654e054b7b55d",
+      "type": ".js",
+      "imports": [
+        "swagger-jsdoc"
+      ]
+    },
+    "server/SYSTEM_AUDIT_2025.md": {
+      "size_bytes": 17170,
+      "mtime_iso": "2026-01-04T17:22:57.678Z",
+      "hash": "f403f89dcd8aee554cb1c0713176b01715a3e18c03fded1d78716a2ef918f1d4",
+      "type": ".md",
+      "imports": []
+    },
+    "server/test-db-connection.js": {
+      "size_bytes": 2257,
+      "mtime_iso": "2026-01-08T22:14:08.694Z",
+      "hash": "aec1723425c84f6c195f787f5f2bd4c321e03e4c383715da8e5f668a68837a3d",
+      "type": ".js",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "server/test-setup.js": {
+      "size_bytes": 1659,
+      "mtime_iso": "2025-12-18T19:54:47.796Z",
+      "hash": "ba19627b55dcb5f047731a54fa4db68a6859eadd12aff6a8547ddaba522d7f62",
+      "type": ".js",
+      "imports": []
+    },
+    "server/test_db.js": {
+      "size_bytes": 5177,
+      "mtime_iso": "2025-12-18T18:09:41.853Z",
+      "hash": "5daaa17147b1be931a8bddad7f0ad7a50239a3a2c5aa91c95c0bc0bb93d6d5a5",
+      "type": ".js",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "server/validate-system.js": {
+      "size_bytes": 4202,
+      "mtime_iso": "2026-01-10T23:17:34.902Z",
+      "hash": "7988da29806f65516c97b0389d50d465b85db4b75384f9e9f187cd75dffbf039",
+      "type": ".js",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "server/__tests__/adminHierarchy.test.js": {
+      "size_bytes": 4724,
+      "mtime_iso": "2026-01-12T21:51:54.545Z",
+      "hash": "f737c8e841d751235dd72d603212d72ddfa68e35b8e828d2c145c1365142a388",
+      "type": ".js",
+      "imports": [
+        "supertest",
+        "../controllers/adminController"
+      ]
+    },
+    "server/__tests__/api-integration.test.js": {
+      "size_bytes": 2108,
+      "mtime_iso": "2026-01-04T21:26:44.857Z",
+      "hash": "ef56eef1bf4bf160a744adf172bf1400384dd23b7390ce672c1285cc1bcfb1d6",
+      "type": ".js",
+      "imports": [
+        "supertest",
+        "express",
+        "jsonwebtoken"
+      ]
+    },
+    "server/__tests__/auditLogger.test.js": {
+      "size_bytes": 4140,
+      "mtime_iso": "2026-01-11T23:02:05.393Z",
+      "hash": "32b64db9a29a321d7d06e9864245ffda9c35106c7dba54bf412ad6823cae5efe",
+      "type": ".js",
+      "imports": [
+        "../middleware/auditLogger",
+        "winston"
+      ]
+    },
+    "server/__tests__/auditMiddlewareDbLogging.test.js": {
+      "size_bytes": 1000,
+      "mtime_iso": "2026-01-10T23:06:41.941Z",
+      "hash": "4652391335bc41c1a44b4f5ac1e9ecc93a79b7d6b5c2b9f74fcd7b9b1e73bf0a",
+      "type": ".js",
+      "imports": [
+        "../middleware/auditLogger"
+      ]
+    },
+    "server/__tests__/authController.test.js": {
+      "size_bytes": 8246,
+      "mtime_iso": "2025-12-02T20:03:41.190Z",
+      "hash": "e174cd419fc5472b74577425ad0042c16892ca1894819d97e1d7d7b9ee93211f",
+      "type": ".js",
+      "imports": [
+        "supertest",
+        "express",
+        "bcryptjs",
+        "jsonwebtoken",
+        "../authController",
+        "../database"
+      ]
+    },
+    "server/__tests__/authMiddlewareNormalization.test.js": {
+      "size_bytes": 848,
+      "mtime_iso": "2026-01-10T22:54:58.619Z",
+      "hash": "f87aa4c62e5b12edb88aed8b16d6b24068fda4ff5884144a48013123e78cf4b9",
+      "type": ".js",
+      "imports": [
+        "jsonwebtoken",
+        "../middleware/authMiddleware"
+      ]
+    },
+    "server/__tests__/certificateRequestController.test.js": {
+      "size_bytes": 4556,
+      "mtime_iso": "2026-01-11T23:02:05.516Z",
+      "hash": "102c16730ffa84d30195bd2e5c218739a01cb48a834b061effb886f366512973",
+      "type": ".js",
+      "imports": [
+        "../controllers/certificateRequestController"
+      ]
+    },
+    "server/__tests__/certificates.test.js": {
+      "size_bytes": 15997,
+      "mtime_iso": "2025-12-02T20:04:31.210Z",
+      "hash": "45c88dbd30d759a7db708907b1b7050e66f3721f216aaf5739a613d28ede7688",
+      "type": ".js",
+      "imports": [
+        "supertest",
+        "express",
+        "../database"
+      ]
+    },
+    "server/__tests__/certificateTypeRoutes.test.js": {
+      "size_bytes": 2545,
+      "mtime_iso": "2026-01-11T23:02:05.696Z",
+      "hash": "fb94244e74a93415a32882c86ca427c1b52be7e311528af4adca12f8a88e0850",
+      "type": ".js",
+      "imports": [
+        "supertest",
+        "express",
+        "../database",
+        "../routes/certificateTypeRoutes"
+      ]
+    },
+    "server/__tests__/controllers-expanded.test.js": {
+      "size_bytes": 3251,
+      "mtime_iso": "2026-01-04T21:26:35.960Z",
+      "hash": "58a6bd4ae8a36c6ff4730bebd635e1d2a5afe3ca7f95e1f918d5d8c07399e0fb",
+      "type": ".js",
+      "imports": [
+        "supertest",
+        "express",
+        "../controllers/residentController",
+        "../controllers/householdController",
+        "../controllers/userController",
+        "../controllers/blotterController"
+      ]
+    },
+    "server/__tests__/controllers.test.js": {
+      "size_bytes": 6136,
+      "mtime_iso": "2026-01-04T20:54:38.499Z",
+      "hash": "1863f382b8b875b76f06af12dd908791dfc2e7b91d604275297c0b1c3aa2415c",
+      "type": ".js",
+      "imports": [
+        "supertest",
+        "mysql2/promise",
+        "../server/controllers/residentController",
+        "../server/controllers/userController",
+        "../server/controllers/adminController",
+        "../server/middleware/errorHandler"
+      ]
+    },
+    "server/__tests__/documentController.test.js": {
+      "size_bytes": 7449,
+      "mtime_iso": "2026-01-11T23:02:05.737Z",
+      "hash": "ff97ab2f6addce61669d3385f6381bf0a3dd75b24a57093ce7fdf43f0c69e34d",
+      "type": ".js",
+      "imports": [
+        "../controllers/documentController"
+      ]
+    },
+    "server/__tests__/documentDownloadsAuditTrail.test.js": {
+      "size_bytes": 3305,
+      "mtime_iso": "2026-01-11T00:04:58.556Z",
+      "hash": "e9f80ad34f049d132aca3a09363d58fec62a6de251867902893d58fe0ebffa38",
+      "type": ".js",
+      "imports": [
+        "express",
+        "supertest",
+        "path",
+        "fs",
+        "../routes/residentRoutes",
+        "../routes/secretaryRoutes"
+      ]
+    },
+    "server/__tests__/documentRequestsAuditTrail.test.js": {
+      "size_bytes": 3365,
+      "mtime_iso": "2026-01-10T23:48:51.814Z",
+      "hash": "1e0a2ed8d6f1193a8a24ff0016265d5fff8fb1e53be72d0166b43d4987f70e18",
+      "type": ".js",
+      "imports": [
+        "express",
+        "supertest",
+        "../middleware/auditLogger",
+        "../routes/documentRoutes",
+        "../routes/adminRoutes"
+      ]
+    },
+    "server/__tests__/documentRequestsIdor.test.js": {
+      "size_bytes": 1969,
+      "mtime_iso": "2026-01-10T23:14:56.427Z",
+      "hash": "6793bead35bb80fd1563f46a4ec779da4a5e4be4971097122aa783ab414a9db8",
+      "type": ".js",
+      "imports": [
+        "express",
+        "supertest",
+        "../routes/documentRoutes"
+      ]
+    },
+    "server/__tests__/documentRequestsLifecycle.test.js": {
+      "size_bytes": 4530,
+      "mtime_iso": "2026-01-11T00:22:45.373Z",
+      "hash": "77202baa416b70b5cc1c417ec3ecf21f3925cfcd8dfe734237d31492ad438528",
+      "type": ".js",
+      "imports": [
+        "express",
+        "supertest",
+        "../config/roles",
+        "../routes/documentRoutes"
+      ]
+    },
+    "server/__tests__/exhaustive-complete.test.js": {
+      "size_bytes": 19984,
+      "mtime_iso": "2026-01-04T22:06:17.201Z",
+      "hash": "9068339d5a45a909760f7783c972b808223ce1cc815c2143b76ada8a9999099d",
+      "type": ".js",
+      "imports": [
+        "supertest",
+        "jsonwebtoken",
+        "bcrypt",
+        "../controllers/authController",
+        "../controllers/residentController",
+        "../controllers/blotterController",
+        "../controllers/certificateController",
+        "../controllers/documentController",
+        "../controllers/householdController",
+        "../controllers/userController",
+        "../controllers/adminController",
+        "../database"
+      ]
+    },
+    "server/__tests__/file-validation.test.js": {
+      "size_bytes": 11770,
+      "mtime_iso": "2026-01-11T00:46:36.081Z",
+      "hash": "e8cb69ba0485f14d5da93a817b12ff3198893dac31fa56e2f27c9d9e2d88099a",
+      "type": ".js",
+      "imports": [
+        "multer",
+        "xss",
+        "validator"
+      ]
+    },
+    "server/__tests__/mfaMiddleware.test.js": {
+      "size_bytes": 1796,
+      "mtime_iso": "2026-01-10T23:50:13.438Z",
+      "hash": "e4ad467c73bd3abeeec2efcd3b0f735b260ef84454767705511b8504138978f4",
+      "type": ".js",
+      "imports": [
+        "express",
+        "supertest",
+        "../middleware/mfaMiddleware",
+        "../config/roles"
+      ]
+    },
+    "server/__tests__/mfaOtpFlow.test.js": {
+      "size_bytes": 2991,
+      "mtime_iso": "2026-01-11T00:13:03.246Z",
+      "hash": "756edaa6c01cee6735044ea7705fbaac6952aa35e0436671a3bbcffe4c3021f5",
+      "type": ".js",
+      "imports": [
+        "express",
+        "cookie-parser",
+        "supertest",
+        "bcryptjs",
+        "../controllers/authController",
+        "../middleware/authMiddleware"
+      ]
+    },
+    "server/__tests__/rbacSmokeTokens.test.js": {
+      "size_bytes": 2417,
+      "mtime_iso": "2026-01-11T00:41:33.393Z",
+      "hash": "68f32e0bf782a3b36990c7855210dbbfcdae0f984e96be03519ba48b53fd0dcb",
+      "type": ".js",
+      "imports": [
+        "express",
+        "supertest",
+        "jsonwebtoken",
+        "../middleware/authMiddleware",
+        "../config/roles"
+      ]
+    },
+    "server/__tests__/residentControllerUnit.test.js": {
+      "size_bytes": 5341,
+      "mtime_iso": "2026-01-11T23:02:05.750Z",
+      "hash": "eab1db7c66d69401291e49f44b565c5d0fc21539e2a9e05be0c76601a06dce16",
+      "type": ".js",
+      "imports": [
+        "../controllers/residentController",
+        "crypto",
+        "bcryptjs",
+        "../database"
+      ]
+    },
+    "server/__tests__/residentDocumentsDownload.test.js": {
+      "size_bytes": 1846,
+      "mtime_iso": "2026-01-10T23:30:57.583Z",
+      "hash": "dcad9f68100baf88edb9a947cb7af2ca9db5cc4aa2640ec614db6fc165fb3f55",
+      "type": ".js",
+      "imports": [
+        "express",
+        "supertest",
+        "path",
+        "fs",
+        "../routes/residentRoutes"
+      ]
+    },
+    "server/__tests__/residentEncryptedDocumentDownload.test.js": {
+      "size_bytes": 2531,
+      "mtime_iso": "2026-01-10T23:57:58.512Z",
+      "hash": "736033b6853808ffd7da025eed979221b72a755e6d8c2599cf610cabfcb46965",
+      "type": ".js",
+      "imports": [
+        "express",
+        "supertest",
+        "path",
+        "fs",
+        "crypto",
+        "../utils/documentStorage",
+        "../routes/residentRoutes"
+      ]
+    },
+    "server/__tests__/residents.test.js": {
+      "size_bytes": 15391,
+      "mtime_iso": "2025-12-02T20:04:05.889Z",
+      "hash": "9cc376db8fdc41b7bced1854b5e4f6184eba54a9b8d5b7cbf957ffb30505e21f",
+      "type": ".js",
+      "imports": [
+        "supertest",
+        "express",
+        "../routes/residents",
+        "../database"
+      ]
+    },
+    "server/__tests__/secretaryApplicationDocumentsDownload.test.js": {
+      "size_bytes": 1474,
+      "mtime_iso": "2026-01-10T23:31:07.570Z",
+      "hash": "84db403b140c1acb5d708a3dcca6bea8f9463256e7fe9e942385c309239a506d",
+      "type": ".js",
+      "imports": [
+        "express",
+        "supertest",
+        "path",
+        "fs",
+        "../routes/secretaryRoutes"
+      ]
+    },
+    "server/__tests__/seededUsersDbVerification.test.js": {
+      "size_bytes": 3012,
+      "mtime_iso": "2026-01-11T00:41:18.905Z",
+      "hash": "871951ca2c086c36f2722b86f8d94b9dbfb3793ecff94e79d9f46c9ad7dc5da4",
+      "type": ".js",
+      "imports": [
+        "path",
+        "mysql2/promise",
+        "bcryptjs",
+        "dotenv"
+      ]
+    },
+    "server/__tests__/system-comprehensive.test.js": {
+      "size_bytes": 12418,
+      "mtime_iso": "2026-01-04T22:02:51.816Z",
+      "hash": "c0585ab488b154631b72d7dd565e4aadfa1dd2dc1a51feb8d5cad858da1c8a85",
+      "type": ".js",
+      "imports": [
+        "supertest",
+        "jsonwebtoken",
+        "express",
+        "../controllers/blotterController"
+      ]
+    },
+    "server/__tests__/systemAssetsUploadAndFetch.test.js": {
+      "size_bytes": 2228,
+      "mtime_iso": "2026-01-10T23:18:08.504Z",
+      "hash": "368ebd886c0ae41d13e60ef4d077442ee6f99a6bf7a488fe9fa5cc8cf7e32964",
+      "type": ".js",
+      "imports": [
+        "express",
+        "supertest",
+        "path",
+        "fs",
+        "../routes/systemAdminRoutes"
+      ]
+    },
+    "server/__tests__/templateRoutes.test.js": {
+      "size_bytes": 4422,
+      "mtime_iso": "2026-01-11T23:02:07.933Z",
+      "hash": "38f0a7ae79b5adc243882e0e7269e32a122c9f06d28a037055ee7ceccfe6910d",
+      "type": ".js",
+      "imports": [
+        "supertest",
+        "express",
+        "../database",
+        "../routes/templateRoutes"
+      ]
+    },
+    "server/utils/cache.js": {
+      "size_bytes": 2997,
+      "mtime_iso": "2026-01-04T21:26:14.588Z",
+      "hash": "9a8f8af03752a77f25512659deb0db5adf7bfe1310e17ce38fe564cedcdb78ae",
+      "type": ".js",
+      "imports": [
+        "redis",
+        "../monitoring"
+      ]
+    },
+    "server/utils/documentStorage.js": {
+      "size_bytes": 3020,
+      "mtime_iso": "2026-01-10T23:54:53.831Z",
+      "hash": "70dbc6ca2504cfc5367acb450a52cc58cf278be1fa3e03a56737b809fe750331",
+      "type": ".js",
+      "imports": [
+        "crypto",
+        "fs",
+        "path",
+        "stream/promises"
+      ]
+    },
+    "server/utils/emailService.js": {
+      "size_bytes": 2209,
+      "mtime_iso": "2026-01-12T01:30:30.177Z",
+      "hash": "d6dab540fa9f4d7e39720cc23eff430e611bffd72c5ac93736ef9609e5ab2653",
+      "type": ".js",
+      "imports": [
+        "nodemailer",
+        "dotenv"
+      ]
+    },
+    "server/utils/mfaOtp.js": {
+      "size_bytes": 2847,
+      "mtime_iso": "2026-01-12T01:30:51.307Z",
+      "hash": "675cc79412c89148e7c184099fe1c5253435ec077f74b3cc090de2dfa544fefc",
+      "type": ".js",
+      "imports": [
+        "bcryptjs",
+        "crypto",
+        "./emailService"
+      ]
+    },
+    "server/utils/performance.js": {
+      "size_bytes": 2348,
+      "mtime_iso": "2026-01-04T20:53:51.873Z",
+      "hash": "6cec8c265770baf4a12a9816ce54190d85454ab7388390522ba5da376f9e69f4",
+      "type": ".js",
+      "imports": [
+        "winston"
+      ]
+    },
+    "server/utils/seed_hashes.js": {
+      "size_bytes": 1769,
+      "mtime_iso": "2026-01-10T22:47:39.737Z",
+      "hash": "2e61eb163aeb0ec3c702ac05ed2fbc5e635c0a4c71048a1b8b166c45ae9fb6ba",
+      "type": ".js",
+      "imports": [
+        "bcryptjs",
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "server/uploads/system-assets/seal-1768087096218-vpv8xux9.png": {
+      "size_bytes": 8,
+      "mtime_iso": "2026-01-10T23:18:16.219Z",
+      "hash": "4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6",
+      "type": ".png",
+      "imports": []
+    },
+    "server/uploads/system-assets/seal-1768087281441-sf6pjmlg.png": {
+      "size_bytes": 8,
+      "mtime_iso": "2026-01-10T23:21:21.443Z",
+      "hash": "4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6",
+      "type": ".png",
+      "imports": []
+    },
+    "server/uploads/system-assets/seal-1768087914037-x8vpmgp8.png": {
+      "size_bytes": 8,
+      "mtime_iso": "2026-01-10T23:31:54.040Z",
+      "hash": "4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6",
+      "type": ".png",
+      "imports": []
+    },
+    "server/uploads/system-assets/seal-1768090996693-2i2zoyk8.png": {
+      "size_bytes": 8,
+      "mtime_iso": "2026-01-11T00:23:16.698Z",
+      "hash": "4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6",
+      "type": ".png",
+      "imports": []
+    },
+    "server/uploads/system-assets/seal-1768092236188-oij16ks4.png": {
+      "size_bytes": 8,
+      "mtime_iso": "2026-01-11T00:43:56.216Z",
+      "hash": "4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6",
+      "type": ".png",
+      "imports": []
+    },
+    "server/uploads/system-assets/seal-1768092321257-oncuizml.png": {
+      "size_bytes": 8,
+      "mtime_iso": "2026-01-11T00:45:21.265Z",
+      "hash": "4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6",
+      "type": ".png",
+      "imports": []
+    },
+    "server/uploads/system-assets/seal-1768092357580-1yzzjwoe.png": {
+      "size_bytes": 8,
+      "mtime_iso": "2026-01-11T00:45:57.586Z",
+      "hash": "4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6",
+      "type": ".png",
+      "imports": []
+    },
+    "server/uploads/system-assets/seal-1768092405082-625owdfs.png": {
+      "size_bytes": 8,
+      "mtime_iso": "2026-01-11T00:46:45.087Z",
+      "hash": "4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6",
+      "type": ".png",
+      "imports": []
+    },
+    "server/uploads/system-assets/seal-1768093414882-rivy190q.png": {
+      "size_bytes": 8,
+      "mtime_iso": "2026-01-11T01:03:34.892Z",
+      "hash": "4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6",
+      "type": ".png",
+      "imports": []
+    },
+    "server/tests/integration/api.test.js": {
+      "size_bytes": 8486,
+      "mtime_iso": "2025-12-30T21:21:27.335Z",
+      "hash": "3a905209ed55ac2a67df14d36441fa92c22f84832511eee411eddfd78beb0528",
+      "type": ".js",
+      "imports": [
+        "supertest",
+        "knex",
+        "../../knexfile",
+        "../../index"
+      ]
+    },
+    "server/tests/integration/current/rbacDbSmoke.test.js": {
+      "size_bytes": 3118,
+      "mtime_iso": "2026-01-11T01:05:33.814Z",
+      "hash": "9dc97e8f27699b8b79d3a04a66b2c30786c2bedd45b253840b7dab0247244d02",
+      "type": ".js",
+      "imports": [
+        "express",
+        "supertest",
+        "cookie-parser",
+        "jsonwebtoken",
+        "mysql2/promise",
+        "knex",
+        "../../../knexfile",
+        "../../../config/roles",
+        "../../../routes/adminRoutes"
+      ]
+    },
+    "server/templates/1765480407672-m2pdb9olg.pdf": {
+      "size_bytes": 381742,
+      "mtime_iso": "2025-12-11T19:13:27.670Z",
+      "hash": "37c639e71fcab84c5c6ea2a442cf3caf1a84f14d8b5f3cad86d306cc3a223fad",
+      "type": ".pdf",
+      "imports": []
+    },
+    "server/templates/1765480419392-acmyw9miz.pdf": {
+      "size_bytes": 399121,
+      "mtime_iso": "2025-12-11T19:13:39.391Z",
+      "hash": "e89e70cccd6c7dd0eb6798f81ccce611c701baa0b511d672b700091862aa7d13",
+      "type": ".pdf",
+      "imports": []
+    },
+    "server/services/DatabaseService.js": {
+      "size_bytes": 2803,
+      "mtime_iso": "2026-01-09T17:36:24.680Z",
+      "hash": "ed9664ce949c8e17721e35eb2d02603ea657497f6b2f9c8204951ab896513ffa",
+      "type": ".js",
+      "imports": [
+        "../database"
+      ]
+    },
+    "server/services/websocketService.js": {
+      "size_bytes": 2823,
+      "mtime_iso": "2026-01-05T00:35:21.655Z",
+      "hash": "4cb09757ab25a13f2f1f42f5f0759523c729736a837b2e3c2e9fdf6700a2e311",
+      "type": ".js",
+      "imports": [
+        "ws",
+        "jsonwebtoken",
+        "../middleware/logger"
+      ]
+    },
+    "server/seeds/01_initial_data.js": {
+      "size_bytes": 9881,
+      "mtime_iso": "2026-01-11T00:39:08.964Z",
+      "hash": "8275456ca95fa3b05d16e473244b04763161ddb2ea4aace2aaa593bfead2d7fd",
+      "type": ".js",
+      "imports": [
+        "bcryptjs"
+      ]
+    },
+    "server/seeds/02_hierarchy_setup.js": {
+      "size_bytes": 2336,
+      "mtime_iso": "2025-11-30T22:49:01.255Z",
+      "hash": "3cde38c27d3844701143993c1fda4d865f359fe62556d72b7f3b3d01e48d0065",
+      "type": ".js",
+      "imports": [
+        "bcryptjs"
+      ]
+    },
+    "server/seeds/03_initial_staff_users.js": {
+      "size_bytes": 1724,
+      "mtime_iso": "2026-01-10T22:45:57.483Z",
+      "hash": "a76c1b9b86fa0e7243c41f9c7fb1c0bf5b1d6e1bfc39895b69a5f8b2c0ac07c5",
+      "type": ".js",
+      "imports": [
+        "bcryptjs",
+        "../config/roles"
+      ]
+    },
+    "server/seeds/initial_admin.js": {
+      "size_bytes": 1042,
+      "mtime_iso": "2026-01-10T23:11:46.809Z",
+      "hash": "fb61c81cde76f5b92eea9ded3eef51a7993bc52b165a31ca2c18c098fc9d5b2c",
+      "type": ".js",
+      "imports": [
+        "bcryptjs",
+        "knex"
+      ]
+    },
+    "server/scripts/atomic_system_reset.js": {
+      "size_bytes": 8591,
+      "mtime_iso": "2026-01-12T21:17:08.529Z",
+      "hash": "196225e424720e0b500699b5035592a20bf610ecc6939ddb955e2fe6db35ed5c",
+      "type": ".js",
+      "imports": [
+        "dotenv",
+        "knex",
+        "../knexfile",
+        "bcryptjs"
+      ]
+    },
+    "server/scripts/generate_admin_token.js": {
+      "size_bytes": 500,
+      "mtime_iso": "2026-01-12T18:48:04.672Z",
+      "hash": "62d8af8e16317bf6612f1ca1c84aeae39f11e4f5807c69fda5592fb32f6dd9cb",
+      "type": ".js",
+      "imports": [
+        "jsonwebtoken",
+        "path",
+        "dotenv"
+      ]
+    },
+    "server/scripts/repopulate_db.js": {
+      "size_bytes": 15468,
+      "mtime_iso": "2026-01-12T22:07:21.897Z",
+      "hash": "72e95576443526e4a9d6259724e0af3b551ba924de28606178b7734a3d89df60",
+      "type": ".js",
+      "imports": [
+        "dotenv",
+        "knex",
+        "bcryptjs"
+      ]
+    },
+    "server/routes/adminRoutes.js": {
+      "size_bytes": 10239,
+      "mtime_iso": "2026-01-11T01:10:11.230Z",
+      "hash": "8f70c92526617f96c7611da4842133ed6947afac18465861b425447f9b7a4de1",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler",
+        "../config/roles",
+        "../controllers/adminController",
+        "../middleware/mfaMiddleware"
+      ]
+    },
+    "server/routes/aiAnalyticsRoutes.js": {
+      "size_bytes": 1832,
+      "mtime_iso": "2026-01-12T22:00:41.918Z",
+      "hash": "994cfc033d84d43424670aa5dedd6d90c10431dd9578df007512dc1d02d9258d",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../controllers/aiAnalyticsController",
+        "../middleware/authMiddleware",
+        "../config/roles"
+      ]
+    },
+    "server/routes/aiRoutes.js": {
+      "size_bytes": 5595,
+      "mtime_iso": "2026-01-12T18:51:10.553Z",
+      "hash": "9d87e888e2c38b5465df509abf9ada1c5aef9ff3dd08af270ae4acf5badd772c",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler",
+        "axios"
+      ]
+    },
+    "server/routes/announcementRoutes.js": {
+      "size_bytes": 3336,
+      "mtime_iso": "2026-01-04T23:30:54.302Z",
+      "hash": "1de517a29370e8005a71a0667a5ed65212063d4ad86d1487b182d500f8c3e795",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler"
+      ]
+    },
+    "server/routes/blotterComplaintRoutes.js": {
+      "size_bytes": 834,
+      "mtime_iso": "2026-01-10T23:27:07.083Z",
+      "hash": "14297528b895dfde2eceb679852a59d3ab9953c54819320e08e79c5f97be4387",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../controllers/blotterComplaintController",
+        "../middleware/authMiddleware",
+        "../config/roles"
+      ]
+    },
+    "server/routes/blotterRoutes.js": {
+      "size_bytes": 2135,
+      "mtime_iso": "2026-01-11T00:38:46.814Z",
+      "hash": "e3f9bc08aae418c9c8fa6044dcec850a78d38648453bff7b3dda84b1665719da",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler",
+        "../controllers/blotterController",
+        "../middleware/auditLogger"
+      ]
+    },
+    "server/routes/captainRoutes.js": {
+      "size_bytes": 3451,
+      "mtime_iso": "2026-01-04T23:58:11.212Z",
+      "hash": "e9818f9c4f3d40083e95d947e549d49a24669b3c689d9910f82102cc88586bf4",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler",
+        "../controllers/captainController"
+      ]
+    },
+    "server/routes/caseManagementRoutes.js": {
+      "size_bytes": 2330,
+      "mtime_iso": "2026-01-10T23:26:41.635Z",
+      "hash": "e06caa4d4baa369434def66e54c9677b7fc3739ec8c9d29dffec4caebee4b507",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../controllers/caseManagementController",
+        "../middleware/authMiddleware",
+        "../config/roles"
+      ]
+    },
+    "server/routes/censusRoutes.js": {
+      "size_bytes": 1811,
+      "mtime_iso": "2026-01-06T12:40:49.383Z",
+      "hash": "10ecaf1029afec3c14f0d0f564af0838ff7228f8f4d0833f6211af399bacd13f",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler",
+        "../config/roles"
+      ]
+    },
+    "server/routes/certificateRequestRoutes.js": {
+      "size_bytes": 1884,
+      "mtime_iso": "2026-01-11T22:32:31.552Z",
+      "hash": "8713cdfd4256718156d0c45f8e2cdb54d0e4939c278372e66b11a328f5a58e82",
+      "type": ".js",
+      "imports": [
+        "express",
+        "multer",
+        "../controllers/certificateRequestController",
+        "../middleware/authMiddleware",
+        "../config/roles"
+      ]
+    },
+    "server/routes/certificateRoutes.js": {
+      "size_bytes": 1924,
+      "mtime_iso": "2026-01-05T21:33:33.347Z",
+      "hash": "8d516f6d94efb0adbb420d82e444ccffce0f0e9508f9e2a6e03f0a0dd0803f51",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler",
+        "../controllers/certificateController"
+      ]
+    },
+    "server/routes/certificateTypeRoutes.js": {
+      "size_bytes": 3187,
+      "mtime_iso": "2026-01-11T22:28:30.518Z",
+      "hash": "f013482b4b45108bb1f47266d34803cefe09e1087f32dd91129bd4fe8253d5a8",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler"
+      ]
+    },
+    "server/routes/clerkRoutes.js": {
+      "size_bytes": 2340,
+      "mtime_iso": "2026-01-04T23:57:59.847Z",
+      "hash": "482c5a1a57bd9cab1cf7cf44e5c90b2d5a4f0f1f24abf2ab984f37ad54ed4cf7",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler",
+        "../controllers/clerkController"
+      ]
+    },
+    "server/routes/documentRoutes.js": {
+      "size_bytes": 4815,
+      "mtime_iso": "2026-01-12T01:33:27.994Z",
+      "hash": "2421834f78811fc97c37cc649c9c3e4e7a89eaacbe935797dede0072997bf6c1",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler",
+        "../config/roles",
+        "../controllers/documentController",
+        "../utils/emailService"
+      ]
+    },
+    "server/routes/notificationRoutes.js": {
+      "size_bytes": 861,
+      "mtime_iso": "2026-01-05T00:23:29.541Z",
+      "hash": "8f60fa4a1dd191796991ba0a01470e7aa7b5de4b47aca9cc5050106549a16b2e",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../controllers/notificationController",
+        "../middleware/authMiddleware"
+      ]
+    },
+    "server/routes/officerRoutes.js": {
+      "size_bytes": 5604,
+      "mtime_iso": "2026-01-04T23:58:41.041Z",
+      "hash": "2dc033af95b5ac718ce103cffaec0e45fcccfa20070d6076e7f44b1b0a842df4",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler"
+      ]
+    },
+    "server/routes/performanceRoutes.js": {
+      "size_bytes": 1936,
+      "mtime_iso": "2026-01-04T22:31:08.229Z",
+      "hash": "eec545be62c96e4bdd1ccae3aeb157998dac48bac829e6a5716ce3b36c62bf05",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../monitoring"
+      ]
+    },
+    "server/routes/programRoutes.js": {
+      "size_bytes": 3156,
+      "mtime_iso": "2026-01-09T17:07:49.201Z",
+      "hash": "f771015062d9c7e2b9c7a3f0d61abf5aebcce13bfb7ceaab925e7d2994a5aa26",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler",
+        "../config/roles"
+      ]
+    },
+    "server/routes/README.md": {
+      "size_bytes": 3961,
+      "mtime_iso": "2026-01-04T20:50:08.730Z",
+      "hash": "77581b3fda70b4119fe0ec969243a17fc0d0db31cc781876d14f0e80a4332d2c",
+      "type": ".md",
+      "imports": []
+    },
+    "server/routes/residentAuthRoutes.js": {
+      "size_bytes": 5776,
+      "mtime_iso": "2026-01-10T22:44:50.245Z",
+      "hash": "0314ed4696d5e2d61d61e75bfbacdb0583c6a184addf1e20145d0263592ed741",
+      "type": ".js",
+      "imports": [
+        "express",
+        "bcryptjs",
+        "jsonwebtoken",
+        "crypto",
+        "express-rate-limit",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler"
+      ]
+    },
+    "server/routes/residentProfileRoutes.js": {
+      "size_bytes": 996,
+      "mtime_iso": "2026-01-10T23:26:59.450Z",
+      "hash": "207f866cd72dfa6c3dbbec9aa6610851c55c8f3c3d9bfab9e769befbb5d93807",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../controllers/residentProfileController",
+        "../middleware/authMiddleware",
+        "../config/roles"
+      ]
+    },
+    "server/routes/residentRoutes.js": {
+      "size_bytes": 3704,
+      "mtime_iso": "2026-01-12T22:52:17.007Z",
+      "hash": "39437816b59bc6bbfc5029460d599d2f457a0f5b60aa580063b3e6813e869ae5",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler",
+        "../middleware/validation",
+        "../controllers/residentController"
+      ]
+    },
+    "server/routes/secretaryRoutes.js": {
+      "size_bytes": 17503,
+      "mtime_iso": "2026-01-12T22:46:39.335Z",
+      "hash": "63544058b9f299f3d33ea0439e4bd4802f6bf1e0abf6b663403205e200f25ff8",
+      "type": ".js",
+      "imports": [
+        "express",
+        "crypto",
+        "bcryptjs",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler",
+        "../config/roles",
+        "../middleware/mfaMiddleware",
+        "../middleware/auditLogger",
+        "../utils/documentStorage"
+      ]
+    },
+    "server/routes/sharedRoutes.js": {
+      "size_bytes": 5810,
+      "mtime_iso": "2026-01-11T00:40:11.323Z",
+      "hash": "be3fdf88c5dd4b8db24234393082f5eb4091503479409edf468c94f8e282a54a",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler"
+      ]
+    },
+    "server/routes/sitioRoutes.js": {
+      "size_bytes": 648,
+      "mtime_iso": "2026-01-06T12:44:39.562Z",
+      "hash": "777f5fdd893e0dca4dba7a9e4fa28b0a9996d5cfc7dca2809d1d65cbd6299b13",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler"
+      ]
+    },
+    "server/routes/systemAdminRoutes.js": {
+      "size_bytes": 3130,
+      "mtime_iso": "2026-01-10T23:25:03.551Z",
+      "hash": "ef8367d6f03754884f01941d83db93704b361b5f34b49c80a1907cac707dcd00",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../controllers/systemAdminController",
+        "../middleware/authMiddleware",
+        "multer",
+        "path",
+        "fs",
+        "../config/roles"
+      ]
+    },
+    "server/routes/templateRoutes.js": {
+      "size_bytes": 10058,
+      "mtime_iso": "2026-01-11T20:05:55.097Z",
+      "hash": "ff1ad13d2ced544d503e8e3871e1d09ce27892427b8552000c0f5cd0267ac0b0",
+      "type": ".js",
+      "imports": [
+        "express",
+        "multer",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler"
+      ]
+    },
+    "server/routes/userRoutes.js": {
+      "size_bytes": 850,
+      "mtime_iso": "2026-01-10T22:44:58.103Z",
+      "hash": "857c9ea636d1bcbe73eea436d1d4cc7479fdb941b7bf1e0635af040f359f25aa",
+      "type": ".js",
+      "imports": [
+        "express",
+        "../middleware/authMiddleware",
+        "../middleware/errorHandler",
+        "../controllers/userController"
+      ]
+    },
+    "server/migrations/20250101000000_initial_schema.js": {
+      "size_bytes": 14972,
+      "mtime_iso": "2026-01-11T01:05:21.800Z",
+      "hash": "7239ca2dc0a2cfc64ecdabbd2e76ae5a956420af6a347ee4f50c4249bce296b2",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250102000000_account_hierarchy.js": {
+      "size_bytes": 1653,
+      "mtime_iso": "2025-11-30T20:58:57.982Z",
+      "hash": "ebf04fac85fcd6f1cb065f4d85b03fae704aa1effd19d9830f9511b85f326b10",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250103000000_document_requests.js": {
+      "size_bytes": 1481,
+      "mtime_iso": "2026-01-11T01:06:01.020Z",
+      "hash": "dc5e721544ca9604aaf303926b4a33931d9bdb74864afaaa40bf4d1ed14416f0",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250104000000_resident_signup_requests.js": {
+      "size_bytes": 303,
+      "mtime_iso": "2025-12-17T09:26:09.454Z",
+      "hash": "b7853a028a0e2dc0161d283f196f7dbddc71891d121bcb30f0dc08b185e89d57",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250105000000_document_templates.js": {
+      "size_bytes": 4296,
+      "mtime_iso": "2026-01-11T01:06:34.842Z",
+      "hash": "bf073d789a59f8ed85842b135d6fdd19901a052cb272d8a7816ba73cd2858bef",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250106000000_add_file_blob_storage.js": {
+      "size_bytes": 963,
+      "mtime_iso": "2025-12-14T07:10:57.262Z",
+      "hash": "2083b08cff5b74f044b4e947c5a38db7b3192882979f8781df3161e6c589d5ae",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250106000000_create_audit_logs.js": {
+      "size_bytes": 1172,
+      "mtime_iso": "2026-01-05T00:19:16.590Z",
+      "hash": "2ca1dde52b0797d299194d080eca954308ae08a6bd1b85675f87306508234a87",
+      "type": ".js",
+      "imports": [
+        "knex"
+      ]
+    },
+    "server/migrations/20250107000000_add_notifications.js": {
+      "size_bytes": 1667,
+      "mtime_iso": "2025-12-11T21:53:13.589Z",
+      "hash": "70b266a0118e49f4be57223095c903002f656c61752f50c9c56b151ffb7ce6ed",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250113000000_add_file_columns_to_templates.js": {
+      "size_bytes": 3076,
+      "mtime_iso": "2026-01-11T22:00:26.993Z",
+      "hash": "6a43c5abf1a228d9d1a64446fd7054746f35bd076fe911653f04b67a959ca552",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250115000000_rename_mobile_to_email_residents.js": {
+      "size_bytes": 449,
+      "mtime_iso": "2025-12-13T22:02:38.532Z",
+      "hash": "a14a3bc60fabfb4b93305bf7961cd2e92f2080061bbae9a181aa592df48ef8eb",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250117000000_add_login_attempts_table.js": {
+      "size_bytes": 655,
+      "mtime_iso": "2025-12-14T04:15:06.660Z",
+      "hash": "ee6bc08e1741522e80fdbc2e5c62b0a435945648d7e21d8d13960eec5cacb80a",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250118000000_add_blob_storage_verification.js": {
+      "size_bytes": 2089,
+      "mtime_iso": "2025-12-17T11:21:44.043Z",
+      "hash": "6f48dce0b6d7c18e275c03b602c2bd302da3d3342cd629f499257f1452a3207f",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250120000000_alter_file_data_to_mediumblob.js": {
+      "size_bytes": 529,
+      "mtime_iso": "2025-12-14T07:11:36.570Z",
+      "hash": "aac70c10b1d3ae8676e45c67aeddbc0cdc5fe215ea290f8e1d99940fd4cc12b9",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250121000000_standardize_themis_roles.js": {
+      "size_bytes": 1252,
+      "mtime_iso": "2026-01-11T01:07:59.830Z",
+      "hash": "168d3b4200164f4ee949675fc24ac7b338e44bff3d71aa6a1e55b3b77bd70e47",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250122000000_themis_clearpass_schema.js": {
+      "size_bytes": 6128,
+      "mtime_iso": "2026-01-10T18:49:05.099Z",
+      "hash": "0deb50bf131236b675c5e4cac005e26561b22fcb525ee22c735109337a308ee4",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250123000000_fix_residents_mobile_column.js": {
+      "size_bytes": 506,
+      "mtime_iso": "2026-01-11T01:08:44.167Z",
+      "hash": "07831ce004bcc87c1b675f4680d340e9bbc616fd3cf8e5bdabaec7fd9357b9d4",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250124000000_add_community_programs.js": {
+      "size_bytes": 1786,
+      "mtime_iso": "2026-01-11T01:09:20.405Z",
+      "hash": "66149088d969a58e8157a5f61fc142ec8a66431c8f6794ced49d45169850946a",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250124000000_add_document_verification_tables.js": {
+      "size_bytes": 3755,
+      "mtime_iso": "2026-01-10T18:51:05.814Z",
+      "hash": "51224e9c92bdaa4123dc92c02a0b613c70849eedd0c6d034d7a4468e350c8600",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20250124000001_add_email_to_residents.js": {
+      "size_bytes": 398,
+      "mtime_iso": "2026-01-10T18:51:13.515Z",
+      "hash": "3e8db179c964fadff498c6b272bffad8e3d84b02675994abd7cd003dc5a02a8f",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20251230000000_add_verification_file_column.js": {
+      "size_bytes": 420,
+      "mtime_iso": "2026-01-10T18:52:18.507Z",
+      "hash": "d1e12d1a0ea813876b0d2efa1d51890111318f077a35453d806e1220f1aac5aa",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20251230_add_auth_to_residents.js": {
+      "size_bytes": 980,
+      "mtime_iso": "2026-01-10T18:52:27.277Z",
+      "hash": "f32d67b80dff06738a24bfb3f692cc044bcaccf9b7eb99e5cf76c904b1294728",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20251231000000_census_first_auth_schema.js": {
+      "size_bytes": 1223,
+      "mtime_iso": "2026-01-10T18:52:37.013Z",
+      "hash": "add97a82a916bd787e2533242b621918791b841bb9a3accbf5a196c6158195b2",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20260105000000_add_announcements_table.js": {
+      "size_bytes": 1027,
+      "mtime_iso": "2026-01-10T18:52:48.151Z",
+      "hash": "041333446b4d20477818b7790865dd1f3cb485feb98a1b08e30927f747d9a5dd",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20260111120000_remediation_fixes.js": {
+      "size_bytes": 3133,
+      "mtime_iso": "2026-01-10T18:46:11.306Z",
+      "hash": "41d489abc3a9436cde0a77a094c576326c36b71cc673a678b262756e986d57af",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20260111123000_add_validation_audit_columns.js": {
+      "size_bytes": 3971,
+      "mtime_iso": "2026-01-10T21:26:46.309Z",
+      "hash": "15b8bfc3f611cd6a06a85ed246c258ae423e4e8e1eca3e4407e646053c38243f",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20260111124500_fix_seeded_user_roles.js": {
+      "size_bytes": 586,
+      "mtime_iso": "2026-01-10T22:49:06.053Z",
+      "hash": "c145939c773eb9489a7d4ffa61bd5eb3590db4293d91f6e3e8fa733197daac02",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20260111130000_repair_roles_and_document_requests.js": {
+      "size_bytes": 2201,
+      "mtime_iso": "2026-01-10T23:02:33.564Z",
+      "hash": "b79229655e195007d3f95f1dc04d50b6519b0318ab50857527f7cc370e96d9c7",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20260111133000_create_system_assets.js": {
+      "size_bytes": 803,
+      "mtime_iso": "2026-01-10T23:17:03.907Z",
+      "hash": "a14d65ecb1e3103958b46f54cbfe72ecafa5e774388de85bc81671174b7b9339",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20260111160000_add_document_encryption_and_retention.js": {
+      "size_bytes": 2025,
+      "mtime_iso": "2026-01-11T00:26:33.220Z",
+      "hash": "7879456e98fe826c4937f7272ca004aaaee4b43dd14b68488abe1b6c1d15c0d2",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20260111170000_create_mfa_otp_challenges.js": {
+      "size_bytes": 832,
+      "mtime_iso": "2026-01-11T00:26:55.629Z",
+      "hash": "9fecdf7491a7edb8fb91621e9efe96e6231ebfa2afbcd409a8143866621c6532",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20260111174000_enforce_role_integrity.js": {
+      "size_bytes": 1029,
+      "mtime_iso": "2026-01-11T00:23:07.168Z",
+      "hash": "7abfd5aa9ed13b77029dc1b651ca18035ecf43c909a08392ebfad69223dd8d09",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20260111183000_drop_legacy_audit_log.js": {
+      "size_bytes": 224,
+      "mtime_iso": "2026-01-11T00:39:16.830Z",
+      "hash": "3f5bda4db50c589ccefcda3974a44fd01682a3be63ed3ea2985a7df69565f343",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20260111184000_create_system_settings.js": {
+      "size_bytes": 891,
+      "mtime_iso": "2026-01-11T00:40:17.997Z",
+      "hash": "ccca8409fcb08072916c7592b3b674d4435d048d88ac486728602b0b56c015d8",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20260126000000_add_attachments_to_requests.js": {
+      "size_bytes": 606,
+      "mtime_iso": "2026-01-11T22:27:55.740Z",
+      "hash": "be32af4caf0c749ff49281d58f6e68e6a4e614aa9afa1ea73dca882c6b774734",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20260126000000_add_certificate_codes.js": {
+      "size_bytes": 1663,
+      "mtime_iso": "2026-01-11T19:54:35.644Z",
+      "hash": "e10fc2575a76ff0cbb58cc6f693933ae567d39076256e0786f155751349525fe",
+      "type": ".js",
+      "imports": []
+    },
+    "server/migrations/20260127000001_calculate_resident_age.js": {
+      "size_bytes": 785,
+      "mtime_iso": "2026-01-12T22:20:02.807Z",
+      "hash": "3c03eab319540fc0433a05d7cbaf969b2b4ead5cbf57103b12f68c80003943e0",
+      "type": ".js",
+      "imports": []
+    },
+    "server/middleware/auditLogger.js": {
+      "size_bytes": 10363,
+      "mtime_iso": "2026-01-11T20:48:57.198Z",
+      "hash": "2075fb24f07ae58d95faec37f8f852033a0b596d1388c2f59e00459e89ddecb7",
+      "type": ".js",
+      "imports": [
+        "winston",
+        "path"
+      ]
+    },
+    "server/middleware/authMiddleware.js": {
+      "size_bytes": 3512,
+      "mtime_iso": "2026-01-11T01:53:15.530Z",
+      "hash": "757723d370d5fe71f761571ee04471d0f1dc612357fa41fe5f4a7463fa89b4c1",
+      "type": ".js",
+      "imports": [
+        "jsonwebtoken",
+        "../config/roles",
+        "../config/mfa",
+        "dotenv"
+      ]
+    },
+    "server/middleware/compression.js": {
+      "size_bytes": 340,
+      "mtime_iso": "2026-01-03T20:45:40.840Z",
+      "hash": "b3847541355f7e59c2a738e0b41eeb81afbe86af71f02760173c00ef88cce8dd",
+      "type": ".js",
+      "imports": [
+        "compression"
+      ]
+    },
+    "server/middleware/errorHandler.js": {
+      "size_bytes": 1493,
+      "mtime_iso": "2026-01-09T17:38:42.999Z",
+      "hash": "336db82fdbb842669ac10e9dbce20e59d91f047d3a4f8110b735199863446658",
+      "type": ".js",
+      "imports": []
+    },
+    "server/middleware/healthCheck.js": {
+      "size_bytes": 1062,
+      "mtime_iso": "2026-01-03T20:36:40.101Z",
+      "hash": "5a64fb7df554edd2070482492cbc09408fa7657cd61fa6a859d74f0d80477b5a",
+      "type": ".js",
+      "imports": []
+    },
+    "server/middleware/logger.js": {
+      "size_bytes": 2113,
+      "mtime_iso": "2026-01-03T20:36:33.487Z",
+      "hash": "2a8ac65225da1ade19fc958d9bee1ed1c10d22697d25fe3c8ed6671279018abb",
+      "type": ".js",
+      "imports": [
+        "winston",
+        "path",
+        "fs"
+      ]
+    },
+    "server/middleware/mfaMiddleware.js": {
+      "size_bytes": 551,
+      "mtime_iso": "2026-01-11T01:53:03.926Z",
+      "hash": "7a94ef79128fd55f61eb96280f48d417424ddfc635ee2c1c257d31c87a72d561",
+      "type": ".js",
+      "imports": [
+        "../config/mfa"
+      ]
+    },
+    "server/middleware/performanceMetrics.js": {
+      "size_bytes": 485,
+      "mtime_iso": "2026-01-03T20:45:45.633Z",
+      "hash": "8c6f8ed5b89bc3863f133901a21a8460f7d1458f570f299f07f67254002f8b5d",
+      "type": ".js",
+      "imports": []
+    },
+    "server/middleware/README.md": {
+      "size_bytes": 3063,
+      "mtime_iso": "2026-01-04T20:49:55.060Z",
+      "hash": "0c2aedfd859b911f353069d397f1e7a130a84b199c1c28a7c6be6de1fd3c3082",
+      "type": ".md",
+      "imports": []
+    },
+    "server/middleware/upload.js": {
+      "size_bytes": 1230,
+      "mtime_iso": "2026-01-10T18:38:47.554Z",
+      "hash": "4fdc7c172520fd17f30e3bcca7dd2e79529e4a0610627976c73ad9c864f64728",
+      "type": ".js",
+      "imports": [
+        "multer",
+        "path",
+        "fs"
+      ]
+    },
+    "server/middleware/validate.js": {
+      "size_bytes": 10902,
+      "mtime_iso": "2026-01-02T15:55:11.831Z",
+      "hash": "ee0d2741b8f9f467b6b6212c25bae6c0d1e1c274184f154b7578702824fa2875",
+      "type": ".js",
+      "imports": [
+        "express-validator",
+        "xss"
+      ]
+    },
+    "server/middleware/validation.js": {
+      "size_bytes": 3731,
+      "mtime_iso": "2026-01-06T12:43:33.883Z",
+      "hash": "d7e1355e117e0f6c9e7064f34ccda78c99f076394e2e019717369bbbff97c366",
+      "type": ".js",
+      "imports": [
+        "express-validator",
+        "xss"
+      ]
+    },
+    "server/logs/audit.log": {
+      "size_bytes": 3892071,
+      "mtime_iso": "2026-01-12T23:15:24.491Z",
+      "hash": "bf415f017228573317abe528b6856493be7ea17c702c41ad376b094a45f04458",
+      "type": ".log",
+      "imports": []
+    },
+    "server/logs/combined.log": {
+      "size_bytes": 8670981,
+      "mtime_iso": "2025-12-14T07:12:58.437Z",
+      "hash": "0c1286f5a9cfe192d1bda318052b62dc105f30822ce902175c738f5bc3f567ed",
+      "type": ".log",
+      "imports": []
+    },
+    "server/logs/error.log": {
+      "size_bytes": 0,
+      "mtime_iso": "2025-11-30T11:57:07.009Z",
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "type": ".log",
+      "imports": []
+    },
+    "server/logs/security.log": {
+      "size_bytes": 1296103,
+      "mtime_iso": "2026-01-12T23:15:24.491Z",
+      "hash": "1a2e84ba356efb4777323e54a0d766c3ae04f952556618f77e8bcf1d40929366",
+      "type": ".log",
+      "imports": []
+    },
+    "server/jobs/documentRetention.js": {
+      "size_bytes": 2033,
+      "mtime_iso": "2026-01-10T23:57:12.251Z",
+      "hash": "87b59bf12f7d02f33be8596fd60c0b7f8c1c555df92d51ebd85ab742d4c6026c",
+      "type": ".js",
+      "imports": [
+        "fs",
+        "path",
+        "../utils/documentStorage"
+      ]
+    },
+    "server/controllers/adminController.js": {
+      "size_bytes": 38986,
+      "mtime_iso": "2026-01-12T21:51:54.628Z",
+      "hash": "727f0127da3bade4f03f53fd7d03fbad4f1300e2c359566afac84bcf02fac679",
+      "type": ".js",
+      "imports": [
+        "../database",
+        "bcryptjs"
+      ]
+    },
+    "server/controllers/aiAnalyticsController.js": {
+      "size_bytes": 12609,
+      "mtime_iso": "2026-01-12T22:00:24.527Z",
+      "hash": "9b2304cbba562e68baef690f5728951cdd5899ee525af36b64f6e0a4cbe89e7d",
+      "type": ".js",
+      "imports": []
+    },
+    "server/controllers/authController.js": {
+      "size_bytes": 18844,
+      "mtime_iso": "2026-01-12T01:31:15.375Z",
+      "hash": "d774e5ae354ea64ffc86f78634694fbf46ca9be67aaf42263b0cb74685701dbe",
+      "type": ".js",
+      "imports": [
+        "bcryptjs",
+        "jsonwebtoken",
+        "../database",
+        "../middleware/errorHandler",
+        "../middleware/authMiddleware",
+        "../config/roles",
+        "../config/mfa",
+        "../utils/mfaOtp",
+        "../middleware/auditLogger",
+        "dotenv"
+      ]
+    },
+    "server/controllers/blotterComplaintController.js": {
+      "size_bytes": 6412,
+      "mtime_iso": "2026-01-10T22:45:12.978Z",
+      "hash": "8451f797e2cb51a547f0f24c03375aad9daa39108ef9919347ef4dfb3bc1f036",
+      "type": ".js",
+      "imports": []
+    },
+    "server/controllers/blotterController.js": {
+      "size_bytes": 6028,
+      "mtime_iso": "2026-01-10T23:25:45.293Z",
+      "hash": "e48c8d1cfae14a95a7891b2e26a62b1ebed9f84b6671a19a0787417f813fec0a",
+      "type": ".js",
+      "imports": [
+        "crypto",
+        "../database",
+        "../config/roles"
+      ]
+    },
+    "server/controllers/captainController.js": {
+      "size_bytes": 5485,
+      "mtime_iso": "2026-01-03T21:08:36.826Z",
+      "hash": "a8eb4d271dde13533582a3d6648a40a18d8a4534e592b13da25fdc6a7c8e786c",
+      "type": ".js",
+      "imports": [
+        "knex",
+        "./knexfile"
+      ]
+    },
+    "server/controllers/caseManagementController.js": {
+      "size_bytes": 12863,
+      "mtime_iso": "2026-01-10T21:30:03.465Z",
+      "hash": "599a214753c995cc89aaafe2a268429d73b92cae0e31642766051db2cd90de54",
+      "type": ".js",
+      "imports": []
+    },
+    "server/controllers/certificateController.js": {
+      "size_bytes": 1033,
+      "mtime_iso": "2026-01-10T23:25:38.838Z",
+      "hash": "99f124f1d1c7bc2b2ab7f67d26c4ddd7ed081e79f465b9f6a03eb0e0bacdbee5",
+      "type": ".js",
+      "imports": [
+        "../config/roles"
+      ]
+    },
+    "server/controllers/certificateRequestController.js": {
+      "size_bytes": 10360,
+      "mtime_iso": "2026-01-12T22:44:42.558Z",
+      "hash": "020846464bcf70947668dfdd977d8c8f197bca73ebef1cdd0d19ee6aad37e080",
+      "type": ".js",
+      "imports": [
+        "../utils/emailService"
+      ]
+    },
+    "server/controllers/clerkController.js": {
+      "size_bytes": 15880,
+      "mtime_iso": "2026-01-04T20:45:11.703Z",
+      "hash": "8b9b752136190e72627471fd13dcba648c19e5653e1b318fc22e7cbfec0effce",
+      "type": ".js",
+      "imports": [
+        "crypto",
+        "knex",
+        "./knexfile"
+      ]
+    },
+    "server/controllers/documentController.js": {
+      "size_bytes": 44511,
+      "mtime_iso": "2026-01-11T19:56:49.935Z",
+      "hash": "ad55fd7148b1dee4a08ab74d60b42f1006ad4118c609600b213d72653f678898",
+      "type": ".js",
+      "imports": [
+        "knex",
+        "../knexfile",
+        "pdfkit",
+        "fs",
+        "path",
+        "pdf-lib",
+        "pizzip",
+        "docxtemplater"
+      ]
+    },
+    "server/controllers/householdController.js": {
+      "size_bytes": 4320,
+      "mtime_iso": "2026-01-04T20:14:34.605Z",
+      "hash": "33dca948d3617906df5650ac3b724ecee0a98cb6efbb6f1f705ef97c706207d5",
+      "type": ".js",
+      "imports": [
+        "crypto"
+      ]
+    },
+    "server/controllers/notificationController.js": {
+      "size_bytes": 5774,
+      "mtime_iso": "2026-01-05T00:35:16.219Z",
+      "hash": "9f4951b6a8b931654ca0523afdbc3f00fa9b2f43b1a20de67cd02fbaf0c17e61",
+      "type": ".js",
+      "imports": [
+        "../middleware/logger"
+      ]
+    },
+    "server/controllers/programController.js": {
+      "size_bytes": 8294,
+      "mtime_iso": "2026-01-06T12:49:49.005Z",
+      "hash": "59fce3f2829c0a6693c6b2f299bfa8c8b0f9cabed50fdb93fe2abcd01b803b60",
+      "type": ".js",
+      "imports": [
+        "crypto"
+      ]
+    },
+    "server/controllers/README.md": {
+      "size_bytes": 3503,
+      "mtime_iso": "2026-01-04T20:49:40.188Z",
+      "hash": "c43e9da68f7b9de2497e2b35db199fc7c608fdfd6493e305e8acde1cc129ece5",
+      "type": ".md",
+      "imports": []
+    },
+    "server/controllers/reportController.js": {
+      "size_bytes": 13109,
+      "mtime_iso": "2026-01-12T19:03:05.617Z",
+      "hash": "945dd4121df6fca0843e26af185b04f70012d53a46b23ce3e6e3562b4cd93188",
+      "type": ".js",
+      "imports": [
+        "knex",
+        "../knexfile",
+        "pdfkit",
+        "../database"
+      ]
+    },
+    "server/controllers/residentController.js": {
+      "size_bytes": 30941,
+      "mtime_iso": "2026-01-12T22:52:32.051Z",
+      "hash": "57d71ca2e91c11737b6c431b0497008b4d89462c21e16152b1bd1377cc2147c2",
+      "type": ".js",
+      "imports": [
+        "express",
+        "crypto",
+        "bcryptjs",
+        "xlsx",
+        "path",
+        "fs",
+        "../database",
+        "../config/roles",
+        "../middleware/upload",
+        "../utils/documentStorage",
+        "../middleware/auditLogger"
+      ]
+    },
+    "server/controllers/residentProfileController.js": {
+      "size_bytes": 5940,
+      "mtime_iso": "2026-01-10T22:45:19.766Z",
+      "hash": "c2566c6861ff1a3d88391927f70267113aae7f6d4b48a5b15b5449cf69e16a88",
+      "type": ".js",
+      "imports": []
+    },
+    "server/controllers/systemAdminController.js": {
+      "size_bytes": 11694,
+      "mtime_iso": "2026-01-10T23:17:27.405Z",
+      "hash": "cdd324eb3a8c77c0bdcac6176af74999df1cc335799122a9005c421730b03bde",
+      "type": ".js",
+      "imports": [
+        "fs",
+        "path"
+      ]
+    },
+    "server/controllers/userController.js": {
+      "size_bytes": 5784,
+      "mtime_iso": "2026-01-04T20:14:49.674Z",
+      "hash": "b36ac4c7143aaa46f67a670e624676b8f5761e5e3b5b4a9f4642c2175e252b6e",
+      "type": ".js",
+      "imports": [
+        "bcrypt"
+      ]
+    },
+    "server/config/constants.js": {
+      "size_bytes": 735,
+      "mtime_iso": "2026-01-03T20:45:36.044Z",
+      "hash": "a91667092f8e24a411803d7eec242e9fb1be43d000c1d6cc372fe0fb7165a19b",
+      "type": ".js",
+      "imports": []
+    },
+    "server/config/mfa.js": {
+      "size_bytes": 284,
+      "mtime_iso": "2026-01-11T01:54:19.587Z",
+      "hash": "51bb2b0f8069b4997d2176ace6f22919bfc3d9db8fec23949ba570c2228f72e8",
+      "type": ".js",
+      "imports": []
+    },
+    "server/config/roles.js": {
+      "size_bytes": 729,
+      "mtime_iso": "2026-01-09T17:27:36.465Z",
+      "hash": "8a0cc376b3d43070815a9c8ecda40a80aeed536ac74c5152465688012250c609",
+      "type": ".js",
+      "imports": []
+    },
+    "scripts/align_users.cjs": {
+      "size_bytes": 7230,
+      "mtime_iso": "2026-01-03T20:20:44.089Z",
+      "hash": "4e473de828f226487816c15cd18d4bab728ab0fcf9193c15568b24bbb521f5f3",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/api-tests.cjs": {
+      "size_bytes": 3732,
+      "mtime_iso": "2026-01-04T23:06:04.498Z",
+      "hash": "861da99ca4dc74940070ade446dbe0c3e4bc73743b737ffb4fc3ee9dbce58d58",
+      "type": ".cjs",
+      "imports": [
+        "http"
+      ]
+    },
+    "scripts/audit_ai_service.cjs": {
+      "size_bytes": 8900,
+      "mtime_iso": "2026-01-03T20:20:44.416Z",
+      "hash": "b2f108ba919901d40cd106fca53d8263b0e910163d0c689e9255fdadb2d16696",
+      "type": ".cjs",
+      "imports": [
+        "axios",
+        "dotenv"
+      ]
+    },
+    "scripts/audit_api_route.cjs": {
+      "size_bytes": 9392,
+      "mtime_iso": "2026-01-03T20:20:44.742Z",
+      "hash": "8f7a8f36860a2b484a2e03562455fe325cb89d90eaa44b2c9ae182e9ad27edba",
+      "type": ".cjs",
+      "imports": [
+        "axios",
+        "dotenv"
+      ]
+    },
+    "scripts/audit_config.cjs": {
+      "size_bytes": 12540,
+      "mtime_iso": "2026-01-02T17:24:50.273Z",
+      "hash": "8b26c04fe419afd8ee47fca3c76e30b3619895f877ce9f0421e4f76950169aaa",
+      "type": ".cjs",
+      "imports": [
+        "fs",
+        "path"
+      ]
+    },
+    "scripts/audit_db_connection.cjs": {
+      "size_bytes": 7260,
+      "mtime_iso": "2026-01-03T20:20:45.052Z",
+      "hash": "f57e9370ff74be16d4691f6d15e5495e98f13243bcd898dee82fd57c9353b5c6",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "knex",
+        "dotenv"
+      ]
+    },
+    "scripts/check_roles.cjs": {
+      "size_bytes": 775,
+      "mtime_iso": "2026-01-03T20:20:45.368Z",
+      "hash": "f1054f521f3462b89a8093e346b5a3bfdb152d9e7219850549ba083c4d9971dd",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/check_roles_table.cjs": {
+      "size_bytes": 1416,
+      "mtime_iso": "2026-01-03T20:20:45.722Z",
+      "hash": "710e15fab808f60de3ac97fd947b3fc7f5a624ccb9ebe34063025599a9fbee33",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/check_users_structure.cjs": {
+      "size_bytes": 1214,
+      "mtime_iso": "2026-01-03T20:20:46.054Z",
+      "hash": "f34962f13ba4dca60507102e88d2e38518dc9c344c2c560c3b4718b11abafa52",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/cleanup_database_dump.js": {
+      "size_bytes": 3278,
+      "mtime_iso": "2026-01-12T19:40:22.655Z",
+      "hash": "4bab01a6a80e5b55077f3f8701ce325e7a1a9c3171c794c382addec19e0844da",
+      "type": ".js",
+      "imports": [
+        "fs",
+        "path",
+        "readline",
+        "url"
+      ]
+    },
+    "scripts/create_blotter_participants.cjs": {
+      "size_bytes": 3072,
+      "mtime_iso": "2026-01-02T19:24:59.507Z",
+      "hash": "bc5380894bd7e794ea23ebc1dd64d59b692a62ae6c3ccd483e2da15b5a07c124",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/debug-routes.cjs": {
+      "size_bytes": 1325,
+      "mtime_iso": "2026-01-04T23:06:25.366Z",
+      "hash": "8b2a0e5746031f3478fcece025620f7cf7a29a0eda1161e9b464bfaf22620877",
+      "type": ".cjs",
+      "imports": [
+        "http"
+      ]
+    },
+    "scripts/health-check.js": {
+      "size_bytes": 5840,
+      "mtime_iso": "2026-01-04T22:59:42.477Z",
+      "hash": "a0bbfd5fe8ac5a01080c20f90676fa661952e7faa775b9baac6a7d725388aaeb",
+      "type": ".js",
+      "imports": [
+        "axios",
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/merge_admins.cjs": {
+      "size_bytes": 7003,
+      "mtime_iso": "2026-01-03T20:20:46.366Z",
+      "hash": "6a2c5c363a205592de873a23a58819dfff488ab43a5768ce26335fdac76a6199",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/refactor_db.cjs": {
+      "size_bytes": 11157,
+      "mtime_iso": "2026-01-03T20:20:46.675Z",
+      "hash": "43a34b361abeb32a72585d0966f566b7b020de2bc0f362eca8646a136c11ebb7",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "bcryptjs",
+        "dotenv"
+      ]
+    },
+    "scripts/refactor_db_full.cjs": {
+      "size_bytes": 8544,
+      "mtime_iso": "2026-01-03T20:20:47.006Z",
+      "hash": "fbf395be64f3ccd55cf57c32173e39c2e80a94a4e47379017b7feb61132ccede",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/run-tests.js": {
+      "size_bytes": 6183,
+      "mtime_iso": "2026-01-04T23:01:27.772Z",
+      "hash": "245524ed6a09b783ee80bb96dea613dacd3f338c72e385a96a37a7e68292ebf2",
+      "type": ".js",
+      "imports": [
+        "axios",
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/seed-database.cjs": {
+      "size_bytes": 734,
+      "mtime_iso": "2026-01-08T23:48:18.786Z",
+      "hash": "82c2176c2fbddfdfa7fcc3b34113bc34376582dbbf18574f17ef126ede466961",
+      "type": ".cjs",
+      "imports": [
+        "child_process",
+        "path"
+      ]
+    },
+    "scripts/seed-database.js": {
+      "size_bytes": 734,
+      "mtime_iso": "2026-01-08T23:47:39.931Z",
+      "hash": "82c2176c2fbddfdfa7fcc3b34113bc34376582dbbf18574f17ef126ede466961",
+      "type": ".js",
+      "imports": [
+        "child_process",
+        "path"
+      ]
+    },
+    "scripts/seed_themis_users.cjs": {
+      "size_bytes": 5793,
+      "mtime_iso": "2026-01-03T20:20:47.324Z",
+      "hash": "8881f0075b9102aabc75022d66c1709cfc3f26065383df869ca7be3d531ff692",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "bcryptjs",
+        "dotenv"
+      ]
+    },
+    "scripts/simple-env-check.cjs": {
+      "size_bytes": 1028,
+      "mtime_iso": "2026-01-04T23:05:15.049Z",
+      "hash": "97a39e8947e76e8682570a2c81339225206e53510bf48063e9f4a85bbd7cdfda",
+      "type": ".cjs",
+      "imports": [
+        "fs",
+        "path"
+      ]
+    },
+    "scripts/simple-health-check.cjs": {
+      "size_bytes": 1131,
+      "mtime_iso": "2026-01-04T23:05:41.844Z",
+      "hash": "ef9174c737923fabef936e028d682af11fa2313095b6de1d63406ac1b85475bb",
+      "type": ".cjs",
+      "imports": [
+        "http"
+      ]
+    },
+    "scripts/system-status.cjs": {
+      "size_bytes": 4237,
+      "mtime_iso": "2026-01-04T23:06:54.852Z",
+      "hash": "42fd302f7a0dc80e0baa219fbc63b86a7a33db20d9ba8bf0706fb6ea6c34dc00",
+      "type": ".cjs",
+      "imports": [
+        "http"
+      ]
+    },
+    "scripts/test_login_simple.cjs": {
+      "size_bytes": 983,
+      "mtime_iso": "2026-01-02T19:29:47.359Z",
+      "hash": "e75b652c5a2ead5390414cef06a5969c653a492b5f0b26616c5b890cebc38a9f",
+      "type": ".cjs",
+      "imports": [
+        "node-fetch"
+      ]
+    },
+    "scripts/test_officer_login.cjs": {
+      "size_bytes": 2578,
+      "mtime_iso": "2026-01-02T19:28:28.257Z",
+      "hash": "ba51c781d4ad869fad60fa72bbbc8317ad59b162343ad2ddee809b92ba0164e6",
+      "type": ".cjs",
+      "imports": [
+        "node-fetch"
+      ]
+    },
+    "scripts/update_roles_table.cjs": {
+      "size_bytes": 6712,
+      "mtime_iso": "2026-01-03T20:20:47.637Z",
+      "hash": "3bb3d9f71677b2c841b649273a366474163b3b01e6d4a71931cdf1851ecea8f5",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/update_user_roles.cjs": {
+      "size_bytes": 5224,
+      "mtime_iso": "2026-01-03T20:20:47.973Z",
+      "hash": "37e070087b11f7b58cc76c5f0f66dd66246dfe3c346c2f1cbce6fbd704d563af",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/validate-env.cjs": {
+      "size_bytes": 7775,
+      "mtime_iso": "2026-01-12T03:21:14.136Z",
+      "hash": "7c3294bdd48ed11664b03025093d5a74e32495019dce511eab5050bcc07c77a1",
+      "type": ".cjs",
+      "imports": [
+        "fs",
+        "path",
+        "dotenv",
+        "crypto"
+      ]
+    },
+    "scripts/verify-completion.js": {
+      "size_bytes": 9196,
+      "mtime_iso": "2026-01-04T23:01:58.288Z",
+      "hash": "4a669a40d1dd7aff3e22c3b07e06f07a1669e0a180cfbcf73a580faac2a41ae2",
+      "type": ".js",
+      "imports": [
+        "fs",
+        "path",
+        "axios",
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/verify_blotter_participants.cjs": {
+      "size_bytes": 2966,
+      "mtime_iso": "2026-01-03T20:20:48.311Z",
+      "hash": "1a07940240d60cac7cf0542ca1c3dd42ce05be07fe974309a34f53ead0ea20ff",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/verification/audit-system.cjs": {
+      "size_bytes": 6546,
+      "mtime_iso": "2026-01-03T20:20:49.327Z",
+      "hash": "881b41b6e3842c92d20aa2aee736615e51a7788438142542f9443e348c74db21",
+      "type": ".cjs",
+      "imports": [
+        "dotenv",
+        "mysql2/promise"
+      ]
+    },
+    "scripts/verification/check_db.cjs": {
+      "size_bytes": 2473,
+      "mtime_iso": "2025-11-30T21:53:23.182Z",
+      "hash": "6fae6d9a68b7dc4c08a1d0343356bcbcb6d5280d1b13536056b58233607f5b7a",
+      "type": ".cjs",
+      "imports": [
+        "./server/knexfile",
+        "knex",
+        "fs",
+        "path"
+      ]
+    },
+    "scripts/verification/check_users.js": {
+      "size_bytes": 662,
+      "mtime_iso": "2025-11-30T21:52:27.743Z",
+      "hash": "6610506acf308633d06e0cd99e09c7928edff87afae9e3db16e93daa50f2c354",
+      "type": ".js",
+      "imports": [
+        "./server/knexfile",
+        "knex"
+      ]
+    },
+    "scripts/verification/check_users.mjs": {
+      "size_bytes": 1755,
+      "mtime_iso": "2025-12-12T23:43:35.617Z",
+      "hash": "e47dc92a81ade876acd54eeb0f9bf5a79fa317399b1d81486936a64da5a870cb",
+      "type": ".mjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/verification/check_users_table.cjs": {
+      "size_bytes": 1120,
+      "mtime_iso": "2026-01-02T18:38:36.691Z",
+      "hash": "5c23b14e2e21931fef493e1b1ea787375227b5833740f3d95f79224751d16da7",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/verification/system-health-check.js": {
+      "size_bytes": 22167,
+      "mtime_iso": "2025-12-14T07:22:15.332Z",
+      "hash": "0a5dfc4a7b82030688bfca3ee3f66d035c081c3ecaf3bf6dacd580c022243f40",
+      "type": ".js",
+      "imports": [
+        "https",
+        "http",
+        "child_process",
+        "fs/promises",
+        "path",
+        "url",
+        "fs"
+      ]
+    },
+    "scripts/verification/validate-fixes.js": {
+      "size_bytes": 6598,
+      "mtime_iso": "2025-12-11T21:45:35.212Z",
+      "hash": "2c07fe182038764ed0ee019f6b84c0f5f518c110b770300bd214e958e282e275",
+      "type": ".js",
+      "imports": [
+        "fs/promises",
+        "path",
+        "url"
+      ]
+    },
+    "scripts/verification/verify-database.cjs": {
+      "size_bytes": 4104,
+      "mtime_iso": "2026-01-03T20:20:01.987Z",
+      "hash": "2f9677f5adc490a6c1b5e6c4ac49cfddd9865a1183d1deae2f9ff26f41a046e7",
+      "type": ".cjs",
+      "imports": [
+        "dotenv",
+        "mysql2/promise"
+      ]
+    },
+    "scripts/verification/verify-system-health.cjs": {
+      "size_bytes": 4010,
+      "mtime_iso": "2026-01-03T19:44:10.172Z",
+      "hash": "8a021248a8db8dc0c8e7cd01f40cfb1159cf33277bdb599318f1c765d265b23b",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise"
+      ]
+    },
+    "scripts/verification/verify_blotter_participants.js": {
+      "size_bytes": 1954,
+      "mtime_iso": "2026-01-02T18:28:40.849Z",
+      "hash": "3adaeb98d16b07695c3242e3114deacd255c5a5c321f6e3a807f32253ca49a70",
+      "type": ".js",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/testing/test_auth.cjs": {
+      "size_bytes": 307,
+      "mtime_iso": "2025-12-30T21:21:27.336Z",
+      "hash": "84542d25297683ea4de0d958954e83582af3d606d1f97532eb89fa084c0cad9e",
+      "type": ".cjs",
+      "imports": [
+        "./server/authController"
+      ]
+    },
+    "scripts/testing/test_db.cjs": {
+      "size_bytes": 1778,
+      "mtime_iso": "2026-01-03T20:20:48.967Z",
+      "hash": "2463120324989586d8f9e9d7ad8b410af603c8a1d352ba0f0b1d8720c88f4bb7",
+      "type": ".cjs",
+      "imports": [
+        "dotenv",
+        "mysql2/promise"
+      ]
+    },
+    "scripts/testing/test_fixes.cjs": {
+      "size_bytes": 4297,
+      "mtime_iso": "2026-01-02T20:44:28.375Z",
+      "hash": "d4eb410cc93df13c8cbf5bbe67dac6c956ae431a6c997866f39dfd00665bf156",
+      "type": ".cjs",
+      "imports": [
+        "./server/authController.js",
+        "./client/src/contexts/NotificationContext.jsx",
+        "./client/src/utils/roles.js",
+        "child_process"
+      ]
+    },
+    "scripts/testing/test_login.cjs": {
+      "size_bytes": 1995,
+      "mtime_iso": "2026-01-02T21:42:22.616Z",
+      "hash": "dd886f3abd9bcb681854313a7a3343bd7cd7acaa740c8087e5ce0035f8c58e06",
+      "type": ".cjs",
+      "imports": [
+        "node-fetch"
+      ]
+    },
+    "scripts/testing/test_officer_login.cjs": {
+      "size_bytes": 1120,
+      "mtime_iso": "2025-12-14T01:09:38.076Z",
+      "hash": "084ccae4e01a91b502e580e736bd71d705d2b57bed17ca1929074aa89943d783",
+      "type": ".cjs",
+      "imports": [
+        "node-fetch"
+      ]
+    },
+    "scripts/maintenance/cleanup_residents.js": {
+      "size_bytes": 1343,
+      "mtime_iso": "2025-12-13T22:27:40.665Z",
+      "hash": "13a96b87c123dddb094bb4b284cbeab832a3ba898c02da1c07f734771a215ac4",
+      "type": ".js",
+      "imports": [
+        "./server/knexfile",
+        "knex"
+      ]
+    },
+    "scripts/maintenance/update_officer_password.js": {
+      "size_bytes": 1159,
+      "mtime_iso": "2025-12-17T20:56:05.854Z",
+      "hash": "507a2eec9154f093cdd31510203b4957e025ab44318a888647bca252cb40f1f7",
+      "type": ".js",
+      "imports": [
+        "bcryptjs",
+        "mysql2/promise"
+      ]
+    },
+    "scripts/database/audit_schema.js": {
+      "size_bytes": 6001,
+      "mtime_iso": "2026-01-10T17:04:40.338Z",
+      "hash": "0b97cfc48f7dc2071cb830623adcf2e1d13b60676eb7b659ce11e9d2aedca22e",
+      "type": ".js",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/database/create_table.cjs": {
+      "size_bytes": 3061,
+      "mtime_iso": "2025-12-11T19:33:56.229Z",
+      "hash": "84f1e904f1f1757bec2fc05cad6dd37b0fc96b87303d2c746c57c9aa395e065f",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise"
+      ]
+    },
+    "scripts/database/migrate.cjs": {
+      "size_bytes": 904,
+      "mtime_iso": "2026-01-10T21:34:03.651Z",
+      "hash": "47516a491aed052ac1f0763493f275d3e3b3ef2a736adae73be81c277d0aa341",
+      "type": ".cjs",
+      "imports": [
+        "path",
+        "dotenv",
+        "../../server/knexfile.js",
+        "knex"
+      ]
+    },
+    "scripts/database/migrate.js": {
+      "size_bytes": 5927,
+      "mtime_iso": "2026-01-04T22:58:10.476Z",
+      "hash": "5c582c0bf5e6230d2db4d2dd449cc59d3bbeb19ddd5176fc69296d70a1cf0698",
+      "type": ".js",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/database/verify_schema_usage.cjs": {
+      "size_bytes": 5083,
+      "mtime_iso": "2026-01-11T00:38:05.432Z",
+      "hash": "3e0decf42da63ff975f26ef6bf4d5ecb3bc880dda0fc158ebf24ca5c618ceaf5",
+      "type": ".cjs",
+      "imports": [
+        "path",
+        "fs",
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/database/seeds/add_bulk_blotter.cjs": {
+      "size_bytes": 8169,
+      "mtime_iso": "2025-12-30T21:21:27.295Z",
+      "hash": "fad9af995e042326bb64f1ad5a9dea248efcc6253ec53c2877b317a8bef5df52",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/database/seeds/add_sample_blotter.cjs": {
+      "size_bytes": 4487,
+      "mtime_iso": "2025-12-18T18:10:09.578Z",
+      "hash": "9f844ef8edffbbd6fb5daac9b81710ed06cb52d53b53d9e8ece537c60327b4d8",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/database/seeds/add_sample_blotter.js": {
+      "size_bytes": 4487,
+      "mtime_iso": "2025-12-18T18:09:53.617Z",
+      "hash": "9f844ef8edffbbd6fb5daac9b81710ed06cb52d53b53d9e8ece537c60327b4d8",
+      "type": ".js",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/database/seeds/create_staff_users.cjs": {
+      "size_bytes": 3813,
+      "mtime_iso": "2025-12-12T19:13:01.053Z",
+      "hash": "a3999142327bd260abc9eb4cb60c9dc4288c4bac4e82121c2ab9419ac1b18a80",
+      "type": ".cjs",
+      "imports": [
+        "bcryptjs",
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/database/seeds/generate_ai_data.js": {
+      "size_bytes": 22075,
+      "mtime_iso": "2025-12-11T20:41:20.821Z",
+      "hash": "98115939742a8a3fdaa17a8568f25c7be3900ee67086de8a26f0bb2e499d1b62",
+      "type": ".js",
+      "imports": [
+        "mysql2/promise",
+        "crypto"
+      ]
+    },
+    "scripts/database/migrations/migrate_db.cjs": {
+      "size_bytes": 1800,
+      "mtime_iso": "2025-12-11T19:53:49.172Z",
+      "hash": "c112e64c3c1f1823521b514f3d57e8d9420f3cd192604a08ddf8320f940eaa97",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise",
+        "fs",
+        "path"
+      ]
+    },
+    "scripts/database/migrations/run_clearpass_migration.js": {
+      "size_bytes": 5220,
+      "mtime_iso": "2026-01-03T20:20:01.658Z",
+      "hash": "b25152edc849f938b7133c879cf7736fa24fe00711489af1b14566dacba8b5d5",
+      "type": ".js",
+      "imports": [
+        "knex",
+        "../../../server/knexfile.js"
+      ]
+    },
+    "scripts/database/migrations/run_migration.js": {
+      "size_bytes": 2156,
+      "mtime_iso": "2026-01-03T20:20:01.349Z",
+      "hash": "b9dfd400c31682bd1a78bc79b497a61bd1153b85a1d0cd2ff1f32bcd30e1e3b0",
+      "type": ".js",
+      "imports": [
+        "knex",
+        "../../../server/knexfile.js"
+      ]
+    },
+    "scripts/database/migrations/run_specific_migration.cjs": {
+      "size_bytes": 839,
+      "mtime_iso": "2025-12-14T07:11:48.812Z",
+      "hash": "a798602ec2e2cede56ca5b60dc4f996873ac15baccce51af438e529c67a8548b",
+      "type": ".cjs",
+      "imports": [
+        "knex",
+        "path",
+        "./server/knexfile.js"
+      ]
+    },
+    "scripts/database/fixes/fix_duplicate_users.mjs": {
+      "size_bytes": 4075,
+      "mtime_iso": "2025-12-12T23:48:41.305Z",
+      "hash": "c82b39c3b00344d99e366ba40200ca69e6f27962693a7fbc52ee4a6f03720818",
+      "type": ".mjs",
+      "imports": [
+        "mysql2/promise",
+        "dotenv"
+      ]
+    },
+    "scripts/database/fixes/fix_login_attempts_table.cjs": {
+      "size_bytes": 4940,
+      "mtime_iso": "2025-12-14T04:15:33.679Z",
+      "hash": "20bd801cb0bf2264b0789861cf65543d63a4d113eeb440deddc084cbb0980452",
+      "type": ".cjs",
+      "imports": [
+        "mysql2/promise"
+      ]
+    },
+    "scripts/database/fixes/fix_table_schema.cjs": {
+      "size_bytes": 4360,
+      "mtime_iso": "2026-01-03T20:20:48.645Z",
+      "hash": "f6e1c7e12943e330937eba4fa2431cf78fdf697e12207f84591c09d15eb680ca",
+      "type": ".cjs",
+      "imports": [
+        "dotenv",
+        "mysql2/promise"
+      ]
+    },
+    "scripts/cleanup/apply_cleanup.cjs": {
+      "size_bytes": 3945,
+      "mtime_iso": "2026-01-11T00:56:09.476Z",
+      "hash": "dc07d56546bfec44394c652f514033dd10424b2233d0881ffd15419ff4087f9c",
+      "type": ".cjs",
+      "imports": [
+        "fs",
+        "path",
+        "crypto"
+      ]
+    },
+    "scripts/cleanup/consolidate_docs.cjs": {
+      "size_bytes": 3626,
+      "mtime_iso": "2026-01-11T01:00:07.118Z",
+      "hash": "ff512726abfc75d3e833c3d3b4c7ad7460c7472ee8a4cb0b442232eb4df6e349",
+      "type": ".cjs",
+      "imports": [
+        "fs",
+        "path"
+      ]
+    },
+    "scripts/cleanup/generate_cleanup_plan.cjs": {
+      "size_bytes": 2586,
+      "mtime_iso": "2026-01-11T00:56:21.037Z",
+      "hash": "170cc7039cd6e5a22e2fbba8f1166511452b9667de71e116925248833a898328",
+      "type": ".cjs",
+      "imports": [
+        "fs",
+        "path"
+      ]
+    },
+    "scripts/cleanup/scan_unused_files.cjs": {
+      "size_bytes": 10481,
+      "mtime_iso": "2026-01-11T00:55:40.002Z",
+      "hash": "081f54f201e65a607b18b27cf83bf1210920d209df04d1fbc041bc63518de593",
+      "type": ".cjs",
+      "imports": [
+        "fs",
+        "path",
+        "crypto"
+      ]
+    },
+    "scripts/cleanup/validate_markdown_links.cjs": {
+      "size_bytes": 2952,
+      "mtime_iso": "2026-01-11T01:00:22.406Z",
+      "hash": "3cdd7e7a482d869550b058da98661c4cdd74ed2a880a02d00e60c6a137a7a2e3",
+      "type": ".cjs",
+      "imports": [
+        "fs",
+        "path"
+      ]
+    },
+    "Root/clearpass-ed442-firebase-adminsdk-fbsvc-960a3eb789.json": {
+      "size_bytes": 2385,
+      "mtime_iso": "2025-12-13T17:55:36.253Z",
+      "hash": "d176fa6c8ab1a9588d56c82c747637895a46f5569923a9c8a8b883dcc896e317",
+      "type": ".json",
+      "imports": []
+    },
+    "memory-bank/INDEX.md": {
+      "size_bytes": 133,
+      "mtime_iso": "2026-01-11T15:46:54.534Z",
+      "hash": "263c20da1358ec2eaa60e8868baf364c834e15fbf53fc39b717d2dff8eb4f9a6",
+      "type": ".md",
+      "imports": []
+    },
+    "memory-bank/README.md": {
+      "size_bytes": 1324,
+      "mtime_iso": "2026-01-11T15:46:54.557Z",
+      "hash": "8d2c7a096820e7b8c90676608aeb5d09cfd2445686fb4c75dd5c162ca8d4cad1",
+      "type": ".md",
+      "imports": []
+    },
+    "memory-bank/STRUCTURE.md": {
+      "size_bytes": 795,
+      "mtime_iso": "2026-01-11T15:46:54.580Z",
+      "hash": "1acf3740bf7c679d4e52e162814772158c7e8c435bd1cc04b37f9ed408baa8a0",
+      "type": ".md",
+      "imports": []
+    },
+    "memory-bank/templates/DECISION_TEMPLATE.md": {
+      "size_bytes": 205,
+      "mtime_iso": "2026-01-11T15:46:55.401Z",
+      "hash": "7b42f79ef1da1728a3affbb3899e9ba16f4d152f80126f774addb387958a0869",
+      "type": ".md",
+      "imports": []
+    },
+    "memory-bank/templates/ENTRY_TEMPLATE.md": {
+      "size_bytes": 208,
+      "mtime_iso": "2026-01-11T15:46:56.646Z",
+      "hash": "14b593658c035baf6043cadbddfed0ba7abee8ae64a45fbd9ff476ac3f264ba8",
+      "type": ".md",
+      "imports": []
+    },
+    "memory-bank/system/cli.cjs": {
+      "size_bytes": 2113,
+      "mtime_iso": "2026-01-12T23:15:40.527Z",
+      "hash": "3966474bb29e7fcfa431584e701cb51103f1f45ec96179ef05843798efa9291d",
+      "type": ".cjs",
+      "imports": [
+        "readline",
+        "./lib/indexer.cjs",
+        "./lib/doc-generator.cjs",
+        "./lib/auditor.cjs",
+        "./lib/backup.cjs"
+      ]
+    },
+    "memory-bank/system/lib/auditor.cjs": {
+      "size_bytes": 1629,
+      "mtime_iso": "2026-01-12T23:14:26.602Z",
+      "hash": "974238241a1d74e54a4f11fd4133cc87245c701e937f214f3fcc982cda857f92",
+      "type": ".cjs",
+      "imports": [
+        "fs",
+        "path"
+      ]
+    },
+    "memory-bank/system/lib/backup.cjs": {
+      "size_bytes": 1449,
+      "mtime_iso": "2026-01-12T23:14:35.911Z",
+      "hash": "a3f24fe8600c4b44ac7bed792e94a0231acb9bfc2fc01bc6fdeb7ca67f033260",
+      "type": ".cjs",
+      "imports": [
+        "fs",
+        "path"
+      ]
+    },
+    "memory-bank/system/lib/doc-generator.cjs": {
+      "size_bytes": 3569,
+      "mtime_iso": "2026-01-12T23:14:14.559Z",
+      "hash": "a5ffd5c2ea4dcc42bd7aa868566a14c9ee0589526128cbcccca0dcd591ef46c2",
+      "type": ".cjs",
+      "imports": [
+        "fs",
+        "path"
+      ]
+    },
+    "memory-bank/system/lib/indexer.cjs": {
+      "size_bytes": 4377,
+      "mtime_iso": "2026-01-12T23:13:57.668Z",
+      "hash": "936727e63284512c3f5e94578e480a350481360acbcb61c66c50fa3132642949",
+      "type": ".cjs",
+      "imports": [
+        "fs",
+        "path",
+        "crypto"
+      ]
+    },
+    "memory-bank/entries/configuration.md": {
+      "size_bytes": 453,
+      "mtime_iso": "2026-01-11T15:46:54.460Z",
+      "hash": "b204ae7a8c55c3291339faa57744c2f780be57cb4c897b3aaab4c03755699f94",
+      "type": ".md",
+      "imports": []
+    },
+    "memory-bank/entries/historical-data.md": {
+      "size_bytes": 426,
+      "mtime_iso": "2026-01-11T15:46:54.474Z",
+      "hash": "82e9edb8115f01059b79f14c9f1f5d89518e01c5ae533778879d74d7cb595f45",
+      "type": ".md",
+      "imports": []
+    },
+    "memory-bank/entries/operational-parameters.md": {
+      "size_bytes": 451,
+      "mtime_iso": "2026-01-11T15:46:54.485Z",
+      "hash": "db0253448ee7dd263efcb6b279ffe12d1d6e3e11a04f21252ab58e46134b1941",
+      "type": ".md",
+      "imports": []
+    },
+    "memory-bank/entries/system-state.md": {
+      "size_bytes": 417,
+      "mtime_iso": "2026-01-11T15:46:54.511Z",
+      "hash": "626624cbbe802e68f209b28a70076332eafd2cc86d104ef9bdddeea971a1d603",
+      "type": ".md",
+      "imports": []
+    },
+    "logs/combined.log": {
+      "size_bytes": 287971,
+      "mtime_iso": "2025-12-13T18:52:46.138Z",
+      "hash": "cfdf1f886239b8b5fde8bcb1773287a7db06bfbd043836fc27ff25254eb882e5",
+      "type": ".log",
+      "imports": []
+    },
+    "logs/error.log": {
+      "size_bytes": 64659,
+      "mtime_iso": "2025-12-12T23:18:50.297Z",
+      "hash": "a977403e8b2521e233dbb7354615c85ee84e855f99bf4d9f5e3cd4044b3acfa6",
+      "type": ".log",
+      "imports": []
+    },
+    "docs/API_REFERENCE.md": {
+      "size_bytes": 8418,
+      "mtime_iso": "2026-01-04T20:46:32.508Z",
+      "hash": "a1239d363e5d119cc508d897a55e2082d14f02c61ac6e69078b7e0dc81860645",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/ARCHITECTURE.md": {
+      "size_bytes": 6516,
+      "mtime_iso": "2026-01-04T21:35:32.399Z",
+      "hash": "5cf8b5799d66a29fcde810f912f66796a3826bc033a924d490cc4433727a1317",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/CHANGELOG.md": {
+      "size_bytes": 7155,
+      "mtime_iso": "2026-01-04T21:21:22.800Z",
+      "hash": "2e68afd43c56203fd4c748ef4dc245ba9483077d7f56ed2e93529c7cb5134815",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/CONSOLIDATION_COMPLETE.md": {
+      "size_bytes": 2601,
+      "mtime_iso": "2026-01-04T21:39:02.554Z",
+      "hash": "34b7c3d4f1b000b822640662c64b3d962121e10e3ad3b59ea4725efe2f95c822",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/DATABASE_SCHEMA_CLARIFICATION.md": {
+      "size_bytes": 1859,
+      "mtime_iso": "2026-01-12T21:51:54.429Z",
+      "hash": "2c55d731686337db33a3a1a4e603cabc7bf6c586e8d0e627298e50703819762b",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/DEPLOYMENT_COMPLETE_GUIDE.md": {
+      "size_bytes": 13734,
+      "mtime_iso": "2026-01-04T23:21:39.101Z",
+      "hash": "cc13afb1c92a7e02885d0ad50a66914439ba09b226f3f57695f0aa386d25f37f",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/DEPLOYMENT_GUIDE.md": {
+      "size_bytes": 2733,
+      "mtime_iso": "2026-01-04T21:35:01.042Z",
+      "hash": "4144ac5ba41acc83cb40af83a4e7eb16988132497e2a38c6db910d7b410fa310",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/ENVIRONMENT_CONFIGURATION.md": {
+      "size_bytes": 5303,
+      "mtime_iso": "2026-01-04T22:58:31.826Z",
+      "hash": "8dd7af7de7befb3ac1c75911fb8950be48c02e9fcb89730c4e5dbe5c51469142",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/INDEX.md": {
+      "size_bytes": 2133,
+      "mtime_iso": "2026-01-11T01:00:30.639Z",
+      "hash": "459d6949150e43ded5453a64f4ecddf033ed6de137778562b9ddf9144bb13959",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/PERFORMANCE_GUIDE.md": {
+      "size_bytes": 8139,
+      "mtime_iso": "2026-01-04T20:54:21.215Z",
+      "hash": "9732c9b1c7e05cfb7b3d0c3a4acf6b153d3de1cc899fa90e05bf98a92d4c4e00",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/PROJECT_COMPLETION_SUMMARY.md": {
+      "size_bytes": 6417,
+      "mtime_iso": "2026-01-04T23:03:16.357Z",
+      "hash": "4322b1768937b3c9585fd35c5b87b5809cb9d1fa4898b20f23b26837e385f552",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/PROJECT_STATUS.md": {
+      "size_bytes": 5022,
+      "mtime_iso": "2026-01-04T21:20:08.265Z",
+      "hash": "3a0b1dcfdae26ca23848bc3213de3b2b3536cc0250646131a6277db90dbcf59d",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/QUICK_REFERENCE.md": {
+      "size_bytes": 10646,
+      "mtime_iso": "2026-01-04T23:22:19.322Z",
+      "hash": "008074817becd4708ed5dd3559249f728bf874990260e375f41da7a44e5379d3",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/README.md": {
+      "size_bytes": 8556,
+      "mtime_iso": "2026-01-04T23:24:15.376Z",
+      "hash": "824a1c3e7761cfb2326345a15008f0b6f8e8743237308d95a171cb8b43bddddc",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/ROLE_NORMALIZATION_FIX.md": {
+      "size_bytes": 1629,
+      "mtime_iso": "2026-01-10T19:47:46.066Z",
+      "hash": "ffabb7438db29b9e8b5c54c452a66f91603e57b26a6d1a914cfe58a3d5b11465",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/SECURITY_AUDIT_REPORT.md": {
+      "size_bytes": 6426,
+      "mtime_iso": "2026-01-04T22:48:05.400Z",
+      "hash": "8d6acf4d440a87d326c7670f61615b865f7827eb3344ba24ab861495dc5e414b",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/SECURITY_REMEDIATION_CHECKLIST.md": {
+      "size_bytes": 7277,
+      "mtime_iso": "2026-01-04T22:46:10.506Z",
+      "hash": "2c78e748c9bcc31931ae64205b095e5e2b09d662bdd2191250c66e152440a5de",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/SETUP_GUIDE.md": {
+      "size_bytes": 2468,
+      "mtime_iso": "2026-01-04T21:34:48.096Z",
+      "hash": "bce86b4ecb7cf4c23ae62ec0976eaf9c3723db3837731dd32756737a277447e3",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/SYSTEM_AUDIT_REPORT_2025.md": {
+      "size_bytes": 11595,
+      "mtime_iso": "2026-01-04T23:20:51.688Z",
+      "hash": "c5317f585fdddeb2994fd4ceb5b34f9dd7ce27329e5e55e196f1656f083bcd9a",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/SYSTEM_REMEDIATION_CHECKLIST.md": {
+      "size_bytes": 8844,
+      "mtime_iso": "2026-01-04T23:04:23.059Z",
+      "hash": "ec7d2d2e3408b417ac179b83f2d9e1f9b3087070ff7c928ca57338bb80566441",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/SYSTEM_STATUS_FINAL.md": {
+      "size_bytes": 12012,
+      "mtime_iso": "2026-01-04T23:23:42.560Z",
+      "hash": "29a462c176cf10193159cdf796672f60bc8519b17c7403defab1edabf4c67088",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/TESTING_GUIDE.md": {
+      "size_bytes": 8580,
+      "mtime_iso": "2026-01-04T20:55:07.598Z",
+      "hash": "17d015ab8303eaf713507fadea090577312a769b1db1f5675453f95a918265d1",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/USER_MANAGEMENT_WORKFLOWS.md": {
+      "size_bytes": 3680,
+      "mtime_iso": "2026-01-12T21:51:54.490Z",
+      "hash": "b442a2dd89162e96fb9961cde0ac8a0856a04cc3f35e3c9277e0b5ff8f738954",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/ALIGNMENT_SUMMARY.md": {
+      "size_bytes": 1836,
+      "mtime_iso": "2026-01-09T16:37:53.369Z",
+      "hash": "e9bbe7d13fa61f1a96b403eda00ed6904f48fd0abcb4b84c5cff746cec794aea",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/API_DOCUMENTATION.md": {
+      "size_bytes": 6908,
+      "mtime_iso": "2026-01-09T17:36:51.803Z",
+      "hash": "c2ddb6f983ed4ad1a50701bb12d27ecdde1da55afdd4129e5884f5cba92dd67e",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/AUDIT_COMPLETE.md": {
+      "size_bytes": 4909,
+      "mtime_iso": "2026-01-09T17:35:14.995Z",
+      "hash": "0f8c0bdbef21c21cddb96d68bfb8024eada69eca53cbcef54f2fc66918f6735d",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/AUTH_FIX_COMPLETE.md": {
+      "size_bytes": 5660,
+      "mtime_iso": "2026-01-09T16:46:58.587Z",
+      "hash": "4ac0ee931d42ce21124cd5dbef9dfa53b3efc3e90f500dd222fd2b9b41e5ef66",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/AUTH_MISALIGNMENT_REPORT.md": {
+      "size_bytes": 4130,
+      "mtime_iso": "2026-01-09T16:40:39.934Z",
+      "hash": "b8ef79d9b634e3b638e271e36105e01efd3bb5dcb4e1789be40c7b0bc748a03f",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/COMPLETION_CERTIFICATE.md": {
+      "size_bytes": 5553,
+      "mtime_iso": "2026-01-09T17:37:41.156Z",
+      "hash": "8ad7084626080ed1071bbba64eadc6627faeea7c124911e8eac44a278eae8d2e",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/DATABASE_ALIGNMENT_REPORT.md": {
+      "size_bytes": 9497,
+      "mtime_iso": "2026-01-09T16:37:42.123Z",
+      "hash": "f14c7a6086aa054e09d0e4da93c5eefdddceb63fd29b4bfa34c978faed598e17",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/DATABASE_FIX_SUMMARY.md": {
+      "size_bytes": 3448,
+      "mtime_iso": "2026-01-09T16:32:31.137Z",
+      "hash": "521c3f528986571c0a9dcc0a70e2a9c5273078e09da558ff97104d6cb209424f",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/DEVELOPMENT_ROADMAP.md": {
+      "size_bytes": 12887,
+      "mtime_iso": "2026-01-05T20:40:23.891Z",
+      "hash": "e6addc5edf8f6e8ad1b0965500f7b534f8d2763ad459edb3d6f08868ff076e79",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/FIXES_APPLIED.md": {
+      "size_bytes": 3240,
+      "mtime_iso": "2026-01-09T17:30:13.789Z",
+      "hash": "93d84bc851a25eb7d9ea2eedc346d93e17090d3fec69acd18dd5f84b3df65c32",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/GROUND_RULES.md": {
+      "size_bytes": 1798,
+      "mtime_iso": "2026-01-11T15:46:54.422Z",
+      "hash": "799e72525aad607ecb32bfe8a12de6ec73302672e4ce10468e086240d67f44d0",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/QUICK_REFERENCE.md": {
+      "size_bytes": 1360,
+      "mtime_iso": "2026-01-09T16:32:59.584Z",
+      "hash": "0bc1c5e5b20dc68d7c7e95fa1582c435da91b985eb5e77bd007722aacae1f84f",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/QUICK_START.md": {
+      "size_bytes": 4699,
+      "mtime_iso": "2026-01-04T23:38:08.430Z",
+      "hash": "9c051ad7c5eb0511f95a321c0697976da318e721803bc2a246e483b5795b3646",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/REMEDIATION_PLAN.md": {
+      "size_bytes": 2168,
+      "mtime_iso": "2026-01-10T18:35:55.538Z",
+      "hash": "8722fbf03778291bef94b74717a5e38aadccab4f00427fa2c2201fdea050a300",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/SECURITY_AUDIT_FINDINGS.md": {
+      "size_bytes": 9010,
+      "mtime_iso": "2026-01-05T21:49:18.302Z",
+      "hash": "dae837ae62490b858274b2f1682bffe7ce66f8f50a8add3c01ed8675c8f15b4a",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/SIDEBAR_CONNECTION_FIXES.md": {
+      "size_bytes": 4963,
+      "mtime_iso": "2026-01-05T00:05:47.997Z",
+      "hash": "733febd965f11c57565470119d601dea8e43bd976da0fa089a1aa7a681544811",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/SYSTEM_AUDIT.md": {
+      "size_bytes": 15919,
+      "mtime_iso": "2026-01-09T17:37:15.400Z",
+      "hash": "9b19d9f0340c4419be9ea999515c9ac1f434e3fadeb115acf743d311b369f9c1",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/SYSTEM_READY.md": {
+      "size_bytes": 4844,
+      "mtime_iso": "2026-01-04T23:38:27.499Z",
+      "hash": "00546f5eee0c09f2e3c85f2ff942fd02e48369441d1b731f4b31a191a14a77b8",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/System_requirements.md": {
+      "size_bytes": 10386,
+      "mtime_iso": "2026-01-11T00:27:32.446Z",
+      "hash": "b6fdcbf7ed53a19d227a4b32008711e82b18ddd8d61458da8e4e8dd6d8fd281d",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/SYSTEM_REQUIREMENTS_ALIGNMENT_REPORT.md": {
+      "size_bytes": 5073,
+      "mtime_iso": "2026-01-08T22:09:56.876Z",
+      "hash": "5a904504fa684d24273c0cdc32805fbc79bdb81b7ed35db5fadb01be823b57cf",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/SYSTEM_VALIDATION.md": {
+      "size_bytes": 9922,
+      "mtime_iso": "2026-01-04T23:30:34.423Z",
+      "hash": "b13a08590b62a45062c213ac319001126703c669cfdfc46a54cb197e629bb1c4",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/legacy/root-md/TESTING.md": {
+      "size_bytes": 5220,
+      "mtime_iso": "2026-01-04T22:01:11.180Z",
+      "hash": "b3f1b13b77344c827c5ca4541dca3f4583a3bb3f7c0fe889f6bb4ad2249db1e6",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/guides/NAMING_CONVENTIONS.md": {
+      "size_bytes": 4576,
+      "mtime_iso": "2026-01-03T20:37:46.255Z",
+      "hash": "2d6ec3c4b6f63e534325195d21d69d82f9937a4db5ad29b1b0a5a7d6666ed21c",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/archive/CLEANUP_GUIDE.md": {
+      "size_bytes": 3659,
+      "mtime_iso": "2026-01-03T20:53:04.016Z",
+      "hash": "918bded4d67971fb275672a9e787b226c4a5773a17f0448a646d4cec2f634c91",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/archive/CONSOLIDATION_PLAN.md": {
+      "size_bytes": 3778,
+      "mtime_iso": "2026-01-04T21:32:30.267Z",
+      "hash": "9ead407c54375f48cdd17af6bc3c156b91d691637ad949ed77c9c223e58c804c",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/archive/CONSOLIDATION_SUMMARY.md": {
+      "size_bytes": 6026,
+      "mtime_iso": "2026-01-04T21:22:32.639Z",
+      "hash": "23cb90d746aabf3a9397a5fe13a535560f5f3ac5af9426bd1045d59b16d10c91",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/archive/IMPROVEMENTS_IMPLEMENTED.md": {
+      "size_bytes": 4811,
+      "mtime_iso": "2026-01-04T21:27:14.986Z",
+      "hash": "0716403a9fa13d24861cc4d6391ce901e435c06f7991a72a3a1460fe80cd7e88",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/archive/SYSTEM_DOCUMENTATION.md": {
+      "size_bytes": 7883,
+      "mtime_iso": "2026-01-03T20:56:01.604Z",
+      "hash": "a81f9cdf71e0ba5057eaf9cb50aaab94a5e9f7ffa6b9ac60144ff253dbf65048",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/archive/WORKING_SETUP_GUIDE.md": {
+      "size_bytes": 14855,
+      "mtime_iso": "2025-11-30T21:09:15.694Z",
+      "hash": "c656963109949c6a0d3ac71194233d7b0321711f56c469e5c23ba7d307420de7",
+      "type": ".md",
+      "imports": []
+    },
+    "docs/archive/WORKSPACE_REORGANIZATION.md": {
+      "size_bytes": 4431,
+      "mtime_iso": "2026-01-03T20:16:12.796Z",
+      "hash": "b6f5546b9cc3ce01b9929045b981bbe6e94790dd53a7b2c25cc842843cadf496",
+      "type": ".md",
+      "imports": []
+    },
+    "database/add_missing_tables.sql": {
+      "size_bytes": 3408,
+      "mtime_iso": "2026-01-04T23:37:11.098Z",
+      "hash": "87623af6afdbbce54ecd404ab76fcf1f280bce7c1d8b07876a7277f2210427f1",
+      "type": ".sql",
+      "imports": []
+    },
+    "database/ai_tables_migration.sql": {
+      "size_bytes": 14668,
+      "mtime_iso": "2025-12-02T18:38:30.767Z",
+      "hash": "031c615132b61e82d999ab1722059c53458cf6a35b14f7d97bb7b933465068c4",
+      "type": ".sql",
+      "imports": []
+    },
+    "database/barangay_management (5).sql": {
+      "size_bytes": 1004589,
+      "mtime_iso": "2026-01-12T19:30:36.595Z",
+      "hash": "c701a802f2e2724db3e858dd9dcaaf878a48da8f090960e065a28b61fb1e2a46",
+      "type": ".sql",
+      "imports": []
+    },
+    "database/barangay_management Newest Jan11.sql": {
+      "size_bytes": 1234348,
+      "mtime_iso": "2026-01-10T22:22:07.867Z",
+      "hash": "f695ff9bebaa91f2b5f43be02643968b8e2a5965c2e8a8f68c05b70f8814ba5f",
+      "type": ".sql",
+      "imports": []
+    },
+    "database/cleaned_barangay_management.sql": {
+      "size_bytes": 640236,
+      "mtime_iso": "2026-01-12T19:40:28.661Z",
+      "hash": "2b8d3bdf6155c71cbacf1cb40672462635f1f86248ba902da777f032aa753a59",
+      "type": ".sql",
+      "imports": []
+    },
+    "database/purge_resident_data.sql": {
+      "size_bytes": 946,
+      "mtime_iso": "2026-01-12T21:04:39.595Z",
+      "hash": "ea9553c3f02040ab5b779471135102ec146c9a62f380e851352e6b377bfae81a",
+      "type": ".sql",
+      "imports": []
+    },
+    "database/README.md": {
+      "size_bytes": 5666,
+      "mtime_iso": "2025-11-14T19:47:31.788Z",
+      "hash": "5f926d406f11bb03c167d73a6287e7f5bac20a376ae3583488b0956579e21d4f",
+      "type": ".md",
+      "imports": []
+    },
+    "client/.env": {
+      "size_bytes": 75,
+      "mtime_iso": "2026-01-12T03:21:12.319Z",
+      "hash": "9aecea4981f89da26e6656a55a6a06e0d7d76a7d72e842518d1a3f60c091c3ed",
+      "type": "",
+      "imports": []
+    },
+    "client/.env.example": {
+      "size_bytes": 200,
+      "mtime_iso": "2026-01-08T22:03:30.363Z",
+      "hash": "e0fff1fb5c3b03dcd637ac5b605b6cd439899ed738e07cd7e68c5c696c2285ab",
+      "type": ".example",
+      "imports": []
+    },
+    "client/.prettierignore": {
+      "size_bytes": 511,
+      "mtime_iso": "2025-11-30T20:57:39.536Z",
+      "hash": "e8feb1cda99ce2252d4089f515646d242c12dfea1d16eb95cd68269fdd88362f",
+      "type": "",
+      "imports": []
+    },
+    "client/.prettierrc.js": {
+      "size_bytes": 498,
+      "mtime_iso": "2025-11-30T20:57:31.751Z",
+      "hash": "3c883c85f3a118bcc1eef7d35fc0736243a8c7782abf7b2161e067643bdb1b20",
+      "type": ".js",
+      "imports": []
+    },
+    "client/index.html": {
+      "size_bytes": 4703,
+      "mtime_iso": "2025-12-14T20:06:10.255Z",
+      "hash": "4cdae3c10e0dcb57ad6b24a5a2422b67c23cb31d6b0c6d539f96e02e11db025b",
+      "type": ".html",
+      "imports": []
+    },
+    "client/package-lock.json": {
+      "size_bytes": 291911,
+      "mtime_iso": "2026-01-10T17:28:26.785Z",
+      "hash": "6e33c381923325a8cdc4a95a48329f1586643c147eca61df1e0f7865704d63cc",
+      "type": ".json",
+      "imports": []
+    },
+    "client/package.json": {
+      "size_bytes": 1556,
+      "mtime_iso": "2026-01-10T17:31:17.110Z",
+      "hash": "d7903b2621a47f1b2691fb33f4ad437cc66b6412afc19ee35360ff3795eb64a5",
+      "type": ".json",
+      "imports": []
+    },
+    "client/postcss.config.js": {
+      "size_bytes": 86,
+      "mtime_iso": "2025-12-14T19:37:50.809Z",
+      "hash": "374f669f08b18e67d0a7264fa45b71228017e604fe7f6db8a5c1bd5ba27e5c98",
+      "type": ".js",
+      "imports": []
+    },
+    "client/tailwind.config.js": {
+      "size_bytes": 3352,
+      "mtime_iso": "2026-01-06T12:10:17.419Z",
+      "hash": "131aec61fabc42bc49b9d6a5aec0920685aae498adc8d1c3c6088128fdb2a33b",
+      "type": ".js",
+      "imports": [
+        "tailwindcss"
+      ]
+    },
+    "client/vite.config.js": {
+      "size_bytes": 1336,
+      "mtime_iso": "2026-01-11T01:39:00.521Z",
+      "hash": "ee2d5e882da9cbd429b0c860eb873867b47fdfb05ada8f7e875f79e1d6f42122",
+      "type": ".js",
+      "imports": [
+        "vite",
+        "@vitejs/plugin-react",
+        "url"
+      ]
+    },
+    "client/src/App.jsx": {
+      "size_bytes": 18421,
+      "mtime_iso": "2026-01-12T21:52:00.107Z",
+      "hash": "02560586ae2ebf6384059ff59c89a0f0eec0ec28435c22a1b599dcbd23ae396c",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "react-router-dom",
+        "@mui/material/styles",
+        "@mui/material/CssBaseline",
+        "@mui/material",
+        "./components/AppShell",
+        "./components/ProtectedRoute",
+        "./components/ErrorBoundary",
+        "./contexts/NotificationContext",
+        "./contexts/AuthContext",
+        "./contexts/ThemeModeContext.jsx",
+        "./pages/Login",
+        "./pages/ResidentLogin",
+        "./pages/ResidentRegister",
+        "./pages/OfficerLogin",
+        "./pages/Unauthorized",
+        "./pages/MfaOtp",
+        "./pages/Dashboard",
+        "./pages/ResidentDashboard",
+        "./pages/Residents",
+        "./pages/Blotter",
+        "./pages/DocumentsDashboard",
+        "./pages/Census",
+        "./pages/CommunityEvents",
+        "./pages/Settings",
+        "./pages/CertificateRequest",
+        "./pages/RequestHistory",
+        "./pages/AdminBackup",
+        "./pages/ResidentAnnouncements",
+        "./pages/ClerkAIInsights",
+        "./pages/CaseDetail",
+        "./pages/ResidentProfile",
+        "./pages/ComplaintHistory",
+        "./pages/ResidentBlotterReport",
+        "./pages/admin/SystemLogs",
+        "./pages/admin/StaffManagement",
+        "./pages/AIPatrol",
+        "./pages/RondaAnalytics",
+        "./pages/OfficerAttendance",
+        "./pages/OfficerReports",
+        "./pages/SecretarySettings",
+        "./components/AccountVerification",
+        "./pages/BeneficiaryValidation",
+        "./pages/AdminReports",
+        "./pages/DocumentVerification"
+      ]
+    },
+    "client/src/index.css": {
+      "size_bytes": 375,
+      "mtime_iso": "2025-11-29T18:56:33.211Z",
+      "hash": "3a5a9a241a85b625b7fe2270d5e1dafa463cad3f64344af20323295b03d81fab",
+      "type": ".css",
+      "imports": []
+    },
+    "client/src/main.jsx": {
+      "size_bytes": 460,
+      "mtime_iso": "2026-01-11T02:19:25.835Z",
+      "hash": "fda41b0ec0c18c1fcde875f7c922d299c6e222660da5769626cf6d9858c31137",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "react-dom/client",
+        "./App.jsx",
+        "./components/ErrorBoundary.jsx",
+        "./contexts/ThemeModeContext.jsx"
+      ]
+    },
+    "client/src/__tests__/App.test.jsx": {
+      "size_bytes": 2537,
+      "mtime_iso": "2026-01-11T02:27:41.515Z",
+      "hash": "3214f0d8197afb415e515e324894d2f69f70f0d3720dd87b53fc030dd61213b4",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@testing-library/react",
+        "vitest",
+        "../utils/api",
+        "../contexts/ThemeModeContext.jsx",
+        "../App"
+      ]
+    },
+    "client/src/__tests__/pages/Users.test.jsx": {
+      "size_bytes": 5624,
+      "mtime_iso": "2026-01-11T01:19:19.050Z",
+      "hash": "ccead5526e5c736e2f64af632e0c567b1477b04e1ab6878b9cb57ea96371d729",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@testing-library/react",
+        "@testing-library/user-event",
+        "vitest",
+        "../../pages/Users",
+        "../../utils/api"
+      ]
+    },
+    "client/src/__tests__/pages/admin/StaffManagement.test.jsx": {
+      "size_bytes": 4462,
+      "mtime_iso": "2026-01-11T01:16:29.000Z",
+      "hash": "98a7a765353ccced24ea96636b36e8c3b6db5e9cfda55a90481f43af076dfa59",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@testing-library/react",
+        "@testing-library/user-event",
+        "vitest",
+        "../../../pages/admin/StaffManagement",
+        "../../../utils/api"
+      ]
+    },
+    "client/src/utils/api.js": {
+      "size_bytes": 3669,
+      "mtime_iso": "2026-01-10T20:49:43.534Z",
+      "hash": "c4c613952de1c61f7b074063ba2e64b74daccb406ff7fe04fd40d49aaf77d85b",
+      "type": ".js",
+      "imports": [
+        "./csrf"
+      ]
+    },
+    "client/src/utils/apiHelpers.js": {
+      "size_bytes": 2665,
+      "mtime_iso": "2025-12-18T15:33:20.118Z",
+      "hash": "eb10368b7edd1fc686fdad5a8cea90758350fdf8230d89da86e371213ae5b320",
+      "type": ".js",
+      "imports": [
+        "./api"
+      ]
+    },
+    "client/src/utils/csrf.js": {
+      "size_bytes": 1003,
+      "mtime_iso": "2026-01-06T12:14:37.527Z",
+      "hash": "fdb6c3a3d95a92916dfe575d8c1be42ebd95806ec18c10d573ff045629f0017e",
+      "type": ".js",
+      "imports": []
+    },
+    "client/src/utils/dashboardAPI.js": {
+      "size_bytes": 2807,
+      "mtime_iso": "2026-01-08T21:23:35.216Z",
+      "hash": "4464c1e755403fbf3afb98eb7243786af5171de603e0106a569d1e6c745de1e0",
+      "type": ".js",
+      "imports": [
+        "./api"
+      ]
+    },
+    "client/src/utils/permissions.js": {
+      "size_bytes": 7075,
+      "mtime_iso": "2026-01-10T18:45:44.535Z",
+      "hash": "2e034bd0204158f8f8f1cf05d78066e0e7cb173887b824fa1d7e300594e134f4",
+      "type": ".js",
+      "imports": []
+    },
+    "client/src/utils/roles.js": {
+      "size_bytes": 5720,
+      "mtime_iso": "2026-01-10T18:45:43.287Z",
+      "hash": "5c45ffc227dedeed8511d7f33dddd85b7c4d91f62b296326da88dec63b6bb8f9",
+      "type": ".js",
+      "imports": []
+    },
+    "client/src/test/muiIconsMock.js": {
+      "size_bytes": 2103,
+      "mtime_iso": "2026-01-11T01:38:49.641Z",
+      "hash": "0a9246b60eab087d1f7fa604cf88904193fbea95bdae4046e7e6d3379d8c812c",
+      "type": ".js",
+      "imports": [
+        "react"
+      ]
+    },
+    "client/src/test/setup.js": {
+      "size_bytes": 158,
+      "mtime_iso": "2026-01-11T01:39:07.697Z",
+      "hash": "122078190befe7cf71087ec5f0eeae9e24d0a79db951de3e5f901196a2522ce3",
+      "type": ".js",
+      "imports": [
+        "vitest",
+        "@testing-library/react"
+      ]
+    },
+    "client/src/pages/AdminBackup.jsx": {
+      "size_bytes": 4593,
+      "mtime_iso": "2026-01-10T20:07:40.892Z",
+      "hash": "58de416fd6a09bd3d67db298c4a37acd0ab84148a48d29191905ced6d4b16095",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/AdminReports.jsx": {
+      "size_bytes": 54270,
+      "mtime_iso": "2026-01-12T23:07:07.949Z",
+      "hash": "2171728fc60b388532f3c54ba71de165643963e9cbf00d07bfd5e84524be0a9b",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api",
+        "react-router-dom",
+        "../contexts/NotificationContext"
+      ]
+    },
+    "client/src/pages/AIPatrol.jsx": {
+      "size_bytes": 6688,
+      "mtime_iso": "2026-01-10T19:13:11.826Z",
+      "hash": "4685848ad06b84f5b3e244d3e7253bbda2979b33f072d17ce3cb64dd1546cbf7",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/BeneficiaryValidation.jsx": {
+      "size_bytes": 4895,
+      "mtime_iso": "2026-01-11T02:10:14.327Z",
+      "hash": "8383e0cd7ad3aa69e52cdb0114552aca3dc72c82958b4678cb9a3aa429037f9e",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api",
+        "../contexts/AuthContext"
+      ]
+    },
+    "client/src/pages/Blotter.jsx": {
+      "size_bytes": 41463,
+      "mtime_iso": "2026-01-12T23:07:57.776Z",
+      "hash": "a5d1cc664dc00bb75b6eb267abd1dcda8ebb0765499ab7a77b410c2fe750f14b",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "react-router-dom",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api",
+        "../contexts/NotificationContext",
+        "../components/WriteProtected",
+        "../components/SmartComplainantInput"
+      ]
+    },
+    "client/src/pages/CaseDetail.jsx": {
+      "size_bytes": 12349,
+      "mtime_iso": "2026-01-10T22:53:49.546Z",
+      "hash": "70799a7f1776934d93fa81f05ac47a29924d27d4cff7cd9ba5d7f9857ecfc8c4",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "react-router-dom",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/Census.jsx": {
+      "size_bytes": 6672,
+      "mtime_iso": "2026-01-06T12:41:11.858Z",
+      "hash": "94c26a1ae2f8328ae0033f8957b612dd80aad319c512010b112d5a9665c02038",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/CertificateRequest.jsx": {
+      "size_bytes": 8879,
+      "mtime_iso": "2026-01-11T22:32:53.341Z",
+      "hash": "ecada01a83836b7a20cabbb2734d5a2edff6217e74369736014bdcd7277bf626",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/Certificates.jsx": {
+      "size_bytes": 7084,
+      "mtime_iso": "2025-11-30T23:10:43.094Z",
+      "hash": "86a3bd320e33bd00d1540786a62e8e222151e720c989ecd1af51cae0da20a5fc",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/ClerkAIInsights.jsx": {
+      "size_bytes": 5915,
+      "mtime_iso": "2026-01-10T19:07:20.569Z",
+      "hash": "e2834112c337f978e645c3356fe907f9591607728f1b7a4c98638b8678ef11cd",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "recharts",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/CommunityEvents.jsx": {
+      "size_bytes": 20443,
+      "mtime_iso": "2026-01-05T00:05:23.593Z",
+      "hash": "0f309b8e2eb849a88de2bdfc4da3f7d2c2b6c66de05e4e4a2ce352685b33f946",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api",
+        "../utils/roles",
+        "../utils/apiHelpers",
+        "../contexts/AuthContext",
+        "../utils/dashboardAPI"
+      ]
+    },
+    "client/src/pages/ComplaintHistory.jsx": {
+      "size_bytes": 5025,
+      "mtime_iso": "2026-01-10T19:06:23.882Z",
+      "hash": "c38fa03bd9b3aaaaf49e2fbde611a76fe519923aed4f3b95fcf6662e5ab6e0d9",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/Dashboard.jsx": {
+      "size_bytes": 45739,
+      "mtime_iso": "2026-01-11T02:42:43.181Z",
+      "hash": "cdacb2699203d9641049b4b9655eaa7e1945879d70c56dc452b33f9b16ab4a94",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "react-router-dom",
+        "@mui/material",
+        "@mui/icons-material",
+        "@mui/material/styles",
+        "../utils/api",
+        "../contexts/AuthContext",
+        "../utils/dashboardAPI"
+      ]
+    },
+    "client/src/pages/DocumentsDashboard.jsx": {
+      "size_bytes": 91721,
+      "mtime_iso": "2026-01-12T22:33:06.998Z",
+      "hash": "0751f8e03f0f897dbbd690fa2f631e2e5ebca18ed1d8c94710cc2e7f44d4dfd6",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api",
+        "../utils/roles",
+        "../contexts/AuthContext"
+      ]
+    },
+    "client/src/pages/DocumentVerification.jsx": {
+      "size_bytes": 23190,
+      "mtime_iso": "2026-01-12T23:06:40.973Z",
+      "hash": "5fd35e612ace2846b50d57a181fdc73ae079c8769d2d6d5e476e5f2b0c03f8a1",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material/Visibility",
+        "@mui/icons-material/CheckCircle",
+        "@mui/icons-material/Cancel",
+        "@mui/icons-material/Description",
+        "@mui/icons-material/Assignment",
+        "../utils/api",
+        "../contexts/NotificationContext",
+        "../components/RejectionModal",
+        "../components/ConfirmationModal",
+        "../components/CredentialsModal"
+      ]
+    },
+    "client/src/pages/Login.jsx": {
+      "size_bytes": 5392,
+      "mtime_iso": "2026-01-11T00:14:58.158Z",
+      "hash": "20448dcef0480e5bb2b42f89f78f8d2b89de2b2ae7d1ba12de2b92adcaff5784",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "react-router-dom",
+        "@mui/material",
+        "@mui/icons-material",
+        "../contexts/AuthContext"
+      ]
+    },
+    "client/src/pages/MfaOtp.jsx": {
+      "size_bytes": 2989,
+      "mtime_iso": "2026-01-11T00:14:50.010Z",
+      "hash": "bfb933f363add522418337fd93230cd56640fe5751a5fbe242bc3b88c8ce0f5d",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "../utils/api",
+        "../contexts/AuthContext",
+        "react-router-dom"
+      ]
+    },
+    "client/src/pages/OfficerAttendance.jsx": {
+      "size_bytes": 9848,
+      "mtime_iso": "2026-01-10T19:05:50.059Z",
+      "hash": "77147a1dd8c57451681ed5ca13de7eba11a6de72953b63c57493f408e87e9d04",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/OfficerLogin.jsx": {
+      "size_bytes": 6255,
+      "mtime_iso": "2026-01-11T00:15:14.800Z",
+      "hash": "9c72981ee63a2e1c459fb069599450f6525a57f52a3f0553df846a4ac85793d4",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "react-router-dom",
+        "@mui/material",
+        "@mui/icons-material",
+        "../contexts/AuthContext"
+      ]
+    },
+    "client/src/pages/OfficerNewCase.jsx": {
+      "size_bytes": 8897,
+      "mtime_iso": "2026-01-10T21:30:19.661Z",
+      "hash": "9d2118fef834034e65f67807a121bb816004d8984a78fef30e3648e06bead531",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/OfficerReports.jsx": {
+      "size_bytes": 11334,
+      "mtime_iso": "2026-01-10T22:51:39.027Z",
+      "hash": "5e79f84307bac1db8d11124aeb5b85d2ef1c6029bff9db0405941a6d80011d22",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "recharts",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/RequestHistory.jsx": {
+      "size_bytes": 7252,
+      "mtime_iso": "2026-01-10T19:05:32.427Z",
+      "hash": "c9b90131e0e9ede0ac1da3b8e0f1bd75e30ac70ae14c705311676e2aa7ffdcbe",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/ResidentAnnouncements.jsx": {
+      "size_bytes": 4289,
+      "mtime_iso": "2026-01-10T19:06:34.043Z",
+      "hash": "14518f1412c67f3cdfe7d304b69420b57af14a69db07147a605e92ce56dc38cd",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/ResidentBlotterReport.jsx": {
+      "size_bytes": 4611,
+      "mtime_iso": "2026-01-05T21:45:24.275Z",
+      "hash": "08abd1ac161f87eae6aeb683ec9c8bdf4cccac5debb32a0f3ea36f1e4496ee42",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "../contexts/AuthContext",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/ResidentDashboard.jsx": {
+      "size_bytes": 16018,
+      "mtime_iso": "2026-01-10T19:07:56.325Z",
+      "hash": "72bb6c6b8326d1811d36df684ceee4a362189e3abd5b6f3d1d50e4d748651a36",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "react-router-dom",
+        "@mui/material",
+        "@mui/icons-material",
+        "../contexts/AuthContext",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/ResidentLogin.jsx": {
+      "size_bytes": 5488,
+      "mtime_iso": "2026-01-10T19:16:44.929Z",
+      "hash": "6f4f321c2eb8a983c0a6d19b1e5c88b4ee314abbf6dca84a9e17fab7d50d7997",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "react-router-dom",
+        "@mui/material",
+        "@mui/icons-material",
+        "../contexts/AuthContext",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/ResidentProfile.jsx": {
+      "size_bytes": 17858,
+      "mtime_iso": "2026-01-12T22:23:03.674Z",
+      "hash": "0ab619874b1f6de359845178a02ff207ee50ce395306653409237aab2cb9111a",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/ResidentRegister.jsx": {
+      "size_bytes": 7535,
+      "mtime_iso": "2026-01-10T19:16:45.213Z",
+      "hash": "e58601db6818c8d9f53c58ec639cb73d5a8f59be2f1064b35217eaad0a2a609f",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "react-router-dom",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/Residents.jsx": {
+      "size_bytes": 63957,
+      "mtime_iso": "2026-01-12T23:05:44.721Z",
+      "hash": "a570b7accef71a33327261cd47728f66362a481eddcb9c9817823684a40ec537",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api",
+        "../contexts/NotificationContext",
+        "../components/WriteProtected",
+        "../components/ConfirmationModal",
+        "../components/QRCodeModal",
+        "../components/CredentialsModal"
+      ]
+    },
+    "client/src/pages/RondaAnalytics.jsx": {
+      "size_bytes": 22517,
+      "mtime_iso": "2026-01-12T22:01:04.086Z",
+      "hash": "b521b5b1cc911b1f9b6860b39d34588790666f175a551ccce25f163c679f5208",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "recharts",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/SecretarySettings.jsx": {
+      "size_bytes": 12809,
+      "mtime_iso": "2026-01-10T19:06:09.027Z",
+      "hash": "d3794d73a636483d501b70d11b492b71a03945534bf8c2618970a5a6ef623c94",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api"
+      ]
+    },
+    "client/src/pages/Settings.jsx": {
+      "size_bytes": 32101,
+      "mtime_iso": "2026-01-12T21:52:00.453Z",
+      "hash": "430cd1ed4f914f15112010783c6d81d91ac778443c41382448f31c8f44740f2f",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api",
+        "../contexts/NotificationContext",
+        "../contexts/ThemeModeContext.jsx"
+      ]
+    },
+    "client/src/pages/Unauthorized.jsx": {
+      "size_bytes": 892,
+      "mtime_iso": "2026-01-03T18:37:30.201Z",
+      "hash": "114bc6ca80f13aa2f2e86767d06878d7902b1d1a0fa15f778a2965b98bae12f6",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "react-router-dom",
+        "@mui/icons-material"
+      ]
+    },
+    "client/src/pages/__tests__/DocumentVerification.openFileFromEndpoint.test.jsx": {
+      "size_bytes": 1754,
+      "mtime_iso": "2026-01-10T23:37:47.343Z",
+      "hash": "dabe4ba8d525aa63f88ff4c4b13c59373e377563b497e99fbbe2290bb91b3213",
+      "type": ".jsx",
+      "imports": [
+        "vitest",
+        "@testing-library/react",
+        "../DocumentVerification"
+      ]
+    },
+    "client/src/pages/admin/StaffManagement.jsx": {
+      "size_bytes": 37872,
+      "mtime_iso": "2026-01-12T22:33:43.661Z",
+      "hash": "24fd0d87c3fbef0197c164663ac912331b5d24e7d688d66d894d7a742fb6fdf6",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material/Add",
+        "@mui/icons-material/Edit",
+        "@mui/icons-material/Delete",
+        "@mui/icons-material/Search",
+        "@mui/icons-material/Refresh",
+        "@mui/icons-material/Person",
+        "@mui/icons-material/Block",
+        "@mui/icons-material/CheckCircle",
+        "@mui/icons-material/Security",
+        "@mui/icons-material/ExpandMore",
+        "@mui/icons-material/AdminPanelSettings",
+        "@mui/icons-material/VpnKey",
+        "@mui/icons-material/Info",
+        "@mui/icons-material/ContactMail",
+        "@mui/icons-material/VerifiedUser",
+        "@mui/icons-material/ArrowBack",
+        "@mui/icons-material/ArrowForward",
+        "../../components/ConfirmationModal",
+        "../../utils/api"
+      ]
+    },
+    "client/src/pages/admin/SystemLogs.jsx": {
+      "size_bytes": 16796,
+      "mtime_iso": "2026-01-10T20:10:02.726Z",
+      "hash": "3165b4b4fd5af13ba261bb35b501e0d174a27aabe95c8a55c98181f611eeb62f",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../../utils/api"
+      ]
+    },
+    "client/src/contexts/AuthContext.jsx": {
+      "size_bytes": 5924,
+      "mtime_iso": "2026-01-11T00:14:41.006Z",
+      "hash": "49768d423e2598226e9e4436fcbaefbed64089a73ab4335a264367a0de288d53",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "../utils/api",
+        "../utils/csrf"
+      ]
+    },
+    "client/src/contexts/NotificationContext.jsx": {
+      "size_bytes": 5312,
+      "mtime_iso": "2026-01-12T23:03:52.377Z",
+      "hash": "ac11a3fedceeba4dcbd01e897836f2042fd39059257e863a3c81d4173abfabca",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "../utils/api",
+        "./AuthContext",
+        "@mui/material"
+      ]
+    },
+    "client/src/contexts/ThemeModeContext.jsx": {
+      "size_bytes": 1421,
+      "mtime_iso": "2026-01-11T02:19:18.384Z",
+      "hash": "eac999cf08347b51eaf92ac9a44776ac28f532f90af66f44a7d92e4c5f94f56d",
+      "type": ".jsx",
+      "imports": [
+        "react"
+      ]
+    },
+    "client/src/components/AccountVerification.jsx": {
+      "size_bytes": 6895,
+      "mtime_iso": "2025-12-30T21:21:27.302Z",
+      "hash": "1991fc4e91b6854100738b60053bb83d1ac7fddf15dd7a02ba3e0703346c0d1f",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "react-router-dom",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api"
+      ]
+    },
+    "client/src/components/AppShell.jsx": {
+      "size_bytes": 1481,
+      "mtime_iso": "2026-01-11T21:42:11.288Z",
+      "hash": "b02f65a57b5d9d788884cf50af78716df81036e5277f3d793b53736bee3975a5",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/material/styles",
+        "@mui/material/useMediaQuery",
+        "./Sidebar",
+        "./Header"
+      ]
+    },
+    "client/src/components/ConfirmationModal.jsx": {
+      "size_bytes": 3666,
+      "mtime_iso": "2026-01-12T22:19:35.382Z",
+      "hash": "700f9295e466f9aff035b88bad3396b94085d7daaa57d4288d02c13a29067c82",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material/Close",
+        "@mui/icons-material/Warning",
+        "@mui/icons-material/CheckCircle",
+        "@mui/icons-material/Info",
+        "@mui/icons-material/Error"
+      ]
+    },
+    "client/src/components/CredentialsModal.jsx": {
+      "size_bytes": 3910,
+      "mtime_iso": "2026-01-12T23:04:25.197Z",
+      "hash": "8e325a0599d204c0af73002116a1ed603a2f7d531717d3d88358c683d6cf8243",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material/Close",
+        "@mui/icons-material/ContentCopy",
+        "@mui/icons-material/PersonAdd",
+        "@mui/icons-material/CheckCircle"
+      ]
+    },
+    "client/src/components/ErrorBoundary.jsx": {
+      "size_bytes": 7481,
+      "mtime_iso": "2025-12-11T21:51:29.701Z",
+      "hash": "24150c8bcc6a9f34e531bd287170242e2492dbb34896476068e3051757ab186b",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material"
+      ]
+    },
+    "client/src/components/Header.jsx": {
+      "size_bytes": 3853,
+      "mtime_iso": "2026-01-11T21:42:22.914Z",
+      "hash": "53a4079e730da4ffec7ad225ca35a0e69b5980d340ca0330c3bc3da4a8b9c313",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../contexts/AuthContext",
+        "../contexts/ThemeModeContext.jsx",
+        "./NotificationBell"
+      ]
+    },
+    "client/src/components/NotificationBell.jsx": {
+      "size_bytes": 3827,
+      "mtime_iso": "2026-01-11T02:24:36.268Z",
+      "hash": "8d13d2d777b3addb60c711e90e36653a5181eef6cf09528d994a343ef22dff27",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../contexts/NotificationContext"
+      ]
+    },
+    "client/src/components/ProtectedRoute.jsx": {
+      "size_bytes": 1261,
+      "mtime_iso": "2026-01-11T00:13:50.638Z",
+      "hash": "422988a84f7d375c0c7c2a53cedd254535e492ae55c4ead3a6c6579139341148",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "react-router-dom",
+        "@mui/material",
+        "../contexts/AuthContext"
+      ]
+    },
+    "client/src/components/QRCodeModal.jsx": {
+      "size_bytes": 3509,
+      "mtime_iso": "2026-01-12T23:04:11.024Z",
+      "hash": "038f79b8cb91bf0e776c066b0c9b6f574bad3f1777b77367bf46df1b120e6a61",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material/Close",
+        "@mui/icons-material/Print",
+        "@mui/icons-material/QrCode"
+      ]
+    },
+    "client/src/components/RejectionModal.jsx": {
+      "size_bytes": 676,
+      "mtime_iso": "2026-01-12T22:19:35.547Z",
+      "hash": "4a630db3865946ebb43607e1126ea5f632a5f7754385f4e1824f1d4eea0f91af",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "./ConfirmationModal"
+      ]
+    },
+    "client/src/components/Sidebar.jsx": {
+      "size_bytes": 12457,
+      "mtime_iso": "2026-01-12T22:01:39.311Z",
+      "hash": "b5725886057d698ee75ad731c2846fd690b214e34d3ac19b6cad1e60253d41a5",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "react-router-dom",
+        "@mui/material",
+        "@mui/material/styles",
+        "@mui/material/useMediaQuery",
+        "@mui/icons-material",
+        "../contexts/AuthContext"
+      ]
+    },
+    "client/src/components/SmartComplainantInput.jsx": {
+      "size_bytes": 4794,
+      "mtime_iso": "2026-01-12T22:21:50.650Z",
+      "hash": "92e47f45e6370a5ca243d4ef61d5636f8671bc13c3be2b0d738c7ae660af218e",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "@mui/material",
+        "@mui/icons-material",
+        "../utils/api"
+      ]
+    },
+    "client/src/components/WriteProtected.jsx": {
+      "size_bytes": 344,
+      "mtime_iso": "2026-01-10T18:45:44.909Z",
+      "hash": "18ac7301fc2c129c74c3c0b5d9a7e625e8157fd595978bfca89fd0ababf91789",
+      "type": ".jsx",
+      "imports": [
+        "react",
+        "../contexts/AuthContext"
+      ]
+    },
+    "client/public/_redirects": {
+      "size_bytes": 156,
+      "mtime_iso": "2025-12-14T21:06:32.996Z",
+      "hash": "df9557d1cab6ff9ba2503300b13a0c249ca51815630e4cfad32cc944a31b849c",
+      "type": "",
+      "imports": []
+    },
+    "audits/ALIGNMENT_PROGRESS_TRACKER_2026-01-11.md": {
+      "size_bytes": 26966,
+      "mtime_iso": "2026-01-11T00:42:13.155Z",
+      "hash": "f4dd9eaa2a4fcca2bd3174839652a494436b35327de1f3fba42beb4957414f04",
+      "type": ".md",
+      "imports": []
+    },
+    "audits/build_client.log": {
+      "size_bytes": 20,
+      "mtime_iso": "2026-01-10T22:52:27.498Z",
+      "hash": "4cfaa3c3584f96796c8084531c3ef56156be55c15665bffdc0fd7bb492332a4b",
+      "type": ".log",
+      "imports": []
+    },
+    "audits/DB_LIVE_AUDIT_OUTPUT.txt": {
+      "size_bytes": 18950,
+      "mtime_iso": "2026-01-10T22:20:00.679Z",
+      "hash": "727126f9f1f3debb4f4012ddb24a9d9ab1fca1bdb758b62519f393cf05bbfd94",
+      "type": ".txt",
+      "imports": []
+    },
+    "audits/SYSTEM_AUDIT_2026-01-10T22-04-33Z.md": {
+      "size_bytes": 17157,
+      "mtime_iso": "2026-01-10T22:06:41.948Z",
+      "hash": "604676eb43b9f3e10b17869ad8c83b3ae9acb31bae0c6004e3d6a2e883fe27f8",
+      "type": ".md",
+      "imports": []
+    },
+    "audits/cleanup/cleanup-plan-2026-01-11.json": {
+      "size_bytes": 3228,
+      "mtime_iso": "2026-01-11T00:58:43.933Z",
+      "hash": "b9f39245126bfd594e8d6ee830ba50120f2c5eee6a41dd7602e7b28db8fed7b9",
+      "type": ".json",
+      "imports": []
+    },
+    "audits/cleanup/2026-01-11T01-00-39.587Z/docs-link-check.json": {
+      "size_bytes": 120,
+      "mtime_iso": "2026-01-11T01:00:39.600Z",
+      "hash": "f7b5de912a3f01c82163009906c50e56634cca4e434aadc4bb552a72766d1733",
+      "type": ".json",
+      "imports": []
+    },
+    "audits/cleanup/2026-01-11T01-00-30.609Z/docs-consolidation.jsonl": {
+      "size_bytes": 4960,
+      "mtime_iso": "2026-01-11T01:00:30.638Z",
+      "hash": "e35c8b488ef174931b4b0fd5692ddc75817681451a81fe59400c4c9c2fa650c6",
+      "type": ".jsonl",
+      "imports": []
+    },
+    "audits/cleanup/2026-01-11T00-58-50.286Z/cleanup-actions.jsonl": {
+      "size_bytes": 8261,
+      "mtime_iso": "2026-01-11T00:58:50.323Z",
+      "hash": "07ba8a6f1f3f932232eb8f70534682aadaf8768b316e645b5c8e51db5e0f424b",
+      "type": ".jsonl",
+      "imports": []
+    },
+    "audits/cleanup/2026-01-11T00-58-50.286Z/cleanup-summary.json": {
+      "size_bytes": 3766,
+      "mtime_iso": "2026-01-11T00:58:50.323Z",
+      "hash": "b088c877c3ec21e276c7243cb48d334cee9900977278a90faac71d1c40c92592",
+      "type": ".json",
+      "imports": []
+    },
+    "audits/cleanup/2026-01-11T00-56-27.060Z/unused-files-analysis.json": {
+      "size_bytes": 31854,
+      "mtime_iso": "2026-01-11T00:56:27.156Z",
+      "hash": "c10799c3eb6ad3004e82069ec4b62ba4d1b1a1cdfdc96bad93f50e5297c1fe80",
+      "type": ".json",
+      "imports": []
+    },
+    "audits/cleanup/2026-01-11T00-56-27.060Z/unused-files-analysis.md": {
+      "size_bytes": 3454,
+      "mtime_iso": "2026-01-11T00:56:27.158Z",
+      "hash": "2f3b0c07c92fe4fe5c644f6fa3b16ba6607e5bfb667386c94f18f45cbf972058",
+      "type": ".md",
+      "imports": []
+    },
+    "audit report 01/11.md": {
+      "size_bytes": 5386,
+      "mtime_iso": "2026-01-10T19:01:28.904Z",
+      "hash": "6304e0b92e2c8ddf83c64d864a16bb6e82d5a2f95c07d5865dbea3112b82600a",
+      "type": ".md",
+      "imports": []
+    },
+    "ai_service/.env": {
+      "size_bytes": 24,
+      "mtime_iso": "2026-01-12T18:24:39.857Z",
+      "hash": "d314151603a14fd622617b36b266b5fb1f2969b63b2a23ac113832fee8397d8f",
+      "type": "",
+      "imports": []
+    },
+    "ai_service/.env.example": {
+      "size_bytes": 373,
+      "mtime_iso": "2025-12-17T10:40:36.792Z",
+      "hash": "b4d17d771a9edd993671a795f1edbb4f9dc68187d9972b55e68072d7eec8a2c8",
+      "type": ".example",
+      "imports": []
+    },
+    "ai_service/chatbot_data.py": {
+      "size_bytes": 6141,
+      "mtime_iso": "2026-01-12T17:54:45.737Z",
+      "hash": "282cd5e9dfbbe17b8b7962c290ab1754e30ddc81c2e2e5a3f3d778c677b5d184",
+      "type": ".py",
+      "imports": []
+    },
+    "ai_service/chatbot_engine.py": {
+      "size_bytes": 4134,
+      "mtime_iso": "2026-01-12T17:54:45.777Z",
+      "hash": "0f9e7d9e07d4772133876b2ee57bb8e36ac9b72ee8c04e2e9c159726405d113b",
+      "type": ".py",
+      "imports": [
+        "sklearn.feature_extraction.text",
+        "sklearn.linear_model",
+        "sklearn.pipeline",
+        "chatbot_data",
+        "datetime",
+        "pandas",
+        "logging",
+        "joblib",
+        "os",
+        "csv"
+      ]
+    },
+    "ai_service/chatbot_model.pkl": {
+      "size_bytes": 28292,
+      "mtime_iso": "2026-01-11T23:51:30.924Z",
+      "hash": "2ec952278d2e42c4ada482bfb06e1a7294bdaf572c4bd92042d104d011f5d898",
+      "type": ".pkl",
+      "imports": []
+    },
+    "ai_service/config.py": {
+      "size_bytes": 1103,
+      "mtime_iso": "2026-01-05T21:50:56.726Z",
+      "hash": "2591eb6f23a236e4beb85f8d6da679d2a9212297e60edd4555f728c95c8de5a6",
+      "type": ".py",
+      "imports": [
+        "os"
+      ]
+    },
+    "ai_service/Dockerfile": {
+      "size_bytes": 873,
+      "mtime_iso": "2025-12-17T10:40:36.793Z",
+      "hash": "6eaa75b6aefe62913fad1b1fd9e845ca5bf8eba901be1e83f44488303281fa8a",
+      "type": "",
+      "imports": []
+    },
+    "ai_service/missed_queries.csv": {
+      "size_bytes": 216,
+      "mtime_iso": "2026-01-11T23:51:30.941Z",
+      "hash": "05ad48774b33f21da911e6b06edd95062d384677eac41a5d6f8aac6b4835ed35",
+      "type": ".csv",
+      "imports": []
+    },
+    "ai_service/README.md": {
+      "size_bytes": 2672,
+      "mtime_iso": "2025-12-17T10:40:36.794Z",
+      "hash": "2d548298a872f904581548f0293c083d166b039578e12e417182c98aff42b038",
+      "type": ".md",
+      "imports": []
+    },
+    "ai_service/requirements.txt": {
+      "size_bytes": 172,
+      "mtime_iso": "2026-01-12T18:24:39.053Z",
+      "hash": "9944d89b8b66526219f3ce0e4f89be71487044056da1b35830cebf1b41431778",
+      "type": ".txt",
+      "imports": []
+    },
+    "ai_service/requirements_test.txt": {
+      "size_bytes": 33,
+      "mtime_iso": "2026-01-04T22:56:34.108Z",
+      "hash": "30ae85f692c6babdfd752e7a0a18cf2163ffbb68b17933a00ebcb65e1cd00e64",
+      "type": ".txt",
+      "imports": []
+    },
+    "ai_service/smart_suggestions.py": {
+      "size_bytes": 5243,
+      "mtime_iso": "2026-01-12T17:54:45.828Z",
+      "hash": "4cb85739adcb52d1a6111d5e5d4e08dfa0ac340081867ac00f62d61cad61d2d8",
+      "type": ".py",
+      "imports": [
+        "datetime",
+        "collections",
+        "sklearn.linear_model",
+        "pandas",
+        "numpy"
+      ]
+    },
+    "ai_service/suggestion_engine.py": {
+      "size_bytes": 10177,
+      "mtime_iso": "2026-01-12T18:13:55.082Z",
+      "hash": "a382bf8918d1f5e67cc7aa9ece5de156090571b589fa3e241b81ccf4cde85514",
+      "type": ".py",
+      "imports": [
+        "flask",
+        "flask_cors",
+        "flasgger",
+        "dotenv",
+        "datetime",
+        "chatbot_engine",
+        "smart_suggestions",
+        "os"
+      ]
+    },
+    "ai_service/test_ai_service.py": {
+      "size_bytes": 5341,
+      "mtime_iso": "2026-01-04T22:56:30.247Z",
+      "hash": "0f5ab77e90c78fff29a284d6241fc666fe131fcbd4ee786272802efa488ed7f9",
+      "type": ".py",
+      "imports": [
+        "flask",
+        "datetime",
+        "os",
+        "random"
+      ]
+    },
+    "ai_service/test_suggestion_engine.py": {
+      "size_bytes": 2620,
+      "mtime_iso": "2026-01-12T17:54:46.688Z",
+      "hash": "ce49830c48b5264d60db1801177c57417a6e4fc07ce889b8657136c6bf2a85ad",
+      "type": ".py",
+      "imports": [
+        "suggestion_engine",
+        "chatbot_engine",
+        "smart_suggestions",
+        "unittest",
+        "json",
+        "pandas"
+      ]
+    },
+    ".github/workflows/ci-cd.yml": {
+      "size_bytes": 1346,
+      "mtime_iso": "2026-01-04T21:26:03.673Z",
+      "hash": "a1381b82451520a2be422fd5e25144cc8638f2d9f0fe28c2eeb8c824e72a78bb",
+      "type": ".yml",
+      "imports": []
+    },
+    ".amazonq/rules/memory-bank/guidelines.md": {
+      "size_bytes": 7314,
+      "mtime_iso": "2026-01-08T20:40:18.690Z",
+      "hash": "046b37ff882067fa815bf97aab2b304e58ffad649ef71b067d71094f6ab76600",
+      "type": ".md",
+      "imports": []
+    },
+    ".amazonq/rules/memory-bank/product.md": {
+      "size_bytes": 3389,
+      "mtime_iso": "2026-01-08T20:38:58.932Z",
+      "hash": "50a95be75731ae7edbe5502b956acc9dbfe2d3d12b4dd4a19c4395c9e2f66111",
+      "type": ".md",
+      "imports": []
+    },
+    ".amazonq/rules/memory-bank/structure.md": {
+      "size_bytes": 7047,
+      "mtime_iso": "2026-01-08T20:39:19.925Z",
+      "hash": "f56117e40e8ccf65b99ccb065791bf27f75b1f03d506441e4b51dad1a868f408",
+      "type": ".md",
+      "imports": []
+    },
+    ".amazonq/rules/memory-bank/tech.md": {
+      "size_bytes": 6217,
+      "mtime_iso": "2026-01-08T20:39:41.851Z",
+      "hash": "221509c1109451ab9ab7fda81a9b7f6dc15f6488916bbda801b3eb4358eff4c1",
+      "type": ".md",
+      "imports": []
+    }
+  }
+}

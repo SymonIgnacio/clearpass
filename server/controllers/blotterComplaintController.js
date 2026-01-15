@@ -1,3 +1,5 @@
+const { allocateBlotterCaseNumber } = require('../utils/blotterCaseNumber');
+
 class BlotterComplaintController {
   constructor(db) {
     this.db = db;
@@ -22,9 +24,9 @@ class BlotterComplaintController {
         { value: 'Noise Barrage', category: 'Community Ordinance', priority: 'High' },
         { value: 'Illegal Parking', category: 'Community Ordinance', priority: 'High' },
         { value: 'Waste Management', category: 'Community Ordinance', priority: 'High' },
-        { value: 'Stray Animals', category: 'Community Ordinance', priority: 'High' }
+        { value: 'Stray Animals', category: 'Community Ordinance', priority: 'High' },
       ];
-      
+
       res.json({ success: true, data: incidentTypes });
     } catch (error) {
       console.error('Error fetching incident types:', error);
@@ -34,32 +36,33 @@ class BlotterComplaintController {
 
   async submitComplaint(req, res) {
     try {
-      const { 
-        incident_type, 
-        narrative, 
-        incident_date, 
-        incident_time, 
+      const {
+        incident_type,
+        narrative,
+        incident_date,
+        incident_time,
         location_sitio,
         respondent_name,
         respondent_address,
         is_vulnerable,
-        confidential_flag
+        confidential_flag,
       } = req.body;
-      
+
       const resident_id = req.user.resident_id;
 
       // Get complainant details
-      const [residents] = await this.db.execute(
-        'SELECT * FROM residents WHERE Resident_ID = ?',
-        [resident_id]
-      );
+      const [residents] = await this.db.execute('SELECT * FROM residents WHERE Resident_ID = ?', [
+        resident_id,
+      ]);
 
       if (residents.length === 0) {
         return res.status(404).json({ success: false, message: 'Resident not found' });
       }
 
       const resident = residents[0];
-      const case_number = `BLOT-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+      const case_number = await allocateBlotterCaseNumber(this.db, {
+        incidentDate: `${incident_date} ${incident_time}`,
+      });
 
       const complainant_details = {
         id: resident.Resident_ID,
@@ -67,38 +70,43 @@ class BlotterComplaintController {
         address: `${resident.Household_ID}`,
         contact: resident.Mobile_Number,
         is_vulnerable: is_vulnerable || false,
-        confidential: confidential_flag || false
+        confidential: confidential_flag || false,
       };
 
-      const respondent_details = respondent_name ? {
-        name: respondent_name,
-        address: respondent_address || 'Not specified'
-      } : null;
+      const respondent_details = respondent_name
+        ? {
+            name: respondent_name,
+            address: respondent_address || 'Not specified',
+          }
+        : null;
 
-      await this.db.execute(`
+      await this.db.execute(
+        `
         INSERT INTO blotter (
           Case_Number, Complainant_Details, Respondent_Details,
-          Incident_Type, Narrative, DateTime_Incident, Location_Sitio, Status
+          Incident_Type, Narrative, DateTime_Incident, Location_Sitio, status
         ) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending')
-      `, [
-        case_number,
-        JSON.stringify(complainant_details),
-        JSON.stringify(respondent_details),
-        incident_type,
-        narrative,
-        `${incident_date} ${incident_time}`,
-        location_sitio
-      ]);
+      `,
+        [
+          case_number,
+          JSON.stringify(complainant_details),
+          JSON.stringify(respondent_details),
+          incident_type,
+          narrative,
+          `${incident_date} ${incident_time}`,
+          location_sitio,
+        ]
+      );
 
       // Create notification for officers
       if (global.createBulkNotification) {
         const [officers] = await this.db.execute(
-          'SELECT id FROM users WHERE role_id = 6 AND is_active = 1'
+          'SELECT id FROM users WHERE role = 6 AND is_active = 1'
         );
         const officerIds = officers.map(o => o.id);
-        
+
         const priority = this.getIncidentPriority(incident_type);
-        
+
         await global.createBulkNotification(
           officerIds,
           `New ${priority} Priority Complaint`,
@@ -112,7 +120,7 @@ class BlotterComplaintController {
       res.status(201).json({
         success: true,
         data: { case_number },
-        message: 'Complaint filed successfully'
+        message: 'Complaint filed successfully',
       });
     } catch (error) {
       console.error('Error submitting complaint:', error);
@@ -126,17 +134,20 @@ class BlotterComplaintController {
       const { page = 1, limit = 10 } = req.query;
       const offset = (page - 1) * limit;
 
-      const [complaints] = await this.db.execute(`
+      const [complaints] = await this.db.execute(
+        `
         SELECT Case_Number, Incident_Type, Status, DateTime_Incident, 
                Location_Sitio, created_at, Hearing_Schedule
         FROM blotter 
         WHERE JSON_EXTRACT(Complainant_Details, '$.id') = ?
         ORDER BY created_at DESC
         LIMIT ? OFFSET ?
-      `, [resident_id, parseInt(limit), offset]);
+      `,
+        [resident_id, parseInt(limit), offset]
+      );
 
       const [countResult] = await this.db.execute(
-        'SELECT COUNT(*) as total FROM blotter WHERE JSON_EXTRACT(Complainant_Details, \'$.id\') = ?',
+        "SELECT COUNT(*) as total FROM blotter WHERE JSON_EXTRACT(Complainant_Details, '$.id') = ?",
         [resident_id]
       );
 
@@ -146,8 +157,8 @@ class BlotterComplaintController {
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total: countResult[0].total
-        }
+          total: countResult[0].total,
+        },
       });
     } catch (error) {
       console.error('Error fetching complaints:', error);
@@ -156,11 +167,100 @@ class BlotterComplaintController {
   }
 
   getIncidentPriority(incident_type) {
-    const highPriority = ['Physical Injury', 'Unjust Vexation', 'Grave Threats', 'Alarming and Scandal', 'Curfew Violation', 'Noise Barrage', 'Illegal Parking', 'Waste Management', 'Stray Animals'];
-    const mediumPriority = ['Theft (Petty)', 'Malicious Mischief', 'Estafa (Swindling)', 'Trespassing'];
-    
-    if (highPriority.includes(incident_type)) return 'High';
-    if (mediumPriority.includes(incident_type)) return 'Medium';
+    if (!incident_type) return 'Low';
+
+    const normalizedType = incident_type.toLowerCase();
+
+    // High Priority Keywords (Crimes against Persons, Drugs, Community safety)
+    const highKeywords = [
+      'physical',
+      'injury',
+      'hurt',
+      'punch',
+      'stab',
+      'maul',
+      'bugbog',
+      'suntok',
+      'binugbog',
+      'sinuntok',
+      'tinaga',
+      'sinaksak',
+      'threat',
+      'kill',
+      'banta',
+      'grave',
+      'tinakot',
+      'papatayin',
+      'vexation',
+      'scandal',
+      'harass',
+      'rape',
+      'sexual',
+      'lewd',
+      'bastos',
+      'nambastos',
+      'hinipo',
+      'manyak',
+      'drug',
+      'shabu',
+      'marijuana',
+      'weed',
+      'adik',
+      'droga',
+      'bato',
+      'curfew',
+      'noise',
+      'loud',
+      'videoke',
+      'karaoke',
+      'ingay',
+      'maingay',
+      'nagkakantahan',
+      'parking',
+      'waste',
+      'stray',
+      'animal',
+      'homicide',
+      'patay',
+      'pinatay',
+      'bangkay',
+    ];
+
+    // Medium Priority Keywords (Crimes against Property)
+    const mediumKeywords = [
+      'theft',
+      'steal',
+      'stolen',
+      'rob',
+      'snatch',
+      'nawala',
+      'ninakaw',
+      'kinuha',
+      'snatcher',
+      'pinitik',
+      'mischief',
+      'damage',
+      'break',
+      'sira',
+      'destroy',
+      'vandal',
+      'sinira',
+      'binasag',
+      'ginuhitan',
+      'estafa',
+      'swindl',
+      'scam',
+      'trespass',
+      'robbery',
+      'hold up',
+      'holdup',
+      'holdap',
+      'hinoldap',
+    ];
+
+    if (highKeywords.some(keyword => normalizedType.includes(keyword))) return 'High';
+    if (mediumKeywords.some(keyword => normalizedType.includes(keyword))) return 'Medium';
+
     return 'Low';
   }
 }

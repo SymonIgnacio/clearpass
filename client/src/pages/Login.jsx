@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Container,
@@ -12,19 +12,25 @@ import {
   Avatar,
   Grid
 } from '@mui/material'
-import { LockOutlined, PersonAdd, Business, Person } from '@mui/icons-material'
-import { apiRequest } from '../utils/api'
-import { useAuth } from '../contexts/AuthContext'
+import { LockOutlined, PersonAdd, Business, Person, Security } from '@mui/icons-material'
+import { useAuth } from '../contexts/useAuth'
 
 const Login = () => {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, user, loading: authLoading, isAuthenticated } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (authLoading) return
+    if (!isAuthenticated || !user) return
+    const destination = Number(user.role) === 12 ? '/resident/dashboard' : '/'
+    navigate(destination, { replace: true })
+  }, [authLoading, isAuthenticated, user, navigate])
 
   const handleChange = (e) => {
     setFormData({
@@ -39,30 +45,19 @@ const Login = () => {
     setError('')
 
     try {
-      console.log('🔐 Attempting resident login...')
-
-      // Authenticate with unified login endpoint
-      const response = await apiRequest('auth/login', {
-        method: 'POST',
-        body: {
-          username: formData.email, // Map email input to username field
+      const data = await login(
+        {
+          username: formData.email,
           password: formData.password
-        }
-      })
+        },
+        { endpoint: '/auth/resident/login' }
+      )
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Login failed')
+      if (data?.mfa_required) {
+        navigate('/mfa', { replace: true })
+      } else {
+        navigate('/', { replace: true })
       }
-
-      const data = await response.json()
-      console.log('✅ Resident login successful:', { role: data.user.role, username: data.user.username })
-
-      // Use AuthContext login function
-      login(data.token)
-
-      // Navigate to dashboard
-      navigate('/')
 
     } catch (err) {
       console.error('❌ Resident login error:', err)

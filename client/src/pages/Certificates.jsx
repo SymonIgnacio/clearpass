@@ -24,13 +24,14 @@ import {
 } from '@mui/material'
 import { Add, Description } from '@mui/icons-material'
 import { apiRequest } from '../utils/api'
+import SmartResidentSearch from '../components/SmartResidentSearch'
 
 const Certificates = () => {
   const [certificates, setCertificates] = useState([])
-  const [residents, setResidents] = useState([])
   const [certificateTypes, setCertificateTypes] = useState([])
   const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
+  const [selectedResident, setSelectedResident] = useState(null)
   const [formData, setFormData] = useState({
     resident_id: '',
     certificate_type_id: '',
@@ -40,7 +41,6 @@ const Certificates = () => {
 
   useEffect(() => {
     fetchCertificates()
-    fetchResidents()
     fetchCertificateTypes()
   }, [])
 
@@ -51,16 +51,6 @@ const Certificates = () => {
       setCertificates(data)
     } catch (error) {
       console.error('Error fetching certificates:', error)
-    }
-  }
-
-  const fetchResidents = async () => {
-    try {
-      const response = await apiRequest('residents?limit=1000') // Get more residents for selection
-      const data = await response.json()
-      setResidents(data.data || []) // Handle paginated response
-    } catch (error) {
-      console.error('Error fetching residents:', error)
     }
   }
 
@@ -75,6 +65,11 @@ const Certificates = () => {
   }
 
   const handleSave = async () => {
+    if (!formData.resident_id) {
+      setError('Please select a resident')
+      return
+    }
+    
     try {
       const response = await apiRequest('certificates', {
         method: 'POST',
@@ -87,6 +82,13 @@ const Certificates = () => {
         fetchCertificates()
         setOpen(false)
         setError('')
+        setFormData({
+            resident_id: '',
+            certificate_type_id: '',
+            certificate_type: '',
+            purpose: ''
+        })
+        setSelectedResident(null)
       } else {
         setError(data.error || 'Failed to issue certificate')
       }
@@ -152,7 +154,7 @@ const Certificates = () => {
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Issue New Certificate</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ overflow: 'visible' }}>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
@@ -160,21 +162,18 @@ const Certificates = () => {
           )}
 
           <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel>Select Resident</InputLabel>
-              <Select
-                value={formData.resident_id}
-                onChange={(e) => setFormData({...formData, resident_id: e.target.value})}
-                label="Select Resident"
-                required
-              >
-                {residents.map((resident) => (
-                  <MenuItem key={`resident-${resident.Resident_ID}`} value={resident.Resident_ID}>
-                    {resident.First_Name} {resident.Last_Name} - {resident.sitio_name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <SmartResidentSearch
+              label="Select Resident"
+              required
+              value={selectedResident}
+              onChange={(resident) => {
+                setSelectedResident(resident)
+                setFormData({
+                  ...formData,
+                  resident_id: resident ? resident.id : ''
+                })
+              }}
+            />
 
             <FormControl fullWidth>
               <InputLabel>Certificate Type</InputLabel>
