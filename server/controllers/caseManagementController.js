@@ -1,4 +1,5 @@
 const { allocateBlotterCaseNumber } = require('../utils/blotterCaseNumber');
+const ExcelJS = require('exceljs');
 
 class CaseManagementController {
   constructor(db) {
@@ -328,17 +329,39 @@ class CaseManagementController {
     try {
       const { type, start_date, end_date, format } = req.body;
 
-      const reportData = `Blotter Report\nType: ${type}\nPeriod: ${start_date} to ${end_date}\nGenerated: ${new Date().toISOString()}`;
+      // In a real implementation, fetch data based on type/dates
+      // For now, we'll create a basic workbook
       
       if (format === 'pdf') {
+         // PDF generation would go here (requires pdfkit or similar)
+         // For now, fallback to simple text
+        const reportData = `Blotter Report\nType: ${type}\nPeriod: ${start_date} to ${end_date}\nGenerated: ${new Date().toISOString()}`;
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="blotter-report-${type}.pdf"`);
+        res.send(Buffer.from(reportData));
       } else {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Blotter Report');
+        
+        worksheet.columns = [
+          { header: 'Report Type', key: 'type', width: 20 },
+          { header: 'Start Date', key: 'start', width: 15 },
+          { header: 'End Date', key: 'end', width: 15 },
+          { header: 'Generated At', key: 'generated', width: 25 }
+        ];
+        
+        worksheet.addRow({
+          type: type,
+          start: start_date,
+          end: end_date,
+          generated: new Date().toISOString()
+        });
+        
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="blotter-report-${type}.xlsx"`);
+        
+        await workbook.xlsx.write(res);
       }
-      
-      res.send(Buffer.from(reportData));
     } catch (error) {
       console.error('Error exporting report:', error);
       res.status(500).json({ success: false, message: 'Failed to export report' });

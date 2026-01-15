@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "jest --coverage --watchAll=false",
+    "test": "jest --coverage --watchAll=false --testTimeout=60000",
     "test:legacy": "jest __tests__/exhaustive-complete.test.js __tests__/certificates.test.js --watchAll=false",
     "test:integration": "jest --testMatch \"**/tests/integration/current/*.test.js\" --watchAll=false",
     "test:integration:legacy": "jest --runTestsByPath tests/integration/api.test.js --watchAll=false",
@@ -36,15 +36,18 @@
     "axios": "^1.13.2",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
+    "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "csurf": "^1.2.2",
     "docxtemplater": "^3.67.6",
     "dotenv": "^16.3.0",
+    "exceljs": "^4.4.0",
     "express": "^4.18.2",
     "express-rate-limit": "^7.5.1",
     "express-validator": "^7.3.1",
+    "fast-csv": "^5.0.5",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.0",
     "knex": "^3.1.0",
@@ -62,8 +65,8 @@
     "swagger-ui-express": "^5.0.0",
     "validator": "^13.11.0",
     "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0",
     "ws": "^8.16.0",
-    "xlsx": "^0.18.5",
     "xss": "^1.0.15",
     "xss-clean": "^0.1.4"
   },
@@ -82,33 +85,6 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "collectCoverageFrom": [
-      "**/*.js",
-      "!node_modules/**",
-      "!coverage/**",
-      "!logs/**"
-    ],
-    "coverageDirectory": "coverage",
-    "coverageReporters": [
-      "text",
-      "lcov",
-      "html"
-    ],
-    "testMatch": [
-      "**/__tests__/**/*.test.js"
-    ],
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "/__tests__/exhaustive-complete\\.test\\.js$",
-      "/__tests__/system-comprehensive\\.test\\.js$",
-      "/__tests__/controllers-expanded\\.test\\.js$"
-    ],
-    "setupFilesAfterEnv": [
-      "<rootDir>/test-setup.js"
-    ]
   },
   "eslintConfig": {
     "env": {

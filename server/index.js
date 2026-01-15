@@ -52,9 +52,10 @@ const { ROLES } = require('./config/roles');
 const { errorHandler } = require('./middleware/errorHandler');
 const { validateLogin } = require('./middleware/validation');
 const { auditMiddleware } = require('./middleware/auditLogger');
+const compressionMiddleware = require('./middleware/compression');
 
 const app = express();
-const port = process.env.SERVER_PORT || 3002;
+const port = process.env.PORT || process.env.SERVER_PORT || 3002;
 const http = require('http');
 const server = http.createServer(app);
 const WebSocketService = require('./services/websocketService');
@@ -86,6 +87,11 @@ const apiLimiter = rateLimit({
 
 // Apply limits
 app.use('/api/auth', authLimiter);
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+}
 
 // CORS configuration
 const corsOrigins =
@@ -128,6 +134,7 @@ app.use(
 
 // Security middleware
 app.use(helmet());
+app.use(compressionMiddleware);
 app.use(cookieParser());
 app.use(xssClean());
 app.use(express.json({ limit: '1mb' }));
@@ -282,6 +289,13 @@ app.get('/health', (req, res) => {
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
+
+// Handle React routing, return all requests to React app
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
+  });
+}
 
 // Start server
 async function startServer() {

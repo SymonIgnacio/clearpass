@@ -1,5 +1,5 @@
 const redis = require('redis');
-const { logger } = require('../monitoring');
+const { logger } = require('../middleware/logger');
 
 class CacheService {
   constructor() {

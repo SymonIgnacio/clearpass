@@ -14,8 +14,8 @@ module.exports = (db) => {
     res.json([]); // Return empty array - simplified system
   }));
 
-  // Programs - Captain and Secretary access
-  router.get('/programs', verifyToken, checkRole(['captain', 'secretary']), asyncHandler(async (req, res) => {
+  // Programs - Captain, Secretary, and Admin access
+  router.get('/programs', verifyToken, checkRole(['captain', 'secretary', 'admin']), asyncHandler(async (req, res) => {
     const [programs] = await db.execute('SELECT * FROM community_programs ORDER BY program_date DESC');
     res.json(programs);
   }));
