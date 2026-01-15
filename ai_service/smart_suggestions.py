@@ -1,8 +1,6 @@
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
+import math
+from datetime import datetime
 from collections import Counter
-from sklearn.linear_model import LinearRegression
 
 # Define weights for different incident types to prioritize dangerous areas
 SEVERITY_WEIGHTS = {
@@ -33,31 +31,52 @@ KEYWORD_MAPPING = {
     'Dispute': ['dispute', 'fight', 'quarrel', 'argument', 'conflict', 'misunderstanding', 'away', 'nag-away', 'nag-aaway', 'sigawan', 'talo', 'sagutan'],
 }
 
-def analyze_trends(df):
+def calculate_linear_regression_slope(x_values, y_values):
     """
-    Analyze crime trends using Linear Regression to detect if incidents are increasing.
+    Calculate the slope of a linear regression line (y = mx + b).
+    m = (N * sum(xy) - sum(x) * sum(y)) / (N * sum(x^2) - (sum(x))^2)
+    """
+    n = len(x_values)
+    if n < 2:
+        return 0.0
+    
+    sum_x = sum(x_values)
+    sum_y = sum(y_values)
+    sum_xy = sum(x * y for x, y in zip(x_values, y_values))
+    sum_x_sq = sum(x**2 for x in x_values)
+    
+    denominator = (n * sum_x_sq - sum_x**2)
+    if denominator == 0:
+        return 0.0
+        
+    slope = (n * sum_xy - sum_x * sum_y) / denominator
+    return slope
+
+def analyze_trends(records):
+    """
+    Analyze crime trends using Linear Regression on daily counts.
     Returns: "INCREASING", "DECREASING", or "STABLE"
     """
     try:
-        if 'dt' not in df.columns or df.empty:
+        if not records:
+            return "STABLE"
+            
+        # Group by date
+        daily_counts = Counter()
+        for r in records:
+            if 'dt' in r and r['dt']:
+                daily_counts[r['dt'].date()] += 1
+                
+        if len(daily_counts) < 3:
             return "STABLE"
 
-        # Group by day
-        daily_counts = df.groupby(df['dt'].dt.date).size().reset_index(name='counts')
+        sorted_dates = sorted(daily_counts.keys())
         
-        if len(daily_counts) < 3:
-            return "STABLE" # Not enough data points
-
-        # Prepare data for regression
-        # X = days since start, y = counts
-        daily_counts['date_ordinal'] = pd.to_datetime(daily_counts['dt']).map(datetime.toordinal)
-        X = daily_counts['date_ordinal'].values.reshape(-1, 1)
-        y = daily_counts['counts'].values
-
-        model = LinearRegression()
-        model.fit(X, y)
+        # X = ordinal date, Y = counts
+        x_values = [d.toordinal() for d in sorted_dates]
+        y_values = [daily_counts[d] for d in sorted_dates]
         
-        slope = model.coef_[0]
+        slope = calculate_linear_regression_slope(x_values, y_values)
         
         if slope > 0.1:
             return "INCREASING"
@@ -70,38 +89,34 @@ def analyze_trends(df):
         print(f"Trend analysis error: {e}")
         return "STABLE"
 
-def analyze_day_patterns(df):
+def analyze_day_patterns(records):
     """
-    Analyze incidents by day of the week to find dangerous days.
-    Returns: Dictionary of {Day: Count}
+    Analyze incidents by day of the week.
+    Returns: Dictionary of {DayName: Count}
     """
     try:
-        if 'dt' not in df.columns or df.empty:
-            return {}
-            
-        # 0=Monday, 6=Sunday
-        df['day_name'] = df['dt'].dt.day_name()
-        day_counts = df['day_name'].value_counts().to_dict()
-        return day_counts
+        day_counts = Counter()
+        for r in records:
+            if 'dt' in r and r['dt']:
+                day_counts[r['dt'].strftime('%A')] += 1
+        return dict(day_counts)
     except Exception as e:
         print(f"Day pattern analysis error: {e}")
         return {}
 
 def normalize_incident_type(text):
     """
-    Map free-text incident descriptions to standard categories using keywords.
+    Map free-text incident descriptions to standard categories.
     """
     if not text:
         return 'Other'
         
     text_lower = str(text).lower()
     
-    # Check keyword mappings
     for category, keywords in KEYWORD_MAPPING.items():
         if any(keyword in text_lower for keyword in keywords):
             return category
             
-    # Fallback: check if any standard category name is in the text
     for key in SEVERITY_WEIGHTS.keys():
         if key.lower() in text_lower:
             return key
@@ -115,62 +130,71 @@ def analyze_crime_patterns(blotter_data):
     if not blotter_data:
         return {"error": "No data provided"}
     
-    df = pd.DataFrame(blotter_data)
-    
-    # Normalize incident types for better analytics
-    if 'Incident_Type' in df.columns:
-        df['Normalized_Type'] = df['Incident_Type'].apply(normalize_incident_type)
-    else:
-        df['Normalized_Type'] = 'Other'
-    
-    # Location analysis (Raw Counts)
-    location_counts = df['Location_Sitio'].value_counts().to_dict() if 'Location_Sitio' in df.columns else {}
+    # Preprocess data
+    processed_records = []
+    for item in blotter_data:
+        record = item.copy()
+        
+        # Normalize Type
+        raw_type = record.get('Incident_Type', '')
+        record['Normalized_Type'] = normalize_incident_type(raw_type)
+        
+        # Parse Date
+        dt_str = record.get('DateTime_Incident')
+        if dt_str:
+            try:
+                # Handle ISO format or fallback
+                if 'T' in dt_str:
+                    record['dt'] = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+                else:
+                    # Try basic parsing or ignore
+                    pass
+            except:
+                pass
+        
+        processed_records.append(record)
+
+    # Location Counts
+    location_counts = Counter()
+    for r in processed_records:
+        loc = r.get('Location_Sitio', 'Unknown')
+        location_counts[loc] += 1
     
     # Weighted Risk Analysis
-    risk_scores = {}
-    if 'Location_Sitio' in df.columns:
-        for _, row in df.iterrows():
-            loc = row.get('Location_Sitio', 'Unknown')
-            incident_type = row.get('Normalized_Type', 'Other')
-            
-            # Get weight based on normalized type
-            weight = SEVERITY_WEIGHTS.get(incident_type, 1)
-            
-            risk_scores[loc] = risk_scores.get(loc, 0) + weight
-    
-    # Determine hotspots based on Risk Score if available, otherwise Counts
-    hotspots = dict(sorted(risk_scores.items(), key=lambda x: x[1], reverse=True)) if risk_scores else location_counts
-
-    # Time pattern analysis
-    trend = "STABLE"
-    peak_hours = {}
-    day_counts = {}
-    
-    if 'DateTime_Incident' in df.columns:
-        # Convert to datetime, handling errors
-        df['dt'] = pd.to_datetime(df['DateTime_Incident'], errors='coerce')
-        df = df.dropna(subset=['dt']) # Drop invalid dates
+    risk_scores = Counter()
+    for r in processed_records:
+        loc = r.get('Location_Sitio', 'Unknown')
+        incident_type = r.get('Normalized_Type', 'Other')
+        weight = SEVERITY_WEIGHTS.get(incident_type, 1)
+        risk_scores[loc] += weight
         
-        if not df.empty:
-            df['hour'] = df['dt'].dt.hour
-            peak_hours = df['hour'].value_counts().head(3).to_dict()
+    # Hotspots
+    if risk_scores:
+        hotspots = dict(sorted(risk_scores.items(), key=lambda x: x[1], reverse=True))
+    else:
+        hotspots = dict(location_counts)
+
+    # Time Patterns
+    hour_counts = Counter()
+    for r in processed_records:
+        if 'dt' in r and r['dt']:
+            hour_counts[r['dt'].hour] += 1
             
-            # Analyze Trend
-            trend = analyze_trends(df)
-            
-            # Analyze Day Patterns
-            day_counts = analyze_day_patterns(df)
+    peak_hours = dict(sorted(hour_counts.items(), key=lambda x: x[1], reverse=True)[:3]) if hour_counts else {}
     
-    # Incident type analysis
-    incident_types = df['Normalized_Type'].value_counts().to_dict() if 'Normalized_Type' in df.columns else {}
+    trend = analyze_trends(processed_records)
+    day_counts = analyze_day_patterns(processed_records)
+    
+    # Incident Types
+    type_counts = Counter(r['Normalized_Type'] for r in processed_records)
     
     return {
         "hotspots": hotspots,
-        "raw_counts": location_counts,
+        "raw_counts": dict(location_counts),
         "peak_hours": peak_hours,
         "day_counts": day_counts,
-        "incident_types": incident_types,
-        "total_incidents": len(df),
+        "incident_types": dict(type_counts),
+        "total_incidents": len(processed_records),
         "trend": trend,
         "analysis_date": datetime.now().isoformat()
     }
@@ -180,21 +204,25 @@ def predict_certificate_demand(historical_data):
     if not historical_data:
         return {"error": "No historical data"}
     
-    df = pd.DataFrame(historical_data)
+    cert_demand = Counter()
+    month_counts = Counter()
     
-    # Certificate type demand
-    cert_demand = df['certificate_type'].value_counts().to_dict() if 'certificate_type' in df.columns else {}
-    
-    # Monthly trends
-    if 'date_issued' in df.columns:
-        df['month'] = pd.to_datetime(df['date_issued']).dt.month
-        monthly_trend = df['month'].value_counts().sort_index().to_dict()
-    else:
-        monthly_trend = {}
-    
+    for item in historical_data:
+        cert_type = item.get('certificate_type')
+        if cert_type:
+            cert_demand[cert_type] += 1
+            
+        date_issued = item.get('date_issued')
+        if date_issued:
+            try:
+                dt = datetime.fromisoformat(date_issued.replace('Z', '+00:00'))
+                month_counts[dt.month] += 1
+            except:
+                pass
+                
     return {
-        "certificate_demand": cert_demand,
-        "monthly_trends": monthly_trend,
-        "total_requests": len(df),
+        "certificate_demand": dict(cert_demand),
+        "monthly_trends": dict(sorted(month_counts.items())),
+        "total_requests": len(historical_data),
         "prediction_date": datetime.now().isoformat()
     }

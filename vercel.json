@@ -6,14 +6,14 @@
       "use": "@vercel/node"
     },
     {
-      "src": "ai_service/chatbot_engine.py",
+      "src": "ai_service/suggestion_engine.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/api/ai-service/(.*)",
-      "dest": "ai_service/chatbot_engine.py"
+      "dest": "ai_service/suggestion_engine.py"
     },
     {
       "src": "/api/(.*)",

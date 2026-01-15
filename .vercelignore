@@ -5,3 +5,13 @@ dist
 .trae
 .log
 .figma
+coverage
+server/coverage
+client
+tests
+*.test.js
+*.spec.js
+.env
+.env.*
+.DS_Store
+Thumbs.db
