@@ -1,3 +1,4 @@
+const path = require('path');
 require('dotenv').config();
 
 // Database configuration function (same as server/index.js and authController.js)
@@ -29,11 +30,11 @@ module.exports = {
     client: 'mysql2',
     connection: getDatabaseConfig(),
     migrations: {
-      directory: './migrations',
+      directory: path.join(__dirname, 'migrations'),
       tableName: 'knex_migrations',
     },
     seeds: {
-      directory: './seeds',
+      directory: path.join(__dirname, 'seeds'),
     },
     pool: {
       min: 2,
@@ -51,11 +52,11 @@ module.exports = {
       port: process.env.DB_PORT || 3306,
     },
     migrations: {
-      directory: './migrations',
+      directory: path.join(__dirname, 'migrations'),
       tableName: 'knex_migrations',
     },
     seeds: {
-      directory: './seeds',
+      directory: path.join(__dirname, 'seeds'),
     },
     pool: {
       min: 1,
@@ -67,11 +68,11 @@ module.exports = {
     client: 'mysql2',
     connection: getDatabaseConfig(),
     migrations: {
-      directory: './migrations',
+      directory: path.join(__dirname, 'migrations'),
       tableName: 'knex_migrations',
     },
     seeds: {
-      directory: './seeds',
+      directory: path.join(__dirname, 'seeds'),
     },
     pool: {
       min: 2,

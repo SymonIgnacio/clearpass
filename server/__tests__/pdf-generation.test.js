@@ -544,7 +544,9 @@ describe('PDF Generation & Reporting Analysis Suite', () => {
     status = 'Pending',
     date = '2024-01-01'
   ) {
-    const caseNumber = `BLOT-PDF-${Date.now()}`;
+    // Format: BLOT-YYYY-MM-NNNN
+    const randomSeq = Math.floor(Math.random() * 9000) + 1000;
+    const caseNumber = `BLOT-2024-01-${randomSeq}`;
 
     await db.pool.execute(
       `
@@ -577,7 +579,9 @@ describe('PDF Generation & Reporting Analysis Suite', () => {
   }
 
   async function createTestBlotterCaseWithDetails(complainant, respondent) {
-    const caseNumber = `BLOT-DETAIL-${Date.now()}`;
+    // Format: BLOT-YYYY-MM-NNNN
+    const randomSeq = Math.floor(Math.random() * 9000) + 1000;
+    const caseNumber = `BLOT-2024-01-${randomSeq}`;
 
     await db.pool.execute(
       `

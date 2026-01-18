@@ -52,9 +52,10 @@ const { ROLES } = require('./config/roles');
 const { errorHandler } = require('./middleware/errorHandler');
 const { validateLogin } = require('./middleware/validation');
 const { auditMiddleware } = require('./middleware/auditLogger');
+const compressionMiddleware = require('./middleware/compression');
 
 const app = express();
-const port = process.env.SERVER_PORT || 3002;
+const port = process.env.PORT || process.env.SERVER_PORT || 3002;
 const http = require('http');
 const server = http.createServer(app);
 const WebSocketService = require('./services/websocketService');
@@ -87,10 +88,15 @@ const apiLimiter = rateLimit({
 // Apply limits
 app.use('/api/auth', authLimiter);
 
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+}
+
 // CORS configuration
 const corsOrigins =
   process.env.NODE_ENV === 'production'
-    ? [process.env.FRONTEND_URL || 'https://glistening-lamington-a9e2b7.netlify.app']
+    ? [process.env.FRONTEND_URL].filter(Boolean)
     : [
         'http://localhost:3002',
         'http://localhost:5173',
@@ -104,16 +110,17 @@ app.use(
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
 
-      if (process.env.NODE_ENV === 'production' && origin && origin.includes('netlify.app')) {
+      // Allow any Netlify or Vercel preview/production URL
+      if (
+        origin.endsWith('.netlify.app') ||
+        origin.endsWith('.vercel.app') ||
+        (process.env.NODE_ENV !== 'production' &&
+          (origin.includes('localhost') || origin.includes('127.0.0.1')))
+      ) {
         return callback(null, true);
       }
 
       if (corsOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      // Allow localhost with any port for development
-      if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
         return callback(null, true);
       }
 
@@ -128,6 +135,7 @@ app.use(
 
 // Security middleware
 app.use(helmet());
+app.use(compressionMiddleware);
 app.use(cookieParser());
 app.use(xssClean());
 app.use(express.json({ limit: '1mb' }));
@@ -289,6 +297,13 @@ app.get('/health', (req, res) => {
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
+
+// Handle React routing, return all requests to React app - DISABLED for Vercel/Netlify split
+// if (process.env.NODE_ENV === 'production') {
+//   app.get('*', (req, res) => {
+//     res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
+//   });
+// }
 
 // Start server
 async function startServer() {

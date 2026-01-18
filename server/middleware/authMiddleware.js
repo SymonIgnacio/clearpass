@@ -3,6 +3,8 @@ const { ROLES } = require('../config/roles');
 const { isMfaEnforced } = require('../config/mfa');
 require('dotenv').config();
 
+const { logger } = require('./logger');
+
 const verifyToken = (req, res, next) => {
   const token = req.cookies?.authToken || req.headers.authorization?.split(' ')[1];
 
@@ -77,6 +79,7 @@ const checkRole = (allowedRoles) => {
     }
     
     if (!normalizedRoles.includes(effectiveUserRole)) {
+      logger.warn(`Access Denied. User Role: ${userRole} (Effective: ${effectiveUserRole}), Allowed: ${JSON.stringify(normalizedRoles)}`);
       return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
     }
 
@@ -87,15 +90,37 @@ const checkRole = (allowedRoles) => {
 // Alias for backward compatibility
 const verifyRole = checkRole;
 
-// Placeholder functions for hierarchy access (to be implemented)
+// Implement hierarchy-based access control
+// Prevents users from assigning roles higher than their own
 const checkHierarchyAccess = (req, res, next) => {
-  // TODO: Implement hierarchy-based access control
+  if (req.body && req.body.role) {
+    const targetRole = typeof req.body.role === 'string' 
+      ? ROLE_MAP[req.body.role.toLowerCase()] 
+      : req.body.role;
+    
+    // Lower number means higher authority
+    if (targetRole < req.user.role) {
+       return res.status(403).json({ error: 'Insufficient permissions to assign this role.' });
+    }
+  }
   next();
 };
 
 const checkOwnershipOrHierarchy = (req, res, next) => {
-  // TODO: Implement ownership or hierarchy-based access control
-  next();
+  const targetId = parseInt(req.params.id || req.params.userId, 10);
+  
+  // Allow if user is accessing their own resource
+  if (req.user.id === targetId) {
+    return next();
+  }
+  
+  // Allow Admins (1), Captains (2), Secretaries (3) to override
+  // Assuming these roles have management capabilities
+  if (req.user.role <= 3) {
+    return next();
+  }
+  
+  return res.status(403).json({ error: 'Access denied. Ownership or elevated privileges required.' });
 };
 
 // For routes that need authentication but no specific role

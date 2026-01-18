@@ -113,35 +113,26 @@ tail -f server/logs/combined.log
 
 ---
 
-## Backup Strategy
-
+## Process Management (PM2)
+For production, use PM2 to manage processes:
 ```bash
-# Daily backup script
-mysqldump -u root -p clearpass > backup_$(date +%Y%m%d).sql
-
-# Restore
-mysql -u root -p clearpass < backup_20260112.sql
+npm install -g pm2
+pm2 start ecosystem.config.cjs
+pm2 save
+pm2 startup
 ```
 
----
-
-## SSL/HTTPS Setup
-
-### Using Let's Encrypt
+## Database Backups
+A backup script is provided in `scripts/maintenance/backup_db.js`.
+Schedule it using Windows Task Scheduler or Cron:
 ```bash
-# Install certbot
-sudo apt-get install certbot
-
-# Get certificate
-sudo certbot certonly --standalone -d yourdomain.com
-
-# Configure nginx
-server {
-    listen 443 ssl;
-    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
-}
+node scripts/maintenance/backup_db.js
 ```
+
+## Security & Performance
+- **Firewall:** Ensure ports 3002 (API) and 5173 (Client) are allowed.
+- **SSL:** Use Nginx or Apache as a reverse proxy with SSL certificates.
+- **Load Balancing:** PM2 runs in cluster mode (`instances: 'max'`) by default.
 
 ---
 

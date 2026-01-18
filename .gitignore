@@ -39,3 +39,7 @@ Root/clearpass-ed442-firebase-adminsdk-fbsvc-960a3eb789.json
 **/.env.production
 **/.env.development
 **/.env.test
+
+# Python
+__pycache__/
+*.pyc

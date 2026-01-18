@@ -1,0 +1,26 @@
+# RAILWAY VARIABLES CONFIGURATION
+# -----------------------------------------------------------
+# INSTRUCTIONS:
+# 1. Go to your Main App service in Railway.
+# 2. Click "Variables".
+# 3. Click "Raw Editor" (usually top right of the variables list).
+# 4. Paste the content below.
+# -----------------------------------------------------------
+
+NODE_ENV=production
+PORT=3002
+
+# AI Service Connection
+AI_SERVICE_URL=https://clearpass-copy-production.up.railway.app
+AI_SERVICE_ENABLED=true
+
+# Database Connection (Uses Railway Reference Variables)
+# If you linked a MySQL service, these will automatically pull the correct values.
+DB_HOST=${{MySQL.MYSQLHOST}}
+DB_USER=${{MySQL.MYSQLUSER}}
+DB_PASSWORD=${{MySQL.MYSQLPASSWORD}}
+DB_NAME=${{MySQL.MYSQLDATABASE}}
+DB_PORT=${{MySQL.MYSQLPORT}}
+
+# Security (IMPORTANT: Replace with a random string)
+JWT_SECRET=replace_this_with_a_secure_random_string_xyz123

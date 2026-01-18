@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
-const xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
 const path = require('path');
 const fs = require('fs');
 // const db = require('../database');
@@ -15,6 +15,7 @@ const {
   sendStoredDocument,
 } = require('../utils/documentStorage');
 const { logAuditEvent, logAuditToDatabase, AUDIT_EVENTS } = require('../middleware/auditLogger');
+const ResidentService = require('../services/residentService');
 
 const calculateAge = birthdate => {
   const today = new Date();
@@ -34,78 +35,9 @@ exports.getAll = async (req, res) => {
   }
 
   try {
-    const {
-      page = 1,
-      limit = 50,
-      search,
-      sitio_id,
-      residency_status,
-      show_vulnerable,
-    } = req.query || {};
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-
-    let whereConditions = [];
-    let values = [];
-
-    if (search && search.trim()) {
-      whereConditions.push(
-        '(CONCAT(r.First_Name, " ", r.Last_Name) LIKE ? OR CONCAT(r.First_Name, " ", r.Middle_Name, " ", r.Last_Name) LIKE ? OR r.Mobile_Number LIKE ?)'
-      );
-      const searchTerm = `%${search.trim()}%`;
-      values.push(searchTerm, searchTerm, searchTerm);
-    }
-
-    if (sitio_id) {
-      whereConditions.push('h.Sitio_ID = ?');
-      values.push(sitio_id);
-    }
-
-    if (residency_status) {
-      whereConditions.push('r.Residency_Status = ?');
-      values.push(residency_status);
-    }
-
-    if (show_vulnerable === 'true') {
-      whereConditions.push('v.Vulnerability_Score > 0');
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    const mainQuery = `
-      SELECT r.*, h.Household_Number, h.Street_Address, s.name as sitio_name,
-        v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent, v.Is_Out_of_School_Youth,
-        v.Vulnerability_Score, v.Disability_Type
-      FROM residents r
-      LEFT JOIN households h ON r.Household_ID = h.Household_ID
-      LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
-      ${whereClause}
-      ORDER BY r.Last_Name, r.First_Name
-      LIMIT ? OFFSET ?
-    `;
-
-    const mainParams = [...values, parseInt(limit), parseInt(offset)];
-    const [rows] = await db.execute(mainQuery, mainParams);
-
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM residents r
-      LEFT JOIN households h ON r.Household_ID = h.Household_ID
-      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
-      ${whereClause}
-    `;
-
-    const [totalRows] = await db.execute(countQuery, values);
-
-    res.json({
-      data: rows,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: totalRows[0].total,
-        pages: Math.ceil(totalRows[0].total / parseInt(limit)),
-      },
-    });
+    const residentService = new ResidentService(db);
+    const result = await residentService.getAll(req.query || {});
+    res.json(result);
   } catch (error) {
     console.error('Error fetching residents:', error);
     res.status(500).json({ error: 'Failed to fetch residents' });
@@ -119,25 +51,14 @@ exports.getById = async (req, res) => {
   }
 
   try {
-    const [rows] = await db.execute(
-      `
-      SELECT r.*, h.Household_Number, h.Street_Address, h.Household_Type, s.name as sitio_name,
-        v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent, v.Is_Out_of_School_Youth,
-        v.Vulnerability_Score, v.Disability_Type
-      FROM residents r
-      LEFT JOIN households h ON r.Household_ID = h.Household_ID
-      LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
-      WHERE r.Resident_ID = ?
-    `,
-      [req.params.id]
-    );
+    const residentService = new ResidentService(db);
+    const resident = await residentService.getById(req.params.id);
 
-    if (rows.length === 0) {
+    if (!resident) {
       return res.status(404).json({ error: 'Resident not found' });
     }
 
-    res.json(rows[0]);
+    res.json(resident);
   } catch (error) {
     console.error('Error fetching resident:', error);
     res.status(500).json({ error: 'Failed to fetch resident' });
@@ -152,23 +73,8 @@ exports.checkDuplicate = async (req, res) => {
 
   try {
     const { first_name, last_name, birthdate } = req.body || {};
-
-    if (!first_name || !last_name || !birthdate) {
-      return res.status(400).json({ error: 'First name, last name, and birthdate are required' });
-    }
-
-    const [duplicates] = await db.execute(
-      `
-      SELECT r.Resident_ID, r.First_Name, r.Last_Name, r.Birthdate, r.Residency_Status,
-        h.Household_Number, s.name as sitio_name
-      FROM residents r
-      LEFT JOIN households h ON r.Household_ID = h.Household_ID
-      LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      WHERE r.First_Name = ? AND r.Last_Name = ? AND r.Birthdate = ?
-      AND r.Residency_Status = 'Active'
-    `,
-      [first_name.trim(), last_name.trim(), birthdate]
-    );
+    const residentService = new ResidentService(db);
+    const duplicates = await residentService.checkDuplicate({ first_name, last_name, birthdate });
 
     res.json({
       is_duplicate: duplicates.length > 0,
@@ -179,6 +85,9 @@ exports.checkDuplicate = async (req, res) => {
           : 'No duplicates found. Safe to proceed.',
     });
   } catch (error) {
+    if (error.message === 'First name, last name, and birthdate are required') {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('Error checking duplicates:', error);
     res.status(500).json({ error: 'Failed to check for duplicates' });
   }
@@ -190,224 +99,40 @@ exports.create = async (req, res) => {
     return res.status(500).json({ error: 'Database connection not available' });
   }
 
-  const connection = await db.getConnection();
-
   try {
-    await connection.beginTransaction();
+    const { first_name, last_name, birthdate, household_id, email, gender } = req.body || {};
 
-    const {
-      household_id,
-      relation_to_head,
-      first_name,
-      middle_name,
-      last_name,
-      suffix,
-      birthdate,
-      birth_place,
-      gender,
-      civil_status,
-      occupation,
-      income_estimate,
-      email,
-      mobile_number,
-      voter_status,
-      date_arrival,
-      profile_photo_url,
-      is_4ps,
-      is_pwd,
-      is_solo_parent,
-      is_out_of_school_youth,
-      disability_type,
-    } = req.body || {};
-
-    // Validate required fields
     if (!first_name || !last_name || !birthdate || !household_id || !email || !gender) {
       return res.status(400).json({
         error: 'Required fields: first_name, last_name, birthdate, household_id, email, gender',
       });
     }
 
-    // Check for existing email in users table before starting transaction
-    const [existingUser] = await connection.execute('SELECT email FROM users WHERE email = ?', [
-      email.trim(),
-    ]);
-
-    if (existingUser.length > 0) {
-      // Connection released in finally block
-      return res.status(409).json({ error: 'Email address is already registered to another user' });
-    }
-
-    const [householdCheck] = await connection.execute(
-      'SELECT Household_ID FROM households WHERE Household_ID = ?',
-      [household_id]
-    );
-    if (householdCheck.length === 0) {
-      connection.release(); // Release early
-      return res.status(400).json({ error: 'Invalid household_id - household does not exist' });
-    }
-
-    const residentId = `RES-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-    const qrHash = crypto
-      .createHash('sha256')
-      .update(`${residentId}-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`)
-      .digest('hex')
-      .substring(0, 16)
-      .toUpperCase();
-
-    // Generate temporary password for resident login
-    const tempPassword = crypto.randomBytes(8).toString('hex');
-    const hashedPassword = await bcrypt.hash(tempPassword, 10);
-
-    const age = calculateAge(birthdate);
-
-    // Prepare values, converting undefined/empty to null where appropriate
-    const safeMiddleName = middle_name?.trim() || null;
-    const safeSuffix = suffix?.trim() || null;
-    const safeBirthPlace = birth_place?.trim() || null;
-    const safeOccupation = occupation?.trim() || null;
-    const safeMobile = mobile_number?.trim() || null;
-    const safePhoto = profile_photo_url?.trim() || null;
-    const safeDisability = disability_type?.trim() || null;
-    const safeDateArrival = date_arrival || null;
-
-    await connection.execute(
-      `
-      INSERT INTO residents (
-        Resident_ID, Household_ID, Relation_to_Head, First_Name, Middle_Name, Last_Name, Suffix,
-        Birthdate, Birth_Place, Age, Gender, Civil_Status, Occupation, Income_Estimate, Email, Mobile_Number,
-        Voter_Status, Date_Arrival, Residency_Status, Profile_Photo_URL, QR_Hash_String
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-      [
-        residentId,
-        household_id,
-        relation_to_head || 'Head',
-        first_name.trim(),
-        safeMiddleName,
-        last_name.trim(),
-        safeSuffix,
-        birthdate,
-        safeBirthPlace,
-        age,
-        gender,
-        civil_status || 'Single',
-        safeOccupation,
-        income_estimate || 0,
-        email.trim(),
-        safeMobile,
-        voter_status || 'Non-Registered',
-        safeDateArrival,
-        'Active',
-        safePhoto,
-        qrHash,
-      ]
-    );
-
-    // Create user account for resident
-    await connection.execute(
-      `
-      INSERT INTO users (username, email, password_hash, role, resident_id, is_active)
-      VALUES (?, ?, ?, ?, ?, 1)
-    `,
-      [email.trim(), email.trim(), hashedPassword, ROLES.RESIDENT || 12, residentId]
-    );
-
-    await connection.execute(
-      `
-      INSERT INTO vulnerabilities (
-        Resident_ID, Is_4Ps, Is_PWD, Is_Solo_Parent, Is_Out_of_School_Youth, Disability_Type
-      ) VALUES (?, ?, ?, ?, ?, ?)
-    `,
-      [
-        residentId,
-        is_4ps || false,
-        is_pwd || false,
-        is_solo_parent || false,
-        is_out_of_school_youth || false,
-        safeDisability,
-      ]
-    );
-
-    // Handle document uploads
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        // Extract document type from fieldname (e.g., "document_valid_id" -> "valid_id")
-        const docType = file.fieldname.replace('document_', '');
-
-        let storedPath = file.path;
-        let encryptionMeta = {
-          encryption_alg: null,
-          encryption_version: null,
-          encryption_iv: null,
-          encryption_tag: null,
-        };
-        if (isEncryptionEnabled()) {
-          const encrypted = await encryptFileToEncryptedPath(file.path);
-          storedPath = encrypted.outputPath;
-          encryptionMeta = encrypted;
-        }
-
-        await connection.execute(
-          `
-          INSERT INTO resident_documents (
-            resident_id, document_type, file_path, file_name, verification_status, created_at,
-            encryption_alg, encryption_version, encryption_iv, encryption_tag
-          ) VALUES (?, ?, ?, ?, 'pending', NOW(), ?, ?, ?, ?)
-        `,
-          [
-            residentId,
-            docType,
-            storedPath,
-            file.originalname,
-            encryptionMeta.encryption_alg,
-            encryptionMeta.encryption_version,
-            encryptionMeta.encryption_iv,
-            encryptionMeta.encryption_tag,
-          ]
-        );
-      }
-    }
-
-    await connection.execute(
-      `
-      UPDATE households SET Total_Members = Total_Members + 1 WHERE Household_ID = ?
-    `,
-      [household_id]
-    );
-
-    await connection.commit();
+    const residentService = new ResidentService(db);
+    const result = await residentService.create(req.body, req.files);
 
     res.status(201).json({
-      resident_code: residentId,
-      user_email: email.trim(),
-      temp_password: tempPassword,
-      qr_hash: qrHash,
+      ...result,
       message: 'Resident created successfully',
     });
   } catch (error) {
-    if (connection) {
-      try {
-        await connection.rollback();
-      } catch (rbError) {
-        console.error('Rollback failed:', rbError);
-      }
-    }
     console.error('Error creating resident:', error);
 
-    // Improved error response
-    const errorMessage =
-      error.code === 'ER_DUP_ENTRY'
-        ? 'Duplicate entry found (possibly email or ID).'
-        : process.env.NODE_ENV === 'development'
-          ? error.message
-          : 'Failed to create resident';
+    let errorMessage = 'Failed to create resident';
+    if (error.code === 'ER_DUP_ENTRY') {
+      errorMessage = 'Duplicate entry found (possibly email or ID).';
+    } else if (error.message.includes('Email address is already registered')) {
+      return res.status(409).json({ error: error.message });
+    } else if (error.message.includes('Invalid household_id')) {
+      return res.status(400).json({ error: error.message });
+    } else if (process.env.NODE_ENV === 'development') {
+      errorMessage = error.message;
+    }
 
     res.status(500).json({
       error: errorMessage,
       details: process.env.NODE_ENV === 'development' ? error.toString() : undefined,
     });
-  } finally {
-    if (connection) connection.release();
   }
 };
 
@@ -417,206 +142,16 @@ exports.update = async (req, res) => {
     return res.status(500).json({ error: 'Database connection not available' });
   }
 
-  const connection = await db.getConnection();
-
   try {
-    await connection.beginTransaction();
-
-    const residentId = req.params.id;
-    const {
-      household_id,
-      relation_to_head,
-      first_name,
-      middle_name,
-      last_name,
-      suffix,
-      birthdate,
-      birth_place,
-      gender,
-      civil_status,
-      occupation,
-      income_estimate,
-      mobile_number,
-      voter_status,
-      date_arrival,
-      residency_status,
-      profile_photo_url,
-      is_4ps,
-      is_pwd,
-      is_solo_parent,
-      is_out_of_school_youth,
-      disability_type,
-    } = req.body || {};
-
-    const residentUpdates = [];
-    const residentValues = [];
-
-    if (household_id !== undefined) {
-      residentUpdates.push('Household_ID = ?');
-      residentValues.push(household_id);
-    }
-    if (relation_to_head !== undefined) {
-      residentUpdates.push('Relation_to_Head = ?');
-      residentValues.push(relation_to_head);
-    }
-    if (first_name !== undefined) {
-      residentUpdates.push('First_Name = ?');
-      residentValues.push(first_name.trim());
-    }
-    if (middle_name !== undefined) {
-      residentUpdates.push('Middle_Name = ?');
-      residentValues.push(middle_name?.trim() || null);
-    }
-    if (last_name !== undefined) {
-      residentUpdates.push('Last_Name = ?');
-      residentValues.push(last_name.trim());
-    }
-    if (suffix !== undefined) {
-      residentUpdates.push('Suffix = ?');
-      residentValues.push(suffix?.trim() || null);
-    }
-    if (birthdate !== undefined) {
-      residentUpdates.push('Birthdate = ?');
-      residentValues.push(birthdate);
-      const age = calculateAge(birthdate);
-      residentUpdates.push('Age = ?');
-      residentValues.push(age);
-    }
-    if (birth_place !== undefined) {
-      residentUpdates.push('Birth_Place = ?');
-      residentValues.push(birth_place?.trim() || null);
-    }
-    if (gender !== undefined) {
-      residentUpdates.push('Gender = ?');
-      residentValues.push(gender);
-    }
-    if (civil_status !== undefined) {
-      const validStatuses = ['Single', 'Married', 'Widowed', 'Divorced'];
-      if (!validStatuses.includes(civil_status)) {
-        connection.release();
-        return res.status(400).json({ error: 'Invalid civil_status' });
-      }
-      residentUpdates.push('Civil_Status = ?');
-      residentValues.push(civil_status);
-    }
-    if (occupation !== undefined) {
-      residentUpdates.push('Occupation = ?');
-      residentValues.push(occupation?.trim() || null);
-    }
-    if (income_estimate !== undefined) {
-      residentUpdates.push('Income_Estimate = ?');
-      residentValues.push(income_estimate);
-    }
-    if (mobile_number !== undefined) {
-      residentUpdates.push('Mobile_Number = ?');
-      residentValues.push(mobile_number?.trim() || null);
-    }
-    if (voter_status !== undefined) {
-      residentUpdates.push('Voter_Status = ?');
-      residentValues.push(voter_status);
-    }
-    if (date_arrival !== undefined) {
-      residentUpdates.push('Date_Arrival = ?');
-      residentValues.push(date_arrival || null);
-    }
-    if (residency_status !== undefined) {
-      const validResidencyStatuses = ['Active', 'Deceased', 'Transferred Out', 'Unknown'];
-      if (!validResidencyStatuses.includes(residency_status)) {
-        connection.release();
-        return res.status(400).json({ error: 'Invalid residency_status' });
-      }
-      residentUpdates.push('Residency_Status = ?');
-      residentValues.push(residency_status);
-    }
-    if (profile_photo_url !== undefined) {
-      residentUpdates.push('Profile_Photo_URL = ?');
-      residentValues.push(profile_photo_url?.trim() || null);
-    }
-
-    if (residentUpdates.length > 0) {
-      const residentSql = `UPDATE residents SET ${residentUpdates.join(', ')} WHERE Resident_ID = ?`;
-      residentValues.push(residentId);
-      await connection.execute(residentSql, residentValues);
-    }
-
-    const vulnUpdates = [];
-    const vulnValues = [];
-
-    if (is_4ps !== undefined) {
-      vulnUpdates.push('Is_4Ps = ?');
-      vulnValues.push(is_4ps);
-    }
-    if (is_pwd !== undefined) {
-      vulnUpdates.push('Is_PWD = ?');
-      vulnValues.push(is_pwd);
-    }
-    if (is_solo_parent !== undefined) {
-      vulnUpdates.push('Is_Solo_Parent = ?');
-      vulnValues.push(is_solo_parent);
-    }
-    if (is_out_of_school_youth !== undefined) {
-      vulnUpdates.push('Is_Out_of_School_Youth = ?');
-      vulnValues.push(is_out_of_school_youth);
-    }
-    if (disability_type !== undefined) {
-      vulnUpdates.push('Disability_Type = ?');
-      vulnValues.push(disability_type?.trim() || null);
-    }
-
-    if (vulnUpdates.length > 0) {
-      const vulnSql = `UPDATE vulnerabilities SET ${vulnUpdates.join(', ')} WHERE Resident_ID = ?`;
-      vulnValues.push(residentId);
-      await connection.execute(vulnSql, vulnValues);
-    }
-
-    // Handle document uploads
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        // Extract document type from fieldname (e.g., "document_valid_id" -> "valid_id")
-        const docType = file.fieldname.replace('document_', '');
-
-        let storedPath = file.path;
-        let encryptionMeta = {
-          encryption_alg: null,
-          encryption_version: null,
-          encryption_iv: null,
-          encryption_tag: null,
-        };
-        if (isEncryptionEnabled()) {
-          const encrypted = await encryptFileToEncryptedPath(file.path);
-          storedPath = encrypted.outputPath;
-          encryptionMeta = encrypted;
-        }
-
-        await connection.execute(
-          `
-          INSERT INTO resident_documents (
-            resident_id, document_type, file_path, file_name, verification_status, created_at,
-            encryption_alg, encryption_version, encryption_iv, encryption_tag
-          ) VALUES (?, ?, ?, ?, 'pending', NOW(), ?, ?, ?, ?)
-        `,
-          [
-            residentId,
-            docType,
-            storedPath,
-            file.originalname,
-            encryptionMeta.encryption_alg,
-            encryptionMeta.encryption_version,
-            encryptionMeta.encryption_iv,
-            encryptionMeta.encryption_tag,
-          ]
-        );
-      }
-    }
-
-    await connection.commit();
+    const residentService = new ResidentService(db);
+    await residentService.update(req.params.id, req.body, req.files);
     res.json({ message: 'Resident updated successfully' });
   } catch (error) {
-    await connection.rollback();
     console.error('Error updating resident:', error);
+    if (error.message.includes('Invalid')) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({ error: 'Failed to update resident' });
-  } finally {
-    connection.release();
   }
 };
 
@@ -626,43 +161,13 @@ exports.archive = async (req, res) => {
     return res.status(500).json({ error: 'Database connection not available' });
   }
 
-  const connection = await db.getConnection();
-
   try {
-    await connection.beginTransaction();
-
-    const residentId = req.params.id;
-
-    const { departure_reason, departure_date } = req.body;
-
-    await connection.execute(
-      `
-      UPDATE residents 
-      SET Residency_Status = 'Transferred Out', 
-          Departure_Reason = ?, 
-          Departure_Date = ?, 
-          updated_at = CURRENT_TIMESTAMP
-      WHERE Resident_ID = ?
-    `,
-      [departure_reason || null, departure_date || null, residentId]
-    );
-
-    await connection.execute(
-      `
-      UPDATE households SET Total_Members = Total_Members - 1
-      WHERE Household_ID = (SELECT Household_ID FROM residents WHERE Resident_ID = ?)
-    `,
-      [residentId]
-    );
-
-    await connection.commit();
+    const residentService = new ResidentService(db);
+    await residentService.archive(req.params.id, req.body);
     res.json({ message: 'Resident archived successfully', status: 'Transferred Out' });
   } catch (error) {
-    await connection.rollback();
     console.error('Error archiving resident:', error);
     res.status(500).json({ error: 'Failed to archive resident' });
-  } finally {
-    connection.release();
   }
 };
 
@@ -1232,25 +737,29 @@ exports.exportResidents = async (req, res) => {
     }
 
     if (format === 'csv' || format === 'xlsx') {
-      const wb = xlsx.utils.book_new();
-      const ws = xlsx.utils.json_to_sheet(rows);
-      xlsx.utils.book_append_sheet(wb, ws, 'Residents');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Residents');
+
+      if (rows.length > 0) {
+        worksheet.columns = Object.keys(rows[0]).map(key => ({ header: key, key }));
+        worksheet.addRows(rows);
+      }
 
       if (format === 'csv') {
-        const csv = xlsx.utils.sheet_to_csv(ws);
         res.header('Content-Type', 'text/csv');
         res.attachment('residents_export.csv');
-        return res.send(csv);
+        await workbook.csv.write(res);
+        return;
       }
 
       if (format === 'xlsx') {
-        const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
         res.header(
           'Content-Type',
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         );
         res.attachment('residents_export.xlsx');
-        return res.send(buffer);
+        await workbook.xlsx.write(res);
+        return;
       }
     }
 
@@ -1276,10 +785,42 @@ exports.importResidents = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    const workbook = xlsx.readFile(req.file.path);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = xlsx.utils.sheet_to_json(worksheet);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(req.file.path);
+    const worksheet = workbook.getWorksheet(1); // Get first sheet
+
+    const data = [];
+    if (worksheet) {
+      // Get headers from first row
+      const headers = [];
+      const headerRow = worksheet.getRow(1);
+      headerRow.eachCell((cell, colNumber) => {
+        headers[colNumber] = cell.text; // Store header by column index
+      });
+
+      // Iterate rows starting from 2
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return; // Skip header
+        const rowData = {};
+        row.eachCell((cell, colNumber) => {
+          const header = headers[colNumber];
+          if (header) {
+            // Basic value extraction, might need more robust type handling depending on ExcelJS version
+            rowData[header] = cell.value;
+            // Handle rich text or formulas if necessary, but .value is usually sufficient for simple imports
+            if (typeof cell.value === 'object' && cell.value !== null) {
+              if (cell.value.text)
+                rowData[header] = cell.value.text; // Hyperlink or RichText
+              else if (cell.value.result) rowData[header] = cell.value.result; // Formula
+            }
+          }
+        });
+        // Only add if row has data
+        if (Object.keys(rowData).length > 0) {
+          data.push(rowData);
+        }
+      });
+    }
 
     if (!data || data.length === 0) {
       fs.unlinkSync(req.file.path); // Clean up

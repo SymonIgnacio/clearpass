@@ -1,1 +1,31 @@
-{"rewrites":[{"source":"/(.*)","destination":"/index.html"}]}
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server/index.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "ai_service/suggestion_engine.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/ai-service/(.*)",
+      "dest": "ai_service/suggestion_engine.py"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "server/index.js"
+    },
+    {
+      "src": "/health",
+      "dest": "server/index.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "PYTHON_VERSION": "3.12"
+  }
+}

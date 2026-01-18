@@ -4,7 +4,9 @@ const { verifyToken, verifyRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { ROLES } = require('../config/roles');
 
-// Simple ID validation middleware
+console.log('DEBUG: programRoutes.js ROLES:', ROLES);
+
+// ...Simple ID validation middleware
 const validateId = (req, res, next) => {
   const id = parseInt(req.params.id);
   if (isNaN(id) || id <= 0) {
@@ -48,12 +50,14 @@ module.exports = (db) => {
   // POST create program (Admin, Captain, Secretary)
   router.post('/', verifyToken, verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY]), asyncHandler(async (req, res) => {
     try {
-      const { title, description, program_date, location, target_participants } = req.body;
+      const { program_name, description, program_date, sitio_id, target_beneficiaries, status } = req.body;
+      const id = `PROG-${Date.now()}`;
+      
       const [result] = await db.execute(
-        'INSERT INTO community_programs (title, description, program_date, location, target_participants, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
-        [title, description, program_date, location, target_participants, req.user.id]
+        'INSERT INTO community_programs (id, program_name, description, program_date, sitio_id, target_beneficiaries, status, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+        [id, program_name, description, program_date, sitio_id || null, JSON.stringify(target_beneficiaries || []), status || 'Planned', req.user.id]
       );
-      res.status(201).json({ id: result.insertId, message: 'Program created successfully' });
+      res.status(201).json({ id: id, message: 'Program created successfully' });
     } catch (error) {
       console.error('Error creating program:', error);
       res.status(500).json({ error: 'Failed to create program' });
@@ -63,10 +67,10 @@ module.exports = (db) => {
   // PUT update program (Admin, Captain, Secretary)
   router.put('/:id', verifyToken, verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY]), validateId, asyncHandler(async (req, res) => {
     try {
-      const { title, description, program_date, location, target_participants } = req.body;
+      const { program_name, description, program_date, sitio_id, target_beneficiaries, status } = req.body;
       await db.execute(
-        'UPDATE community_programs SET title = ?, description = ?, program_date = ?, location = ?, target_participants = ?, updated_at = NOW() WHERE id = ?',
-        [title, description, program_date, location, target_participants, req.params.id]
+        'UPDATE community_programs SET program_name = ?, description = ?, program_date = ?, sitio_id = ?, target_beneficiaries = ?, status = ?, updated_at = NOW() WHERE id = ?',
+        [program_name, description, program_date, sitio_id || null, JSON.stringify(target_beneficiaries || []), status, req.params.id]
       );
       res.json({ message: 'Program updated successfully' });
     } catch (error) {

@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { cacheMiddleware } = require('../utils/cache');
 
 module.exports = (db) => {
   // GET all announcements (public)
-  router.get('/', asyncHandler(async (req, res) => {
+  router.get('/', cacheMiddleware(300), asyncHandler(async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     

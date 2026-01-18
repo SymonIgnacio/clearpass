@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../database');
 const { createErrorResponse, createSuccessResponse } = require('../middleware/errorHandler');
+const { logger } = require('../middleware/logger');
 const { ROLE_MAP } = require('../middleware/authMiddleware');
 const { ROLES } = require('../config/roles');
 const { isMfaEnforced } = require('../config/mfa');
@@ -29,7 +30,7 @@ const normalizeRole = role => {
 const login = async (req, res) => {
   try {
     const { username, password } = req.body;
-    process.stderr.write(`DEBUG: Login attempt for ${username}\n`);
+    logger.debug(`Login attempt for ${username}`);
 
     // Input validation
     if (!username || !password) {
@@ -57,7 +58,7 @@ const login = async (req, res) => {
     );
 
     if (users.length === 0) {
-      process.stderr.write(`DEBUG: User ${username} not found\n`);
+      logger.warn(`Login failed: User ${username} not found`);
       return res.status(401).json(createErrorResponse('Invalid credentials', 401));
     }
 
@@ -81,14 +82,14 @@ const login = async (req, res) => {
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
-    process.stderr.write(`DEBUG: Password match for ${username}: ${isValidPassword}\n`);
+    // logger.debug(`Password match for ${username}: ${isValidPassword}`); // Sensitive info hidden
 
     if (!isValidPassword) {
       return res.status(401).json(createErrorResponse('Invalid credentials', 401));
     }
 
     if (!process.env.JWT_SECRET) {
-      console.error('JWT_SECRET not configured');
+      logger.error('JWT_SECRET not configured');
       return res.status(500).json(createErrorResponse('Server configuration error', 500));
     }
 
@@ -127,6 +128,10 @@ const login = async (req, res) => {
     }
 
     // CLEARPASS: JWT with role (Database Aligned)
+    const signOptions = mfaRequired
+      ? { expiresIn: process.env.MFA_PENDING_JWT_EXPIRES_IN || '15m' }
+      : {};
+
     const token = jwt.sign(
       {
         id: user.id,
@@ -137,21 +142,18 @@ const login = async (req, res) => {
         mfa_verified: !mfaRequired,
       },
       process.env.JWT_SECRET,
-      {
-        expiresIn: mfaRequired
-          ? process.env.MFA_PENDING_JWT_EXPIRES_IN || '15m'
-          : process.env.JWT_EXPIRES_IN || '24h',
-      }
+      signOptions
     );
 
     // Set httpOnly cookie
-    res.cookie('authToken', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    });
+    if (!mfaRequired) {
+      res.cookie('authToken', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year (effectively indefinite)
+      });
+    }
 
     const auditDetails = {
       user_id: user.id,
@@ -183,7 +185,7 @@ const login = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
+    logger.error('Login error:', error);
     res.status(500).json(createErrorResponse('Login failed', 500));
   }
 };
@@ -212,7 +214,7 @@ const register = async (req, res) => {
 
     res.status(201).json({ success: true, message: 'User created successfully' });
   } catch (error) {
-    console.error('Registration error:', error);
+    logger.error('Registration error:', error);
     res.status(500).json({ error: 'Registration failed' });
   }
 };
@@ -229,7 +231,7 @@ const logout = async (req, res) => {
 
     res.json({ success: true, message: 'Logged out successfully' });
   } catch (error) {
-    console.error('Logout error:', error);
+    logger.error('Logout error:', error);
     res.status(500).json({ error: 'Logout failed' });
   }
 };
@@ -283,7 +285,7 @@ const me = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Me endpoint error:', error);
+    logger.error('Me endpoint error:', error);
     res.status(500).json({ error: 'Failed to get user info' });
   }
 };
@@ -341,7 +343,7 @@ const requestMfaOtp = async (req, res) => {
       })
     );
   } catch (error) {
-    console.error('MFA OTP request error:', error);
+    logger.error('MFA OTP request error:', error);
     return res.status(500).json(createErrorResponse('Failed to send OTP', 500));
   }
 };
@@ -404,6 +406,7 @@ const verifyMfaOtpCode = async (req, res) => {
     const user = users[0];
     const normalizedRole = normalizeRole(user.role);
 
+    // Generate full JWT token (No expiration)
     const token = jwt.sign(
       {
         id: user.id,
@@ -412,15 +415,15 @@ const verifyMfaOtpCode = async (req, res) => {
         role_name: user.role_name,
         mfa_verified: true,
       },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+      process.env.JWT_SECRET
+      // No expiresIn option means the token never expires
     );
 
     res.cookie('authToken', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000,
+      sameSite: 'lax', // Needed for some cross-site scenarios, or 'strict' if same domain
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year (effectively indefinite)
     });
 
     const auditDetails = {
@@ -452,7 +455,7 @@ const verifyMfaOtpCode = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('MFA OTP verify error:', error);
+    logger.error('MFA OTP verify error:', error);
     return res.status(500).json(createErrorResponse('OTP verification failed', 500));
   }
 };
@@ -624,7 +627,7 @@ const verifyEmailForResidency = async (req, res) => {
     ]);
     res.json({ success: true, message: 'Email verified for residency' });
   } catch (error) {
-    console.error('Verify email error:', error);
+    logger.error('Verify email error:', error);
     res.status(500).json({ error: 'Failed to verify email', message: 'Failed to verify email' });
   }
 };

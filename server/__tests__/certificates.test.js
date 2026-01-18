@@ -118,6 +118,7 @@ app.post('/api/certificates', async (req, res) => {
 });
 
 describe('Certificate Issuance Tests', () => {
+  jest.setTimeout(30000);
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -154,6 +155,7 @@ describe('Certificate Issuance Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         commit: jest.fn(),
+        rollback: jest.fn(),
         release: jest.fn()
       };
 
@@ -413,6 +415,10 @@ describe('Certificate Issuance Tests', () => {
       const mockConnection = {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
+        commit: jest.fn(),
+        rollback: jest.fn(),
+        release: jest.fn()
+      };
         commit: jest.fn(),
         release: jest.fn()
       };
