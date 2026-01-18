@@ -845,17 +845,17 @@ router.get(
 );
 
 // Certificates - Read access for staff roles
-router.get(
-  '/certificates',
-  verifyToken,
-  verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.CLERK]),
-  asyncHandler(async (req, res) => {
-    const [certificates] = await db.execute(
-      'SELECT * FROM certificates_log ORDER BY created_at DESC'
-    );
-    res.json(certificates);
-  })
-);
+// router.get(
+//   '/certificates',
+//   verifyToken,
+//   verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.CLERK]),
+//   asyncHandler(async (req, res) => {
+//     const [certificates] = await db.execute(
+//       'SELECT * FROM certificates_log ORDER BY created_at DESC'
+//     );
+//     res.json(certificates);
+//   })
+// );
 
 // Blotter Cases - Read access for staff roles
 router.get(
@@ -1218,7 +1218,7 @@ router.put(
 router.put(
   '/residents/:id/archive',
   verifyToken,
-  verifyRole([ROLES.ADMIN, ROLES.CAPTAIN]),
+  verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY]),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { departure_reason, departure_date } = req.body;

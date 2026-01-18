@@ -3,24 +3,45 @@ const { ROLES } = require('../config/roles');
 exports.create = async (req, res) => {
   const db = req.app.locals.db;
   try {
-    const { resident_id, certificate_type, purpose, quantity } = req.body;
+    const { 
+      resident_id, 
+      certificate_type, 
+      purpose, 
+      quantity,
+      // Manual fields
+      resident_name,
+      address,
+      manual_certificate,
+      signatory_captain,
+      signatory_secretary,
+      issued_date,
+      control_number
+    } = req.body;
     
-    // Generate control number
-    const controlNo = `CERT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    // Generate control number if not provided
+    const controlNo = control_number || `CERT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const qrString = `QR-${controlNo}`;
     
     // Insert into certificates_log
     await db.execute(
       `INSERT INTO certificates_log (
         control_no, resident_id, certificate_type, purpose, 
-        date_issued, qr_validation_string, status, fee_amount, created_at
-      ) VALUES (?, ?, ?, ?, NOW(), ?, 'Paid', 0, NOW())`,
+        date_issued, qr_validation_string, status, fee_amount, created_at,
+        resident_name, address, is_manual, signatory_captain, signatory_secretary
+      ) VALUES (?, ?, ?, ?, ?, ?, 'Paid', 0, NOW(), ?, ?, ?, ?, ?)`,
       [
         controlNo, 
-        resident_id, 
+        resident_id || null, 
         certificate_type || 'Barangay Clearance', 
         purpose || 'N/A', 
-        qrString
+        issued_date || new Date(),
+        qrString,
+        // New manual fields
+        resident_name || null,
+        address || null,
+        manual_certificate ? 1 : 0,
+        signatory_captain || null,
+        signatory_secretary || null
       ]
     );
 
@@ -54,9 +75,13 @@ exports.getAll = async (req, res) => {
       values = [req.user.resident_id || req.user.id];
     } else {
       query = `
-        SELECT c.*, CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
+        SELECT c.*, 
+          COALESCE(c.resident_name, CONCAT(r.First_Name, ' ', r.Last_Name)) as resident_name,
+          COALESCE(c.address, CONCAT(h.Household_Number, ' ', h.Street_Address, ', ', s.name)) as address
         FROM certificates_log c
-        JOIN residents r ON c.resident_id = r.Resident_ID
+        LEFT JOIN residents r ON c.resident_id = r.Resident_ID
+        LEFT JOIN households h ON r.Household_ID = h.Household_ID
+        LEFT JOIN sitios s ON h.Sitio_ID = s.id
         ORDER BY c.created_at DESC
       `;
       values = [];

@@ -74,15 +74,20 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
       roles: [12]
     },
     {
-      text: 'My Services',
+      text: 'Resident Portal',
       icon: <Person />,
       key: 'residentServices',
-      roles: [12],
+      roles: [12, 13],
       children: [
         {
           text: 'My Profile',
           path: '/resident/profile',
-          roles: [12]
+          roles: [12, 13]
+        },
+        {
+          text: 'My Documents',
+          path: '/resident/documents',
+          roles: [12, 13]
         },
         {
           text: 'Request Certificate',
@@ -128,7 +133,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
           roles: [1, 4] // Admin, Clerk
         },
         {
-          text: 'Registration & Document Review',
+          text: 'Residency Verification',
           path: '/secretary/document-verification',
           roles: [1, 3] // Admin, Secretary
         },
@@ -148,16 +153,6 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         {
           text: 'Blotter Records',
           path: '/blotter',
-          roles: [1, 6]
-        },
-        {
-          text: 'Attendance Log',
-          path: '/officer/attendance',
-          roles: [1, 6]
-        },
-        {
-          text: 'Officer Reports',
-          path: '/officer/reports',
           roles: [1, 6]
         }
       ]

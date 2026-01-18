@@ -15,7 +15,7 @@ const authLimiter = rateLimit({
   limit: 100, // Increased limit for testing
   message: { error: 'Too many authentication attempts, try again later' },
   standardHeaders: 'draft-7',
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 const registerLimiter = rateLimit({
@@ -23,223 +23,323 @@ const registerLimiter = rateLimit({
   limit: 3, // 3 registrations per hour
   message: { error: 'Too many registration attempts, try again later' },
   standardHeaders: 'draft-7',
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
-module.exports = (db) => {
+module.exports = db => {
   // Resident login endpoint
-  router.post('/login', authLimiter, asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+  router.post(
+    '/login',
+    authLimiter,
+    asyncHandler(async (req, res) => {
+      const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and password are required'
-      });
-    }
-
-    // Find resident by email
-    const [residents] = await db.execute(
-      'SELECT r.*, u.password_hash, u.role FROM residents r JOIN users u ON r.email = u.email WHERE r.email = ? AND (r.Residency_Status = "Active" OR r.Residency_Status = "Pending Verification")',
-      [email]
-    );
-
-    if (residents.length === 0) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials or inactive account'
-      });
-    }
-
-    const resident = residents[0];
-
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, resident.password_hash);
-    if (!isValidPassword) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
-    }
-
-    // Determine effective role (fallback to GUEST if status is Pending)
-    const effectiveRole = resident.Residency_Status === 'Pending Verification' ? 13 : (resident.role || 12);
-
-    // Generate JWT token
-    const token = jwt.sign(
-      {
-        id: resident.Resident_ID,
-        resident_id: resident.Resident_ID,
-        email: resident.email,
-        role: effectiveRole,
-        type: 'resident'
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    res.json({
-      success: true,
-      token,
-      user: {
-        id: resident.Resident_ID,
-        resident_id: resident.Resident_ID,
-        email: resident.email,
-        name: `${resident.First_Name} ${resident.Last_Name}`,
-        role: effectiveRole,
-        type: 'resident'
-      }
-    });
-  }));
-
-  // Resident registration endpoint
-  router.post('/register', registerLimiter, asyncHandler(async (req, res) => {
-    const {
-      first_name,
-      middle_name,
-      last_name,
-      email,
-      mobile_number,
-      birthdate,
-      gender,
-      civil_status,
-      password,
-      household_id,
-      sitio_id
-    } = req.body;
-
-    // Validation
-    if (!first_name || !last_name || !email || !password || !birthdate || !gender || !civil_status) {
-      return res.status(400).json({
-        success: false,
-        message: 'Required fields: first_name, last_name, email, password, birthdate, gender, civil_status'
-      });
-    }
-
-    // Check if email already exists
-    const [existingUsers] = await db.execute('SELECT email FROM users WHERE email = ?', [email]);
-    if (existingUsers.length > 0) {
-      return res.status(409).json({
-        success: false,
-        message: 'Email already registered'
-      });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Generate resident ID using crypto
-    const randomBytes = crypto.randomBytes(4);
-    const residentId = `RES-${Date.now()}-${randomBytes.toString('hex').toUpperCase()}`;
-
-    const connection = await db.getConnection();
-    try {
-      await connection.beginTransaction();
-
-      // Create resident record
-      await connection.execute(
-        `INSERT INTO residents (
-          Resident_ID, First_Name, Middle_Name, Last_Name, email, Mobile_Number,
-          Birthdate, Gender, Civil_Status, Household_ID, Date_Arrival, Residency_Status,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'Pending Verification', NOW(), NOW())`,
-        [residentId, first_name, middle_name || '', last_name, email, mobile_number || '', birthdate, gender, civil_status, household_id || null]
-      );
-
-      // Create user account
-      const [userResult] = await connection.execute(
-        'INSERT INTO users (username, email, password_hash, role, full_name, resident_id, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
-        [email, email, hashedPassword, 13, `${first_name} ${last_name}`, residentId, true] // Role 13 = GUEST
-      );
-      const userId = userResult.insertId;
-
-      // Send notifications
-      try {
-        const notificationController = new NotificationController(db);
-        const requirementsMsg = "Registration received. Please prepare the following requirements: Valid ID for 4Ps, PWD docs, and Barangay Clearance.";
-        
-        await notificationController.createNotification(
-          userId,
-          'Registration Successful - Requirements',
-          requirementsMsg,
-          'info',
-          'high'
-        );
-
-        await sendEmail({
-          to: email,
-          subject: 'Welcome to ClearPass - Requirements',
-          text: `Welcome ${first_name}!\n\n${requirementsMsg}\n\nYour account is pending verification.`,
-          html: `<div style="font-family: Arial, sans-serif; padding: 20px;"><h2>Welcome ${first_name}!</h2><p>${requirementsMsg}</p><p>Your account is pending verification.</p></div>`
+      if (!email || !password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email and password are required',
         });
-      } catch (notifyError) {
-        console.error('Failed to send registration notifications:', notifyError);
-        // Continue execution - don't fail registration
       }
 
-      await connection.commit();
+      // Find user by email (allow login even if not yet a full resident)
+      const [users] = await db.execute(
+        `SELECT u.*, r.Residency_Status, r.Resident_ID as real_resident_id, r.First_Name, r.Last_Name 
+       FROM users u 
+       LEFT JOIN residents r ON u.email = r.email 
+       WHERE u.email = ?`,
+        [email]
+      );
 
-      // Generate JWT token for auto-login
+      if (users.length === 0) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid credentials',
+        });
+      }
+
+      const user = users[0];
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, user.password_hash);
+      if (!isValidPassword) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid credentials',
+        });
+      }
+
+      // Check if account is active (users table)
+      if (!user.is_active) {
+        return res.status(401).json({
+          success: false,
+          message: 'Account is deactivated',
+        });
+      }
+
+      // Determine effective role and status
+      // If they have a resident record, use its status/role.
+      // If not, they are a Guest (Role 13) with pending/no application.
+      let effectiveRole = 13; // Default to Guest
+      let residentId = user.real_resident_id || user.resident_id || null;
+      let residencyStatus = user.Residency_Status || null;
+
+      if (residentId && residencyStatus) {
+        // Full resident
+        effectiveRole = user.role || 12; // Default to Resident (12)
+        if (residencyStatus === 'Pending Verification' || residencyStatus === 'Transient') {
+          effectiveRole = 13; // Treat as guest if pending
+        }
+      } else {
+        // Check for pending application if not a resident
+        const [apps] = await db.execute(
+          'SELECT status, application_id FROM resident_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1',
+          [email]
+        );
+        if (apps.length > 0) {
+          // Found an application
+          residencyStatus = apps[0].status === 'pending' ? 'Pending Verification' : apps[0].status;
+          // If they have an application, we might want to pass that ID or just keep them as Guest
+        }
+      }
+
+      // Generate JWT token
       const token = jwt.sign(
         {
-          id: residentId,
-          resident_id: residentId,
-          email: email,
-          role: 13, // Guest role (Pending)
-          type: 'resident'
+          id: user.id, // User ID
+          resident_id: residentId, // Might be null
+          email: user.email,
+          role: effectiveRole,
+          type: 'resident',
         },
         process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
 
-      res.status(201).json({
-        success: true,
-        message: 'Registration successful. Account pending verification.',
-        resident_id: residentId,
-        token,
-        user: {
-          id: residentId,
-          resident_id: residentId,
-          email: email,
-          name: `${first_name} ${last_name}`,
-          role: 13, // Guest role
-          type: 'resident'
-        }
+      // Set HTTP-only cookie (Session Cookie - clears on browser close)
+      res.cookie('authToken', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        // maxAge removed to make it a session cookie
       });
 
-    } catch (error) {
-      console.error('Registration error:', error);
-      await connection.rollback();
-      throw error;
-    } finally {
-      connection.release();
-    }
-  }));
+      res.json({
+        success: true,
+        token,
+        user: {
+          id: user.id,
+          resident_id: residentId,
+          email: user.email,
+          name: user.full_name || user.username,
+          role: effectiveRole,
+          type: 'resident',
+          residency_status: residencyStatus,
+        },
+      });
+    })
+  );
+
+  // Resident registration endpoint
+  router.post(
+    '/register',
+    registerLimiter,
+    asyncHandler(async (req, res) => {
+      const {
+        first_name,
+        middle_name,
+        last_name,
+        email,
+        mobile_number,
+        birthdate,
+        gender,
+        civil_status,
+        password,
+        street_address,
+        sitio,
+        birth_place,
+      } = req.body;
+
+      // Validation
+      if (
+        !first_name ||
+        !last_name ||
+        !email ||
+        !password ||
+        !birthdate ||
+        !gender ||
+        !civil_status ||
+        !street_address ||
+        !sitio
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'Required fields: first_name, last_name, email, password, birthdate, gender, civil_status, street_address, sitio',
+        });
+      }
+
+      // Check if email already exists
+      const [existingUsers] = await db.execute('SELECT email FROM users WHERE email = ?', [email]);
+      if (existingUsers.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: 'Email already registered',
+        });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Generate Application ID
+      const randomBytes = crypto.randomBytes(4);
+      const applicationId = `APP-${Date.now()}-${randomBytes.toString('hex').toUpperCase()}`;
+
+      const connection = await db.getConnection();
+      try {
+        await connection.beginTransaction();
+
+        // 1. Create Resident Application Record
+        // This holds the personal data until approved
+        await connection.execute(
+          `INSERT INTO resident_applications (
+          application_id, first_name, middle_name, last_name, email, mobile_number,
+          birthdate, birth_place, gender, civil_status, street_address, sitio,
+          status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())`,
+          [
+            applicationId,
+            first_name,
+            middle_name || '',
+            last_name,
+            email,
+            mobile_number || '',
+            birthdate,
+            birth_place || '',
+            gender,
+            civil_status,
+            street_address,
+            sitio,
+          ]
+        );
+
+        // 2. Create User Account (Role 13 = Guest)
+        const [userResult] = await connection.execute(
+          'INSERT INTO users (username, email, password_hash, role, full_name, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
+          [email, email, hashedPassword, 13, `${first_name} ${last_name}`, true]
+        );
+        const userId = userResult.insertId;
+
+        // Send notifications
+        try {
+          const notificationController = new NotificationController(db);
+          const requirementsMsg =
+            'Registration successful. Please log in and upload your Proof of Residency (Valid ID or Utility Bill) to complete your application.';
+
+          await notificationController.createNotification(
+            userId,
+            'Action Required: Upload Proof of Residency',
+            requirementsMsg,
+            'info',
+            'high'
+          );
+
+          await sendEmail({
+            to: email,
+            subject: 'Welcome to ClearPass - Action Required',
+            text: `Welcome ${first_name}!\n\n${requirementsMsg}\n\nYour account is currently under review.`,
+            html: `<div style="font-family: Arial, sans-serif; padding: 20px;"><h2>Welcome ${first_name}!</h2><p>${requirementsMsg}</p><p>Please log in to the portal to upload your documents.</p></div>`,
+          });
+        } catch (notifyError) {
+          console.error('Failed to send registration notifications:', notifyError);
+        }
+
+        await connection.commit();
+
+        // Generate JWT token for auto-login
+        const token = jwt.sign(
+          {
+            id: userId,
+            resident_id: null, // Not a resident yet
+            email: email,
+            role: 13, // Guest role
+            type: 'resident',
+          },
+          process.env.JWT_SECRET,
+          { expiresIn: '24h' }
+        );
+
+        // Set HTTP-only cookie (Session Cookie)
+        res.cookie('authToken', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          // maxAge removed
+        });
+
+        res.status(201).json({
+          success: true,
+          message: 'Registration successful. Please upload proof of residency.',
+          token,
+          user: {
+            id: userId,
+            resident_id: null,
+            email: email,
+            name: `${first_name} ${last_name}`,
+            role: 13,
+            role_name: ROLE_NAMES[13],
+            type: 'resident',
+            residency_status: 'Pending Verification',
+          },
+        });
+      } catch (error) {
+        console.error('Registration error:', error);
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
+    })
+  );
 
   // Resident profile endpoint
-  router.get('/profile', verifyToken, checkRole(['resident']), asyncHandler(async (req, res) => {
-    const [residents] = await db.execute(
-      `SELECT r.*, h.Household_Number, s.name as sitio_name, v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent
+  router.get(
+    '/profile',
+    verifyToken,
+    checkRole(['resident']),
+    asyncHandler(async (req, res) => {
+      // If the user has no resident_id in the token, checkRole should block them (Role 13 vs 12).
+      // But if they somehow get here with a null resident_id, we should handle it.
+
+      if (!req.user.resident_id) {
+        return res.status(404).json({
+          success: false,
+          message: 'Resident profile not found. Application may be pending.',
+        });
+      }
+
+      const [residents] = await db.execute(
+        `SELECT r.*, h.Household_Number, s.name as sitio_name, v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent
        FROM residents r
        LEFT JOIN households h ON r.Household_ID = h.Household_ID
        LEFT JOIN sitios s ON h.Sitio_ID = s.id
        LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
        WHERE r.Resident_ID = ?`,
-      [req.user.id]
-    );
+        [req.user.resident_id]
+      );
 
-    if (residents.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Resident profile not found'
+      if (residents.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Resident profile not found',
+        });
+      }
+
+      res.json({
+        success: true,
+        profile: residents[0],
       });
-    }
-
-    res.json({
-      success: true,
-      profile: residents[0]
-    });
-  }));
+    })
+  );
 
   return router;
 };

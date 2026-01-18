@@ -38,13 +38,12 @@ const ClerkAIInsights = lazy(() => import('./pages/ClerkAIInsights'))
 const CaseDetail = lazy(() => import('./pages/CaseDetail'))
 const ResidentProfile = lazy(() => import('./pages/ResidentProfile'))
 const ComplaintHistory = lazy(() => import('./pages/ComplaintHistory'))
+const ResidentDocuments = lazy(() => import('./pages/ResidentDocuments'))
 const ResidentBlotterReport = lazy(() => import('./pages/ResidentBlotterReport'))
 const SystemLogs = lazy(() => import('./pages/admin/SystemLogs'))
 const StaffManagement = lazy(() => import('./pages/admin/StaffManagement'))
 const AIPatrol = lazy(() => import('./pages/AIPatrol'))
 const RondaAnalytics = lazy(() => import('./pages/RondaAnalytics'))
-const OfficerAttendance = lazy(() => import('./pages/OfficerAttendance'))
-const OfficerReports = lazy(() => import('./pages/OfficerReports'))
 const SecretarySettings = lazy(() => import('./pages/SecretarySettings'))
 const AccountVerification = lazy(() => import('./components/AccountVerification'))
 const BeneficiaryValidation = lazy(() => import('./pages/BeneficiaryValidation'))
@@ -59,7 +58,7 @@ const BlotterDashboard = lazy(() => import('./pages/dashboards/BlotterDashboard'
 const RoleBasedDashboard = () => {
   const { user } = useAuth()
   
-  if (user && parseInt(user.role) === 12) {
+  if (user && (parseInt(user.role) === 12 || parseInt(user.role) === 13)) {
     return <Navigate to="/resident/dashboard" replace />
   }
   
@@ -454,16 +453,6 @@ function App() {
                 <Navigate to="/blotter?new=1" replace />
               </ProtectedRoute>
             } />
-            <Route path="officer/attendance" element={
-              <ProtectedRoute requiredRoles={[1, 6]}>
-                <OfficerAttendance />
-              </ProtectedRoute>
-            } />
-            <Route path="officer/reports" element={
-              <ProtectedRoute requiredRoles={[1, 6]}>
-                <OfficerReports />
-              </ProtectedRoute>
-            } />
 
             {/* Admin Routes - IT Admin Only */}
             <Route path="admin/staff" element={
@@ -485,7 +474,7 @@ function App() {
 
             {/* Resident Routes */}
             <Route path="resident/dashboard" element={
-              <ProtectedRoute requiredRoles={[12]}>
+              <ProtectedRoute requiredRoles={[12, 13]}>
                 <ResidentDashboard />
               </ProtectedRoute>
             } />
@@ -512,6 +501,11 @@ function App() {
             <Route path="resident/complaints" element={
               <ProtectedRoute requiredRoles={[12]}>
                 <ComplaintHistory />
+              </ProtectedRoute>
+            } />
+            <Route path="resident/documents" element={
+              <ProtectedRoute requiredRoles={[12, 13]}>
+                <ResidentDocuments />
               </ProtectedRoute>
             } />
 

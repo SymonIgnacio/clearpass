@@ -118,8 +118,23 @@ const DocumentVerification = () => {
 
       if (response.ok) {
         const data = await response.json().catch(() => null)
+        
+        // Optimistic Update
+        if (filterStatus === 'pending') {
+          setApplications(prev => prev.filter(app => app.application_id !== applicationId))
+        } else {
+          setApplications(prev => prev.map(app => 
+            app.application_id === applicationId ? { ...app, status: action === 'approve' ? 'approved' : 'rejected' } : app
+          ))
+        }
+
+        // Close modals if open
+        if (selectedApplication?.application_id === applicationId) {
+          setSelectedApplication(null)
+        }
+
         fetchApplications()
-        setSelectedApplication(null)
+        
         if (action === 'approve' && data?.credentials?.email && data?.credentials?.temp_password) {
           // Show credentials modal instead of alert
           setNewCredentials({
@@ -162,6 +177,24 @@ const DocumentVerification = () => {
       await handleApplicationAction(rejectionAction.id, 'reject', reason)
     }
     setRejectionAction(null)
+  }
+
+  const openApprovalConfirmation = () => {
+    setConfirmationAction({
+      id: selectedApplication.application_id,
+      title: 'Approve Application',
+      message: 'Are you sure you want to approve this resident application? This will create a new resident record and user account.',
+      icon: 'success'
+    })
+    setConfirmationModalOpen(true)
+  }
+
+  const handleConfirmationConfirm = async () => {
+    setConfirmationModalOpen(false)
+    if (confirmationAction) {
+      await handleApplicationAction(confirmationAction.id, 'approve')
+      setConfirmationAction(null)
+    }
   }
 
   return (
@@ -263,7 +296,7 @@ const DocumentVerification = () => {
         maxWidth="md" 
         fullWidth
       >
-        <DialogTitle>Review Registration Application</DialogTitle>
+        <DialogTitle>Review Residency Application</DialogTitle>
         <DialogContent>
           {selectedApplication && (
             <Box>
@@ -372,21 +405,25 @@ const DocumentVerification = () => {
             setSelectedApplication(null)
             setSelectedApplicationDocuments([])
           }}>Cancel</Button>
-          <Button 
-            color="error" 
-            startIcon={<Cancel />}
-            onClick={() => openRejectionModal('application', selectedApplication.application_id)}
-          >
-            Reject
-          </Button>
-          <Button 
-            color="success" 
-            variant="contained" 
-            startIcon={<CheckCircle />}
-            onClick={() => handleApplicationAction(selectedApplication.application_id, 'approve')}
-          >
-            Approve
-          </Button>
+          {selectedApplication?.status === 'pending' && (
+            <>
+              <Button 
+                color="error" 
+                startIcon={<Cancel />}
+                onClick={() => openRejectionModal('application', selectedApplication.application_id)}
+              >
+                Reject
+              </Button>
+              <Button 
+                color="success" 
+                variant="contained" 
+                startIcon={<CheckCircle />}
+                onClick={openApprovalConfirmation}
+              >
+                Approve
+              </Button>
+            </>
+          )}
         </DialogActions>
       </Dialog>
 

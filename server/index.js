@@ -137,7 +137,14 @@ app.use(apiLimiter);
 // CSRF protection for state-changing operations (excluding login for now)
 // app.use('/api/auth/login', csrfProtection);
 app.use('/api/auth/logout', csrfProtection);
-app.use('/api/residents', csrfProtection);
+app.use('/api/residents', (req, res, next) => {
+  // Exclude legacy archive route from CSRF protection
+  // Matches /api/residents/:id/archive
+  if (req.path.match(/^\/.*\/archive$/)) {
+    return next();
+  }
+  csrfProtection(req, res, next);
+});
 app.use('/api/blotter', csrfProtection);
 // app.use('/api/certificates', csrfProtection); // Temporarily disabled to fix 403 error
 

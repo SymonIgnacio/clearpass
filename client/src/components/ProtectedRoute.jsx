@@ -18,7 +18,8 @@ const ProtectedRoute = ({ children, requiredRoles = [] }) => {
 
   // Check authentication status
   if (!isAuthenticated || !user) {
-    const loginTarget = requiredRoles.includes(12) ? '/login' : '/officerlogin'
+    // Default to resident login for better UX
+    const loginTarget = requiredRoles.includes(1) || requiredRoles.includes(6) ? '/officerlogin' : '/resident/login'
     return <Navigate to={loginTarget} replace />
   }
 

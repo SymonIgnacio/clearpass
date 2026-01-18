@@ -94,14 +94,17 @@ module.exports = (db) => {
     verifyToken,
     checkRole(['captain', 'admin', 'secretary', 'clerk']),
     asyncHandler(async (req, res) => {
+      console.log('Fetching template stats...');
       const [totals] = await db.execute(
         `
           SELECT
             COUNT(*) as total,
-            SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active
+            SUM(CASE WHEN is_active = 1 OR is_active = '1' OR is_active = true THEN 1 ELSE 0 END) as active
           FROM document_templates
         `
       );
+      console.log('Template stats totals:', totals);
+      
       const [byType] = await db.execute(
         `
           SELECT document_type, COUNT(*) as total
@@ -110,13 +113,13 @@ module.exports = (db) => {
           ORDER BY total DESC
         `
       );
+      console.log('Template stats byType:', byType);
+
+      // Flattened response for frontend compatibility
       res.json({
-        success: true,
-        data: {
-          total: totals?.[0]?.total || 0,
-          active: totals?.[0]?.active || 0,
-          by_type: byType || [],
-        },
+        total: Number(totals?.[0]?.total) || 0,
+        active: Number(totals?.[0]?.active) || 0,
+        by_type: byType || [],
       });
     })
   );
@@ -332,6 +335,12 @@ module.exports = (db) => {
         res.status(201).json({ success: true, message: 'Template file uploaded successfully' });
       } catch (error) {
         console.error('TEMPLATE UPLOAD ERROR:', error);
+        if (error.code === 'ER_DUP_ENTRY') {
+          return res.status(409).json({ 
+            success: false, 
+            message: 'A template with this name already exists. Please use a different name.' 
+          });
+        }
         res.status(500).json({ 
             success: false, 
             message: 'Internal server error during template upload',

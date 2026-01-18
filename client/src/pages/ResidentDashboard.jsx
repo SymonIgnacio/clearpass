@@ -111,6 +111,7 @@ const ResidentDashboard = () => {
       // Optional: Show success snackbar
       // refresh dashboard data
       fetchDashboardData();
+      fetchUploadedDocs(); // Refresh docs after upload
     } catch (error) {
       console.error('Upload failed:', error);
       setUploadError('Upload failed. Please try again.');
@@ -124,8 +125,22 @@ const ResidentDashboard = () => {
       setLoading(true);
       
       // Fetch resident profile
-      const profileResponse = await apiRequest('/resident-auth/profile');
-      const profileData = await profileResponse.json();
+      let profileData = { success: false };
+      if (user.resident_id) {
+          const profileResponse = await apiRequest('/resident-auth/profile');
+          profileData = await profileResponse.json();
+      } else if (user.residency_status === 'Pending Verification') {
+          // Manually construct a partial profile for the dashboard
+          profileData = {
+              success: true,
+              profile: {
+                  First_Name: user.name.split(' ')[0],
+                  Last_Name: user.name.split(' ').slice(1).join(' '),
+                  email: user.email,
+                  Residency_Status: 'Pending Verification'
+              }
+          };
+      }
       
       let currentProfile = null;
       if (profileData.success) {
@@ -134,11 +149,14 @@ const ResidentDashboard = () => {
       }
 
       // Fetch certificate requests
-      const requestsResponse = await apiRequest('/certificates', {
-        params: { resident_id: user.id }
-      });
-      const requestsData = await requestsResponse.json();
-      setRequests(Array.isArray(requestsData) ? requestsData.slice(0, 5) : []);
+      // Only if resident_id exists, otherwise requests might fail or be empty
+      if (user.resident_id) {
+          const requestsResponse = await apiRequest('/certificates', {
+            params: { resident_id: user.id }
+          });
+          const requestsData = await requestsResponse.json();
+          setRequests(Array.isArray(requestsData) ? requestsData.slice(0, 5) : []);
+      }
 
       // Calculate stats
       const pending = Array.isArray(requestsData) ? requestsData.filter(r => r.status === 'Pending').length : 0;

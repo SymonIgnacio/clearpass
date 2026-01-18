@@ -33,15 +33,20 @@ const ResidentRegister = () => {
     email: '',
     mobile_number: '',
     birthdate: '',
+    birth_place: '',
     gender: '',
     civil_status: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    street_address: '',
+    sitio: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [requirementsModalOpen, setRequirementsModalOpen] = useState(false);
+
+  const SITIOS = ['Batia Proper', 'Northville 5', 'St. Martha', 'AFP/PNP'];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -72,9 +77,12 @@ const ResidentRegister = () => {
           email: formData.email,
           mobile_number: formData.mobile_number,
           birthdate: formData.birthdate,
+          birth_place: formData.birth_place,
           gender: formData.gender,
           civil_status: formData.civil_status,
-          password: formData.password
+          password: formData.password,
+          street_address: formData.street_address,
+          sitio: formData.sitio
         }
       });
 
@@ -85,8 +93,7 @@ const ResidentRegister = () => {
         
         // Auto-login logic
         if (data.token) {
-          // Set cookie manually to ensure immediate availability
-          document.cookie = `authToken=${data.token}; path=/; max-age=86400`; // 24 hours
+          // Cookie is now set by the server (HttpOnly)
           
           // Refresh auth context
           await refreshUser();
@@ -97,7 +104,6 @@ const ResidentRegister = () => {
             replace: true 
           });
         } else {
-          // Fallback if no token (shouldn't happen with updated backend)
           setRequirementsModalOpen(true);
         }
       } else {
@@ -111,13 +117,13 @@ const ResidentRegister = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 600, mx: 'auto', p: 3 }}>
-      <Card>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-            <PersonAdd sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
+    <Box sx={{ maxWidth: 900, mx: 'auto', p: 3 }}>
+      <Card elevation={3}>
+        <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+            <PersonAdd sx={{ mr: 2, fontSize: 36, color: 'primary.main' }} />
             <Box>
-              <Typography variant="h4" sx={{ fontWeight: 600 }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
                 Resident Registration
               </Typography>
               <Typography variant="body1" color="text.secondary">
@@ -139,8 +145,12 @@ const ResidentRegister = () => {
           )}
 
           <form onSubmit={handleSubmit}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+            {/* Personal Information Section */}
+            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
+              Personal Information
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 4 }}>
+              <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
                   label="First Name"
@@ -150,7 +160,7 @@ const ResidentRegister = () => {
                   required
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
                   label="Middle Name"
@@ -159,7 +169,7 @@ const ResidentRegister = () => {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
                   label="Last Name"
@@ -169,6 +179,69 @@ const ResidentRegister = () => {
                   required
                 />
               </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Birthdate"
+                  name="birthdate"
+                  type="date"
+                  value={formData.birthdate}
+                  onChange={handleChange}
+                  InputLabelProps={{ shrink: true }}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Birth Place"
+                  name="birth_place"
+                  value={formData.birth_place}
+                  onChange={handleChange}
+                  placeholder="City/Municipality, Province"
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  required
+                  sx={{ width: '100%', minWidth: '150px' }}
+                >
+                  <MenuItem value="Male">Male</MenuItem>
+                  <MenuItem value="Female">Female</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Civil Status"
+                  name="civil_status"
+                  value={formData.civil_status}
+                  onChange={handleChange}
+                  required
+                  sx={{ width: '100%', minWidth: '150px' }}
+                >
+                  <MenuItem value="Single">Single</MenuItem>
+                  <MenuItem value="Married">Married</MenuItem>
+                  <MenuItem value="Widowed">Widowed</MenuItem>
+                  <MenuItem value="Separated">Separated</MenuItem>
+                </TextField>
+              </Grid>
+            </Grid>
+
+            {/* Contact & Address Section */}
+            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
+              Contact & Address
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 4 }}>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
@@ -189,48 +262,43 @@ const ResidentRegister = () => {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Birthdate"
-                  name="birthdate"
-                  type="date"
-                  value={formData.birthdate}
+                  label="Street Address / House No."
+                  name="street_address"
+                  value={formData.street_address}
                   onChange={handleChange}
-                  InputLabelProps={{ shrink: true }}
                   required
+                  placeholder="e.g., Block 1 Lot 2, Main St."
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   select
-                  label="Gender"
-                  name="gender"
-                  value={formData.gender}
+                  label="Sitio"
+                  name="sitio"
+                  value={formData.sitio}
                   onChange={handleChange}
                   required
+                  sx={{ width: '100%' }}
                 >
-                  <MenuItem value="Male">Male</MenuItem>
-                  <MenuItem value="Female">Female</MenuItem>
+                  {SITIOS.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {option}
+                    </MenuItem>
+                  ))}
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  select
-                  label="Civil Status"
-                  name="civil_status"
-                  value={formData.civil_status}
-                  onChange={handleChange}
-                  required
-                >
-                  <MenuItem value="Single">Single</MenuItem>
-                  <MenuItem value="Married">Married</MenuItem>
-                  <MenuItem value="Widowed">Widowed</MenuItem>
-                  <MenuItem value="Separated">Separated</MenuItem>
-                </TextField>
-              </Grid>
+            </Grid>
+
+            {/* Account Security Section */}
+            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
+              Account Security
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 4 }}>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
@@ -255,20 +323,22 @@ const ResidentRegister = () => {
               </Grid>
             </Grid>
 
-            <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+            <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
               <Button
                 type="submit"
                 variant="contained"
+                size="large"
                 disabled={loading}
-                startIcon={loading ? <CircularProgress size={20} /> : <PersonAdd />}
-                sx={{ flex: 1 }}
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <PersonAdd />}
+                sx={{ flex: 1, py: 1.5, fontSize: '1.1rem' }}
               >
-                {loading ? 'Registering...' : 'Register'}
+                {loading ? 'Registering...' : 'Register Account'}
               </Button>
               <Button
                 variant="outlined"
+                size="large"
                 onClick={() => navigate('/resident/login')}
-                sx={{ flex: 1 }}
+                sx={{ flex: 1, py: 1.5, fontSize: '1.1rem' }}
               >
                 Back to Login
               </Button>
@@ -288,27 +358,12 @@ const ResidentRegister = () => {
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="requirements-dialog-description">
-            Your account has been created and is pending verification. 
-            To speed up the approval process, please prepare the following documents:
+            Your account has been created. To verify your residency, please log in and upload your proof of residency (Valid ID or Utility Bill).
           </DialogContentText>
-          <Box component="ul" sx={{ mt: 2, pl: 2 }}>
-            <Typography component="li" variant="body2" sx={{ mb: 1 }}>
-              <strong>Valid Government ID</strong> (for identity verification)
-            </Typography>
-            <Typography component="li" variant="body2" sx={{ mb: 1 }}>
-              <strong>4Ps ID / DSWD Certificate</strong> (if applying for 4Ps beneficiary status)
-            </Typography>
-            <Typography component="li" variant="body2" sx={{ mb: 1 }}>
-              <strong>PWD ID / Medical Certificate</strong> (if applying for PWD status)
-            </Typography>
-            <Typography component="li" variant="body2">
-              <strong>Barangay Clearance</strong> (if available)
-            </Typography>
-          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => navigate('/resident/login')} autoFocus variant="contained">
-            I Understand, Proceed to Login
+            Proceed to Login
           </Button>
         </DialogActions>
       </Dialog>

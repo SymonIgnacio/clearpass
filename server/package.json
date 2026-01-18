@@ -33,6 +33,7 @@
   "author": "Barangay Management Team",
   "license": "MIT",
   "dependencies": {
+    "@faker-js/faker": "^9.9.0",
     "axios": "^1.13.2",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",

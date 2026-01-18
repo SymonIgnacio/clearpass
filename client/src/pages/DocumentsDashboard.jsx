@@ -233,6 +233,8 @@ const DocumentsDashboard = () => {
             return [];
           })
         : certificatesRes;
+      
+      const safeCertificates = Array.isArray(certData) ? certData : (certData.data || []);
       const templateData = templatesRes.json
         ? await templatesRes.json().catch((err) => {
             console.error('Failed to parse templates JSON:', err);
@@ -266,8 +268,10 @@ const DocumentsDashboard = () => {
           return null;
         }) : null;
 
-      setCertificates(certData || []);
-      setTemplates(templateData.data || []);
+      const safeTemplates = Array.isArray(templateData.data) ? templateData.data : (Array.isArray(templateData) ? templateData : []);
+      
+      setCertificates(safeCertificates);
+      setTemplates(safeTemplates);
       setCertificateTypes(certTypesData || []);
       setRequests(requestsData || []);
       setResidents(residentsData.data || []);

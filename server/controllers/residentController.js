@@ -203,6 +203,7 @@ exports.create = async (req, res) => {
       last_name,
       suffix,
       birthdate,
+      birth_place,
       gender,
       civil_status,
       occupation,
@@ -262,6 +263,7 @@ exports.create = async (req, res) => {
     // Prepare values, converting undefined/empty to null where appropriate
     const safeMiddleName = middle_name?.trim() || null;
     const safeSuffix = suffix?.trim() || null;
+    const safeBirthPlace = birth_place?.trim() || null;
     const safeOccupation = occupation?.trim() || null;
     const safeMobile = mobile_number?.trim() || null;
     const safePhoto = profile_photo_url?.trim() || null;
@@ -272,9 +274,9 @@ exports.create = async (req, res) => {
       `
       INSERT INTO residents (
         Resident_ID, Household_ID, Relation_to_Head, First_Name, Middle_Name, Last_Name, Suffix,
-        Birthdate, Age, Gender, Civil_Status, Occupation, Income_Estimate, Email, Mobile_Number,
+        Birthdate, Birth_Place, Age, Gender, Civil_Status, Occupation, Income_Estimate, Email, Mobile_Number,
         Voter_Status, Date_Arrival, Residency_Status, Profile_Photo_URL, QR_Hash_String
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       [
         residentId,
@@ -285,6 +287,7 @@ exports.create = async (req, res) => {
         last_name.trim(),
         safeSuffix,
         birthdate,
+        safeBirthPlace,
         age,
         gender,
         civil_status || 'Single',
@@ -428,6 +431,7 @@ exports.update = async (req, res) => {
       last_name,
       suffix,
       birthdate,
+      birth_place,
       gender,
       civil_status,
       occupation,
@@ -477,6 +481,10 @@ exports.update = async (req, res) => {
       const age = calculateAge(birthdate);
       residentUpdates.push('Age = ?');
       residentValues.push(age);
+    }
+    if (birth_place !== undefined) {
+      residentUpdates.push('Birth_Place = ?');
+      residentValues.push(birth_place?.trim() || null);
     }
     if (gender !== undefined) {
       residentUpdates.push('Gender = ?');
@@ -796,6 +804,7 @@ exports.openRegister = async (req, res) => {
       last_name,
       suffix,
       birthdate,
+      birth_place,
       gender,
       civil_status,
       occupation,
@@ -839,11 +848,11 @@ exports.openRegister = async (req, res) => {
     await connection.execute(
       `
       INSERT INTO resident_applications (
-        application_id, first_name, middle_name, last_name, suffix, birthdate, gender,
+        application_id, first_name, middle_name, last_name, suffix, birthdate, birth_place, gender,
         civil_status, occupation, income_estimate, email, mobile_number, street_address,
         sitio, voter_status, is_4ps, is_pwd, is_solo_parent, is_out_of_school_youth,
         disability_type, status, temp_password, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())
     `,
       [
         applicationId,
@@ -852,6 +861,7 @@ exports.openRegister = async (req, res) => {
         last_name.trim(),
         suffix?.trim(),
         birthdate,
+        birth_place?.trim() || null,
         gender,
         civil_status || 'Single',
         occupation?.trim(),
@@ -937,7 +947,31 @@ exports.uploadVerificationDocs = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    const residentId = req.user.resident_id || req.user.id; // Assuming user is linked
+    let targetTable = 'resident_documents';
+    let targetIdColumn = 'resident_id';
+    let targetId = req.user.resident_id;
+
+    // If no resident_id, check for application
+    if (!targetId) {
+      const [apps] = await connection.execute(
+        'SELECT application_id FROM resident_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1',
+        [req.user.email]
+      );
+
+      if (apps.length > 0) {
+        targetTable = 'application_documents';
+        targetIdColumn = 'application_id';
+        targetId = apps[0].application_id;
+      } else {
+        // Fallback or Error?
+        // If neither resident nor applicant, we can't attach documents.
+        // But we used req.user.id before. Let's see if we should fallback to that?
+        // No, req.user.id is Int, resident_id is UUID.
+        return res
+          .status(400)
+          .json({ error: 'No active resident profile or pending application found.' });
+      }
+    }
 
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No files uploaded' });
@@ -960,13 +994,13 @@ exports.uploadVerificationDocs = async (req, res) => {
 
       await connection.execute(
         `
-            INSERT INTO resident_documents (
-            resident_id, document_type, file_path, file_name, verification_status, created_at,
+            INSERT INTO ${targetTable} (
+            ${targetIdColumn}, document_type, file_path, file_name, verification_status, created_at,
             encryption_alg, encryption_version, encryption_iv, encryption_tag
             ) VALUES (?, ?, ?, ?, 'pending', NOW(), ?, ?, ?, ?)
         `,
         [
-          residentId,
+          targetId,
           docType,
           storedPath,
           file.originalname,
@@ -976,6 +1010,27 @@ exports.uploadVerificationDocs = async (req, res) => {
           encryptionMeta.encryption_tag,
         ]
       );
+
+      // CLEARPASS: If this is a vulnerability-related document, mark the vulnerability status as pending
+      // This ensures the resident appears in the Secretary's Beneficiary Validation list
+      const vulnerabilityDocs = [
+        '4ps',
+        '4ps_id',
+        'pwd',
+        'pwd_id',
+        'solo_parent',
+        'solo_parent_id',
+        'osy',
+        'osy_id',
+        'senior',
+        'senior_id',
+      ];
+      if (targetTable === 'resident_documents' && vulnerabilityDocs.includes(docType)) {
+        await connection.execute(
+          `UPDATE vulnerabilities SET validation_status = 'pending', updated_at = NOW() WHERE Resident_ID = ?`,
+          [targetId]
+        );
+      }
     }
 
     await connection.commit();
@@ -996,20 +1051,42 @@ exports.listDocuments = async (req, res) => {
   }
 
   try {
-    const residentId = String(req.params.id || '');
-    const effectiveResidentId = String(req.user.resident_id || req.user.id || '');
-    if (req.user.role === ROLES.RESIDENT && residentId !== effectiveResidentId) {
-      return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
+    let targetTable = 'resident_documents';
+    let targetIdColumn = 'resident_id';
+    let targetId = req.params.id || req.user.resident_id;
+
+    // Check permissions
+    // If user is a resident/guest, they can only see their own docs
+    if (req.user.role === ROLES.RESIDENT || req.user.role === ROLES.GUEST || req.user.role === 13) {
+      // If resident_id is null, it means they are a guest (pending applicant)
+      if (!req.user.resident_id) {
+        const [apps] = await db.execute(
+          'SELECT application_id FROM resident_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1',
+          [req.user.email]
+        );
+
+        if (apps.length > 0) {
+          targetTable = 'application_documents';
+          targetIdColumn = 'application_id';
+          targetId = apps[0].application_id;
+        } else {
+          // No application found
+          return res.json([]);
+        }
+      } else {
+        // Normal resident
+        targetId = req.user.resident_id;
+      }
     }
 
     const [rows] = await db.execute(
       `
-      SELECT id, resident_id, document_type, file_name, verification_status, created_at, updated_at
-      FROM resident_documents
-      WHERE resident_id = ?
+      SELECT id, ${targetIdColumn} as resident_id, document_type, file_name, verification_status, verification_notes, created_at, updated_at
+      FROM ${targetTable}
+      WHERE ${targetIdColumn} = ?
       ORDER BY created_at DESC
       `,
-      [residentId]
+      [targetId]
     );
 
     res.json(rows);

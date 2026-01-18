@@ -16,8 +16,8 @@
     "test:integration": "node -e \"require('./comprehensive-role-tests').testIntegrationWorkflows()\""
   },
   "dependencies": {
-    "supertest": "^6.3.3",
-    "mysql2": "^3.6.5"
+    "mysql2": "^3.6.5",
+    "supertest": "^6.3.3"
   },
   "engines": {
     "node": ">=16.0.0"
@@ -32,5 +32,8 @@
   ],
   "author": "ClearPass Development Team",
   "license": "MIT",
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
 }

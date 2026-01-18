@@ -86,6 +86,7 @@ module.exports = db => {
         AND (
           v.Is_4Ps = true OR v.Is_PWD = true OR v.Is_Senior = true 
           OR v.Is_Solo_Parent = true OR v.Is_Out_of_School_Youth = true
+          OR v.validation_status = 'pending'
         )
       ORDER BY v.Vulnerability_Score DESC, r.Last_Name
     `,
@@ -128,18 +129,30 @@ module.exports = db => {
           [notes || null, req.user.id, id]
         );
       } else {
-        await db.execute(
-          `
-          UPDATE vulnerabilities
-          SET validation_status = 'approved',
-              validation_notes = ?,
-              validated_by = ?,
-              validated_at = NOW(),
-              updated_at = NOW()
-          WHERE Resident_ID = ?
-        `,
-          [notes || null, req.user.id, id]
+        // Check documents to determine which flags to enable
+        const [docs] = await db.execute(
+          'SELECT document_type FROM resident_documents WHERE resident_id = ?',
+          [id]
         );
+        const docTypes = docs.map(d => d.document_type);
+
+        const updates = [];
+        if (docTypes.includes('4ps') || docTypes.includes('4ps_id')) updates.push('Is_4Ps = 1');
+        if (docTypes.includes('pwd') || docTypes.includes('pwd_id')) updates.push('Is_PWD = 1');
+        if (docTypes.includes('solo_parent') || docTypes.includes('solo_parent_id'))
+          updates.push('Is_Solo_Parent = 1');
+        if (docTypes.includes('osy') || docTypes.includes('osy_id'))
+          updates.push('Is_Out_of_School_Youth = 1');
+
+        updates.push("validation_status = 'approved'");
+        updates.push('validation_notes = ?');
+        updates.push('validated_by = ?');
+        updates.push('validated_at = NOW()');
+        updates.push('updated_at = NOW()');
+
+        const sql = `UPDATE vulnerabilities SET ${updates.join(', ')} WHERE Resident_ID = ?`;
+
+        await db.execute(sql, [notes || null, req.user.id, id]);
       }
 
       res.json({ success: true, message: `Beneficiary ${status}` });
@@ -379,6 +392,25 @@ module.exports = db => {
 
         // APPROVE: Migrate to main tables
 
+        // Validation
+        const requiredFields = [
+          'first_name',
+          'last_name',
+          'birthdate',
+          'gender',
+          'civil_status',
+          'sitio',
+          'street_address',
+        ];
+        const missingFields = requiredFields.filter(field => !app[field]);
+        if (missingFields.length > 0) {
+          await connection.rollback();
+          connection.release();
+          return res
+            .status(400)
+            .json({ error: `Missing required fields: ${missingFields.join(', ')}` });
+        }
+
         // 1. Generate Resident ID
         const residentId = `RES-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
         const tempPassword = crypto.randomBytes(8).toString('hex');
@@ -440,22 +472,29 @@ module.exports = db => {
         );
 
         // 3. Insert Vulnerabilities
+        const birthDate = new Date(app.birthdate);
+        const age = new Date().getFullYear() - birthDate.getFullYear();
+        const isSenior = age >= 60;
+
         const vulnerabilityScore =
           (app.is_4ps ? 1 : 0) +
           (app.is_pwd ? 2 : 0) +
           (app.is_solo_parent ? 1 : 0) +
-          (app.is_out_of_school_youth ? 1 : 0);
+          (app.is_out_of_school_youth ? 1 : 0) +
+          (isSenior ? 1 : 0);
+
         await connection.execute(
           `
         INSERT INTO vulnerabilities (
-          Resident_ID, Is_4Ps, Is_PWD, Is_Solo_Parent, Is_Out_of_School_Youth, Disability_Type, Vulnerability_Score,
+          Resident_ID, Is_4Ps, Is_PWD, Is_Senior, Is_Solo_Parent, Is_Out_of_School_Youth, Disability_Type, Vulnerability_Score,
           validation_status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
       `,
           [
             residentId,
             app.is_4ps,
             app.is_pwd,
+            isSenior,
             app.is_solo_parent,
             app.is_out_of_school_youth,
             app.disability_type,
@@ -492,6 +531,31 @@ module.exports = db => {
         );
 
         await connection.commit();
+
+        const auditDetails = {
+          user_id: req.user?.id || null,
+          user_role: req.user?.role || null,
+          ip_address: req.ip || req.connection.remoteAddress,
+          user_agent: req.get('User-Agent'),
+          resource: req.originalUrl,
+          action: 'APPROVE',
+          result: 'SUCCESS',
+          additional_details: {
+            application_id: id,
+            resident_id: residentId,
+          },
+          session_id: req.sessionID,
+        };
+
+        logAuditEvent(AUDIT_EVENTS.APPLICATION_APPROVED || 'APPLICATION_APPROVED', auditDetails);
+        if (db && typeof db.execute === 'function') {
+          logAuditToDatabase(
+            db,
+            AUDIT_EVENTS.APPLICATION_APPROVED || 'APPLICATION_APPROVED',
+            auditDetails
+          );
+        }
+
         res.json({
           message: 'Application approved and resident account created',
           credentials: { email: app.email, temp_password: tempPassword },
