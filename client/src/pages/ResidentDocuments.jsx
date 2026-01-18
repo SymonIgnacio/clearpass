@@ -23,7 +23,7 @@ import {
   Visibility,
   CheckCircle,
   Pending,
-  Error,
+  Error as ErrorIcon,
   FolderShared
 } from '@mui/icons-material';
 import { apiRequest } from '../utils/api';
@@ -69,7 +69,7 @@ const ResidentDocuments = () => {
       verified: { color: 'success', icon: <CheckCircle />, label: 'Verified' },
       approved: { color: 'success', icon: <CheckCircle />, label: 'Approved' },
       pending: { color: 'warning', icon: <Pending />, label: 'Pending Review' },
-      rejected: { color: 'error', icon: <Error />, label: 'Rejected' }
+      rejected: { color: 'error', icon: <ErrorIcon />, label: 'Rejected' }
     };
 
     const config = statusMap[status?.toLowerCase()] || statusMap.pending;

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Box, Card, CardContent, Typography, TextField, Button, Alert, Autocomplete } from '@mui/material';
+import { Box, Card, CardContent, Typography, TextField, Button, Alert, Autocomplete, Tooltip } from '@mui/material';
 import { useAuth } from '../contexts/useAuth';
 import { apiRequest } from '../utils/api';
+import { Info } from '@mui/icons-material';
 
 const ResidentBlotterReport = () => {
   const { user } = useAuth();
@@ -14,6 +15,8 @@ const ResidentBlotterReport = () => {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  const isGuest = user?.role === 13;
 
   // Common keywords for suggestions (matches AI service mapping)
   const incidentSuggestions = [
@@ -38,6 +41,8 @@ const ResidentBlotterReport = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isGuest) return;
+
     setLoading(true);
     setMessage({ type: '', text: '' });
 
@@ -75,6 +80,12 @@ const ResidentBlotterReport = () => {
             Submit your complaint online. Our officers will review and contact you.
           </Typography>
 
+          {isGuest && (
+             <Alert severity="info" sx={{ mb: 3 }} icon={<Info />}>
+                 You are currently logged in as a Guest. Please verify your residency to file a blotter report.
+             </Alert>
+          )}
+
           {message.text && (
             <Alert severity={message.type} sx={{ mb: 2 }}>{message.text}</Alert>
           )}
@@ -82,6 +93,7 @@ const ResidentBlotterReport = () => {
           <form onSubmit={handleSubmit}>
             <Autocomplete
               freeSolo
+              disabled={isGuest}
               options={incidentSuggestions}
               value={formData.incident_type}
               onChange={(event, newValue) => {
@@ -97,6 +109,7 @@ const ResidentBlotterReport = () => {
                   label="Nature of Incident (e.g., Noise Complaint, Theft, Maingay)"
                   name="incident_type"
                   required
+                  disabled={isGuest}
                   sx={{ mb: 2 }}
                 />
               )}
@@ -109,6 +122,7 @@ const ResidentBlotterReport = () => {
               value={formData.location}
               onChange={handleChange}
               required
+              disabled={isGuest}
               sx={{ mb: 2 }}
             />
 
@@ -120,6 +134,7 @@ const ResidentBlotterReport = () => {
               value={formData.date_time}
               onChange={handleChange}
               required
+              disabled={isGuest}
               InputLabelProps={{ shrink: true }}
               sx={{ mb: 2 }}
             />
@@ -133,12 +148,13 @@ const ResidentBlotterReport = () => {
               multiline
               rows={4}
               required
+              disabled={isGuest}
               sx={{ mb: 2 }}
             />
 
-            <Button variant="outlined" component="label" sx={{ mb: 2 }}>
+            <Button variant="outlined" component="label" sx={{ mb: 2 }} disabled={isGuest}>
               Upload Evidence (Optional)
-              <input type="file" hidden onChange={handleFileChange} accept="image/*,.pdf" />
+              <input type="file" hidden onChange={handleFileChange} accept="image/*,.pdf" disabled={isGuest} />
             </Button>
             {formData.evidence && (
               <Typography variant="caption" display="block" sx={{ mb: 2 }}>
@@ -146,9 +162,19 @@ const ResidentBlotterReport = () => {
               </Typography>
             )}
 
-            <Button type="submit" variant="contained" fullWidth disabled={loading}>
-              {loading ? 'Submitting...' : 'Submit Complaint'}
-            </Button>
+            {isGuest ? (
+                <Tooltip title="Complete verification to submit">
+                    <span>
+                        <Button type="submit" variant="contained" fullWidth disabled>
+                          Submit Complaint
+                        </Button>
+                    </span>
+                </Tooltip>
+            ) : (
+                <Button type="submit" variant="contained" fullWidth disabled={loading}>
+                  {loading ? 'Submitting...' : 'Submit Complaint'}
+                </Button>
+            )}
           </form>
         </CardContent>
       </Card>

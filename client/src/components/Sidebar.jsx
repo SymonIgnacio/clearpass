@@ -71,7 +71,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
       text: 'My Dashboard',
       icon: <Dashboard />,
       path: '/resident/dashboard',
-      roles: [12]
+      roles: [12, 13]
     },
     {
       text: 'Resident Portal',
@@ -90,9 +90,10 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
           roles: [12, 13]
         },
         {
-          text: 'Request Certificate',
+          text: 'My Certificates',
+          icon: <Description />,
           path: '/resident/request-certificate',
-          roles: [12]
+          roles: [12, 13]
         },
         {
           text: 'My Requests',
@@ -100,9 +101,10 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
           roles: [12]
         },
         {
-          text: 'File Complaint',
+          text: 'File Blotter',
+          icon: <Gavel />,
           path: '/resident/blotter-report',
-          roles: [12]
+          roles: [12, 13]
         },
         {
           text: 'My Complaints',
@@ -134,7 +136,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         },
         {
           text: 'Residency Verification',
-          path: '/secretary/document-verification',
+          path: '/secretary/residency-verification',
           roles: [1, 3] // Admin, Secretary
         },
         {
@@ -395,7 +397,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
               </Avatar>
               <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }} noWrap>
-                  {user.username || 'User'}
+                  {user.full_name || user.username || 'User'}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
                   {user.role_name || 'Staff'}

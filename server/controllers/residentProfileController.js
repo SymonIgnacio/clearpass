@@ -7,6 +7,61 @@ class ResidentProfileController {
     try {
       const resident_id = req.user.resident_id;
 
+      // Handle Guest/Applicant scenario
+      if (!resident_id) {
+        const [applications] = await this.db.execute(`
+          SELECT 
+            application_id as Resident_ID,
+            first_name as First_Name,
+            middle_name as Middle_Name,
+            last_name as Last_Name,
+            suffix as Suffix,
+            birthdate as Birthdate,
+            birth_place as Birth_Place,
+            gender as Gender,
+            civil_status as Civil_Status,
+            occupation as Occupation,
+            income_estimate as Income_Estimate,
+            email as Email,
+            mobile_number as Mobile_Number,
+            street_address as Street_Address,
+            sitio as sitio_name,
+            is_4ps as Is_4Ps,
+            is_pwd as Is_PWD,
+            is_solo_parent as Is_Solo_Parent,
+            is_out_of_school_youth as Is_Out_of_School_Youth,
+            disability_type as Disability_Type,
+            status as Residency_Status
+          FROM resident_applications 
+          WHERE email = ? 
+          ORDER BY created_at DESC LIMIT 1
+        `, [req.user.email]);
+
+        if (applications.length === 0) {
+           // Fallback if no application found but user exists (should rarely happen for guests)
+           return res.json({ 
+             success: true, 
+             data: { 
+               First_Name: req.user.username, 
+               Last_Name: '', 
+               Residency_Status: 'Guest' 
+             } 
+           });
+        }
+        
+        // Add calculated fields for consistency
+        const app = applications[0];
+        app.Vulnerability_Score = this.calculateVulnerabilityScore({
+          Is_4Ps: app.Is_4Ps,
+          Is_PWD: app.Is_PWD,
+          Is_Senior: false, // Not tracked in applications explicitly usually
+          Is_Solo_Parent: app.Is_Solo_Parent,
+          Is_Out_of_School_Youth: app.Is_Out_of_School_Youth
+        });
+
+        return res.json({ success: true, data: app });
+      }
+
       const [residents] = await this.db.execute(`
         SELECT r.*, h.Street_Address, h.Household_Number, s.name as sitio_name,
                v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent, v.Is_Out_of_School_Youth,
@@ -154,12 +209,14 @@ class ResidentProfileController {
 
   async getVerificationStatus(req, res) {
     try {
-      const resident_id = req.user.resident_id;
+      // If resident_id is present, query by that, otherwise use user id
+      const query = req.user.resident_id 
+        ? 'SELECT email_verified, phone_verified, verified_at FROM users WHERE resident_id = ?'
+        : 'SELECT email_verified, phone_verified, verified_at FROM users WHERE id = ?';
+      
+      const param = req.user.resident_id || req.user.id;
 
-      const [user] = await this.db.execute(
-        'SELECT email_verified, phone_verified, verified_at FROM users WHERE resident_id = ?',
-        [resident_id]
-      );
+      const [user] = await this.db.execute(query, [param]);
 
       if (user.length === 0) {
         return res.status(404).json({ success: false, message: 'User not found' });

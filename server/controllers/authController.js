@@ -50,6 +50,7 @@ const login = async (req, res) => {
           WHEN 4 THEN 'Clerk'
           WHEN 6 THEN 'Blotter Officer'
           WHEN 12 THEN 'Resident'
+          WHEN 13 THEN 'Guest'
         END as role_name
        FROM users u 
        WHERE u.username = ? AND u.is_active = TRUE`,

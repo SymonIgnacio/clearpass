@@ -51,7 +51,8 @@ const ROLE_MAP = {
   'secretary': 3,
   'clerk': 4,
   'blotter_officer': 6,
-  'resident': 12
+  'resident': 12,
+  'guest': 13
 };
 
 // THEMIS CLEARPASS Role Verification

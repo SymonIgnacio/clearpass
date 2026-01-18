@@ -36,8 +36,11 @@ export const apiRequest = async (endpoint, options = {}) => {
     headers['Content-Type'] = 'application/json';
   }
   
-  // Skip CSRF token for auth endpoints to avoid circular dependency
-  if (['POST', 'PUT', 'DELETE'].includes(options.method) && !endpoint.includes('/auth/')) {
+  // Skip CSRF token for login/register endpoints to avoid circular dependency
+  // But allow it for logout and other authenticated auth endpoints
+  if (['POST', 'PUT', 'DELETE'].includes(options.method) && 
+      !endpoint.includes('/auth/login') && 
+      !endpoint.includes('/auth/register')) {
     try {
       headers = await addCsrfToken(headers);
     } catch (csrfError) {

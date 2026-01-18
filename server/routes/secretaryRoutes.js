@@ -594,6 +594,30 @@ module.exports = db => {
         [status, notes, req.user.id, id]
       );
 
+      // CLEARPASS: If verified, automatically promote Guest to Resident
+      if (status === 'verified') {
+        // Get resident_id from the document
+        const [docs] = await db.execute('SELECT resident_id FROM resident_documents WHERE id = ?', [id]);
+        
+        if (docs.length > 0) {
+          const residentId = docs[0].resident_id;
+          
+          // 1. Update Residents table
+          await db.execute(
+            `UPDATE residents SET Residency_Status = 'Active', updated_at = NOW() WHERE Resident_ID = ?`,
+            [residentId]
+          );
+
+          // 2. Update Users table (Change role to 12/Resident and set active)
+          // We check if the user is currently a Guest (Role 13) before upgrading, 
+          // but strictly speaking, verifying a residency proof implies they are now a resident.
+          await db.execute(
+            `UPDATE users SET role = ?, is_active = 1, updated_at = NOW() WHERE resident_id = ?`,
+            [ROLES.RESIDENT, residentId]
+          );
+        }
+      }
+
       res.json({ message: 'Document verification updated' });
     })
   );

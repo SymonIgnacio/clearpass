@@ -59,8 +59,8 @@ module.exports = (db) => {
   // POST file upload for verification
   router.post('/verification/upload', verifyToken, residentController.uploadMiddleware, asyncHandler(residentController.uploadVerificationDocs));
 
-  router.get('/:id/documents', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident']), validateId, asyncHandler(residentController.listDocuments));
-  router.get('/:id/documents/:docId/download', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident']), validateId, asyncHandler(residentController.downloadDocument));
+  router.get('/:id/documents', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident', 'guest']), validateId, asyncHandler(residentController.listDocuments));
+  router.get('/:id/documents/:docId/download', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident', 'guest']), validateId, asyncHandler(residentController.downloadDocument));
 
   // GET resident blotter history
   router.get('/:id/blotter-history', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident']), validateId, asyncHandler(residentController.getBlotterHistory));

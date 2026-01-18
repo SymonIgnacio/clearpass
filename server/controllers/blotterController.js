@@ -1,6 +1,7 @@
 // const db = require('../database');
 const { ROLES } = require('../config/roles');
 const { allocateBlotterCaseNumber } = require('../utils/blotterCaseNumber');
+const notificationController = require('./notificationController');
 
 exports.getAll = async (req, res) => {
   const db = req.app.locals.db;
@@ -228,6 +229,56 @@ exports.update = async (req, res) => {
     values.push(req.params.caseNumber);
 
     await db.execute(sql, values);
+
+    // CLEARPASS: Summon Notification Logic
+    // If Hearing_Schedule is updated or status is 'Scheduled for Mediation', notify residents
+    if (Hearing_Schedule || Status === 'Scheduled for Mediation') {
+      const [caseDetails] = await db.execute(
+        'SELECT * FROM blotter WHERE Case_Number = ?',
+        [req.params.caseNumber]
+      );
+
+      if (caseDetails.length > 0) {
+        const c = caseDetails[0];
+        const schedule = c.Hearing_Schedule 
+          ? new Date(c.Hearing_Schedule).toLocaleString() 
+          : 'a later date';
+        
+        const message = `You have been summoned for a hearing regarding Case #${c.Case_Number} on ${schedule}. Please attend.`;
+
+        // Notify Complainant
+        if (c.complainant_resident_id) {
+           // Find user_id linked to resident_id
+           const [u] = await db.execute('SELECT id FROM users WHERE resident_id = ?', [c.complainant_resident_id]);
+           if (u.length > 0) {
+             await notificationController.createNotification({
+                user_id: u[0].id,
+                title: 'Blotter Hearing Summon',
+                message: message,
+                type: 'warning',
+                priority: 'high',
+                link: `/resident/blotter-report` // Or a detail view if available
+             }, db); // Pass db instance if needed by implementation
+           }
+        }
+
+        // Notify Respondent
+        if (c.respondent_resident_id) {
+           const [u] = await db.execute('SELECT id FROM users WHERE resident_id = ?', [c.respondent_resident_id]);
+           if (u.length > 0) {
+             await notificationController.createNotification({
+                user_id: u[0].id,
+                title: 'Blotter Hearing Summon',
+                message: message,
+                type: 'warning',
+                priority: 'high',
+                link: `/resident/blotter-report`
+             }, db);
+           }
+        }
+      }
+    }
+
     res.json({ message: 'Blotter record updated successfully' });
   } catch (error) {
     console.error('Error updating blotter record:', error);

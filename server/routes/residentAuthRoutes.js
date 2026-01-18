@@ -130,8 +130,10 @@ module.exports = db => {
           id: user.id,
           resident_id: residentId,
           email: user.email,
-          name: user.full_name || user.username,
+          full_name: user.full_name || user.username,
+          name: user.full_name || user.username, // Keep for backward compatibility
           role: effectiveRole,
+          role_name: effectiveRole === 13 ? 'Guest' : (user.role === 12 ? 'Resident' : 'User'), // Explicit role name
           type: 'resident',
           residency_status: residencyStatus,
         },
@@ -284,9 +286,10 @@ module.exports = db => {
             id: userId,
             resident_id: null,
             email: email,
+            full_name: `${first_name} ${last_name}`,
             name: `${first_name} ${last_name}`,
             role: 13,
-            role_name: ROLE_NAMES[13],
+            role_name: 'Guest',
             type: 'resident',
             residency_status: 'Pending Verification',
           },
@@ -305,15 +308,47 @@ module.exports = db => {
   router.get(
     '/profile',
     verifyToken,
-    checkRole(['resident']),
+    checkRole(['resident', 'guest']),
     asyncHandler(async (req, res) => {
-      // If the user has no resident_id in the token, checkRole should block them (Role 13 vs 12).
-      // But if they somehow get here with a null resident_id, we should handle it.
+      const resident_id = req.user.resident_id;
 
-      if (!req.user.resident_id) {
-        return res.status(404).json({
-          success: false,
-          message: 'Resident profile not found. Application may be pending.',
+      if (!resident_id) {
+        // Handle Guest/Applicant: Fetch from resident_applications
+        const [applications] = await db.execute(
+          'SELECT * FROM resident_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1',
+          [req.user.email]
+        );
+
+        if (applications.length > 0) {
+          const app = applications[0];
+          // Normalize keys to match residents table structure expected by frontend
+          const normalizedApp = {
+            ...app,
+            First_Name: app.first_name,
+            Middle_Name: app.middle_name,
+            Last_Name: app.last_name,
+            Suffix: app.suffix,
+            Birthdate: app.birthdate,
+            Birth_Place: app.birth_place,
+            Gender: app.gender,
+            Civil_Status: app.civil_status,
+            Occupation: app.occupation,
+            Email: app.email,
+            Mobile_Number: app.mobile_number,
+            Street_Address: app.street_address,
+            Residency_Status: app.status || 'Pending Verification',
+          };
+          return res.json({ success: true, profile: normalizedApp });
+        }
+
+        // Fallback for brand new users without application
+        return res.json({
+          success: true,
+          profile: {
+            First_Name: req.user.email,
+            Last_Name: '',
+            Residency_Status: 'Guest',
+          },
         });
       }
 

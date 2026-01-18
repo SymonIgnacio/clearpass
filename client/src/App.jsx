@@ -39,6 +39,7 @@ const CaseDetail = lazy(() => import('./pages/CaseDetail'))
 const ResidentProfile = lazy(() => import('./pages/ResidentProfile'))
 const ComplaintHistory = lazy(() => import('./pages/ComplaintHistory'))
 const ResidentDocuments = lazy(() => import('./pages/ResidentDocuments'))
+const ResidentCertificates = lazy(() => import('./pages/ResidentCertificates'))
 const ResidentBlotterReport = lazy(() => import('./pages/ResidentBlotterReport'))
 const SystemLogs = lazy(() => import('./pages/admin/SystemLogs'))
 const StaffManagement = lazy(() => import('./pages/admin/StaffManagement'))
@@ -49,6 +50,7 @@ const AccountVerification = lazy(() => import('./components/AccountVerification'
 const BeneficiaryValidation = lazy(() => import('./pages/BeneficiaryValidation'))
 const AdminReports = lazy(() => import('./pages/AdminReports'))
 const DocumentVerification = lazy(() => import('./pages/DocumentVerification'))
+const ResidencyVerification = lazy(() => import('./pages/admin/ResidencyVerification'))
 const QRCodeGenerator = lazy(() => import('./pages/QRCodeGenerator'))
 
 const ClerkDashboard = lazy(() => import('./pages/dashboards/ClerkDashboard'))
@@ -479,8 +481,8 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="resident/request-certificate" element={
-              <ProtectedRoute requiredRoles={[12]}>
-                <CertificateRequest />
+              <ProtectedRoute requiredRoles={[12, 13]}>
+                <ResidentCertificates />
               </ProtectedRoute>
             } />
             <Route path="resident/requests" element={
@@ -489,7 +491,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="resident/blotter-report" element={
-              <ProtectedRoute requiredRoles={[12]}>
+              <ProtectedRoute requiredRoles={[12, 13]}>
                 <ResidentBlotterReport />
               </ProtectedRoute>
             } />
@@ -519,6 +521,11 @@ function App() {
             <Route path="secretary/document-verification" element={
               <ProtectedRoute requiredRoles={[1, 3, 4]}>
                 <DocumentVerification />
+              </ProtectedRoute>
+            } />
+            <Route path="secretary/residency-verification" element={
+              <ProtectedRoute requiredRoles={[1, 3]}>
+                <ResidencyVerification />
               </ProtectedRoute>
             } />
             <Route path="secretary/beneficiaries" element={
