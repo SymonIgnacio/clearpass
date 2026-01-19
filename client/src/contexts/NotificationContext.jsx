@@ -46,87 +46,118 @@ export function NotificationProvider({ children }) {
   };
 
   useEffect(() => {
-    isUnmountedRef.current = false;
+    if (!user) return;
 
-    if (user && token) {
-      connectWebSocket();
-      fetchNotifications();
-      fetchUnreadCount();
+    // Fetch initial notifications
+    fetchNotifications();
+    
+    // Safety Net: Poll every 30 seconds
+    const pollInterval = setInterval(() => {
+        console.log('Polling notifications...');
+        fetchNotifications();
+    }, 30000);
+
+    // Initialize WebSocket connection
+    // Use the API_URL to determine the WebSocket URL
+    // If API_URL is http://localhost:3002/api, WS should be ws://localhost:3002/ws
+    // If API_URL is https://example.com/api, WS should be wss://example.com/ws
+    
+    // Default fallback if API_URL isn't set
+    let wsBaseUrl = 'ws://localhost:3002';
+    
+    if (typeof API_URL !== 'undefined') {
+        try {
+            const url = new URL(API_URL);
+            const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+            wsBaseUrl = `${protocol}//${url.host}`;
+        } catch (e) {
+            console.warn('Invalid API_URL for WebSocket, using fallback', e);
+        }
     }
+    
+    const wsUrl = `${wsBaseUrl}/ws`;
+    console.log('Connecting to WebSocket:', wsUrl);
+    
+    let ws = null;
+    let reconnectTimeout = null;
+
+    const connect = () => {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+            console.log('Connected to notification service');
+            // Authenticate
+            const token = localStorage.getItem('token');
+            if (token) {
+                ws.send(JSON.stringify({ type: 'auth', token }));
+            }
+            // Fetch latest on connect/reconnect to ensure sync
+            fetchNotifications();
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'notification') {
+                    // Add new notification to state
+                    setNotifications(prev => [data.payload, ...prev]);
+                    setUnreadCount(prev => prev + 1);
+                    
+                    // Show browser notification if permission granted
+                    if (Notification.permission === 'granted') {
+                        new Notification(data.payload.title, {
+                            body: data.payload.message,
+                            icon: '/logo192.png'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error processing websocket message:', error);
+            }
+        };
+
+        ws.onclose = () => {
+            console.log('Disconnected from notification service, retrying in 5s...');
+            reconnectTimeout = setTimeout(connect, 5000);
+        };
+        
+        ws.onerror = (err) => {
+            console.error('WebSocket error:', err);
+            ws.close();
+        };
+    };
+
+    connect();
 
     return () => {
-      isUnmountedRef.current = true;
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
+      clearInterval(pollInterval);
+      if (ws) {
+          ws.onclose = null; // Prevent reconnect loop on unmount
+          ws.close();
       }
-      if (wsRef.current) {
-        try {
-          wsRef.current.onopen = null;
-          wsRef.current.onmessage = null;
-          wsRef.current.onclose = null;
-          wsRef.current.onerror = null;
-          wsRef.current.close();
-        } finally {
-          wsRef.current = null;
-        }
-      }
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
-  }, [user, token]);
-
-  const connectWebSocket = () => {
-    if (isUnmountedRef.current) return;
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-    if (wsRef.current) {
-      try {
-        wsRef.current.close();
-      } finally {
-        wsRef.current = null;
-      }
-    }
-
-    const wsUrl = `ws://localhost:3001/ws`;
-    const websocket = new WebSocket(wsUrl);
-
-    websocket.onopen = () => {
-      websocket.send(JSON.stringify({
-        type: 'auth',
-        token: token
-      }));
-    };
-
-    websocket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.type === 'notification') {
-        setNotifications(prev => [data.data, ...prev]);
-        setUnreadCount(prev => prev + 1);
-      }
-    };
-
-    websocket.onclose = () => {
-      if (isUnmountedRef.current) return;
-      reconnectTimeoutRef.current = setTimeout(() => {
-        reconnectTimeoutRef.current = null;
-        connectWebSocket();
-      }, 5000);
-    };
-
-    wsRef.current = websocket;
-  };
+  }, [user]);
 
   const fetchNotifications = async () => {
     try {
       const response = await apiRequest('/notifications');
+      if (!response.ok) {
+          // If 401/403, just clear notifications silently
+          if (response.status === 401 || response.status === 403) {
+              setNotifications([]);
+              return;
+          }
+          throw new Error(`HTTP ${response.status}`);
+      }
       const data = await response.json();
       if (data.success) {
         setNotifications(data.data);
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      console.warn('Error fetching notifications (silenced):', error.message);
+      // Do not throw, just log warning
     }
   };
 

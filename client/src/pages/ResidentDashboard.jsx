@@ -38,6 +38,7 @@ import {
   Info
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/useAuth';
+import { useNotifications } from '../contexts/NotificationContext';
 import { apiRequest } from '../utils/api';
 import { useLocation } from 'react-router-dom';
 import VerificationUploadModal from '../components/VerificationUploadModal';
@@ -45,7 +46,8 @@ import VerificationUploadModal from '../components/VerificationUploadModal';
 const ResidentDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, loading: authLoading } = useAuth();
+  const { user, logout, refreshUser, loading: authLoading } = useAuth();
+  const { notifications, markAsRead } = useNotifications(); // Access notifications from context
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [requests, setRequests] = useState([]);
@@ -59,7 +61,15 @@ const ResidentDashboard = () => {
 
   const isGuest = user?.role === 13;
   const isPending = profile?.Residency_Status === 'Pending Verification';
+  
+  // Check verification status
+  const verificationDoc = profile?.verification_document;
+  const hasUploadedVerification = !!verificationDoc;
+  const verificationStatus = verificationDoc?.verification_status?.toLowerCase(); // Case insensitive check
+  const verificationNotes = verificationDoc?.verification_notes;
+  
   const showVerificationBanner = isGuest || isPending;
+  const isVerified = verificationStatus === 'verified' || verificationStatus === 'active';
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -77,27 +87,53 @@ const ResidentDashboard = () => {
     }
   }, [profile, location.state]);
 
+  // Listen for verification notifications to auto-refresh dashboard
+  useEffect(() => {
+    if (notifications.length > 0) {
+      const latest = notifications[0];
+      // Check if the latest notification is about residency verification
+      if ((latest.title === 'Residency Verified' || latest.title === 'Document Verified' || latest.title === 'Document Rejected' || latest.title === 'Residency Application Approved') && !latest.is_read) {
+        console.log('Refreshing dashboard due to notification:', latest.title);
+        
+        // Mark as read to prevent loop
+        markAsRead(latest.id);
+        
+        fetchDashboardData();
+        // Force refresh user session to update role from Guest to Resident
+        if (latest.title === 'Document Verified' || latest.title === 'Residency Application Approved') {
+            if (refreshUser) {
+                refreshUser();
+            } else {
+                window.location.reload();
+            }
+        }
+      }
+    }
+  }, [notifications]);
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
       
       // Fetch resident profile
       let profileData = { success: false };
-      if (user.resident_id) {
+      try {
           const profileResponse = await apiRequest('/resident-auth/profile');
           profileData = await profileResponse.json();
-      } else {
-          // Manually construct a partial profile for the dashboard for guests
-          // This prevents 404s and allows the dashboard to render
-          profileData = {
-              success: true,
-              profile: {
-                  First_Name: user.full_name?.split(' ')[0] || user.username,
-                  Last_Name: user.full_name?.split(' ').slice(1).join(' ') || '',
-                  email: user.email,
-                  Residency_Status: 'Pending Verification'
-              }
-          };
+      } catch (error) {
+          console.error("Failed to fetch profile", error);
+          // Fallback only on error
+          if (!user.resident_id) {
+             profileData = {
+                success: true,
+                profile: {
+                    First_Name: user.full_name?.split(' ')[0] || user.username,
+                    Last_Name: user.full_name?.split(' ').slice(1).join(' ') || '',
+                    email: user.email,
+                    Residency_Status: 'Pending Verification'
+                }
+             };
+          }
       }
       
       let currentProfile = null;
@@ -120,11 +156,50 @@ const ResidentDashboard = () => {
               console.warn("Failed to fetch requests", e);
           }
       }
-      setRequests(Array.isArray(requestsData) ? requestsData.slice(0, 5) : []);
+      
+      // Inject Residency Verification Status if available
+      let finalRequests = Array.isArray(requestsData) ? [...requestsData] : [];
+      
+      // Check if we have a verification document record OR if status is Pending Verification (force show)
+      if (currentProfile?.verification_document) {
+          const doc = currentProfile.verification_document;
+          finalRequests.unshift({
+              id: 'verification-request',
+              certificate_type: 'Residency Verification',
+              purpose: 'Account Activation',
+              status: doc.verification_status === 'pending' ? 'Under Review' : doc.verification_status,
+              created_at: doc.created_at
+          });
+      } else if (currentProfile?.Residency_Status === 'Pending Verification' || currentProfile?.Residency_Status === 'Guest') {
+            // Placeholder for missing document record but pending status or Guest who needs to verify
+             finalRequests.unshift({
+                id: 'verification-placeholder',
+                certificate_type: 'Residency Verification',
+                purpose: 'Account Activation',
+                status: 'Pending Verification', 
+                created_at: new Date().toISOString()
+            });
+        }
+      
+      setRequests(finalRequests.slice(0, 5));
 
       // Calculate stats
-      const pending = Array.isArray(requestsData) ? requestsData.filter(r => r.status === 'Pending').length : 0;
-      const completed = Array.isArray(requestsData) ? requestsData.filter(r => r.status === 'Released').length : 0;
+      const pending = finalRequests.filter(r => 
+          r.status === 'Pending' || 
+          r.status === 'Under Review' || 
+          r.status === 'pending' || 
+          r.status === 'Pending Upload' ||
+          (r.status === 'Pending Verification' && currentProfile?.Residency_Status !== 'Active') // Only pending if not Active
+      ).length;
+
+      const completed = finalRequests.filter(r => 
+          r.status === 'Released' || 
+          r.status === 'Active' || 
+          r.status === 'verified' || 
+          r.status === 'approved' ||
+          r.status === 'Approved' || // Add explicit Approved check
+          (r.status === 'Pending Verification' && currentProfile?.Residency_Status === 'Active') // Count as completed if user is Active
+      ).length;
       
       setStats({
         pending_requests: pending,
@@ -210,7 +285,7 @@ const ResidentDashboard = () => {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* Header */}
       <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -251,19 +326,31 @@ const ResidentDashboard = () => {
       <Box sx={{ p: 3 }}>
         {showVerificationBanner && (
             <Alert 
-                severity="warning" 
-                icon={<Info />}
+                severity={
+                    verificationStatus === 'rejected' ? "error" :
+                    hasUploadedVerification ? "info" : "warning"
+                }
+                icon={verificationStatus === 'rejected' ? <Error /> : <Info />}
                 action={
-                    <Button color="inherit" size="small" onClick={() => setVerificationOpen(true)}>
-                        Upload Proof
-                    </Button>
+                    !isVerified && (
+                        <Button color="inherit" size="small" onClick={() => setVerificationOpen(true)}>
+                            {verificationStatus === 'rejected' ? "Upload New Proof" : 
+                            hasUploadedVerification ? "View/Update Proof" : "Upload Proof"}
+                        </Button>
+                    )
                 }
                 sx={{ mb: 3 }}
             >
                 <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                    Verification Required
+                    {verificationStatus === 'rejected' ? "Verification Rejected" :
+                     hasUploadedVerification ? "Verification Under Review" : "Verification Required"}
                 </Typography>
-                Your account is currently under review. Please upload a valid proof of residency to unlock full features.
+                {verificationStatus === 'rejected' 
+                    ? `Your proof of residency was rejected. ${verificationNotes ? `Reason: ${verificationNotes}` : 'Please upload a valid document.'}`
+                    : hasUploadedVerification 
+                        ? "Your proof of residency has been submitted and is currently being reviewed by the barangay." 
+                        : "Your account is currently under review. Please upload a valid proof of residency to unlock full features."
+                }
             </Alert>
         )}
 
@@ -409,7 +496,7 @@ const ResidentDashboard = () => {
           </Grid>
 
           {/* Recent Requests */}
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={12}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -435,11 +522,17 @@ const ResidentDashboard = () => {
                           </ListItemIcon>
                           <ListItemText
                             primary={request.certificate_type || 'Certificate Request'}
+                            secondaryTypographyProps={{ component: 'div' }}
                             secondary={
-                              <Box component="span" sx={{ display: 'block' }}>
-                                <Typography variant="body2" color="text.secondary" component="span">
+                              <Box sx={{ display: 'block' }}>
+                                <Typography variant="body2" color="text.secondary" component="div">
                                   {request.purpose || 'General Purpose'}
                                 </Typography>
+                                {request.created_at && (
+                                   <Typography variant="caption" color="text.secondary" component="div" sx={{ display: 'block' }}>
+                                     {new Date(request.created_at).toLocaleDateString()}
+                                   </Typography>
+                                 )}
                                 <Chip 
                                   label={request.status || 'Pending'}
                                   color={getStatusColor(request.status)}
@@ -471,43 +564,6 @@ const ResidentDashboard = () => {
                     )}
                   </Box>
                 )}
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Announcements */}
-          <Grid item xs={12} md={6}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Campaign sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Announcements
-                  </Typography>
-                </Box>
-
-                <List>
-                  {announcements.map((announcement, index) => (
-                    <React.Fragment key={announcement.id}>
-                      <ListItem sx={{ px: 0 }}>
-                        <ListItemText
-                          primary={announcement.title}
-                          secondary={
-                            <Box component="span" sx={{ display: 'block' }}>
-                              <Typography variant="body2" sx={{ mb: 1 }} component="span" display="block">
-                                {announcement.message}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary" component="span">
-                                {new Date(announcement.date).toLocaleDateString()}
-                              </Typography>
-                            </Box>
-                          }
-                        />
-                      </ListItem>
-                      {index < announcements.length - 1 && <Divider />}
-                    </React.Fragment>
-                  ))}
-                </List>
               </CardContent>
             </Card>
           </Grid>

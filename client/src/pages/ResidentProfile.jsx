@@ -151,22 +151,46 @@ const ResidentProfile = () => {
     }
   };
 
+  const [beneficiaryFiles, setBeneficiaryFiles] = useState({});
+
+  const handleBeneficiaryFileChange = (field, file) => {
+    setBeneficiaryFiles(prev => ({ ...prev, [field]: file }));
+  };
+
   const handleSaveBeneficiaryStatus = async () => {
     setSaving(true);
     try {
+      const formData = new FormData();
+      
+      // Append status data
+      Object.keys(beneficiaryData).forEach(key => {
+        formData.append(key, beneficiaryData[key]);
+      });
+
+      // Append files
+      Object.keys(beneficiaryFiles).forEach(key => {
+        if (beneficiaryFiles[key]) {
+          formData.append(`${key}_File`, beneficiaryFiles[key]);
+        }
+      });
+
       const response = await apiRequest('/resident-profile/beneficiary-status', {
         method: 'PUT',
-        body: beneficiaryData
+        body: formData,
+        // Don't set Content-Type header manually for FormData, let browser set it with boundary
+        headers: {} 
       });
+      
       const data = await response.json();
       if (data.success) {
         setMessage({ 
           type: 'success', 
-          text: `Beneficiary status updated successfully. Vulnerability Score: ${data.vulnerability_score}` 
+          text: `Request submitted for acknowledgement. Vulnerability Score: ${data.vulnerability_score}` 
         });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update beneficiary status' });
+      console.error('Update error:', error);
+      setMessage({ type: 'error', text: 'Failed to submit request' });
     } finally {
       setSaving(false);
     }
@@ -352,64 +376,124 @@ const ResidentProfile = () => {
               </Box>
 
               <Alert severity="info" sx={{ mb: 3 }}>
-                Update your beneficiary status to receive priority assistance and special services.
+                Request for acknowledgement of your beneficiary status to receive priority assistance. Proof of document is required for each claim.
               </Alert>
 
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={beneficiaryData.Is_4Ps}
-                        onChange={(e) => handleBeneficiaryChange('Is_4Ps', e.target.checked)}
+                  <Box>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={beneficiaryData.Is_4Ps}
+                          onChange={(e) => handleBeneficiaryChange('Is_4Ps', e.target.checked)}
+                        />
+                      }
+                      label="4Ps Beneficiary"
+                    />
+                    {beneficiaryData.Is_4Ps && (
+                      <TextField
+                        fullWidth
+                        type="file"
+                        size="small"
+                        onChange={(e) => handleBeneficiaryFileChange('Is_4Ps', e.target.files[0])}
+                        helperText="Upload 4Ps ID or Certification"
+                        sx={{ mt: 1 }}
                       />
-                    }
-                    label="4Ps Beneficiary (Pantawid Pamilyang Pilipino Program)"
-                  />
+                    )}
+                  </Box>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={beneficiaryData.Is_PWD}
-                        onChange={(e) => handleBeneficiaryChange('Is_PWD', e.target.checked)}
+                  <Box>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={beneficiaryData.Is_PWD}
+                          onChange={(e) => handleBeneficiaryChange('Is_PWD', e.target.checked)}
+                        />
+                      }
+                      label="Person with Disability (PWD)"
+                    />
+                    {beneficiaryData.Is_PWD && (
+                      <TextField
+                        fullWidth
+                        type="file"
+                        size="small"
+                        onChange={(e) => handleBeneficiaryFileChange('Is_PWD', e.target.files[0])}
+                        helperText="Upload PWD ID"
+                        sx={{ mt: 1 }}
                       />
-                    }
-                    label="Person with Disability (PWD)"
-                  />
+                    )}
+                  </Box>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={beneficiaryData.Is_Senior}
-                        onChange={(e) => handleBeneficiaryChange('Is_Senior', e.target.checked)}
+                  <Box>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={beneficiaryData.Is_Senior}
+                          onChange={(e) => handleBeneficiaryChange('Is_Senior', e.target.checked)}
+                        />
+                      }
+                      label="Senior Citizen"
+                    />
+                    {beneficiaryData.Is_Senior && (
+                      <TextField
+                        fullWidth
+                        type="file"
+                        size="small"
+                        onChange={(e) => handleBeneficiaryFileChange('Is_Senior', e.target.files[0])}
+                        helperText="Upload Senior Citizen ID"
+                        sx={{ mt: 1 }}
                       />
-                    }
-                    label="Senior Citizen (60 years old and above)"
-                  />
+                    )}
+                  </Box>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={beneficiaryData.Is_Solo_Parent}
-                        onChange={(e) => handleBeneficiaryChange('Is_Solo_Parent', e.target.checked)}
+                  <Box>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={beneficiaryData.Is_Solo_Parent}
+                          onChange={(e) => handleBeneficiaryChange('Is_Solo_Parent', e.target.checked)}
+                        />
+                      }
+                      label="Solo Parent"
+                    />
+                    {beneficiaryData.Is_Solo_Parent && (
+                      <TextField
+                        fullWidth
+                        type="file"
+                        size="small"
+                        onChange={(e) => handleBeneficiaryFileChange('Is_Solo_Parent', e.target.files[0])}
+                        helperText="Upload Solo Parent ID"
+                        sx={{ mt: 1 }}
                       />
-                    }
-                    label="Solo Parent"
-                  />
+                    )}
+                  </Box>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={beneficiaryData.Is_Out_of_School_Youth}
-                        onChange={(e) => handleBeneficiaryChange('Is_Out_of_School_Youth', e.target.checked)}
+                  <Box>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={beneficiaryData.Is_Out_of_School_Youth}
+                          onChange={(e) => handleBeneficiaryChange('Is_Out_of_School_Youth', e.target.checked)}
+                        />
+                      }
+                      label="Out of School Youth"
+                    />
+                    {beneficiaryData.Is_Out_of_School_Youth && (
+                      <TextField
+                        fullWidth
+                        type="file"
+                        size="small"
+                        onChange={(e) => handleBeneficiaryFileChange('Is_Out_of_School_Youth', e.target.files[0])}
+                        helperText="Upload Certification"
+                        sx={{ mt: 1 }}
                       />
-                    }
-                    label="Out of School Youth"
-                  />
+                    )}
+                  </Box>
                 </Grid>
                 {beneficiaryData.Is_PWD && (
                   <Grid item xs={12}>
@@ -429,7 +513,7 @@ const ResidentProfile = () => {
                     onClick={handleSaveBeneficiaryStatus}
                     disabled={saving}
                   >
-                    Update Beneficiary Status
+                    Request for Acknowledgement
                   </Button>
                 </Grid>
               </Grid>

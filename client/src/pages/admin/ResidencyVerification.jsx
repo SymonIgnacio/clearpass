@@ -72,7 +72,11 @@ const ResidencyVerification = () => {
     try {
       const response = await apiRequest(`secretary/documents/${docId}/verify`, {
         method: 'POST',
-        body: { status, notes }
+        body: {
+          status,
+          notes,
+          source_type: selectedDoc?.source_type
+        }
       });
 
       if (response.ok) {
@@ -94,7 +98,10 @@ const ResidencyVerification = () => {
 
   const openFile = async (docId, fileName) => {
     try {
-      const response = await apiRequest(`secretary/documents/${docId}/download`);
+      const doc = documents.find(d => d.id === docId) || selectedDoc;
+      const sourceType = doc?.source_type || 'resident';
+
+      const response = await apiRequest(`secretary/documents/${docId}/download?source_type=${sourceType}`);
       if (!response.ok) {
         notify('Failed to download document', 'error');
         return;

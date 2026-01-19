@@ -1,18 +1,27 @@
 const bcrypt = require('bcryptjs');
-// const db = require('../database');
 const { ROLES } = require('../config/roles');
+const knex = require('knex')(require('../knexfile')[process.env.NODE_ENV || 'development']);
+const PDFDocument = require('pdfkit');
+const axios = require('axios');
+const NotificationController = require('./notificationController');
 
 // IT Admin User Management - All Users
 exports.getAllUsers = async (req, res) => {
-  const db = req.app.locals.db;
   try {
-    const [users] = await db.execute(`
-      SELECT u.id, u.username, u.full_name, u.email, u.role, u.is_active, u.created_at,
-             COALESCE(r.role_name, CONCAT('Role ', u.role)) as role_name
-      FROM users u 
-      LEFT JOIN roles r ON u.role = r.id
-      ORDER BY u.role, u.username
-    `);
+    const users = await knex('users as u')
+      .select([
+        'u.id',
+        'u.username',
+        'u.full_name',
+        'u.email',
+        'u.role',
+        'u.is_active',
+        'u.created_at',
+        knex.raw("COALESCE(r.role_name, CONCAT('Role ', u.role)) as role_name")
+      ])
+      .leftJoin('roles as r', 'u.role', 'r.id')
+      .orderBy(['u.role', 'u.username']);
+
     res.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -21,7 +30,6 @@ exports.getAllUsers = async (req, res) => {
 };
 
 exports.createUser = async (req, res) => {
-  const db = req.app.locals.db;
   const {
     username,
     email,
@@ -34,25 +42,27 @@ exports.createUser = async (req, res) => {
   } = req.body;
 
   try {
-    const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash(password, 10);
     const full_name = `${first_name || ''} ${last_name || ''}`.trim();
 
     const normalizedRole = role ?? role_id;
     const roleNum = Number.parseInt(normalizedRole, 10);
+    
     if (!Number.isFinite(roleNum)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
 
-    const [result] = await db.execute(
-      `
-      INSERT INTO users (username, email, full_name, password_hash, role, is_active, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, NOW())
-    `,
-      [username, email, full_name, hashedPassword, roleNum, is_active]
-    );
+    const [insertId] = await knex('users').insert({
+      username,
+      email,
+      full_name,
+      password_hash: hashedPassword,
+      role: roleNum,
+      is_active,
+      created_at: knex.fn.now()
+    });
 
-    res.status(201).json({ message: 'User created successfully', id: result.insertId });
+    res.status(201).json({ message: 'User created successfully', id: insertId });
   } catch (error) {
     console.error('Error creating user:', error);
     res.status(500).json({ error: 'Failed to create user' });
@@ -60,7 +70,6 @@ exports.createUser = async (req, res) => {
 };
 
 exports.updateUser = async (req, res) => {
-  const db = req.app.locals.db;
   const { id } = req.params;
   const { username, email, first_name, last_name, role, role_id, password, is_active } = req.body;
 
@@ -68,44 +77,26 @@ exports.updateUser = async (req, res) => {
     const full_name = `${first_name || ''} ${last_name || ''}`.trim();
     const normalizedRole = role ?? role_id;
     const roleNum = Number.parseInt(normalizedRole, 10);
+    
     if (!Number.isFinite(roleNum)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
-    let updateQuery = 'UPDATE users SET updated_at = NOW()';
-    let values = [];
 
-    if (username !== undefined) {
-      updateQuery += ', username = ?';
-      values.push(username);
-    }
-    if (email !== undefined) {
-      updateQuery += ', email = ?';
-      values.push(email);
-    }
-    if (first_name !== undefined || last_name !== undefined) {
-      updateQuery += ', full_name = ?';
-      values.push(full_name);
-    }
-    if (Number.isFinite(roleNum)) {
-      updateQuery += ', role = ?';
-      values.push(roleNum);
-    }
-    if (is_active !== undefined) {
-      updateQuery += ', is_active = ?';
-      values.push(is_active);
-    }
+    const updateObj = {
+      updated_at: knex.fn.now()
+    };
+
+    if (username !== undefined) updateObj.username = username;
+    if (email !== undefined) updateObj.email = email;
+    if (first_name !== undefined || last_name !== undefined) updateObj.full_name = full_name;
+    if (Number.isFinite(roleNum)) updateObj.role = roleNum;
+    if (is_active !== undefined) updateObj.is_active = is_active;
 
     if (password) {
-      const bcrypt = require('bcryptjs');
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updateQuery += `, password_hash = ?`;
-      values.push(hashedPassword);
+      updateObj.password_hash = await bcrypt.hash(password, 10);
     }
 
-    updateQuery += ` WHERE id = ?`;
-    values.push(id);
-
-    await db.execute(updateQuery, values);
+    await knex('users').where('id', id).update(updateObj);
     res.json({ message: 'User updated successfully' });
   } catch (error) {
     console.error('Error updating user:', error);
@@ -114,11 +105,27 @@ exports.updateUser = async (req, res) => {
 };
 
 exports.deleteUser = async (req, res) => {
-  const db = req.app.locals.db;
   const { id } = req.params;
 
   try {
-    await db.execute('DELETE FROM users WHERE id = ?', [id]);
+    // SECURITY: Hierarchy Check
+    const requesterLevel = await getRoleLevel(req.user.role);
+
+    // 1. Check Target User's Current Level
+    const targetUser = await knex('users').select('role').where('id', id).first();
+    if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+    const targetCurrentLevel = await getRoleLevel(targetUser.role);
+
+    if (requesterLevel > targetCurrentLevel) {
+      return res
+        .status(403)
+        .json({ error: 'Access denied. You cannot delete a user with higher authority.' });
+    }
+    // Prevent self-deletion if needed, though typically handled by UI. 
+    // Ideally, peers can delete peers (level === level), but subordinates cannot delete superiors.
+
+    await knex('users').where('id', id).del();
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Error deleting user:', error);
@@ -128,16 +135,22 @@ exports.deleteUser = async (req, res) => {
 
 // IT Admin Staff Management
 exports.getAllStaff = async (req, res) => {
-  const db = require('../database');
   try {
-    const [staff] = await db.execute(`
-      SELECT u.id, u.username, u.full_name, u.email, u.role, u.is_active, u.created_at,
-             COALESCE(r.role_name, CONCAT('Role ', u.role)) as role_name
-      FROM users u 
-      LEFT JOIN roles r ON u.role = r.id
-      WHERE u.role != 12
-      ORDER BY u.role, u.username
-    `);
+    const staff = await knex('users as u')
+      .select([
+        'u.id',
+        'u.username',
+        'u.full_name',
+        'u.email',
+        'u.role',
+        'u.is_active',
+        'u.created_at',
+        knex.raw("COALESCE(r.role_name, CONCAT('Role ', u.role)) as role_name")
+      ])
+      .leftJoin('roles as r', 'u.role', 'r.id')
+      .whereNot('u.role', ROLES.RESIDENT)
+      .orderBy(['u.role', 'u.username']);
+
     res.json(staff);
   } catch (error) {
     console.error('Error fetching staff:', error);
@@ -146,13 +159,12 @@ exports.getAllStaff = async (req, res) => {
 };
 
 // Helper to get hierarchy level
-const getRoleLevel = async (db, roleId) => {
-  const [rows] = await db.execute('SELECT hierarchy_level FROM roles WHERE id = ?', [roleId]);
+const getRoleLevel = async (roleId) => {
+  const rows = await knex('roles').select('hierarchy_level').where('id', roleId);
   return rows.length > 0 ? rows[0].hierarchy_level : 999; // Default to lowest priority if not found
 };
 
 exports.createStaff = async (req, res) => {
-  const db = require('../database');
   const {
     username,
     email,
@@ -165,7 +177,6 @@ exports.createStaff = async (req, res) => {
   } = req.body;
 
   try {
-    const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash(password, 10);
     const full_name = `${first_name || ''} ${last_name || ''}`.trim();
 
@@ -177,9 +188,9 @@ exports.createStaff = async (req, res) => {
 
     // SECURITY: Hierarchy Check
     // 1. Get Requester's Level
-    const requesterLevel = await getRoleLevel(db, req.user.role);
+    const requesterLevel = await getRoleLevel(req.user.role);
     // 2. Get Target Role's Level
-    const targetLevel = await getRoleLevel(db, roleNum);
+    const targetLevel = await getRoleLevel(roleNum);
 
     // Ensure requester has higher authority (Lower Level Number = Higher Authority)
     // Exception: Admin (Level 1) can create other Admins (Level 1)
@@ -195,13 +206,15 @@ exports.createStaff = async (req, res) => {
         .json({ error: 'Access denied. You cannot create a user with the same role hierarchy.' });
     }
 
-    await db.execute(
-      `
-      INSERT INTO users (username, email, full_name, password_hash, role, is_active, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, NOW())
-    `,
-      [username, email, full_name, hashedPassword, roleNum, is_active]
-    );
+    await knex('users').insert({
+      username,
+      email,
+      full_name,
+      password_hash: hashedPassword,
+      role: roleNum,
+      is_active,
+      created_at: knex.fn.now()
+    });
 
     res.status(201).json({ message: 'Staff created successfully' });
   } catch (error) {
@@ -211,19 +224,18 @@ exports.createStaff = async (req, res) => {
 };
 
 exports.updateStaff = async (req, res) => {
-  const db = require('../database');
   const { id } = req.params;
   const { username, email, first_name, last_name, role, role_id, password, is_active } = req.body;
 
   try {
     // SECURITY: Hierarchy Check
-    const requesterLevel = await getRoleLevel(db, req.user.role);
+    const requesterLevel = await getRoleLevel(req.user.role);
 
     // 1. Check Target User's Current Level
-    const [targetUser] = await db.execute('SELECT role FROM users WHERE id = ?', [id]);
-    if (targetUser.length === 0) return res.status(404).json({ error: 'User not found' });
+    const targetUser = await knex('users').select('role').where('id', id).first();
+    if (!targetUser) return res.status(404).json({ error: 'User not found' });
 
-    const targetCurrentLevel = await getRoleLevel(db, targetUser[0].role);
+    const targetCurrentLevel = await getRoleLevel(targetUser.role);
 
     if (requesterLevel > targetCurrentLevel) {
       return res
@@ -236,7 +248,7 @@ exports.updateStaff = async (req, res) => {
     const roleNum = Number.parseInt(normalizedRole, 10);
 
     if (Number.isFinite(roleNum)) {
-      const newTargetLevel = await getRoleLevel(db, roleNum);
+      const newTargetLevel = await getRoleLevel(roleNum);
       if (requesterLevel > newTargetLevel) {
         return res.status(403).json({
           error: 'Access denied. You cannot promote a user to a higher authority than yourself.',
@@ -248,22 +260,21 @@ exports.updateStaff = async (req, res) => {
     if (!Number.isFinite(roleNum)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
-    let updateQuery = `
-      UPDATE users SET username = ?, email = ?, full_name = ?, role = ?, is_active = ?, updated_at = NOW()
-    `;
-    let values = [username, email, full_name, roleNum, is_active];
+
+    const updateObj = {
+      username,
+      email,
+      full_name,
+      role: roleNum,
+      is_active,
+      updated_at: knex.fn.now()
+    };
 
     if (password) {
-      const bcrypt = require('bcryptjs');
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updateQuery += `, password_hash = ?`;
-      values.push(hashedPassword);
+      updateObj.password_hash = await bcrypt.hash(password, 10);
     }
 
-    updateQuery += ` WHERE id = ?`;
-    values.push(id);
-
-    await db.execute(updateQuery, values);
+    await knex('users').where('id', id).update(updateObj);
     res.json({ message: 'Staff updated successfully' });
   } catch (error) {
     console.error('Error updating staff:', error);
@@ -272,11 +283,28 @@ exports.updateStaff = async (req, res) => {
 };
 
 exports.deleteStaff = async (req, res) => {
-  const db = require('../database');
   const { id } = req.params;
 
   try {
-    await db.execute('DELETE FROM users WHERE id = ? AND role != 12', [id]);
+    // SECURITY: Hierarchy Check
+    const requesterLevel = await getRoleLevel(req.user.role);
+
+    // 1. Check Target User's Current Level
+    const targetUser = await knex('users').select('role').where('id', id).first();
+    if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+    const targetCurrentLevel = await getRoleLevel(targetUser.role);
+
+    if (requesterLevel > targetCurrentLevel) {
+      return res
+        .status(403)
+        .json({ error: 'Access denied. You cannot delete a user with higher authority.' });
+    }
+
+    await knex('users')
+      .where('id', id)
+      .whereNot('role', ROLES.RESIDENT)
+      .del();
     res.json({ message: 'Staff deleted successfully' });
   } catch (error) {
     console.error('Error deleting staff:', error);
@@ -286,17 +314,23 @@ exports.deleteStaff = async (req, res) => {
 
 // Secretary User Management - Residency & Vulnerability Verification
 exports.getResidentsForVerification = async (req, res) => {
-  const db = require('../database');
   try {
-    const [residents] = await db.execute(`
-      SELECT r.*, h.Household_Number, s.name as sitio_name,
-             v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent, v.Vulnerability_Score
-      FROM residents r
-      LEFT JOIN households h ON r.Household_ID = h.Household_ID
-      LEFT JOIN sitios s ON h.Sitio_ID = s.id
-      LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
-      ORDER BY r.Last_Name
-    `);
+    const residents = await knex('residents as r')
+      .select([
+        'r.*',
+        'h.Household_Number',
+        's.name as sitio_name',
+        'v.Is_4Ps',
+        'v.Is_PWD',
+        'v.Is_Senior',
+        'v.Is_Solo_Parent',
+        'v.Vulnerability_Score'
+      ])
+      .leftJoin('households as h', 'r.Household_ID', 'h.Household_ID')
+      .leftJoin('sitios as s', 'h.Sitio_ID', 's.id')
+      .leftJoin('vulnerabilities as v', 'r.Resident_ID', 'v.Resident_ID')
+      .orderBy('r.Last_Name');
+
     res.json(residents);
   } catch (error) {
     console.error('Error fetching residents for verification:', error);
@@ -305,39 +339,99 @@ exports.getResidentsForVerification = async (req, res) => {
 };
 
 exports.verifyResident = async (req, res) => {
-  const db = require('../database');
   const { id } = req.params;
   const { verification_type } = req.body;
 
+  const trx = await knex.transaction();
+
   try {
     if (verification_type === 'residency') {
-      await db.execute(
-        `
-        UPDATE residents SET Residency_Status = 'Active', updated_at = NOW() WHERE Resident_ID = ?
-      `,
-        [id]
-      );
+      // 1. Update Resident Status
+      await trx('residents')
+        .where('Resident_ID', id)
+        .update({
+          Residency_Status: 'Active',
+          updated_at: knex.fn.now()
+        });
+      
+      // 2. Promote User Role (Guest -> Resident)
+      await trx('users')
+        .where('resident_id', id)
+        .update({ role: ROLES.RESIDENT });
+
+      // 3. Update Related Documents (Fix for "Approved but Pending" issue)
+      // Update resident_documents
+      await trx('resident_documents')
+        .where('resident_id', id)
+        .andWhere('verification_status', 'Pending')
+        .update({ 
+            verification_status: 'Approved',
+            reviewed_by: req.user.id,
+            reviewed_at: knex.fn.now()
+        });
+
+      // Update application_documents (if linked via application)
+      // First find the application for this resident
+      const application = await trx('resident_applications')
+        .where('resident_id', id)
+        .orderBy('created_at', 'desc')
+        .first();
+        
+      if (application) {
+          await trx('application_documents')
+            .where('application_id', application.application_id)
+            .andWhere('verification_status', 'Pending')
+            .update({
+                verification_status: 'Approved',
+                reviewed_by: req.user.id,
+                reviewed_at: knex.fn.now()
+            });
+            
+          // Also mark application as Approved
+          await trx('resident_applications')
+            .where('application_id', application.application_id)
+            .update({ status: 'Approved' });
+      }
+
+      // 4. Send Notification
+      try {
+        const user = await trx('users').where('resident_id', id).first();
+        if (user) {
+          // Use req.app.locals.db for NotificationController (it uses mysql2 pool)
+          const notificationController = new NotificationController(req.app.locals.db);
+          await notificationController.createNotification(
+            user.id,
+            'Residency Verified',
+            'Your residency status has been verified. You now have full access to resident features.',
+            'success',
+            'high'
+          );
+        }
+      } catch (notifError) {
+        console.error('Failed to send verification notification:', notifError);
+      }
+        
     } else if (verification_type === 'vulnerability') {
-      // Update vulnerability verification status
-      await db.execute(
-        `
-        UPDATE vulnerabilities SET verified_at = NOW(), verified_by = ? WHERE Resident_ID = ?
-      `,
-        [req.user.id, id]
-      );
+      await trx('vulnerabilities')
+        .where('Resident_ID', id)
+        .update({
+          verified_at: knex.fn.now(),
+          verified_by: req.user.id
+        });
     }
 
+    await trx.commit();
     res.json({ message: `${verification_type} verification completed successfully` });
   } catch (error) {
+    await trx.rollback();
     console.error('Error verifying resident:', error);
     res.status(500).json({ error: 'Failed to verify resident' });
   }
 };
 
 exports.getAllRoles = async (req, res) => {
-  const db = require('../database');
   try {
-    const [roles] = await db.execute('SELECT * FROM roles ORDER BY hierarchy_level');
+    const roles = await knex('roles').select('*').orderBy('hierarchy_level');
     res.json(roles);
   } catch (error) {
     console.error('Error fetching roles:', error);
@@ -346,13 +440,14 @@ exports.getAllRoles = async (req, res) => {
 };
 
 exports.createRole = async (req, res) => {
-  const db = require('../database');
   const { role_name, description, hierarchy_level, permissions } = req.body;
   try {
-    await db.execute(
-      'INSERT INTO roles (role_name, description, hierarchy_level, permissions) VALUES (?, ?, ?, ?)',
-      [role_name, description, hierarchy_level, JSON.stringify(permissions)]
-    );
+    await knex('roles').insert({
+      role_name,
+      description,
+      hierarchy_level,
+      permissions: JSON.stringify(permissions)
+    });
     res.status(201).json({ message: 'Role created successfully' });
   } catch (error) {
     console.error('Error creating role:', error);
@@ -361,14 +456,17 @@ exports.createRole = async (req, res) => {
 };
 
 exports.updateRole = async (req, res) => {
-  const db = require('../database');
   const { id } = req.params;
   const { role_name, description, hierarchy_level, permissions } = req.body;
   try {
-    await db.execute(
-      'UPDATE roles SET role_name = ?, description = ?, hierarchy_level = ?, permissions = ? WHERE id = ?',
-      [role_name, description, hierarchy_level, JSON.stringify(permissions), id]
-    );
+    await knex('roles')
+      .where('id', id)
+      .update({
+        role_name,
+        description,
+        hierarchy_level,
+        permissions: JSON.stringify(permissions)
+      });
     res.json({ message: 'Role updated successfully' });
   } catch (error) {
     console.error('Error updating role:', error);
@@ -377,17 +475,16 @@ exports.updateRole = async (req, res) => {
 };
 
 exports.deleteRole = async (req, res) => {
-  const db = require('../database');
   const { id } = req.params;
   try {
     // Check if role is in use
-    const [users] = await db.execute('SELECT COUNT(*) as count FROM users WHERE role = ?', [id]);
-    if (users[0].count > 0) {
+    const result = await knex('users').where('role', id).count('* as count').first();
+    if (result.count > 0) {
       return res
         .status(400)
         .json({ error: 'Cannot delete role: It is currently assigned to users.' });
     }
-    await db.execute('DELETE FROM roles WHERE id = ?', [id]);
+    await knex('roles').where('id', id).del();
     res.json({ message: 'Role deleted successfully' });
   } catch (error) {
     console.error('Error deleting role:', error);
@@ -395,10 +492,11 @@ exports.deleteRole = async (req, res) => {
   }
 };
 
+// --- REPORTS SECTION (Refactored to use knex.raw for complex queries while maintaining compatibility) ---
+
 exports.getUsersReport = async (req, res) => {
-  const db = require('../database');
   try {
-    const [userStats] = await db.execute(`
+    const [userStats] = await knex.raw(`
       SELECT COUNT(*) as total_users, SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END) as active_users,
         SUM(CASE WHEN is_active = false THEN 1 ELSE 0 END) as inactive_users,
         SUM(CASE WHEN role = 1 THEN 1 ELSE 0 END) as it_admins,
@@ -411,14 +509,14 @@ exports.getUsersReport = async (req, res) => {
       FROM users
     `);
 
-    const [recentRegs] = await db.execute(`
+    const [recentRegs] = await knex.raw(`
       SELECT COUNT(*) as recent_registrations FROM users WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
     `);
 
     // Login Statistics
     let loginStats = { total_attempts: 0, successful_logins: 0, failed_logins: 0 };
     try {
-      const [lStats] = await db.execute(`
+      const [lStats] = await knex.raw(`
         SELECT COUNT(*) as total_attempts,
         SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful_logins,
         SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failed_logins
@@ -430,7 +528,7 @@ exports.getUsersReport = async (req, res) => {
     }
 
     // Recent Users
-    const [recentUsers] = await db.execute(`
+    const [recentUsers] = await knex.raw(`
       SELECT id, username, role, is_active, created_at 
       FROM users ORDER BY created_at DESC LIMIT 5
     `);
@@ -469,9 +567,8 @@ exports.getUsersReport = async (req, res) => {
 };
 
 exports.getBlotterReport = async (req, res) => {
-  const db = require('../database');
   try {
-    const [blotterStats] = await db.execute(`
+    const [blotterStats] = await knex.raw(`
       SELECT COUNT(*) as total_cases,
         SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending_cases,
         SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) as resolved_cases,
@@ -481,15 +578,15 @@ exports.getBlotterReport = async (req, res) => {
       FROM blotter
     `);
 
-    const [caseTypes] = await db.execute(`
+    const [caseTypes] = await knex.raw(`
       SELECT Incident_Type, COUNT(*) as count FROM blotter GROUP BY Incident_Type ORDER BY count DESC
     `);
 
-    const [recentCases] = await db.execute(`
+    const [recentCases] = await knex.raw(`
       SELECT COUNT(*) as recent_cases FROM blotter WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
     `);
 
-    const [monthlyTrends] = await db.execute(`
+    const [monthlyTrends] = await knex.raw(`
       SELECT YEAR(created_at) as year, MONTH(created_at) as month, COUNT(*) as cases_count 
       FROM blotter 
       WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
@@ -497,7 +594,7 @@ exports.getBlotterReport = async (req, res) => {
       ORDER BY year DESC, month DESC
     `);
 
-    const [activeLocations] = await db.execute(`
+    const [activeLocations] = await knex.raw(`
       SELECT Location_Sitio, COUNT(*) as incidents 
       FROM blotter 
       GROUP BY Location_Sitio 
@@ -532,9 +629,8 @@ exports.getBlotterReport = async (req, res) => {
 };
 
 exports.getCertificatesReport = async (req, res) => {
-  const db = require('../database');
   try {
-    const [certStats] = await db.execute(`
+    const [certStats] = await knex.raw(`
       SELECT COUNT(*) as total_certificates, COUNT(DISTINCT certificate_type) as unique_types,
         SUM(CASE WHEN status = 'Released' THEN 1 ELSE 0 END) as released_certificates,
         SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending_certificates,
@@ -542,15 +638,15 @@ exports.getCertificatesReport = async (req, res) => {
       FROM certificates_log WHERE date_issued IS NOT NULL
     `);
 
-    const [certTypes] = await db.execute(`
+    const [certTypes] = await knex.raw(`
       SELECT certificate_type, COUNT(*) as count FROM certificates_log GROUP BY certificate_type ORDER BY count DESC
     `);
 
-    const [recentCerts] = await db.execute(`
+    const [recentCerts] = await knex.raw(`
       SELECT COUNT(*) as recent_certificates FROM certificates_log WHERE date_issued >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
     `);
 
-    const [monthlyIssuance] = await db.execute(`
+    const [monthlyIssuance] = await knex.raw(`
       SELECT YEAR(date_issued) as year, MONTH(date_issued) as month, COUNT(*) as certificates_count 
       FROM certificates_log 
       WHERE date_issued IS NOT NULL AND date_issued >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
@@ -584,9 +680,8 @@ exports.getCertificatesReport = async (req, res) => {
 };
 
 exports.getResidentsReport = async (req, res) => {
-  const db = require('../database');
   try {
-    const [residentStats] = await db.execute(`
+    const [residentStats] = await knex.raw(`
       SELECT COUNT(*) as total_residents,
         SUM(CASE WHEN Residency_Status = 'Active' THEN 1 ELSE 0 END) as active_residents,
         SUM(CASE WHEN Residency_Status = 'Pending' THEN 1 ELSE 0 END) as pending_residents,
@@ -597,7 +692,7 @@ exports.getResidentsReport = async (req, res) => {
       FROM residents
     `);
 
-    const [vulnerableStats] = await db.execute(`
+    const [vulnerableStats] = await knex.raw(`
       SELECT SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as seniors,
         SUM(CASE WHEN v.Is_PWD = 1 THEN 1 ELSE 0 END) as pwds,
         SUM(CASE WHEN v.Is_Solo_Parent = 1 THEN 1 ELSE 0 END) as solo_parents,
@@ -605,11 +700,11 @@ exports.getResidentsReport = async (req, res) => {
       FROM residents r LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
     `);
 
-    const [recentResidents] = await db.execute(`
+    const [recentResidents] = await knex.raw(`
       SELECT COUNT(*) as recent_residents FROM residents WHERE Date_Arrival >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
     `);
 
-    const [ageDemographics] = await db.execute(`
+    const [ageDemographics] = await knex.raw(`
         SELECT 
             SUM(CASE WHEN TIMESTAMPDIFF(YEAR, Birthdate, CURDATE()) < 18 THEN 1 ELSE 0 END) as minors,
             SUM(CASE WHEN TIMESTAMPDIFF(YEAR, Birthdate, CURDATE()) BETWEEN 18 AND 59 THEN 1 ELSE 0 END) as adults,
@@ -617,7 +712,7 @@ exports.getResidentsReport = async (req, res) => {
         FROM residents
     `);
 
-    const [verificationStatus] = await db.execute(`
+    const [verificationStatus] = await knex.raw(`
         SELECT 
             SUM(CASE WHEN Residency_Status = 'Active' THEN 1 ELSE 0 END) as verified_residents,
             SUM(CASE WHEN Residency_Status = 'Pending' THEN 1 ELSE 0 END) as pending_verification,
@@ -625,7 +720,7 @@ exports.getResidentsReport = async (req, res) => {
         FROM residents
     `);
 
-    const [sitioDistribution] = await db.execute(`
+    const [sitioDistribution] = await knex.raw(`
         SELECT s.name as sitio_name, COUNT(*) as resident_count 
         FROM residents r 
         JOIN households h ON r.Household_ID = h.Household_ID 
@@ -654,7 +749,7 @@ exports.getResidentsReport = async (req, res) => {
           solo_parents: vuln.solo_parents || 0,
           four_ps: vuln.four_ps || 0,
         },
-        total_households: 0, // Placeholder as it was not in original query but used in frontend? Frontend line 793 uses total_households.
+        total_households: 0,
       },
       age_demographics: ageDemographics[0] || { minors: 0, adults: 0, seniors: 0 },
       verification_status: verificationStatus[0] || {
@@ -673,13 +768,12 @@ exports.getResidentsReport = async (req, res) => {
 };
 
 exports.getSystemReport = async (req, res) => {
-  const db = require('../database');
   try {
     let dbStatus = 'healthy',
       dbResponseTime = 0;
     const dbStartTime = Date.now();
     try {
-      await db.execute('SELECT 1');
+      await knex.raw('SELECT 1');
       dbResponseTime = Date.now() - dbStartTime;
     } catch (dbError) {
       dbStatus = 'unhealthy';
@@ -687,7 +781,7 @@ exports.getSystemReport = async (req, res) => {
 
     let dbSize = 'Unknown';
     try {
-      const [sizeResult] = await db.execute(`
+      const [sizeResult] = await knex.raw(`
         SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) as size_mb
         FROM information_schema.tables WHERE table_schema = DATABASE()
       `);
@@ -698,14 +792,13 @@ exports.getSystemReport = async (req, res) => {
     const tables = ['users', 'residents', 'blotter', 'certificates_log', 'households', 'sitios'];
     for (const table of tables) {
       try {
-        const [count] = await db.execute(`SELECT COUNT(*) as count FROM ${table}`);
+        const [count] = await knex.raw(`SELECT COUNT(*) as count FROM ${table}`);
         tableCounts[table] = count[0].count || 0;
       } catch (countError) {
         tableCounts[table] = 'Error';
       }
     }
 
-    // Transform tableCounts to database_health.tables format expected by frontend
     const dbTables = tables.map(t => ({
       table_name: t,
       record_count: tableCounts[t],
@@ -717,10 +810,9 @@ exports.getSystemReport = async (req, res) => {
         status: dbStatus,
         response_time_ms: dbResponseTime,
         size: dbSize,
-        tables: dbTables, // Add tables array
+        tables: dbTables,
       },
       system_info: {
-        // Map to system_info
         uptime: process.uptime(),
         memory_usage: process.memoryUsage(),
         node_version: process.version,
@@ -745,7 +837,6 @@ exports.getSystemReport = async (req, res) => {
 };
 
 exports.getSecurityReport = async (req, res) => {
-  const db = require('../database');
   try {
     let loginStats = {
       total_attempts_30d: 0,
@@ -757,7 +848,7 @@ exports.getSecurityReport = async (req, res) => {
     let failedByIP = [];
 
     try {
-      const [statsResult] = await db.execute(`
+      const [statsResult] = await knex.raw(`
         SELECT COUNT(*) as total_attempts_30d,
           SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful_attempts_30d,
           SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failed_attempts_30d,
@@ -768,7 +859,7 @@ exports.getSecurityReport = async (req, res) => {
       `);
       loginStats = statsResult[0] || loginStats;
 
-      const [failedResult] = await db.execute(`
+      const [failedResult] = await knex.raw(`
         SELECT ip_address, COUNT(*) as failed_count FROM login_attempts
         WHERE success = 0 AND created_at >= DATE_SUB(CURDATE(), INTERVAL 24 HOUR)
         GROUP BY ip_address HAVING failed_count >= 3 ORDER BY failed_count DESC LIMIT 10
@@ -779,7 +870,7 @@ exports.getSecurityReport = async (req, res) => {
     // ClearPass Security
     let clearpassStats = { total_blotter_cases: 0, cases_with_residents: 0, active_blocks: 0 };
     try {
-      const [cpStats] = await db.execute(`
+      const [cpStats] = await knex.raw(`
             SELECT 
                 (SELECT COUNT(*) FROM blotter) as total_blotter_cases,
                 (SELECT COUNT(*) FROM blotter WHERE respondent_id IS NOT NULL) as cases_with_residents,
@@ -791,7 +882,7 @@ exports.getSecurityReport = async (req, res) => {
     // Failed Login Sources
     let failedSources = [];
     try {
-      const [fs] = await db.execute(`
+      const [fs] = await knex.raw(`
             SELECT username, ip_address, COUNT(*) as attempts 
             FROM login_attempts 
             WHERE success = 0 
@@ -804,7 +895,7 @@ exports.getSecurityReport = async (req, res) => {
     // Security Events (Audit Logs)
     let securityEvents = [];
     try {
-      const [se] = await db.execute(`
+      const [se] = await knex.raw(`
             SELECT event_type as event, 'medium' as severity, created_at as timestamp 
             FROM audit_logs 
             ORDER BY created_at DESC LIMIT 5
@@ -845,7 +936,6 @@ exports.getSecurityReport = async (req, res) => {
 };
 
 exports.getDetailedUsersReport = async (req, res) => {
-  const db = require('../database');
   try {
     const { dateFrom, dateTo, status, role, search, page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
@@ -873,7 +963,7 @@ exports.getDetailedUsersReport = async (req, res) => {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    const [users] = await db.execute(
+    const [users] = await knex.raw(
       `
       SELECT u.id, u.username, u.full_name, u.email, u.contact_number, u.role, u.is_active, u.last_login, u.created_at,
              COALESCE(r.role_name, CONCAT('Role ', u.role)) as role_name
@@ -886,7 +976,7 @@ exports.getDetailedUsersReport = async (req, res) => {
       [...values, parseInt(limit), offset]
     );
 
-    const [totalResult] = await db.execute(
+    const [totalResult] = await knex.raw(
       `SELECT COUNT(*) as total FROM users u ${whereClause}`,
       values
     );
@@ -930,7 +1020,6 @@ exports.getDetailedUsersReport = async (req, res) => {
 };
 
 exports.getDetailedBlotterReport = async (req, res) => {
-  const db = require('../database');
   try {
     const { dateFrom, dateTo, status, search, page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
@@ -958,7 +1047,7 @@ exports.getDetailedBlotterReport = async (req, res) => {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    const [blotters] = await db.execute(
+    const [blotters] = await knex.raw(
       `
       SELECT b.*, s.name as sitio_name, r.First_Name as respondent_first_name, r.Last_Name as respondent_last_name
       FROM blotter b LEFT JOIN sitios s ON b.Location_Sitio = s.name LEFT JOIN residents r ON b.respondent_id = r.Resident_ID
@@ -967,7 +1056,7 @@ exports.getDetailedBlotterReport = async (req, res) => {
       [...values, parseInt(limit), offset]
     );
 
-    const [totalResult] = await db.execute(
+    const [totalResult] = await knex.raw(
       `SELECT COUNT(*) as total FROM blotter b ${whereClause}`,
       values
     );
@@ -1009,7 +1098,6 @@ exports.getDetailedBlotterReport = async (req, res) => {
 };
 
 exports.getDetailedCertificatesReport = async (req, res) => {
-  const db = require('../database');
   try {
     const { dateFrom, dateTo, status, search, page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
@@ -1037,7 +1125,7 @@ exports.getDetailedCertificatesReport = async (req, res) => {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    const [certificates] = await db.execute(
+    const [certificates] = await knex.raw(
       `
       SELECT c.control_no, c.certificate_type, c.purpose, c.status, c.date_issued, c.created_at,
         CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name
@@ -1047,7 +1135,7 @@ exports.getDetailedCertificatesReport = async (req, res) => {
       [...values, parseInt(limit), offset]
     );
 
-    const [totalResult] = await db.execute(
+    const [totalResult] = await knex.raw(
       `SELECT COUNT(*) as total FROM certificates_log c LEFT JOIN residents r ON c.resident_id = r.Resident_ID ${whereClause}`,
       values
     );
@@ -1087,7 +1175,6 @@ exports.getDetailedCertificatesReport = async (req, res) => {
 };
 
 exports.getDetailedResidentsReport = async (req, res) => {
-  const db = require('../database');
   try {
     const { dateFrom, dateTo, status, search, page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
@@ -1115,7 +1202,7 @@ exports.getDetailedResidentsReport = async (req, res) => {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    const [residents] = await db.execute(
+    const [residents] = await knex.raw(
       `
       SELECT r.Resident_ID, r.First_Name, r.Last_Name, r.Gender, r.Birthdate, r.Civil_Status, r.Residency_Status,
         h.Household_Number, s.name as sitio_name
@@ -1125,7 +1212,7 @@ exports.getDetailedResidentsReport = async (req, res) => {
       [...values, parseInt(limit), offset]
     );
 
-    const [totalResult] = await db.execute(
+    const [totalResult] = await knex.raw(
       `SELECT COUNT(*) as total FROM residents r LEFT JOIN households h ON r.Household_ID = h.Household_ID ${whereClause}`,
       values
     );
@@ -1167,10 +1254,6 @@ exports.getDetailedResidentsReport = async (req, res) => {
 };
 
 exports.generatePDFReport = async (req, res) => {
-  const PDFDocument = require('pdfkit');
-  const axios = require('axios');
-  const db = req.app.locals.db;
-
   const { type } = req.params;
   const { dateFrom, dateTo, status, role, search } = req.query;
 
@@ -1199,7 +1282,7 @@ exports.generatePDFReport = async (req, res) => {
 
     if (type === 'users') {
       drawHeader('User Management Report');
-      const [userStats] = await db.execute(`
+      const [userStats] = await knex.raw(`
             SELECT COUNT(*) as total_users, 
                    SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END) as active_users,
                    SUM(CASE WHEN role = 1 THEN 1 ELSE 0 END) as admins,
@@ -1233,7 +1316,7 @@ exports.generatePDFReport = async (req, res) => {
       if (conditions.length) query += ' WHERE ' + conditions.join(' AND ');
       query += ' ORDER BY created_at DESC LIMIT 100';
 
-      const [users] = await db.execute(query, values);
+      const [users] = await knex.raw(query, values);
 
       doc.text('Recent/Filtered Users (Top 100)', { underline: true });
       doc.moveDown();
@@ -1274,7 +1357,7 @@ exports.generatePDFReport = async (req, res) => {
       });
     } else if (type === 'blotter') {
       drawHeader('Blotter Cases Report');
-      const [blotterStats] = await db.execute(`
+      const [blotterStats] = await knex.raw(`
              SELECT COUNT(*) as total, 
                     SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending,
                     SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) as resolved
@@ -1286,7 +1369,7 @@ exports.generatePDFReport = async (req, res) => {
       doc.text(`Resolved: ${stats.resolved}`);
       doc.moveDown();
 
-      const [cases] = await db.execute(
+      const [cases] = await knex.raw(
         'SELECT Case_Number, Incident_Type, Status, Location_Sitio, created_at FROM blotter ORDER BY created_at DESC LIMIT 100'
       );
       doc.text('Recent Cases:', { underline: true });
@@ -1296,14 +1379,14 @@ exports.generatePDFReport = async (req, res) => {
       });
     } else if (type === 'certificates') {
       drawHeader('Certificates Issuance Report');
-      const [certStats] = await db.execute(
+      const [certStats] = await knex.raw(
         'SELECT COUNT(*) as total, SUM(CASE WHEN status="Released" THEN 1 ELSE 0 END) as released FROM certificates_log'
       );
       doc.text(`Total Certificates: ${certStats[0].total}`);
       doc.text(`Released: ${certStats[0].released}`);
       doc.moveDown();
 
-      const [certs] = await db.execute(
+      const [certs] = await knex.raw(
         'SELECT control_no, certificate_type, status, date_issued FROM certificates_log ORDER BY created_at DESC LIMIT 100'
       );
       doc.text('Recent Certificates:', { underline: true });
@@ -1313,14 +1396,14 @@ exports.generatePDFReport = async (req, res) => {
       });
     } else if (type === 'residents') {
       drawHeader('Residents Report');
-      const [resStats] = await db.execute(
+      const [resStats] = await knex.raw(
         'SELECT COUNT(*) as total, SUM(CASE WHEN Residency_Status="Active" THEN 1 ELSE 0 END) as active FROM residents'
       );
       doc.text(`Total Residents: ${resStats[0].total}`);
       doc.text(`Active Residents: ${resStats[0].active}`);
       doc.moveDown();
 
-      const [residents] = await db.execute(
+      const [residents] = await knex.raw(
         'SELECT First_Name, Last_Name, Residency_Status FROM residents ORDER BY created_at DESC LIMIT 100'
       );
       doc.text('Recent Residents:', { underline: true });
@@ -1337,7 +1420,7 @@ exports.generatePDFReport = async (req, res) => {
       doc.moveDown();
 
       try {
-        const [size] = await db.execute(
+        const [size] = await knex.raw(
           `SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) as size_mb FROM information_schema.tables WHERE table_schema = DATABASE()`
         );
         doc.text(`Database Size: ${size[0].size_mb} MB`);
@@ -1346,14 +1429,14 @@ exports.generatePDFReport = async (req, res) => {
       }
     } else if (type === 'security') {
       drawHeader('Security Audit Report');
-      const [logStats] = await db.execute(
+      const [logStats] = await knex.raw(
         'SELECT COUNT(*) as total, SUM(CASE WHEN success=0 THEN 1 ELSE 0 END) as failed FROM login_attempts WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)'
       );
       doc.text(`Login Attempts (Last 30 Days): ${logStats[0].total}`);
       doc.text(`Failed Attempts: ${logStats[0].failed}`);
       doc.moveDown();
 
-      const [logs] = await db.execute(
+      const [logs] = await knex.raw(
         'SELECT event_type, user_role, ip_address, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 50'
       );
       doc.text('Recent Security Events:', { underline: true });

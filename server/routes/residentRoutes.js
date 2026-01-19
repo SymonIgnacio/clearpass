@@ -47,6 +47,9 @@ module.exports = (db) => {
   // DELETE (archive) resident
   router.delete('/:id', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary']), validateId, asyncHandler(residentController.archive));
   
+  // PUT archive resident (alias for delete)
+  router.put('/:id/archive', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary']), validateId, asyncHandler(residentController.archive));
+  
   // PUT toggle resident status
   router.put('/:id/status', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary']), validateId, asyncHandler(residentController.toggleStatus));
 

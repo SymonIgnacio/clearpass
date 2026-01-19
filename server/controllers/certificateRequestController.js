@@ -1,4 +1,5 @@
 const { sendRequestStatusEmail } = require('../utils/emailService');
+const { logAuditToDatabase, AUDIT_EVENTS } = require('../middleware/auditLogger');
 
 class CertificateRequestController {
   constructor(db) {
@@ -106,31 +107,52 @@ class CertificateRequestController {
     try {
       const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
       const resident_id = req.user.resident_id;
-      const { page = 1, limit = 10 } = req.query;
-      const offset = (page - 1) * limit;
 
-      const [requests] = await db.execute(`
-        SELECT dr.id, dr.request_id, dr.document_type, dr.status, dr.created_at, ct.fee, ct.validity_days
-        FROM document_requests dr
-        LEFT JOIN certificate_types ct ON dr.document_type = ct.name
-        WHERE dr.resident_id = ?
-        ORDER BY dr.created_at DESC
-        LIMIT ? OFFSET ?
-      `, [resident_id, parseInt(limit), offset]);
+      // Fetch Certificate Requests
+      let requests = [];
+      if (resident_id) {
+        const [certRequests] = await db.execute(
+          `
+          SELECT 
+              request_id, document_type, status, created_at, 
+              'certificate' as type, remarks
+          FROM document_requests 
+          WHERE resident_id = ?
+          ORDER BY created_at DESC
+          `,
+          [resident_id]
+        );
+        requests = certRequests;
+      }
 
-      const [countResult] = await db.execute(
-        'SELECT COUNT(*) as total FROM document_requests WHERE resident_id = ?',
-        [resident_id]
+      // Fetch Residency Verification Applications (For Guests & Residents)
+      // We link via email because Guest users might not have resident_id yet
+      // Or we use the user's email from the session
+      const userEmail = req.user.email;
+
+      // Find applications linked to this user's email
+      const [apps] = await db.execute(
+        `
+        SELECT 
+            application_id as request_id, 
+            'Residency Verification' as document_type, 
+            status, 
+            created_at, 
+            'application' as type,
+            rejection_reason as remarks
+        FROM resident_applications 
+        WHERE email = ?
+        ORDER BY created_at DESC
+        `,
+        [userEmail]
       );
+
+      // Merge and Sort
+      const allRequests = [...requests, ...apps].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
       res.json({
         success: true,
-        data: requests,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total: countResult[0].total
-        }
+        data: allRequests
       });
     } catch (error) {
       console.error('Error fetching requests:', error);
@@ -267,24 +289,47 @@ class CertificateRequestController {
 
       // Notify resident
       const [rows] = await db.execute(`
-        SELECT dr.document_type, r.Email, r.First_Name, r.Last_Name 
+        SELECT dr.document_type, r.Email, r.First_Name, r.Last_Name, u.id as user_id
         FROM document_requests dr
         JOIN residents r ON dr.resident_id = r.Resident_ID
+        LEFT JOIN users u ON r.Resident_ID = u.resident_id
         WHERE dr.request_id = ?
       `, [request_id]);
 
       if (rows.length > 0) {
-        const { document_type, Email, First_Name, Last_Name } = rows[0];
+        const { document_type, Email, First_Name, Last_Name, user_id } = rows[0];
 
-        if (global.createNotification) {
+        // Audit Log
+        try {
+            const auditDetails = {
+                user_id: req.user?.id || null,
+                user_role: req.user?.role || null,
+                resource: `request/${request_id}`,
+                action: 'UPDATE_STATUS',
+                result: 'SUCCESS',
+                additional_details: { status, remarks, document_type }
+            };
+            // Map status to appropriate audit event
+            const eventType = status === 'approved' ? AUDIT_EVENTS.CERTIFICATE_RELEASED : AUDIT_EVENTS.CERTIFICATE_REJECTED; // Using closest available events
+            
+            // Assuming logAuditToDatabase handles the insert
+            await logAuditToDatabase(db, eventType, auditDetails);
+        } catch (auditErr) {
+            console.warn('Failed to log audit for certificate update', auditErr);
+        }
+
+        if (global.createNotification && user_id) {
           await global.createNotification(
-            null, // system notification
+            user_id, // Send to the specific user ID linked to the resident
             'Certificate Request Update',
             `Your request for ${document_type} has been ${status}. ${remarks ? `Remarks: ${remarks}` : ''}`,
             status === 'approved' ? 'success' : 'error',
             'high',
             { request_id }
           );
+        } else if (global.createNotification) {
+             // Fallback if no user_id found (e.g. resident account deleted), log warning
+             console.warn(`Could not send notification for request ${request_id}: No linked user account found.`);
         }
 
         if (Email) {

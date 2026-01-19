@@ -9,16 +9,8 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 // Configure storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Generate unique filename: timestamp-random-originalName
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Use memory storage to keep file in buffer for database insertion
+const storage = multer.memoryStorage();
 
 // File filter
 const fileFilter = (req, file, cb) => {

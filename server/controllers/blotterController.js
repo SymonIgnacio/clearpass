@@ -84,15 +84,26 @@ exports.create = async (req, res) => {
       status,
     } = req.body;
 
+    // SECURITY: Enforce identity for non-admin/officer users
+    // If user is NOT an Admin (1), Captain (5), Secretary (6), or Blotter Officer (3),
+    // they MUST file as themselves.
+    const privilegedRoles = [1, 3, 5, 6]; 
+    let finalComplainantId = complainant_resident_id;
+
+    if (req.user && !privilegedRoles.includes(req.user.role)) {
+        // Force the complainant ID to match the authenticated user
+        finalComplainantId = req.user.resident_id;
+    }
+
     if (!Complainant_Details || !Incident_Type || !Narrative || !Location_Sitio) {
       return res.status(400).json({ error: 'Required fields missing' });
     }
 
     // Validate complainant resident ID if provided
-    if (complainant_resident_id) {
+    if (finalComplainantId) {
       const [complainantCheck] = await db.execute(
         'SELECT Resident_ID FROM residents WHERE Resident_ID = ?',
-        [complainant_resident_id]
+        [finalComplainantId]
       );
       if (complainantCheck.length === 0) {
         return res
@@ -138,7 +149,7 @@ exports.create = async (req, res) => {
       [
         caseNumber,
         JSON.stringify(Complainant_Details),
-        complainant_resident_id || null,
+        finalComplainantId || null,
         Respondent_Details ? JSON.stringify(Respondent_Details) : null,
         finalRespondentId || null,
         finalRespondentId || null, // Keep for backward compatibility
@@ -249,7 +260,20 @@ exports.update = async (req, res) => {
         // Notify Complainant
         if (c.complainant_resident_id) {
            // Find user_id linked to resident_id
-           const [u] = await db.execute('SELECT id FROM users WHERE resident_id = ?', [c.complainant_resident_id]);
+           let [u] = await db.execute('SELECT id FROM users WHERE resident_id = ?', [c.complainant_resident_id]);
+           
+           // If not found by resident_id, try finding by email from Complainant_Details
+           if (u.length === 0 && c.Complainant_Details) {
+               try {
+                   const details = typeof c.Complainant_Details === 'string' ? JSON.parse(c.Complainant_Details) : c.Complainant_Details;
+                   if (details.email) {
+                       [u] = await db.execute('SELECT id FROM users WHERE email = ?', [details.email]);
+                   }
+               } catch (e) {
+                   console.warn('Failed to parse Complainant_Details for notification', e);
+               }
+           }
+
            if (u.length > 0) {
              await notificationController.createNotification({
                 user_id: u[0].id,
@@ -264,7 +288,20 @@ exports.update = async (req, res) => {
 
         // Notify Respondent
         if (c.respondent_resident_id) {
-           const [u] = await db.execute('SELECT id FROM users WHERE resident_id = ?', [c.respondent_resident_id]);
+           let [u] = await db.execute('SELECT id FROM users WHERE resident_id = ?', [c.respondent_resident_id]);
+           
+           // If not found by resident_id, try finding by email from Respondent_Details
+           if (u.length === 0 && c.Respondent_Details) {
+               try {
+                   const details = typeof c.Respondent_Details === 'string' ? JSON.parse(c.Respondent_Details) : c.Respondent_Details;
+                   if (details.email) {
+                       [u] = await db.execute('SELECT id FROM users WHERE email = ?', [details.email]);
+                   }
+               } catch (e) {
+                   console.warn('Failed to parse Respondent_Details for notification', e);
+               }
+           }
+
            if (u.length > 0) {
              await notificationController.createNotification({
                 user_id: u[0].id,

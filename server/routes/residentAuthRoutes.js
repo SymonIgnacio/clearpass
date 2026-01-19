@@ -321,6 +321,14 @@ module.exports = db => {
 
         if (applications.length > 0) {
           const app = applications[0];
+          // Check for verification documents
+          const [docs] = await db.execute(
+            'SELECT verification_status, verification_notes, file_path, created_at FROM application_documents WHERE application_id = ? ORDER BY created_at DESC LIMIT 1',
+            [app.application_id]
+          );
+
+          const verificationDoc = docs.length > 0 ? docs[0] : null;
+
           // Normalize keys to match residents table structure expected by frontend
           const normalizedApp = {
             ...app,
@@ -337,6 +345,7 @@ module.exports = db => {
             Mobile_Number: app.mobile_number,
             Street_Address: app.street_address,
             Residency_Status: app.status || 'Pending Verification',
+            verification_document: verificationDoc
           };
           return res.json({ success: true, profile: normalizedApp });
         }
@@ -369,11 +378,78 @@ module.exports = db => {
         });
       }
 
+      // Fetch latest verification document for residents too
+       let verificationDoc = null;
+       const [resDocs] = await db.execute(
+         'SELECT verification_status, verification_notes, file_path, created_at FROM resident_documents WHERE resident_id = ? ORDER BY created_at DESC LIMIT 1',
+         [req.user.resident_id]
+       );
+       
+       if (resDocs.length > 0) {
+           verificationDoc = resDocs[0];
+       } else {
+           // Fallback to application documents if no resident document found
+           const [apps] = await db.execute('SELECT application_id FROM resident_applications WHERE email = ?', [req.user.email]);
+           if (apps.length > 0) {
+               const [appDocs] = await db.execute(
+                 'SELECT verification_status, verification_notes, file_path, created_at FROM application_documents WHERE application_id = ? ORDER BY created_at DESC LIMIT 1',
+                 [apps[0].application_id]
+               );
+               if (appDocs.length > 0) {
+                   verificationDoc = appDocs[0];
+               }
+           }
+       }
+      
+      const residentProfile = {
+          ...residents[0],
+          verification_document: verificationDoc
+      };
+
       res.json({
         success: true,
-        profile: residents[0],
+        profile: residentProfile,
       });
     })
+  );
+
+  // Upload verification document endpoint
+  const upload = require('../middleware/upload');
+  router.post('/upload-verification', 
+    verifyToken, 
+    checkRole(['resident', 'guest']), 
+    asyncHandler(async (req, res, next) => {
+        // Check if user is already verified
+        // We need to check both resident_documents (if resident_id exists) and application_documents (via email)
+        
+        let isVerified = false;
+        
+        if (req.user.resident_id) {
+             const [docs] = await db.execute(
+                'SELECT verification_status FROM resident_documents WHERE resident_id = ? AND verification_status = "verified" LIMIT 1',
+                [req.user.resident_id]
+             );
+             if (docs.length > 0) isVerified = true;
+        } else {
+             // Check application documents
+             const [apps] = await db.execute('SELECT application_id FROM resident_applications WHERE email = ?', [req.user.email]);
+             if (apps.length > 0) {
+                 const [docs] = await db.execute(
+                    'SELECT verification_status FROM application_documents WHERE application_id = ? AND verification_status = "verified" LIMIT 1',
+                    [apps[0].application_id]
+                 );
+                 if (docs.length > 0) isVerified = true;
+             }
+        }
+        
+        if (isVerified) {
+             return res.status(400).json({ success: false, message: 'You are already verified. No further uploads are required.' });
+        }
+        
+        next();
+    }),
+    upload.fields([{ name: 'document', maxCount: 1 }]),
+    require('../controllers/residentController').uploadVerificationDocs
   );
 
   return router;

@@ -75,11 +75,15 @@ class WebSocketService {
     }
   }
 
+  // Send message to specific user
   sendToUser(userId, data) {
     const client = this.clients.get(userId);
     if (client && client.readyState === WebSocket.OPEN) {
+      console.log(`[WS] Sending message to User ${userId}:`, data.type);
       client.send(JSON.stringify(data));
       return true;
+    } else {
+      console.log(`[WS] User ${userId} not connected or socket closed.`);
     }
     return false;
   }

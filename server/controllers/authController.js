@@ -271,6 +271,33 @@ const me = async (req, res) => {
     const user = users[0];
     // Use effective_role instead of raw role
     const normalizedRole = normalizeRole(user.effective_role);
+
+    // CLEARPASS: Refresh Token if Role or Resident ID changed (Self-Healing Session)
+    if (normalizedRole !== req.user.role || user.resident_id !== req.user.resident_id) {
+        const token = jwt.sign(
+          {
+            id: user.id,
+            username: user.username,
+            role: normalizedRole,
+            role_name: user.role_name,
+            resident_id: user.resident_id,
+            mfa_verified: req.user.mfa_verified,
+          },
+          process.env.JWT_SECRET,
+          {
+            expiresIn: process.env.JWT_EXPIRES_IN || '24h',
+          }
+        );
+
+        res.cookie('authToken', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          path: '/',
+          maxAge: 24 * 60 * 60 * 1000,
+        });
+    }
+
     res.json({
       success: true,
       user: {
@@ -280,6 +307,7 @@ const me = async (req, res) => {
         role_name: user.role_name,
         email: user.email,
         full_name: user.full_name,
+        resident_id: user.resident_id,
         mfa_verified: isMfaEnforced() ? req.user.mfa_verified === true : true,
       },
     });

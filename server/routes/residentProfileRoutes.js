@@ -19,5 +19,8 @@ module.exports = (db) => {
   // Get verification status
   router.get('/verification-status', verifyToken, checkRole([ROLES.RESIDENT, ROLES.GUEST]), (req, res) => controller.getVerificationStatus(req, res));
 
+  // Resident Dashboard Stats
+  router.get('/dashboard', verifyToken, checkRole([ROLES.RESIDENT, ROLES.GUEST]), (req, res) => controller.getDashboardStats(req, res));
+
   return router;
 };

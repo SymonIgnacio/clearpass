@@ -14,6 +14,7 @@ const VerificationUploadModal = ({ open, onClose, onSuccess }) => {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
@@ -23,6 +24,7 @@ const VerificationUploadModal = ({ open, onClose, onSuccess }) => {
         setFile(null);
       } else {
         setError('');
+        setSuccess('');
         setFile(selectedFile);
       }
     }
@@ -30,27 +32,46 @@ const VerificationUploadModal = ({ open, onClose, onSuccess }) => {
 
   const handleUpload = async () => {
     if (!file) {
-      setError('Please select a file');
+      setError('Please select a file first');
       return;
     }
 
+    const formData = new FormData();
+    formData.append('document', file);
+    formData.append('document_type', 'Proof of Residency'); // Explicit type
+    formData.append('description', 'Initial proof of residency upload');
+
     setUploading(true);
     setError('');
+    setSuccess('');
 
     try {
-      const formData = new FormData();
-      formData.append('document', file);
-      formData.append('document_type', 'Proof of Residency');
-      formData.append('description', 'Initial residency verification upload');
-
-      await uploadVerification(formData);
+      const response = await uploadVerification(formData);
       
-      if (onSuccess) onSuccess();
-      onClose();
-      setFile(null);
-    } catch (err) {
-      console.error('Upload failed:', err);
-      setError('Upload failed. Please try again.');
+      // Check if response is OK (200-299)
+      if (response.ok) {
+        await response.json();
+        // If we get here, the upload was successful according to the server
+        setSuccess('Upload successful! Your document is under review.');
+        setTimeout(() => {
+          onClose();
+          if (onSuccess) onSuccess();
+        }, 2000);
+      } else {
+        // Try to parse error message from server
+        let errorMessage = 'Upload failed. Please try again.';
+        try {
+          const errorData = await response.json();
+          if (errorData.error) errorMessage = errorData.error;
+        } catch (e) {
+          // Could not parse JSON, stick with default or statusText
+          errorMessage = `Upload failed: ${response.statusText}`;
+        }
+        setError(errorMessage);
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setError(error.message || 'Upload failed. Please check your connection.');
     } finally {
       setUploading(false);
     }
@@ -78,15 +99,21 @@ const VerificationUploadModal = ({ open, onClose, onSuccess }) => {
           </Alert>
         )}
 
+        {success && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {success}
+          </Alert>
+        )}
+
         <Box sx={{ 
           border: '2px dashed', 
-          borderColor: 'grey.300', 
+          borderColor: 'divider', 
           borderRadius: 2, 
           p: 4, 
           mb: 3,
           cursor: 'pointer',
-          bgcolor: 'grey.50',
-          '&:hover': { bgcolor: 'grey.100' }
+          bgcolor: 'action.hover',
+          '&:hover': { bgcolor: 'action.selected' }
         }}>
           <input
             accept="image/*,.pdf"
@@ -101,7 +128,7 @@ const VerificationUploadModal = ({ open, onClose, onSuccess }) => {
             </Button>
           </label>
           {file && (
-            <Typography variant="body2" sx={{ mt: 2, fontWeight: 500 }}>
+            <Typography variant="body2" color="text.primary" sx={{ mt: 2, fontWeight: 500 }}>
               Selected: {file.name}
             </Typography>
           )}

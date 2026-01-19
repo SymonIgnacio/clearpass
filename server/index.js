@@ -171,6 +171,7 @@ async function initializeDatabase() {
 
 // Mount routes
 app.post('/api/auth/login', authLimiter, validateLogin, authController.login);
+app.post('/api/auth/officer-login', authLimiter, validateLogin, authController.login); // Restored Officer Login
 app.post('/api/auth/logout', authController.logout);
 
 // CSRF token endpoint
@@ -234,7 +235,7 @@ app.use('/api/resident-auth', require('./routes/residentAuthRoutes')(db));
 app.use('/api', require('./routes/sharedRoutes')(db));
 
 // Mount comprehensive routes.js for additional endpoints
-app.use('/api', require('./routes'));
+// app.use('/api', require('./routes'));
 
 // Programs route
 app.use('/api/programs', require('./routes/programRoutes')(db));

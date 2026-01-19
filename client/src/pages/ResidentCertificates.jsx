@@ -44,9 +44,11 @@ const ResidentCertificates = () => {
   const isGuest = user?.role === 13;
 
   useEffect(() => {
-    fetchCertificates();
+    if (!isGuest) {
+        fetchCertificates();
+    }
     fetchCertificateTypes();
-  }, []);
+  }, [isGuest]);
 
   const fetchCertificates = async () => {
     try {
