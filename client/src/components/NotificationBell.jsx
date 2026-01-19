@@ -8,7 +8,11 @@ import {
   Box,
   Divider,
   Button,
-  Chip
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -19,6 +23,7 @@ import { useNotifications } from '../contexts/NotificationContext';
 const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedNotification, setSelectedNotification] = useState(null);
   const open = Boolean(anchorEl);
 
   const handleClick = (event) => {
@@ -33,14 +38,32 @@ const NotificationBell = () => {
     if (!notification.is_read) {
       markAsRead(notification.id);
     }
+    setSelectedNotification(notification);
+    handleClose(); // Close the menu when opening the modal
+  };
+
+  const handleModalClose = () => {
+    setSelectedNotification(null);
   };
 
   const getTypeColor = (type) => {
     switch (type) {
-      case 'success': return 'success';
+      case 'success':
+      case 'approved': return 'success';
       case 'warning': return 'warning';
-      case 'error': return 'error';
+      case 'error':
+      case 'rejected': return 'error';
       default: return 'info';
+    }
+  };
+
+  const getTypeLabel = (type) => {
+    switch (type) {
+      case 'success': return 'Approved';
+      case 'error': return 'Rejected';
+      case 'approved': return 'Approved';
+      case 'rejected': return 'Rejected';
+      default: return type;
     }
   };
 
@@ -109,13 +132,13 @@ const NotificationBell = () => {
                   {notification.title}
                 </Typography>
                 {notification.type !== 'info' && (
-                  <Chip
-                    label={notification.type}
-                    size="small"
-                    color={getTypeColor(notification.type)}
-                    sx={{ height: 20, fontSize: '0.625rem', ml: 1 }}
-                  />
-                )}
+                <Chip
+                  label={getTypeLabel(notification.type)}
+                  size="small"
+                  color={getTypeColor(notification.type)}
+                  sx={{ height: 20, fontSize: '0.625rem', ml: 1 }}
+                />
+              )}
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, whiteSpace: 'pre-line' }}>
                 {notification.message}
@@ -127,6 +150,43 @@ const NotificationBell = () => {
           ))
         )}
       </Menu>
+
+      <Dialog
+        open={Boolean(selectedNotification)}
+        onClose={handleModalClose}
+        maxWidth="sm"
+        fullWidth
+      >
+        {selectedNotification && (
+          <>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {selectedNotification.type !== 'info' && (
+                <Chip
+                  label={getTypeLabel(selectedNotification.type)}
+                  size="small"
+                  color={getTypeColor(selectedNotification.type)}
+                />
+              )}
+              <Typography variant="h6" component="span">
+                {selectedNotification.title}
+              </Typography>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Typography variant="body1" sx={{ whiteSpace: 'pre-line', mb: 2 }}>
+                {selectedNotification.message}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block">
+                Received: {new Date(selectedNotification.created_at).toLocaleString()}
+              </Typography>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleModalClose} color="primary">
+                Close
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
     </>
   );
 };

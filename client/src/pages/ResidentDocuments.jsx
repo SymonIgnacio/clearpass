@@ -15,7 +15,13 @@ import {
   Button,
   Avatar,
   CircularProgress,
-  Alert
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  Divider
 } from '@mui/material';
 import {
   Description,
@@ -34,6 +40,7 @@ const ResidentDocuments = () => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedDocument, setSelectedDocument] = useState(null);
 
   useEffect(() => {
     fetchDocuments();
@@ -93,6 +100,14 @@ const ResidentDocuments = () => {
     );
   }
 
+  const handleOpenDetails = (doc) => {
+    setSelectedDocument(doc);
+  };
+
+  const handleCloseDetails = () => {
+    setSelectedDocument(null);
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Paper elevation={0} sx={{ p: 3, mb: 3, bgcolor: 'primary.main', color: 'primary.contrastText', borderRadius: 2 }}>
@@ -119,14 +134,13 @@ const ResidentDocuments = () => {
 
       <TableContainer component={Paper} elevation={1} sx={{ borderRadius: 2 }}>
         <Table>
-          <TableHead sx={{ bgcolor: 'grey.50' }}>
+          <TableHead sx={{ bgcolor: 'background.paper' }}>
             <TableRow>
               <TableCell>Document Type</TableCell>
               <TableCell>File Name</TableCell>
               <TableCell>Date Uploaded</TableCell>
               <TableCell>Status</TableCell>
-              <TableCell>Notes</TableCell>
-              {/* <TableCell align="right">Actions</TableCell> */}
+              <TableCell align="center">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -152,24 +166,17 @@ const ResidentDocuments = () => {
                     })}
                   </TableCell>
                   <TableCell>{getStatusChip(doc.verification_status)}</TableCell>
-                  <TableCell>
-                    {doc.verification_notes ? (
-                      <Typography variant="caption" color="error">
-                        {doc.verification_notes}
-                      </Typography>
-                    ) : (
-                      <Typography variant="caption" color="text.secondary">
-                        -
-                      </Typography>
-                    )}
-                  </TableCell>
-                  {/* <TableCell align="right">
-                    <Tooltip title="Download">
-                      <IconButton size="small">
-                        <CloudDownload fontSize="small" />
+                  <TableCell align="center">
+                    <Tooltip title="View Details">
+                      <IconButton 
+                        size="small" 
+                        color="primary"
+                        onClick={() => handleOpenDetails(doc)}
+                      >
+                        <Visibility fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                  </TableCell> */}
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
@@ -184,6 +191,74 @@ const ResidentDocuments = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Dialog
+        open={Boolean(selectedDocument)}
+        onClose={handleCloseDetails}
+        maxWidth="sm"
+        fullWidth
+      >
+        {selectedDocument && (
+          <>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography variant="h6">Document Details</Typography>
+              {getStatusChip(selectedDocument.verification_status)}
+            </DialogTitle>
+            <Divider />
+            <DialogContent>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Document Type
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                    <Description color="action" sx={{ mr: 1 }} />
+                    <Typography variant="body1">
+                      {selectedDocument.document_type.replace(/_/g, ' ').toUpperCase()}
+                    </Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    File Name
+                  </Typography>
+                  <Typography variant="body1" sx={{ mt: 0.5 }}>
+                    {selectedDocument.file_name}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Date Uploaded
+                  </Typography>
+                  <Typography variant="body1" sx={{ mt: 0.5 }}>
+                    {new Date(selectedDocument.created_at).toLocaleString()}
+                  </Typography>
+                </Grid>
+
+                {selectedDocument.verification_notes && (
+                  <Grid item xs={12}>
+                    <Alert severity={selectedDocument.verification_status === 'rejected' ? 'error' : 'info'}>
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        {selectedDocument.verification_status === 'rejected' ? 'Rejection Reason:' : 'Notes:'}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: 'pre-line' }}>
+                        {selectedDocument.verification_notes}
+                      </Typography>
+                    </Alert>
+                  </Grid>
+                )}
+              </Grid>
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+              <Button onClick={handleCloseDetails} variant="outlined">
+                Close
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
     </Box>
   );
 };

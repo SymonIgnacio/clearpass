@@ -311,12 +311,19 @@ module.exports = db => {
     checkRole(['resident', 'guest']),
     asyncHandler(async (req, res) => {
       const resident_id = req.user.resident_id;
+      let userEmail = req.user.email;
+
+      // Fallback: Fetch email if missing in token
+      if (!userEmail) {
+          const [u] = await db.execute('SELECT email FROM users WHERE id = ?', [req.user.id]);
+          if (u.length > 0) userEmail = u[0].email;
+      }
 
       if (!resident_id) {
         // Handle Guest/Applicant: Fetch from resident_applications
         const [applications] = await db.execute(
           'SELECT * FROM resident_applications WHERE email = ? ORDER BY created_at DESC LIMIT 1',
-          [req.user.email]
+          [userEmail]
         );
 
         if (applications.length > 0) {
@@ -354,7 +361,7 @@ module.exports = db => {
         return res.json({
           success: true,
           profile: {
-            First_Name: req.user.email,
+            First_Name: userEmail,
             Last_Name: '',
             Residency_Status: 'Guest',
           },
@@ -389,7 +396,7 @@ module.exports = db => {
            verificationDoc = resDocs[0];
        } else {
            // Fallback to application documents if no resident document found
-           const [apps] = await db.execute('SELECT application_id FROM resident_applications WHERE email = ?', [req.user.email]);
+           const [apps] = await db.execute('SELECT application_id FROM resident_applications WHERE email = ?', [userEmail]);
            if (apps.length > 0) {
                const [appDocs] = await db.execute(
                  'SELECT verification_status, verification_notes, file_path, created_at FROM application_documents WHERE application_id = ? ORDER BY created_at DESC LIMIT 1',

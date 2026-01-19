@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -51,10 +51,12 @@ const ResidentProfile = () => {
     Is_Out_of_School_Youth: false,
     Disability_Type: ''
   });
+  const [validationStatus, setValidationStatus] = useState(null);
   const [verification, setVerification] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const submitLock = useRef(false);
 
   useEffect(() => {
     fetchProfile();
@@ -93,6 +95,7 @@ const ResidentProfile = () => {
           Is_Out_of_School_Youth: profileData.Is_Out_of_School_Youth || false,
           Disability_Type: profileData.Disability_Type || ''
         });
+        setValidationStatus(profileData.validation_status);
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to load profile' });
@@ -148,6 +151,7 @@ const ResidentProfile = () => {
       setMessage({ type: 'error', text: 'Failed to update profile' });
     } finally {
       setSaving(false);
+      submitLock.current = false;
     }
   };
 
@@ -158,6 +162,8 @@ const ResidentProfile = () => {
   };
 
   const handleSaveBeneficiaryStatus = async () => {
+    if (submitLock.current) return;
+    submitLock.current = true;
     setSaving(true);
     try {
       const formData = new FormData();
@@ -187,13 +193,21 @@ const ResidentProfile = () => {
           type: 'success', 
           text: `Request submitted for acknowledgement. Vulnerability Score: ${data.vulnerability_score}` 
         });
+        // Refresh status to lock UI
+        fetchProfile();
       }
     } catch (error) {
       console.error('Update error:', error);
       setMessage({ type: 'error', text: 'Failed to submit request' });
     } finally {
       setSaving(false);
+      submitLock.current = false;
     }
+  };
+
+  const isLocked = (field) => {
+    // Lock if the field is true (requested) AND validation status is pending or approved
+    return beneficiaryData[field] && (validationStatus === 'pending' || validationStatus === 'approved');
   };
 
   if (loading) {
@@ -387,11 +401,12 @@ const ResidentProfile = () => {
                         <Checkbox
                           checked={beneficiaryData.Is_4Ps}
                           onChange={(e) => handleBeneficiaryChange('Is_4Ps', e.target.checked)}
+                          disabled={isLocked('Is_4Ps')}
                         />
                       }
                       label="4Ps Beneficiary"
                     />
-                    {beneficiaryData.Is_4Ps && (
+                    {beneficiaryData.Is_4Ps && !isLocked('Is_4Ps') && (
                       <TextField
                         fullWidth
                         type="file"
@@ -410,11 +425,12 @@ const ResidentProfile = () => {
                         <Checkbox
                           checked={beneficiaryData.Is_PWD}
                           onChange={(e) => handleBeneficiaryChange('Is_PWD', e.target.checked)}
+                          disabled={isLocked('Is_PWD')}
                         />
                       }
                       label="Person with Disability (PWD)"
                     />
-                    {beneficiaryData.Is_PWD && (
+                    {beneficiaryData.Is_PWD && !isLocked('Is_PWD') && (
                       <TextField
                         fullWidth
                         type="file"
@@ -433,11 +449,12 @@ const ResidentProfile = () => {
                         <Checkbox
                           checked={beneficiaryData.Is_Senior}
                           onChange={(e) => handleBeneficiaryChange('Is_Senior', e.target.checked)}
+                          disabled={isLocked('Is_Senior')}
                         />
                       }
                       label="Senior Citizen"
                     />
-                    {beneficiaryData.Is_Senior && (
+                    {beneficiaryData.Is_Senior && !isLocked('Is_Senior') && (
                       <TextField
                         fullWidth
                         type="file"
@@ -456,11 +473,12 @@ const ResidentProfile = () => {
                         <Checkbox
                           checked={beneficiaryData.Is_Solo_Parent}
                           onChange={(e) => handleBeneficiaryChange('Is_Solo_Parent', e.target.checked)}
+                          disabled={isLocked('Is_Solo_Parent')}
                         />
                       }
                       label="Solo Parent"
                     />
-                    {beneficiaryData.Is_Solo_Parent && (
+                    {beneficiaryData.Is_Solo_Parent && !isLocked('Is_Solo_Parent') && (
                       <TextField
                         fullWidth
                         type="file"
@@ -479,11 +497,12 @@ const ResidentProfile = () => {
                         <Checkbox
                           checked={beneficiaryData.Is_Out_of_School_Youth}
                           onChange={(e) => handleBeneficiaryChange('Is_Out_of_School_Youth', e.target.checked)}
+                          disabled={isLocked('Is_Out_of_School_Youth')}
                         />
                       }
                       label="Out of School Youth"
                     />
-                    {beneficiaryData.Is_Out_of_School_Youth && (
+                    {beneficiaryData.Is_Out_of_School_Youth && !isLocked('Is_Out_of_School_Youth') && (
                       <TextField
                         fullWidth
                         type="file"
@@ -495,7 +514,7 @@ const ResidentProfile = () => {
                     )}
                   </Box>
                 </Grid>
-                {beneficiaryData.Is_PWD && (
+                {beneficiaryData.Is_PWD && !isLocked('Is_PWD') && (
                   <Grid item xs={12}>
                     <TextField
                       fullWidth

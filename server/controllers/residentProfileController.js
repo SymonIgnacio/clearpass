@@ -63,9 +63,9 @@ class ResidentProfileController {
       }
 
       const [residents] = await this.db.execute(`
-        SELECT r.*, h.Street_Address, h.Household_Number, s.name as sitio_name,
+        SELECT r.*, r.Email as email, h.Street_Address, h.Household_Number, s.name as sitio_name,
                v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent, v.Is_Out_of_School_Youth,
-               v.Disability_Type, v.Vulnerability_Score
+               v.Disability_Type, v.Vulnerability_Score, v.validation_status
         FROM residents r
         LEFT JOIN households h ON r.Household_ID = h.Household_ID
         LEFT JOIN sitios s ON h.Sitio_ID = s.id
@@ -168,14 +168,20 @@ class ResidentProfileController {
       
       const uploadDocument = async (file, type) => {
         if (!file) return;
-        const filename = file.filename;
-        const filepath = file.path;
         
+        // Store in database as BLOB
         await this.db.execute(`
           INSERT INTO resident_documents (
-            resident_id, document_type, file_path, status, created_at
-          ) VALUES (?, ?, ?, 'pending', NOW())
-        `, [resident_id, type, filename]);
+            resident_id, document_type, file_name, file_path, file_data, mime_type, verification_status, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())
+        `, [
+          resident_id, 
+          type, 
+          file.originalname, 
+          'database_blob', // Placeholder as file is stored in DB
+          file.buffer,
+          file.mimetype
+        ]);
       };
 
       if (files.Is_4Ps_File && files.Is_4Ps_File.length > 0) await uploadDocument(files.Is_4Ps_File[0], '4Ps Proof');
@@ -202,31 +208,28 @@ class ResidentProfileController {
       });
 
       if (existing.length > 0) {
-        // Update existing record
-        // Note: In a real world scenario, we might want to set a 'status' column to 'pending_review' 
-        // instead of immediately updating the flags, but per user request we just update for now
-        // and let the document validation happen in admin side.
+        // Update existing record and set status to pending
         await this.db.execute(`
           UPDATE vulnerabilities SET 
             Is_4Ps = ?, Is_PWD = ?, Is_Senior = ?, Is_Solo_Parent = ?, 
             Is_Out_of_School_Youth = ?, Disability_Type = ?, 
-            Vulnerability_Score = ?, updated_at = NOW()
+            Vulnerability_Score = ?, validation_status = 'pending', updated_at = NOW()
           WHERE Resident_ID = ?
         `, [
           toBool(Is_4Ps), toBool(Is_PWD), toBool(Is_Senior), toBool(Is_Solo_Parent), 
-          toBool(Is_Out_of_School_Youth), Disability_Type,
+          toBool(Is_Out_of_School_Youth), Disability_Type || null,
           vulnerability_score, resident_id
         ]);
       } else {
-        // Create new record
+        // Create new record with pending status
         await this.db.execute(`
           INSERT INTO vulnerabilities (
             Resident_ID, Is_4Ps, Is_PWD, Is_Senior, Is_Solo_Parent,
-            Is_Out_of_School_Youth, Disability_Type, Vulnerability_Score
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            Is_Out_of_School_Youth, Disability_Type, Vulnerability_Score, validation_status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
         `, [
           resident_id, toBool(Is_4Ps), toBool(Is_PWD), toBool(Is_Senior), toBool(Is_Solo_Parent),
-          toBool(Is_Out_of_School_Youth), Disability_Type, vulnerability_score
+          toBool(Is_Out_of_School_Youth), Disability_Type || null, vulnerability_score
         ]);
       }
 

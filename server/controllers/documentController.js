@@ -320,6 +320,22 @@ class DocumentController {
         });
       }
 
+      // Parse existing request data
+      let currentRequestDetails = {};
+      try {
+        currentRequestDetails = JSON.parse(requestData.request_data || '{}');
+      } catch (e) {
+        currentRequestDetails = {};
+      }
+
+      // Merge new approval details
+      const updatedRequestDetails = {
+        ...currentRequestDetails,
+        ctc_number,
+        or_number,
+        prepared_by_officer: prepared_by,
+      };
+
       // Generate control number
       const controlNumber = `DOC-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
@@ -328,14 +344,17 @@ class DocumentController {
       validUntil.setDate(validUntil.getDate() + validity_days);
 
       // Update in database (stubbed implementation)
-      await knex('document_requests').where('request_id', request_id).update({
-        status: 'approved',
-        control_number: controlNumber,
-        approved_by: approved_by,
-        approved_at: knex.fn.now(),
-        valid_until: validUntil,
-        updated_at: knex.fn.now(),
-      });
+      await knex('document_requests')
+        .where('request_id', request_id)
+        .update({
+          status: 'approved',
+          control_number: controlNumber,
+          approved_by: approved_by,
+          approved_at: knex.fn.now(),
+          valid_until: validUntil,
+          request_data: JSON.stringify(updatedRequestDetails),
+          updated_at: knex.fn.now(),
+        });
 
       // Log the approval
       await this._logAuditAction(approved_by, 'DOCUMENT_REQUEST_APPROVED', request_id, {
@@ -412,6 +431,11 @@ class DocumentController {
           .where('document_type', normalizedType)
           .where('is_active', true)
           .first();
+      }
+
+      // FALLBACK: Check local file system
+      if (!template) {
+        template = this._findLocalTemplate(requestData.document_type);
       }
 
       if (template && template.file_data) {
@@ -1144,26 +1168,33 @@ class DocumentController {
    */
   async _generateFromTemplate(res, template, requestData, requestDetails) {
     const fileBuffer = template.file_data;
-    const isPDF = template.file_encoding === 'application/pdf' || template.template_name.toLowerCase().endsWith('.pdf');
-    const isDOCX = template.file_encoding === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
-                   template.file_encoding === 'application/msword' || 
-                   template.template_name.toLowerCase().endsWith('.docx');
+    const isPDF =
+      template.file_encoding === 'application/pdf' ||
+      template.template_name.toLowerCase().endsWith('.pdf');
+    const isDOCX =
+      template.file_encoding ===
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      template.file_encoding === 'application/msword' ||
+      template.template_name.toLowerCase().endsWith('.docx');
 
     // Merge data for templating
     const mergedData = this._mergeData(requestData, requestDetails);
 
     if (isPDF) {
       const pdfBytes = await this._fillPDFTemplate(fileBuffer, mergedData);
-      
+
       const filename = `${requestData.document_type}_${requestData.control_number}.pdf`;
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(Buffer.from(pdfBytes));
     } else if (isDOCX) {
       const docxBuffer = this._fillDOCXTemplate(fileBuffer, mergedData);
-      
+
       const filename = `${requestData.document_type}_${requestData.control_number}.docx`;
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      );
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(docxBuffer);
     } else {
@@ -1186,11 +1217,11 @@ class DocumentController {
           // Handle different field types if necessary, but setText is common
           // Check if it's a checkbox
           if (field.constructor.name === 'PDFCheckBox') {
-             if (value === true || value === 'true' || value === 'yes') {
-               field.check();
-             }
+            if (value === true || value === 'true' || value === 'yes') {
+              field.check();
+            }
           } else {
-             field.setText(String(value || ''));
+            field.setText(String(value || ''));
           }
         }
       } catch (err) {
@@ -1223,20 +1254,57 @@ class DocumentController {
   }
 
   /**
+   * Helper to find local template file
+   */
+  _findLocalTemplate(documentType) {
+    try {
+      const templateDir = path.join(__dirname, '../../Certificate Templates');
+      // Mapping of document_type to filename
+      // Note: Most files are .doc and incompatible. Only .docx files work.
+      const fileMapping = {
+        barangay_clearance: '1 bgy clearance.docx',
+        // Add more mappings here if files are converted to .docx
+        // 'bonafide_certificate': '1 bonafide blank.docx',
+      };
+
+      const filename = fileMapping[documentType];
+      if (filename) {
+        const filePath = path.join(templateDir, filename);
+        if (fs.existsSync(filePath)) {
+          console.log(`Using local template: ${filePath}`);
+          return {
+            file_data: fs.readFileSync(filePath),
+            template_name: filename,
+            file_encoding:
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          };
+        }
+      }
+    } catch (err) {
+      console.error('Error finding local template:', err);
+    }
+    return null;
+  }
+
+  /**
    * Merge resident and request data into a flat object
    */
   _mergeData(requestData, requestDetails) {
-    const residentName = `${requestData.First_Name} ${requestData.Middle_Name || ''} ${requestData.Last_Name}`.trim();
-    const age = requestData.Date_of_Birth ?
-      new Date().getFullYear() - new Date(requestData.Date_of_Birth).getFullYear() : 'N/A';
-    
+    const residentName =
+      `${requestData.First_Name} ${requestData.Middle_Name || ''} ${requestData.Last_Name}`.trim();
+    const age = requestData.Date_of_Birth
+      ? new Date().getFullYear() - new Date(requestData.Date_of_Birth).getFullYear()
+      : 'N/A';
+
     // Base data
     const data = {
       control_number: requestData.control_number,
       document_type: this._getDocumentTitle(requestData.document_type),
       date_issued: new Date(requestData.approved_at || new Date()).toLocaleDateString('en-PH'),
-      valid_until: requestData.valid_until ? new Date(requestData.valid_until).toLocaleDateString('en-PH') : 'N/A',
-      
+      valid_until: requestData.valid_until
+        ? new Date(requestData.valid_until).toLocaleDateString('en-PH')
+        : 'N/A',
+
       // Resident Data
       resident_name: residentName,
       first_name: requestData.First_Name,
@@ -1247,7 +1315,9 @@ class DocumentController {
       civil_status: requestData.Civil_Status || '',
       gender: requestData.Gender || '',
       place_of_birth: requestData.Place_of_Birth || '',
-      date_of_birth: requestData.Date_of_Birth ? new Date(requestData.Date_of_Birth).toLocaleDateString('en-PH') : '',
+      date_of_birth: requestData.Date_of_Birth
+        ? new Date(requestData.Date_of_Birth).toLocaleDateString('en-PH')
+        : '',
 
       // Officials (Hardcoded for now, ideally from settings)
       captain_name: 'HON. JUAN DELA CRUZ',
@@ -1256,8 +1326,15 @@ class DocumentController {
       municipality_name: 'MUNICIPALITY OF BOCAUE',
       province_name: 'PROVINCE OF BULACAN',
 
+      // New mappings for template compatibility
+      issued_on: new Date(requestData.approved_at || new Date()).toLocaleDateString('en-PH'),
+      ctc_no: requestDetails.ctc_number || '',
+      or_no: requestDetails.or_number || '',
+      prepared_by: requestDetails.prepared_by_officer || 'MARIA SANTOS',
+      issued_at: 'Barangay Batia, Bocaue, Bulacan',
+
       // Request Details (User input overrides base data if same key)
-      ...requestDetails
+      ...requestDetails,
     };
 
     return data;

@@ -132,6 +132,7 @@ const login = async (req, res) => {
       {
         id: user.id,
         username: user.username,
+        email: user.email, // Added email
         role: normalizedRole,
         role_name: user.role_name,
         resident_id: user.resident_id, // Added resident_id
@@ -273,11 +274,12 @@ const me = async (req, res) => {
     const normalizedRole = normalizeRole(user.effective_role);
 
     // CLEARPASS: Refresh Token if Role or Resident ID changed (Self-Healing Session)
-    if (normalizedRole !== req.user.role || user.resident_id !== req.user.resident_id) {
+    if (normalizedRole !== req.user.role || user.resident_id !== req.user.resident_id || !req.user.email) {
         const token = jwt.sign(
           {
             id: user.id,
             username: user.username,
+            email: user.email,
             role: normalizedRole,
             role_name: user.role_name,
             resident_id: user.resident_id,

@@ -323,14 +323,20 @@ const DocumentsDashboard = () => {
       const data = await response.json();
 
       if (response.ok) {
-        showSnackbar('Certificate issued successfully!', 'success');
-        setShowIssueDialog(false);
-        resetCertificateForm();
-        loadAllData();
-      } else {
-        showSnackbar(`Error: ${data.error || 'Failed to issue certificate'}`, 'error');
-      }
-    } catch (error) {
+      showSnackbar('Certificate issued successfully!', 'success');
+      setShowIssueDialog(false);
+      resetCertificateForm();
+      loadAllData();
+
+      // Auto-download PDF
+      setTimeout(() => {
+           window.open(`${window.location.origin}/api/documents/download?type=${encodeURIComponent(formData.certificate_type)}&manual=true&controlNo=${data.control_no}`, '_blank');
+      }, 500);
+
+    } else {
+      showSnackbar(`Error: ${data.error || 'Failed to issue certificate'}`, 'error');
+    }
+  } catch (error) {
       console.error('Error issuing certificate:', error);
       showSnackbar('Network error occurred', 'error');
     }
@@ -2086,17 +2092,29 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData, canMa
 };
 
 // Certificate Requests Management Component
-const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage, showSnackbar }) => {
+const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage, showSnackbar, fetchRequests }) => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [frontIdUrl, setFrontIdUrl] = useState(null);
   const [backIdUrl, setBackIdUrl] = useState(null);
   const [loadingIds, setLoadingIds] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('pending');
 
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
   const [rejectionAction, setRejectionAction] = useState(null);
   const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
   const [confirmationAction, setConfirmationAction] = useState(null);
+
+  // Reload data when filter changes
+  useEffect(() => {
+    if (fetchRequests) {
+        fetchRequests(statusFilter);
+    }
+  }, [statusFilter]);
+
+  const handleTabChange = (event, newValue) => {
+    setStatusFilter(newValue);
+  };
 
   const handleViewRequest = async (request) => {
     setSelectedRequest(request);
@@ -2197,6 +2215,18 @@ const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage,
 
       if (response.ok) {
         showSnackbar(`Request ${status} successfully`, 'success');
+        
+        // Auto-download PDF if approved
+        if (status === 'approved') {
+            const request = requests.find(r => r.request_id === requestId) || selectedRequest;
+            if (request) {
+                // Wait briefly for the server to process, then trigger download
+                setTimeout(() => {
+                    window.open(`${window.location.origin}/api/documents/download?type=${encodeURIComponent(request.document_type)}&requestId=${requestId}`, '_blank');
+                }, 500);
+            }
+        }
+
         if (viewDialogOpen) handleCloseDialog();
         loadAllData();
       } else {

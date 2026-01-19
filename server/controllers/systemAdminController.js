@@ -321,14 +321,13 @@ class SystemAdminController {
       const [announcements] = await this.db.execute(`
         SELECT id, title, content, priority, created_at
         FROM announcements 
-        WHERE status = 'active' 
-        AND (target_audience = 'all' OR target_audience = 'residents')
+        WHERE is_active = 1 
         ORDER BY created_at DESC 
         LIMIT ? OFFSET ?
       `, [parseInt(limit), offset]);
 
       const [countResult] = await this.db.execute(
-        'SELECT COUNT(*) as total FROM announcements WHERE status = "active" AND (target_audience = "all" OR target_audience = "residents")'
+        'SELECT COUNT(*) as total FROM announcements WHERE is_active = 1'
       );
 
       res.json({

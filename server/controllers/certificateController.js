@@ -45,6 +45,23 @@ exports.create = async (req, res) => {
       ]
     );
 
+    // Sync manual issuance to document_requests for tracking
+    if (manual_certificate) {
+      const request_id = `REQ-MANUAL-${Date.now()}`;
+      await db.execute(`
+        INSERT INTO document_requests (
+          request_id, resident_id, document_type, status, 
+          request_data, resident_data, created_at, updated_at
+        ) VALUES (?, ?, ?, 'approved', ?, ?, NOW(), NOW())
+      `, [
+        request_id,
+        resident_id || null,
+        certificate_type || 'Barangay Clearance',
+        JSON.stringify({ purpose: purpose || 'Manual Issuance', is_manual: true, control_no: controlNo }),
+        JSON.stringify({ First_Name: resident_name || 'Manual', Last_Name: '', address: address || '' })
+      ]);
+    }
+
     res.status(201).json({ 
       success: true, 
       message: 'Certificate issued successfully', 

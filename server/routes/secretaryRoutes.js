@@ -290,13 +290,29 @@ module.exports = db => {
     checkRole(['secretary', 'admin']),
     asyncHandler(async (req, res) => {
       const { id } = req.params;
-      const { status, notes } = req.body || {};
+      const { status, notes, action, reason } = req.body || {};
 
-      if (!['approved', 'rejected'].includes(status)) {
+      // Handle both parameter sets for compatibility
+      const finalStatus =
+        status || (action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : action);
+      const finalNotes = notes || reason;
+
+      if (!['approved', 'rejected'].includes(finalStatus)) {
         return res.status(400).json({ error: 'Invalid status' });
       }
 
-      if (status === 'rejected') {
+      // Fetch user ID for notification
+      let userIdToNotify = null;
+      try {
+        const [users] = await db.execute('SELECT id FROM users WHERE resident_id = ?', [id]);
+        if (users.length > 0) {
+          userIdToNotify = users[0].id;
+        }
+      } catch (err) {
+        console.error('Error fetching user for notification:', err);
+      }
+
+      if (finalStatus === 'rejected') {
         await db.execute(
           `
         UPDATE vulnerabilities
@@ -314,8 +330,28 @@ module.exports = db => {
             updated_at = NOW()
         WHERE Resident_ID = ?
       `,
-          [notes || null, req.user.id, id]
+          [finalNotes || null, req.user.id, id]
         );
+
+        // Sync resident_documents status
+        await db.execute(
+          `UPDATE resident_documents 
+           SET verification_status = 'rejected', verification_notes = ?, verified_by = ?, verified_at = NOW() 
+           WHERE resident_id = ? AND document_type IN ('4Ps Proof', 'PWD ID', 'Senior ID', 'Solo Parent ID', 'OSY Certification') AND verification_status = 'pending'`,
+          [finalNotes || null, req.user.id, id]
+        );
+
+        // Notify user of rejection
+        if (userIdToNotify && global.createNotification) {
+          await global.createNotification(
+            userIdToNotify,
+            'Beneficiary Status Rejected',
+            `Your beneficiary status claim has been rejected.${finalNotes ? ` Reason: ${finalNotes}` : ''}`,
+            'rejected',
+            'high',
+            { source: 'vulnerabilities', resident_id: id }
+          );
+        }
       } else {
         // Check documents to determine which flags to enable
         const [docs] = await db.execute(
@@ -325,12 +361,11 @@ module.exports = db => {
         const docTypes = docs.map(d => d.document_type);
 
         const updates = [];
-        if (docTypes.includes('4ps') || docTypes.includes('4ps_id')) updates.push('Is_4Ps = 1');
-        if (docTypes.includes('pwd') || docTypes.includes('pwd_id')) updates.push('Is_PWD = 1');
-        if (docTypes.includes('solo_parent') || docTypes.includes('solo_parent_id'))
-          updates.push('Is_Solo_Parent = 1');
-        if (docTypes.includes('osy') || docTypes.includes('osy_id'))
-          updates.push('Is_Out_of_School_Youth = 1');
+        if (docTypes.includes('4Ps Proof')) updates.push('Is_4Ps = 1');
+        if (docTypes.includes('PWD ID')) updates.push('Is_PWD = 1');
+        if (docTypes.includes('Solo Parent ID')) updates.push('Is_Solo_Parent = 1');
+        if (docTypes.includes('OSY Certification')) updates.push('Is_Out_of_School_Youth = 1');
+        if (docTypes.includes('Senior ID')) updates.push('Is_Senior = 1');
 
         updates.push("validation_status = 'approved'");
         updates.push('validation_notes = ?');
@@ -338,12 +373,31 @@ module.exports = db => {
         updates.push('validated_at = NOW()');
         updates.push('updated_at = NOW()');
 
-        const sql = `UPDATE vulnerabilities SET ${updates.join(', ')} WHERE Resident_ID = ?`;
+        const query = `UPDATE vulnerabilities SET ${updates.join(', ')} WHERE Resident_ID = ?`;
+        await db.execute(query, [finalNotes || null, req.user.id, id]);
 
-        await db.execute(sql, [notes || null, req.user.id, id]);
+        // Sync resident_documents status
+        await db.execute(
+          `UPDATE resident_documents 
+           SET verification_status = 'verified', verification_notes = ?, verified_by = ?, verified_at = NOW() 
+           WHERE resident_id = ? AND document_type IN ('4Ps Proof', 'PWD ID', 'Senior ID', 'Solo Parent ID', 'OSY Certification') AND verification_status = 'pending'`,
+          [finalNotes || null, req.user.id, id]
+        );
+
+        // Notify user of approval
+        if (userIdToNotify && global.createNotification) {
+          await global.createNotification(
+            userIdToNotify,
+            'Beneficiary Status Approved',
+            'Your beneficiary status claim has been approved. You are now eligible for priority assistance.',
+            'approved',
+            'high',
+            { source: 'vulnerabilities', resident_id: id }
+          );
+        }
       }
 
-      res.json({ success: true, message: `Beneficiary ${status}` });
+      res.json({ success: true, message: `Beneficiary status ${finalStatus}` });
     })
   );
 
@@ -527,6 +581,7 @@ module.exports = db => {
       FROM resident_documents d
       JOIN residents r ON d.resident_id = r.Resident_ID
       WHERE d.verification_status = ?
+      AND d.document_type NOT IN ('4Ps Proof', 'PWD ID', 'Senior ID', 'Solo Parent ID', 'OSY Certification')
       
       UNION ALL
       
@@ -664,11 +719,13 @@ module.exports = db => {
         if (status === 'verified') {
           if (targetTable === 'resident_documents') {
             const [docs] = await db.execute(
-              'SELECT resident_id FROM resident_documents WHERE id = ?',
+              'SELECT resident_id, document_type FROM resident_documents WHERE id = ?',
               [id]
             );
             if (docs.length > 0) {
               const residentId = docs[0].resident_id;
+              const docType = docs[0].document_type;
+
               const [users] = await db.execute('SELECT id FROM users WHERE resident_id = ?', [
                 residentId,
               ]);
@@ -682,6 +739,21 @@ module.exports = db => {
                 `UPDATE users SET role = ?, is_active = 1, updated_at = NOW() WHERE resident_id = ?`,
                 [ROLES.RESIDENT, residentId]
               );
+
+              // CLEARPASS: If this is a beneficiary proof, approve the vulnerability status
+              const beneficiaryTypes = [
+                '4Ps Proof',
+                'PWD ID',
+                'Senior ID',
+                'Solo Parent ID',
+                'OSY Certification',
+              ];
+              if (beneficiaryTypes.includes(docType)) {
+                await db.execute(
+                  `UPDATE vulnerabilities SET validation_status = 'approved', validated_by = ?, validated_at = NOW(), updated_at = NOW() WHERE Resident_ID = ?`,
+                  [req.user.id, residentId]
+                );
+              }
             }
           } else {
             // Application Document Verified

@@ -2,6 +2,7 @@ const express = require('express');
 const ResidentProfileController = require('../controllers/residentProfileController');
 const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { ROLES } = require('../config/roles');
+const upload = require('../middleware/upload');
 
 module.exports = (db) => {
   const router = express.Router();
@@ -14,7 +15,18 @@ module.exports = (db) => {
   router.put('/profile', verifyToken, checkRole([ROLES.RESIDENT, ROLES.GUEST]), (req, res) => controller.updateProfile(req, res));
 
   // Update beneficiary status
-  router.put('/beneficiary-status', verifyToken, checkRole([ROLES.RESIDENT, ROLES.GUEST]), (req, res) => controller.updateBeneficiaryStatus(req, res));
+  router.put('/beneficiary-status', 
+    verifyToken, 
+    checkRole([ROLES.RESIDENT, ROLES.GUEST]), 
+    upload.fields([
+      { name: 'Is_4Ps_File', maxCount: 1 },
+      { name: 'Is_PWD_File', maxCount: 1 },
+      { name: 'Is_Senior_File', maxCount: 1 },
+      { name: 'Is_Solo_Parent_File', maxCount: 1 },
+      { name: 'Is_Out_of_School_Youth_File', maxCount: 1 }
+    ]),
+    (req, res) => controller.updateBeneficiaryStatus(req, res)
+  );
 
   // Get verification status
   router.get('/verification-status', verifyToken, checkRole([ROLES.RESIDENT, ROLES.GUEST]), (req, res) => controller.getVerificationStatus(req, res));

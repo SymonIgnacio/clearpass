@@ -4,6 +4,7 @@ const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
 const axios = require('axios');
 const AIAnalysisService = require('../services/AIAnalysisService');
+const AIAnalyticsController = require('../controllers/aiAnalyticsController');
 
 function normalizeAiServiceUrl(rawUrl) {
   const fallbackUrl = 'http://127.0.0.1:5000';
@@ -26,6 +27,7 @@ const AI_SERVICE_ENABLED = process.env.AI_SERVICE_ENABLED !== 'false';
 
 module.exports = (db) => {
   const aiService = new AIAnalysisService(db);
+  const analyticsController = new AIAnalyticsController(db);
 
   // POST chatbot queries
   router.post('/chatbot', verifyToken, asyncHandler(async (req, res) => {
@@ -172,6 +174,9 @@ module.exports = (db) => {
       });
     }
   }));
+
+  // GET Patrol Suggestions (Hybrid Analysis)
+  router.get('/patrol-suggestions', verifyToken, checkRole(['admin', 'captain', 'officer']), (req, res) => analyticsController.getPatrolSuggestions(req, res));
 
   // GET AI service health check
   router.get('/health', verifyToken, checkRole(['admin']), asyncHandler(async (req, res) => {

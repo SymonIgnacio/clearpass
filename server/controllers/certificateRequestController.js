@@ -107,6 +107,7 @@ class CertificateRequestController {
     try {
       const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
       const resident_id = req.user.resident_id;
+      const { page = 1, limit = 10 } = req.query; // Get pagination params
 
       // Fetch Certificate Requests
       let requests = [];
@@ -150,9 +151,19 @@ class CertificateRequestController {
       // Merge and Sort
       const allRequests = [...requests, ...apps].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
+      // Pagination Logic
+      const startIndex = (page - 1) * limit;
+      const endIndex = page * limit;
+      const paginatedRequests = allRequests.slice(startIndex, endIndex);
+
       res.json({
         success: true,
-        data: allRequests
+        data: paginatedRequests,
+        pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: allRequests.length
+        }
       });
     } catch (error) {
       console.error('Error fetching requests:', error);
