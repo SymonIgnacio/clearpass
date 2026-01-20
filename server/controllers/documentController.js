@@ -173,12 +173,14 @@ class DocumentController {
       }
 
       // BUSINESS LOGIC FIX: Blotter Block - Check for active/pending blotter cases BEFORE proceeding
-      const [blotterCheck] = await knex('blotter')
+      const blotterResult = await knex('blotter')
         .count('* as total')
         .where('respondent_id', resident_id)
         .whereIn('Status', ['Active', 'Pending', 'Ongoing']);
 
-      if (blotterCheck[0].total > 0) {
+      const total = blotterResult[0] ? blotterResult[0].total || 0 : 0;
+
+      if (total > 0) {
         return res.status(403).json({
           success: false,
           message: 'Certificate request blocked. Resident has active or pending blotter cases.',
@@ -197,7 +199,7 @@ class DocumentController {
 
       // Verify resident exists
       const resident = await knex('residents')
-        .select('Resident_ID', 'First_Name', 'Last_Name')
+        .select('*')
         .where('Resident_ID', resident_id)
         .first();
 
@@ -217,6 +219,14 @@ class DocumentController {
         resident_id: resident_id,
         document_type: document_type,
         request_data: JSON.stringify(request_data || {}),
+        resident_data: JSON.stringify({
+          First_Name: resident.First_Name,
+          Last_Name: resident.Last_Name,
+          Middle_Name: resident.Middle_Name,
+          Civil_Status: resident.Civil_Status,
+          Nationality: resident.Nationality,
+          Gender: resident.Gender,
+        }),
         status: 'pending',
         created_at: knex.fn.now(),
       });
@@ -355,6 +365,47 @@ class DocumentController {
           request_data: JSON.stringify(updatedRequestDetails),
           updated_at: knex.fn.now(),
         });
+
+      // UNIFY: Sync with certificates_log to ensure completeness of records
+      try {
+        const resident = await knex('residents')
+          .select('residents.*', 'households.Street_Address', 'sitios.name as sitio_name')
+          .leftJoin('households', 'residents.Household_ID', 'households.Household_ID')
+          .leftJoin('sitios', 'households.Sitio_ID', 'sitios.id')
+          .where('Resident_ID', requestData.resident_id)
+          .first();
+
+        if (resident) {
+          const residentName =
+            `${resident.First_Name} ${resident.Middle_Name || ''} ${resident.Last_Name}`.trim();
+          const address = `${resident.Street_Address || ''}, ${resident.sitio_name || ''}`.trim();
+
+          // Check if already exists to avoid duplicates
+          const exists = await knex('certificates_log').where('control_no', controlNumber).first();
+
+          if (!exists) {
+            await knex('certificates_log').insert({
+              control_no: controlNumber,
+              resident_id: requestData.resident_id,
+              certificate_type: this._getDocumentTitle(requestData.document_type), // Use Title Case
+              purpose: updatedRequestDetails.purpose || 'Official Request',
+              date_issued: new Date(),
+              signatory_captain: 'HON. JUAN DELA CRUZ', // Ideally fetch from settings
+              signatory_secretary: 'MARIA SANTOS', // Ideally fetch from settings
+              qr_validation_string: `QR-${controlNumber}`,
+              status: 'Released',
+              // fee_amount removed
+              created_at: knex.fn.now(),
+              resident_name: residentName,
+              address: address,
+              is_manual: 0,
+            });
+          }
+        }
+      } catch (logError) {
+        console.error('Error syncing to certificates_log:', logError);
+        // Do not fail the main request, just log the error
+      }
 
       // Log the approval
       await this._logAuditAction(approved_by, 'DOCUMENT_REQUEST_APPROVED', request_id, {

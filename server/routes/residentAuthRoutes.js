@@ -8,6 +8,10 @@ const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
 const NotificationController = require('../controllers/notificationController');
 const { sendEmail } = require('../utils/emailService');
+const { isMfaEnforced } = require('../config/mfa');
+const { createOtpChallenge, sendOtpEmail } = require('../utils/mfaOtp');
+const { logAuditEvent, logAuditToDatabase, AUDIT_EVENTS } = require('../middleware/auditLogger');
+const { ROLES } = require('../config/roles');
 
 // Rate limiting for auth endpoints
 const authLimiter = rateLimit({
@@ -102,6 +106,41 @@ module.exports = db => {
         }
       }
 
+      // Check MFA Enforcement
+      const mfaEnforced = isMfaEnforced();
+      const mfaRequired = mfaEnforced; // Residents always require MFA if enforced
+
+      if (mfaRequired) {
+        if (!user.email) {
+          return res.status(500).json({ error: 'MFA delivery not configured for this account' });
+        }
+        
+        // Generate and Send OTP
+        const challenge = await createOtpChallenge({ db, userId: user.id });
+        await sendOtpEmail({
+          to: user.email,
+          otp: challenge.otp,
+          expiresMinutes: challenge.expiresMinutes,
+        });
+
+        // Log Audit Event
+        const auditDetails = {
+          user_id: user.id,
+          user_role: effectiveRole,
+          ip_address: req.ip || req.connection.remoteAddress,
+          user_agent: req.get('User-Agent'),
+          resource: req.originalUrl,
+          action: req.method,
+          result: 'SUCCESS',
+          additional_details: { challenge_id: challenge.challengeId },
+          session_id: req.sessionID,
+        };
+        logAuditEvent(AUDIT_EVENTS.MFA_OTP_SENT, auditDetails);
+        if (db && typeof db.execute === 'function') {
+          logAuditToDatabase(db, AUDIT_EVENTS.MFA_OTP_SENT, auditDetails);
+        }
+      }
+
       // Generate JWT token
       const token = jwt.sign(
         {
@@ -110,9 +149,14 @@ module.exports = db => {
           email: user.email,
           role: effectiveRole,
           type: 'resident',
+          mfa_verified: !mfaRequired,
         },
         process.env.JWT_SECRET,
-        { expiresIn: '24h' }
+        { 
+          expiresIn: mfaRequired 
+            ? process.env.MFA_PENDING_JWT_EXPIRES_IN || '15m' 
+            : process.env.JWT_EXPIRES_IN || '24h' 
+        }
       );
 
       // Set HTTP-only cookie (Session Cookie - clears on browser close)
@@ -126,6 +170,7 @@ module.exports = db => {
       res.json({
         success: true,
         token,
+        mfa_required: mfaRequired,
         user: {
           id: user.id,
           resident_id: residentId,
@@ -136,6 +181,7 @@ module.exports = db => {
           role_name: effectiveRole === 13 ? 'Guest' : (user.role === 12 ? 'Resident' : 'User'), // Explicit role name
           type: 'resident',
           residency_status: residencyStatus,
+          mfa_verified: !mfaRequired
         },
       });
     })

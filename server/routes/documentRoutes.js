@@ -80,6 +80,9 @@ module.exports = (db) => {
   // GET download generated document
   router.get('/requests/:request_id/download', verifyToken, (req, res) => DocumentController.downloadDocument(req, res));
   
+  // POST generate document (same as download but triggered via POST for generation)
+  router.post('/requests/:request_id/generate', verifyToken, (req, res) => DocumentController.downloadDocument(req, res));
+
   // PUT update document request status
   router.put('/requests/:id', verifyToken, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(async (req, res) => {
     const { status, notes } = req.body;

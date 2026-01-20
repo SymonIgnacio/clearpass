@@ -1974,7 +1974,6 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData, canMa
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>
-                  <TableCell>Fee (₱)</TableCell>
                   <TableCell>Validity (Days)</TableCell>
                   <TableCell>Description</TableCell>
                   <TableCell>Status</TableCell>
@@ -1989,7 +1988,6 @@ const CertificateTypesManagement = ({ user, certificateTypes, loadAllData, canMa
                         {type.label || type.name}
                       </Typography>
                     </TableCell>
-                    <TableCell>₱{type.fee || 'N/A'}</TableCell>
                     <TableCell>{type.validity_days || 'N/A'}</TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -2417,19 +2415,6 @@ const CertificateTypeModal = ({
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Processing Fee (₱)"
-                value={formData.fee}
-                onChange={(e) => handleInputChange('fee', parseFloat(e.target.value) || 0)}
-                placeholder="0.00"
-              />
-            </Grid>
-          </Grid>
-
-          <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth

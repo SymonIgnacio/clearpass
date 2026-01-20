@@ -74,12 +74,28 @@ module.exports = db => {
     }
     const sitioId = sitioRows[0].id;
 
-    // Create New Household for the Resident
-    const householdId = `HH-${Date.now()}`;
-    await connection.execute(
-      'INSERT INTO households (Household_ID, Household_Number, Sitio_ID, Street_Address, Total_Members, created_at) VALUES (?, ?, ?, ?, 1, NOW())',
-      [householdId, householdId, sitioId, app.street_address]
+    // Smart Household Allocation: Check for existing household first
+    let householdId;
+    const [existingHouseholds] = await connection.execute(
+      'SELECT Household_ID, Total_Members FROM households WHERE Sitio_ID = ? AND Street_Address = ? LIMIT 1',
+      [sitioId, app.street_address]
     );
+
+    if (existingHouseholds.length > 0) {
+      householdId = existingHouseholds[0].Household_ID;
+      // Increment member count
+      await connection.execute(
+        'UPDATE households SET Total_Members = Total_Members + 1, updated_at = NOW() WHERE Household_ID = ?',
+        [householdId]
+      );
+    } else {
+      // Create New Household
+      householdId = `HH-${Date.now()}`;
+      await connection.execute(
+        'INSERT INTO households (Household_ID, Household_Number, Sitio_ID, Street_Address, Total_Members, created_at) VALUES (?, ?, ?, ?, 1, NOW())',
+        [householdId, householdId, sitioId, app.street_address]
+      );
+    }
 
     // 2. Insert into Residents
     await connection.execute(

@@ -23,9 +23,11 @@ const ProtectedRoute = ({ children, requiredRoles = [] }) => {
     return <Navigate to={loginTarget} replace />
   }
 
-  const requiresMfa = [1, 3, 4].includes(Number(user.role)) && user.mfa_verified !== true
-  if (requiresMfa && location.pathname !== '/mfa') {
-    return <Navigate to="/mfa" replace />
+  // MFA Verification Check
+  // Roles 1 (Admin), 3 (Secretary), 4 (Clerk), and 12 (Resident) require MFA
+  const requiresMfa = [1, 3, 4, 12].includes(Number(user.role)) && user.mfa_verified !== true
+  if (requiresMfa && location.pathname !== '/mfa' && location.pathname !== '/mfa-otp') {
+    return <Navigate to="/mfa-otp" replace />
   }
 
   // Check role-based access

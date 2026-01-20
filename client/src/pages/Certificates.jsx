@@ -192,7 +192,7 @@ const Certificates = () => {
               >
                 {certificateTypes.map((type) => (
                   <MenuItem key={type.id} value={type.id}>
-                    {type.name} - ₱{type.fee} ({type.validity_days} days)
+                    {type.name} ({type.validity_days} days)
                   </MenuItem>
                 ))}
               </Select>

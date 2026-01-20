@@ -41,12 +41,17 @@ const ResidentLogin = () => {
     setError('');
 
     try {
-      await login(
+      const response = await login(
         { email: formData.email, password: formData.password },
         { endpoint: '/resident-auth/login' }
       )
-
-      navigate('/resident/dashboard', { replace: true })
+      
+      // Check for MFA Requirement
+      if (response && response.mfa_required) {
+        navigate('/mfa-otp', { replace: true });
+      } else {
+        navigate('/resident/dashboard', { replace: true });
+      }
     } catch (error) {
       console.error('Login error:', error);
       setError(error.message || 'Login failed. Please check your credentials.');
