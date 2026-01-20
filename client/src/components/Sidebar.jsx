@@ -90,6 +90,12 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
           roles: [12, 13]
         },
         {
+          text: 'Community Programs',
+          icon: <Event />,
+          path: '/resident/programs',
+          roles: [12, 13]
+        },
+        {
           text: 'My Certificates',
           icon: <Description />,
           path: '/resident/request-certificate',

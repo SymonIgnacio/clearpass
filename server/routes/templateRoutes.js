@@ -24,6 +24,25 @@ const serializeTemplateContent = (value) => {
   return JSON.stringify(value);
 };
 
+const PizZip = require('pizzip');
+const Docxtemplater = require('docxtemplater');
+
+// Helper to extract placeholders from DOCX buffer
+const extractPlaceholders = (buffer) => {
+  try {
+    const zip = new PizZip(buffer);
+    const contentXml = zip.files['word/document.xml'].asText();
+    // Regex to find {variable} or {{variable}}
+    // docx content is often split by XML tags like <w:t>, so we strip them first
+    const plainText = contentXml.replace(/<[^>]+>/g, '');
+    const matches = plainText.match(/\{+[^{}]+\}+/g) || [];
+    return [...new Set(matches)]; // Unique
+  } catch (e) {
+    console.error('Error extracting placeholders:', e);
+    return [];
+  }
+};
+
 const mapTemplateRow = (row) => ({
   id: row.id,
   template_name: row.template_name,
@@ -37,6 +56,9 @@ const mapTemplateRow = (row) => ({
   updated_at: row.updated_at,
   file_encoding: row.file_encoding ?? null,
   has_file: !!row.has_file,
+  required_fields: row.required_fields,
+  display_name: row.display_name,
+  is_custom: !!row.is_custom,
 });
 
 module.exports = (db) => {
@@ -77,7 +99,10 @@ module.exports = (db) => {
             t.created_at,
             t.updated_at,
             t.file_encoding,
-            (t.file_data IS NOT NULL) as has_file
+            (t.file_data IS NOT NULL) as has_file,
+            t.required_fields,
+            t.display_name,
+            t.is_custom
           FROM document_templates t
           ${whereClause}
           ORDER BY t.template_name ASC
@@ -86,6 +111,30 @@ module.exports = (db) => {
       );
 
       res.json({ success: true, data: rows.map(mapTemplateRow) });
+    })
+  );
+
+  // New Endpoint: Analyze Template
+  router.post(
+    '/analyze',
+    verifyToken,
+    checkRole(['admin']),
+    upload.single('template_file'),
+    asyncHandler(async (req, res) => {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+
+      // Only analyze DOCX files
+      if (
+        req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        req.file.originalname.endsWith('.docx')
+      ) {
+        const placeholders = extractPlaceholders(req.file.buffer);
+        res.json({ success: true, placeholders });
+      } else {
+        res.json({ success: true, placeholders: [], message: 'Not a DOCX file, manual configuration required.' });
+      }
     })
   );
 
@@ -285,7 +334,7 @@ module.exports = (db) => {
     upload.single('template_file'),
     asyncHandler(async (req, res) => {
       try {
-        const { template_name, document_type, certificate_type_id } = req.body || {};
+        const { template_name, document_type, certificate_type_id, required_fields, display_name, is_custom } = req.body || {};
         
         console.log('Starting template upload:', {
             template_name,
@@ -293,7 +342,8 @@ module.exports = (db) => {
             certificate_type_id,
             file_present: !!req.file,
             file_size: req.file?.size,
-            mimetype: req.file?.mimetype
+            mimetype: req.file?.mimetype,
+            required_fields_count: required_fields ? JSON.parse(required_fields).length : 0
         });
 
         if (!req.file) {
@@ -317,8 +367,11 @@ module.exports = (db) => {
               created_at,
               updated_at,
               file_data,
-              file_encoding
-            ) VALUES (?, ?, ?, ?, 1, ?, ?, NOW(), NOW(), ?, ?)
+              file_encoding,
+              required_fields,
+              display_name,
+              is_custom
+            ) VALUES (?, ?, ?, ?, 1, ?, ?, NOW(), NOW(), ?, ?, ?, ?, ?)
           `,
           [
             String(template_name).trim(),
@@ -329,6 +382,9 @@ module.exports = (db) => {
             req.user.id,
             req.file.buffer,
             req.file.mimetype || null,
+            required_fields || null, // Expecting JSON string from frontend
+            display_name || template_name,
+            is_custom === 'true' || is_custom === true ? 1 : 0
           ]
         );
 

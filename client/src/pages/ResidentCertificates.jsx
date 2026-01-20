@@ -25,11 +25,13 @@ import {
   CircularProgress
 } from '@mui/material';
 import { Add, Description, Info } from '@mui/icons-material';
-import { apiRequest } from '../utils/api';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/useAuth';
+import { apiRequest } from '../utils/api';
 
 const ResidentCertificates = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [certificates, setCertificates] = useState([]);
   const [certificateTypes, setCertificateTypes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -143,7 +145,7 @@ const ResidentCertificates = () => {
                 </span>
             </Tooltip>
         ) : (
-            <Button variant="contained" startIcon={<Add />} onClick={() => setOpen(true)}>
+            <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/resident/create-request')}>
                 Request Certificate
             </Button>
         )}

@@ -16,6 +16,9 @@ module.exports = (db) => {
   // Get available certificate types
   router.get('/types', verifyToken, checkRole([ROLES.RESIDENT]), (req, res) => controller.getCertificateTypes(req, res));
 
+  // Get available templates (Dynamic)
+  router.get('/templates', verifyToken, checkRole([ROLES.RESIDENT]), (req, res) => controller.getAvailableTemplates(req, res));
+
   // Submit new certificate request
   router.post(
     '/submit', 
@@ -41,6 +44,9 @@ module.exports = (db) => {
 
   // Update request status (Staff)
   router.put('/:request_id/status', verifyToken, checkRole([ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK]), (req, res) => controller.updateRequestStatus(req, res));
+
+  // Update request details (Staff)
+  router.put('/:request_id/details', verifyToken, checkRole([ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK]), (req, res) => controller.updateRequestDetails(req, res));
 
   return router;
 };

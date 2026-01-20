@@ -51,6 +51,7 @@ const ResidentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [requests, setRequests] = useState([]);
+  const [programs, setPrograms] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [verificationOpen, setVerificationOpen] = useState(false);
   const [stats, setStats] = useState({
@@ -225,6 +226,21 @@ const ResidentDashboard = () => {
         }
       ]);
 
+      // Fetch upcoming programs
+      try {
+        const programsResponse = await apiRequest('/programs', {
+          params: { limit: 3, sort: 'upcoming' } // Assuming backend supports these or we filter client-side
+        });
+        if (programsResponse.ok) {
+           const programsData = await programsResponse.json();
+           // Filter for upcoming events only
+           const upcoming = (programsData.programs || programsData).filter(p => new Date(p.date) >= new Date());
+           setPrograms(upcoming.slice(0, 3));
+        }
+      } catch (e) {
+        console.warn("Failed to fetch programs", e);
+      }
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -391,22 +407,17 @@ const ResidentDashboard = () => {
                   />
                 </Box>
 
-                <Box sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="body2">Profile Completion</Typography>
-                    <Typography variant="body2">{stats.profile_completion}%</Typography>
-                  </Box>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={stats.profile_completion}
-                    sx={{ borderRadius: 1, height: 8 }}
-                  />
-                </Box>
+                {stats.profile_completion < 100 && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    Complete your profile to access all features.
+                  </Alert>
+                )}
 
                 <Button
                   fullWidth
                   variant="outlined"
                   onClick={() => navigate('/resident/profile')}
+                  disabled={isGuest || isPending}
                   sx={{ borderRadius: 2 }}
                 >
                   Update Profile
@@ -495,8 +506,8 @@ const ResidentDashboard = () => {
             </Card>
           </Grid>
 
-          {/* Recent Requests */}
-          <Grid item xs={12} md={12}>
+          {/* Left Column: Recent Requests */}
+          <Grid item xs={12} md={8}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -562,6 +573,66 @@ const ResidentDashboard = () => {
                         Make Your First Request
                         </Button>
                     )}
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Right Column: Community Programs */}
+          <Grid item xs={12} md={4}>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Community Programs
+                  </Typography>
+                  <Button 
+                    size="small" 
+                    onClick={() => navigate('/resident/programs')}
+                  >
+                    View All
+                  </Button>
+                </Box>
+
+                {programs.length > 0 ? (
+                  <List>
+                    {programs.map((program, index) => (
+                      <React.Fragment key={program.id}>
+                        <ListItem alignItems="flex-start" sx={{ px: 0 }}>
+                          <ListItemText
+                            primary={
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                    {program.title}
+                                </Typography>
+                            }
+                            secondary={
+                              <React.Fragment>
+                                <Typography
+                                  sx={{ display: 'block', mb: 0.5 }}
+                                  component="span"
+                                  variant="body2"
+                                  color="text.primary"
+                                >
+                                  {new Date(program.date).toLocaleDateString()} • {program.location}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    {program.description?.substring(0, 60)}...
+                                </Typography>
+                              </React.Fragment>
+                            }
+                          />
+                        </ListItem>
+                        {index < programs.length - 1 && <Divider component="li" />}
+                      </React.Fragment>
+                    ))}
+                  </List>
+                ) : (
+                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <Campaign sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      No upcoming programs
+                    </Typography>
                   </Box>
                 )}
               </CardContent>

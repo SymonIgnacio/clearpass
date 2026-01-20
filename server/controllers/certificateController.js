@@ -15,7 +15,8 @@ exports.create = async (req, res) => {
       signatory_captain,
       signatory_secretary,
       issued_date,
-      control_number
+      control_number,
+      dynamic_data // Add this to destructuring
     } = req.body;
     
     // Generate control number if not provided
@@ -26,9 +27,9 @@ exports.create = async (req, res) => {
     await db.execute(
       `INSERT INTO certificates_log (
         control_no, resident_id, certificate_type, purpose, 
-        date_issued, qr_validation_string, status, fee_amount, created_at,
+        date_issued, qr_validation_string, status, created_at,
         resident_name, address, is_manual, signatory_captain, signatory_secretary
-      ) VALUES (?, ?, ?, ?, ?, ?, 'Paid', 0, NOW(), ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, 'Paid', NOW(), ?, ?, ?, ?, ?)`,
       [
         controlNo, 
         resident_id || null, 
@@ -45,19 +46,26 @@ exports.create = async (req, res) => {
       ]
     );
 
+    let generatedRequestId = null;
+
     // Sync manual issuance to document_requests for tracking
     if (manual_certificate) {
-      const request_id = `REQ-MANUAL-${Date.now()}`;
+      generatedRequestId = `REQ-MANUAL-${Date.now()}`;
       await db.execute(`
         INSERT INTO document_requests (
           request_id, resident_id, document_type, status, 
           request_data, resident_data, created_at, updated_at
         ) VALUES (?, ?, ?, 'approved', ?, ?, NOW(), NOW())
       `, [
-        request_id,
+        generatedRequestId,
         resident_id || null,
         certificate_type || 'Barangay Clearance',
-        JSON.stringify({ purpose: purpose || 'Manual Issuance', is_manual: true, control_no: controlNo }),
+        JSON.stringify({ 
+          purpose: purpose || 'Manual Issuance', 
+          is_manual: true, 
+          control_no: controlNo,
+          ...(dynamic_data || {})
+        }),
         JSON.stringify({ First_Name: resident_name || 'Manual', Last_Name: '', address: address || '' })
       ]);
     }
@@ -66,7 +74,8 @@ exports.create = async (req, res) => {
       success: true, 
       message: 'Certificate issued successfully', 
       certificate_id: controlNo,
-      control_no: controlNo
+      control_no: controlNo,
+      request_id: generatedRequestId
     });
   } catch (error) {
     console.error('Error issuing certificate:', error);

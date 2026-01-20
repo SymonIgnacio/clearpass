@@ -20,6 +20,7 @@ import ResidentRegister from './pages/ResidentRegister'
 import OfficerLogin from './pages/OfficerLogin'
 import Unauthorized from './pages/Unauthorized'
 import MfaOtp from './pages/MfaOtp'
+import VerifyEmail from './pages/VerifyEmail'
 
 // Lazy load non-critical pages
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -39,6 +40,7 @@ const CaseDetail = lazy(() => import('./pages/CaseDetail'))
 const ResidentProfile = lazy(() => import('./pages/ResidentProfile'))
 const ComplaintHistory = lazy(() => import('./pages/ComplaintHistory'))
 const ResidentDocuments = lazy(() => import('./pages/ResidentDocuments'))
+const ResidentPrograms = lazy(() => import('./pages/ResidentPrograms'))
 const ResidentCertificates = lazy(() => import('./pages/ResidentCertificates'))
 const ResidentBlotterReport = lazy(() => import('./pages/ResidentBlotterReport'))
 const SystemLogs = lazy(() => import('./pages/admin/SystemLogs'))
@@ -340,6 +342,22 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/mfa-otp"
+                element={
+                  <ProtectedRoute>
+                    <MfaOtp />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/guest/verify-email"
+                element={
+                  <ProtectedRoute>
+                    <VerifyEmail />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Protected Layout Route */}
               <Route
@@ -393,7 +411,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="events" element={
-              <ProtectedRoute requiredRoles={[1, 2, 3, 6]}>
+              <ProtectedRoute requiredRoles={[1, 2, 3, 6, 12, 13]}>
                 <CommunityEvents />
               </ProtectedRoute>
             } />
@@ -485,6 +503,11 @@ function App() {
                 <ResidentCertificates />
               </ProtectedRoute>
             } />
+            <Route path="resident/create-request" element={
+              <ProtectedRoute requiredRoles={[12, 13]}>
+                <CertificateRequest />
+              </ProtectedRoute>
+            } />
             <Route path="resident/requests" element={
               <ProtectedRoute requiredRoles={[12]}>
                 <RequestHistory />
@@ -508,6 +531,11 @@ function App() {
             <Route path="resident/documents" element={
               <ProtectedRoute requiredRoles={[12, 13]}>
                 <ResidentDocuments />
+              </ProtectedRoute>
+            } />
+            <Route path="resident/programs" element={
+              <ProtectedRoute requiredRoles={[12, 13]}>
+                <ResidentPrograms />
               </ProtectedRoute>
             } />
 

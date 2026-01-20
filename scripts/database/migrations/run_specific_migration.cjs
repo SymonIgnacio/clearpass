@@ -2,7 +2,7 @@ const knex = require('knex');
 const path = require('path');
 
 // Load knexfile
-const knexfile = require('./server/knexfile.js');
+const knexfile = require('../../../server/knexfile.js');
 
 // Create knex instance
 const db = knex(knexfile.development);

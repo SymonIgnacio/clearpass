@@ -5,12 +5,66 @@ class CertificateRequestController {
   constructor(db) {
     this.db = db;
     this.getCertificateTypes = this.getCertificateTypes.bind(this);
+    this.getAvailableTemplates = this.getAvailableTemplates.bind(this);
     this.submitRequest = this.submitRequest.bind(this);
     this.getMyRequests = this.getMyRequests.bind(this);
     this.cancelRequest = this.cancelRequest.bind(this);
     this.getAllRequests = this.getAllRequests.bind(this);
     this.getRequestAttachment = this.getRequestAttachment.bind(this);
     this.updateRequestStatus = this.updateRequestStatus.bind(this);
+    this.updateRequestDetails = this.updateRequestDetails.bind(this);
+  }
+
+  async getAvailableTemplates(req, res) {
+    try {
+      const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
+      
+      // Fetch DB Templates
+      const [templates] = await db.execute(
+        'SELECT id, template_name, display_name, document_type, required_fields, is_custom FROM document_templates WHERE is_active = 1'
+      );
+      
+      // Fetch Certificate Types (for fees)
+      const [types] = await db.execute(
+        'SELECT id, name, fee, description, validity_days FROM certificate_types WHERE is_active = 1'
+      );
+      
+      // Merge: For each template, try to find a matching type to get fee/desc
+      const merged = templates.map(t => {
+        // Try to match document_type (e.g. barangay_clearance) with type name (Barangay Clearance)
+        // Normalize type name: Barangay Clearance -> barangay_clearance
+        const matchingType = types.find(type => {
+           const normalizedTypeName = type.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+           return normalizedTypeName === t.document_type || type.name === t.document_type;
+        });
+        
+        let parsedRequiredFields = [];
+        try {
+            parsedRequiredFields = typeof t.required_fields === 'string' ? JSON.parse(t.required_fields) : t.required_fields;
+        } catch (e) {
+            parsedRequiredFields = [];
+        }
+
+        return {
+          id: t.id, // Template ID
+          template_name: t.template_name,
+          display_name: t.display_name || t.template_name,
+          document_type: t.document_type,
+          required_fields: parsedRequiredFields || [],
+          is_custom: t.is_custom,
+          // Certificate Type Info
+          fee: matchingType ? matchingType.fee : 0,
+          description: matchingType ? matchingType.description : 'Custom Certificate',
+          validity_days: matchingType ? matchingType.validity_days : 365,
+          type_id: matchingType ? matchingType.id : null
+        };
+      });
+      
+      res.json({ success: true, data: merged });
+    } catch (error) {
+      console.error('Error fetching available templates:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch templates' });
+    }
   }
 
   async getCertificateTypes(req, res) {
@@ -276,6 +330,55 @@ class CertificateRequestController {
     } catch (error) {
       console.error('Error fetching attachment:', error);
       res.status(500).json({ success: false, message: 'Failed to fetch attachment' });
+    }
+  }
+
+  async updateRequestDetails(req, res) {
+    try {
+      const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
+      const { request_id } = req.params;
+      const { request_data } = req.body;
+
+      if (!request_data) {
+        return res.status(400).json({ success: false, message: 'Request data is required' });
+      }
+
+      // First check if request exists and is pending
+      const [rows] = await db.execute(
+        'SELECT status FROM document_requests WHERE request_id = ?',
+        [request_id]
+      );
+
+      if (rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Request not found' });
+      }
+
+      // Allow editing even if approved (user requested "editable"), but typically only pending should be.
+      // Assuming Admin power allows editing anytime before completion.
+      
+      const [result] = await db.execute(
+        'UPDATE document_requests SET request_data = ? WHERE request_id = ?',
+        [JSON.stringify(request_data), request_id]
+      );
+
+      // Audit Log
+      try {
+        await logAuditToDatabase(db, AUDIT_EVENTS.DATA_UPDATE, {
+            user_id: req.user?.id || null,
+            user_role: req.user?.role || null,
+            resource: `request/${request_id}`,
+            action: 'UPDATE_DETAILS',
+            result: 'SUCCESS',
+            additional_details: { updated_fields: Object.keys(request_data) }
+        });
+      } catch (e) {
+        console.warn('Audit log failed', e);
+      }
+
+      res.json({ success: true, message: 'Request details updated successfully' });
+    } catch (error) {
+      console.error('Error updating request details:', error);
+      res.status(500).json({ success: false, message: 'Failed to update request details' });
     }
   }
 

@@ -8,8 +8,7 @@ const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
 const NotificationController = require('../controllers/notificationController');
 const { sendEmail } = require('../utils/emailService');
-const { isMfaEnforced } = require('../config/mfa');
-const { createOtpChallenge, sendOtpEmail } = require('../utils/mfaOtp');
+const { createOtpChallenge, sendOtpEmail, verifyOtpChallenge } = require('../utils/mfaOtp');
 const { logAuditEvent, logAuditToDatabase, AUDIT_EVENTS } = require('../middleware/auditLogger');
 const { ROLES } = require('../config/roles');
 
@@ -31,13 +30,68 @@ const registerLimiter = rateLimit({
 });
 
 module.exports = db => {
+  // Send Email Verification (For Guests)
+  router.post('/send-verification', verifyToken, asyncHandler(async (req, res) => {
+    const user = req.user;
+    
+    // Check if already verified
+    const [rows] = await db.execute('SELECT email_verified FROM users WHERE id = ?', [user.id]);
+    if (rows.length > 0 && rows[0].email_verified) {
+      return res.status(400).json({ success: false, message: 'Email already verified' });
+    }
+
+    if (!user.email) {
+      return res.status(400).json({ success: false, message: 'No email associated with this account' });
+    }
+
+    // Generate and Send OTP
+    const challenge = await createOtpChallenge({ db, userId: user.id });
+    
+    // Custom email for verification
+    await sendOtpEmail({
+      to: user.email,
+      otp: challenge.otp,
+      expiresMinutes: challenge.expiresMinutes,
+      subject: 'Verify your email - ClearPass',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Email Verification</h2>
+          <p>Your verification code is:</p>
+          <h1 style="color: #1a73e8; font-size: 32px; letter-spacing: 5px;">${challenge.otp}</h1>
+          <p>This code expires in ${challenge.expiresMinutes} minutes.</p>
+        </div>
+      `
+    });
+
+    res.json({ success: true, message: 'Verification code sent to email' });
+  }));
+
+  // Verify Email Endpoint
+  router.post('/verify-email', verifyToken, asyncHandler(async (req, res) => {
+    const { otp } = req.body;
+    const user = req.user;
+
+    if (!otp) return res.status(400).json({ success: false, message: 'OTP is required' });
+
+    const result = await verifyOtpChallenge({ db, userId: user.id, otp });
+    
+    if (!result.ok) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired code' });
+    }
+
+    // Mark as verified
+    await db.execute('UPDATE users SET email_verified = 1, verified_at = NOW() WHERE id = ?', [user.id]);
+
+    res.json({ success: true, message: 'Email verified successfully' });
+  }));
+
   // Resident login endpoint
   router.post(
     '/login',
     authLimiter,
     asyncHandler(async (req, res) => {
       const { email, password } = req.body;
-
+      
       if (!email || !password) {
         return res.status(400).json({
           success: false,
@@ -106,41 +160,6 @@ module.exports = db => {
         }
       }
 
-      // Check MFA Enforcement
-      const mfaEnforced = isMfaEnforced();
-      const mfaRequired = mfaEnforced; // Residents always require MFA if enforced
-
-      if (mfaRequired) {
-        if (!user.email) {
-          return res.status(500).json({ error: 'MFA delivery not configured for this account' });
-        }
-        
-        // Generate and Send OTP
-        const challenge = await createOtpChallenge({ db, userId: user.id });
-        await sendOtpEmail({
-          to: user.email,
-          otp: challenge.otp,
-          expiresMinutes: challenge.expiresMinutes,
-        });
-
-        // Log Audit Event
-        const auditDetails = {
-          user_id: user.id,
-          user_role: effectiveRole,
-          ip_address: req.ip || req.connection.remoteAddress,
-          user_agent: req.get('User-Agent'),
-          resource: req.originalUrl,
-          action: req.method,
-          result: 'SUCCESS',
-          additional_details: { challenge_id: challenge.challengeId },
-          session_id: req.sessionID,
-        };
-        logAuditEvent(AUDIT_EVENTS.MFA_OTP_SENT, auditDetails);
-        if (db && typeof db.execute === 'function') {
-          logAuditToDatabase(db, AUDIT_EVENTS.MFA_OTP_SENT, auditDetails);
-        }
-      }
-
       // Generate JWT token
       const token = jwt.sign(
         {
@@ -149,14 +168,10 @@ module.exports = db => {
           email: user.email,
           role: effectiveRole,
           type: 'resident',
-          mfa_verified: !mfaRequired,
+          email_verified: !!user.email_verified
         },
         process.env.JWT_SECRET,
-        { 
-          expiresIn: mfaRequired 
-            ? process.env.MFA_PENDING_JWT_EXPIRES_IN || '15m' 
-            : process.env.JWT_EXPIRES_IN || '24h' 
-        }
+        { expiresIn: '24h' }
       );
 
       // Set HTTP-only cookie (Session Cookie - clears on browser close)
@@ -170,7 +185,6 @@ module.exports = db => {
       res.json({
         success: true,
         token,
-        mfa_required: mfaRequired,
         user: {
           id: user.id,
           resident_id: residentId,
@@ -181,7 +195,7 @@ module.exports = db => {
           role_name: effectiveRole === 13 ? 'Guest' : (user.role === 12 ? 'Resident' : 'User'), // Explicit role name
           type: 'resident',
           residency_status: residencyStatus,
-          mfa_verified: !mfaRequired
+          email_verified: !!user.email_verified
         },
       });
     })
@@ -311,6 +325,7 @@ module.exports = db => {
             email: email,
             role: 13, // Guest role
             type: 'resident',
+            email_verified: false // New user, unverified
           },
           process.env.JWT_SECRET,
           { expiresIn: '24h' }
@@ -338,6 +353,7 @@ module.exports = db => {
             role_name: 'Guest',
             type: 'resident',
             residency_status: 'Pending Verification',
+            email_verified: false
           },
         });
       } catch (error) {

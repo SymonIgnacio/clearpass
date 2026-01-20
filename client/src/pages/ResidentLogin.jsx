@@ -46,9 +46,11 @@ const ResidentLogin = () => {
         { endpoint: '/resident-auth/login' }
       )
       
-      // Check for MFA Requirement
-      if (response && response.mfa_required) {
-        navigate('/mfa-otp', { replace: true });
+      // Check for Email Verification Requirement (Guest - Role 13)
+      // Check if user object exists and has role 13 and email_verified is false
+      const user = response?.user;
+      if (user && user.role === 13 && user.email_verified === false) {
+        navigate('/guest/verify-email', { replace: true });
       } else {
         navigate('/resident/dashboard', { replace: true });
       }

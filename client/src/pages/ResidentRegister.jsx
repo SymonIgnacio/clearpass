@@ -96,13 +96,20 @@ const ResidentRegister = () => {
           // Cookie is now set by the server (HttpOnly)
           
           // Refresh auth context
-          await refreshUser();
-          
-          // Navigate to dashboard with verification prompt
-          navigate('/resident/dashboard', { 
-            state: { showVerification: true },
-            replace: true 
-          });
+        await refreshUser();
+        
+        // Check if email verification is needed (Guest role)
+        const user = data.user;
+        if (user && user.role === 13 && user.email_verified === false) {
+           // Send initial verification email if not sent automatically by backend (backend sends it)
+           navigate('/guest/verify-email', { replace: true });
+        } else {
+           // Navigate to dashboard with verification prompt
+           navigate('/resident/dashboard', { 
+             state: { showVerification: true },
+             replace: true 
+           });
+        }
         } else {
           setRequirementsModalOpen(true);
         }

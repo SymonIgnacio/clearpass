@@ -58,6 +58,8 @@ import { ROLES } from '../utils/roles';
 import { useAuth } from '../contexts/useAuth';
 import ConfirmationModal from '../components/ConfirmationModal';
 import RejectionModal from '../components/RejectionModal';
+import TemplateUploadWizard from '../components/TemplateUploadWizard';
+import SmartResidentSearch from '../components/SmartResidentSearch';
 
 // Color palette for charts
 const COLORS = ['#1DB954', '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8'];
@@ -115,6 +117,87 @@ const DocumentsDashboard = () => {
     manual_signatory_secretary: 'Secretary Maria Santos',
     manual_location: 'Barangay Batia, Bocaue, Bulacan'
   });
+
+  // Dynamic fields for manual certificate
+  const [dynamicFields, setDynamicFields] = useState({});
+  const [extractedPlaceholders, setExtractedPlaceholders] = useState([]);
+
+  // Helper to extract placeholders from template content
+  const extractPlaceholders = (template) => {
+    if (!template) return [];
+
+    // Filter out standard system variables
+    const standardVars = [
+      'resident_name', 'address', 'purpose', 'issued_date', 'valid_until', 
+      'control_number', 'signatory_captain', 'signatory_secretary', 'location',
+      'day', 'month', 'year', 'date_issued', 'issued_on', 'control_no',
+      'captain_name', 'secretary_name', 'barangay_name', 'municipality_name', 
+      'province_name', 'first_name', 'last_name', 'middle_name', 'age', 
+      'civil_status', 'gender', 'place_of_birth', 'date_of_birth',
+      'residency_years', 'or_no', 'prepared_by', 'issued_at',
+      'ctc_no' // Added ctc_no to standard variables as it is auto-generated
+    ];
+
+    // PRIORITY 1: Check required_fields from database (for seeded/uploaded templates)
+    if (template.required_fields) {
+      try {
+        const fields = typeof template.required_fields === 'string' 
+          ? JSON.parse(template.required_fields) 
+          : template.required_fields;
+        
+        if (Array.isArray(fields) && fields.length > 0) {
+          // STRICT FILTER: Remove standard vars from required_fields too
+          return fields.map(f => f.key).filter(v => !standardVars.includes(v));
+        }
+      } catch (e) {
+        console.error('Error parsing required_fields:', e);
+      }
+    }
+    
+    // PRIORITY 2: Fallback to scanning template_content (for manually created text templates)
+    if (template.template_content) {
+      const content = template.template_content;
+      const textToScan = [
+        content.main_content,
+        content.header_text,
+        content.footer_text,
+        content.signature_text,
+        content.validity_text
+      ].join(' ');
+
+      const regex = /{([a-zA-Z0-9_]+)}/g;
+      const matches = [...textToScan.matchAll(regex)].map(m => m[1]);
+
+      const uniqueMatches = [...new Set(matches)].filter(v => !standardVars.includes(v));
+      return uniqueMatches;
+    }
+
+    return [];
+  };
+
+  useEffect(() => {
+    if (selectedCertificateTemplate) {
+      const template = templates.find(t => t.id === selectedCertificateTemplate);
+      if (template) {
+        const placeholders = extractPlaceholders(template);
+        
+        // Only update if placeholders have changed to avoid resetting user input
+        if (JSON.stringify(placeholders) !== JSON.stringify(extractedPlaceholders)) {
+          setExtractedPlaceholders(placeholders);
+          
+          // Initialize dynamic fields
+          const initialFields = {};
+          placeholders.forEach(field => {
+            initialFields[field] = '';
+          });
+          setDynamicFields(initialFields);
+        }
+      }
+    } else {
+      setExtractedPlaceholders([]);
+      setDynamicFields({});
+    }
+  }, [selectedCertificateTemplate, templates, extractedPlaceholders]);
 
   // File upload states
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -288,21 +371,32 @@ const DocumentsDashboard = () => {
   const handleIssueCertificate = async () => {
     try {
       let formData;
+      // Get the correct template name even if state is slightly out of sync
+      const currentTemplate = templates.find(t => t.id === selectedCertificateTemplate);
+      const manualType = certificateFormData.manual_certificate_type || (currentTemplate ? currentTemplate.template_name : '');
 
       if (certificateFormData.use_manual_input) {
         // Manual input mode - send custom certificate data
         formData = {
+          resident_id: certificateFormData.resident_id, // Ensure resident_id is sent
           manual_certificate: true,
           resident_name: certificateFormData.manual_resident_name,
           address: certificateFormData.manual_address,
           purpose: certificateFormData.manual_purpose,
-          certificate_type: certificateFormData.manual_certificate_type,
+          certificate_type: manualType,
           issued_date: certificateFormData.manual_issued_date,
           valid_until: certificateFormData.manual_valid_until,
           control_number: certificateFormData.manual_control_number,
           signatory_captain: certificateFormData.manual_signatory_captain,
           signatory_secretary: certificateFormData.manual_signatory_secretary,
-          location: certificateFormData.manual_location
+          manual_location: certificateFormData.manual_location,
+          dynamic_data: {
+            ...dynamicFields,
+            // Inject auto-generated values for standard manual issuance fields
+            ctc_no: `CTC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+            or_no: `OR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+            prepared_by: user?.name || 'Clerk'
+          }
         };
       } else {
         // Auto-fill mode (existing functionality)
@@ -330,7 +424,13 @@ const DocumentsDashboard = () => {
 
       // Auto-download PDF
       setTimeout(() => {
-           window.open(`${window.location.origin}/api/documents/download?type=${encodeURIComponent(formData.certificate_type)}&manual=true&controlNo=${data.control_no}`, '_blank');
+           if (data.request_id) {
+             // New robust download via request ID
+             window.open(`${window.location.origin}/api/documents/requests/${data.request_id}/download`, '_blank');
+           } else {
+             // Fallback for manual (legacy or if ID missing)
+             window.open(`${window.location.origin}/api/documents/download?type=${encodeURIComponent(formData.certificate_type)}&manual=true&controlNo=${data.control_no}`, '_blank');
+           }
       }, 500);
 
     } else {
@@ -360,6 +460,7 @@ const DocumentsDashboard = () => {
       manual_signatory_secretary: 'Secretary Maria Santos',
       manual_location: 'Barangay Batia, Bocaue, Bulacan'
     });
+    setDynamicFields({});
   };
 
   // --- TEMPLATE MANAGEMENT ACTIONS (ADMIN ONLY) ---
@@ -891,7 +992,17 @@ const DocumentsDashboard = () => {
                             <InputLabel>Choose Template *</InputLabel>
                             <Select
                               value={selectedCertificateTemplate}
-                              onChange={(e) => setSelectedCertificateTemplate(e.target.value)}
+                              onChange={(e) => {
+                                const templateId = e.target.value;
+                                setSelectedCertificateTemplate(templateId);
+                                const template = templates.find(t => t.id === templateId);
+                                if (template) {
+                                  setCertificateFormData(prev => ({
+                                    ...prev,
+                                    manual_certificate_type: template.template_name
+                                  }));
+                                }
+                              }}
                               label="Choose Template *"
                               required
                             >
@@ -922,28 +1033,47 @@ const DocumentsDashboard = () => {
 
                         <Grid container spacing={2}>
                           <Grid item xs={12} md={6}>
+                            <SmartResidentSearch
+                              label="Resident Name (Search)"
+                              required
+                              value={null}
+                              onChange={(resident) => {
+                                if (resident) {
+                                  // Auto-fill form data from selected resident
+                                  const fullName = `${resident.First_Name} ${resident.Middle_Name || ''} ${resident.Last_Name}`.trim();
+                                  const address = resident.sitio_name 
+                                    ? `${resident.sitio_name}, Barangay Batia` 
+                                    : 'Barangay Batia, Bocaue, Bulacan';
+                                    
+                                  setCertificateFormData(prev => ({
+                                    ...prev,
+                                    manual_resident_name: fullName,
+                                    manual_address: address,
+                                    resident_id: resident.Resident_ID
+                                  }));
+                                } else {
+                                  // Clear if selection cleared
+                                  setCertificateFormData(prev => ({
+                                    ...prev,
+                                    manual_resident_name: '',
+                                    manual_address: '',
+                                    resident_id: ''
+                                  }));
+                                }
+                              }}
+                            />
+                            {/* Hidden manual input for compatibility/fallback display */}
                             <TextField
                               fullWidth
-                              label="Resident Name"
+                              sx={{ mt: 1, display: certificateFormData.manual_resident_name ? 'block' : 'none' }}
+                              label="Selected Resident Name"
                               value={certificateFormData.manual_resident_name}
                               onChange={(e) => setCertificateFormData({
                                 ...certificateFormData,
                                 manual_resident_name: e.target.value
                               })}
                               required
-                            />
-                          </Grid>
-
-                          <Grid item xs={12} md={6}>
-                            <TextField
-                              fullWidth
-                              label="Certificate Type"
-                              value={certificateFormData.manual_certificate_type}
-                              onChange={(e) => setCertificateFormData({
-                                ...certificateFormData,
-                                manual_certificate_type: e.target.value
-                              })}
-                              required
+                              helperText="You can manually edit this if needed"
                             />
                           </Grid>
 
@@ -975,7 +1105,7 @@ const DocumentsDashboard = () => {
                             />
                           </Grid>
 
-                          <Grid item xs={12} md={4}>
+                          <Grid item xs={12} md={6}>
                             <TextField
                               fullWidth
                               type="date"
@@ -990,27 +1120,17 @@ const DocumentsDashboard = () => {
                             />
                           </Grid>
 
-                          <Grid item xs={12} md={4}>
+                          <Grid item xs={12} md={6}>
                             <TextField
                               fullWidth
+                              type="date"
                               label="Valid Until (Optional)"
                               value={certificateFormData.manual_valid_until}
                               onChange={(e) => setCertificateFormData({
                                 ...certificateFormData,
                                 manual_valid_until: e.target.value
                               })}
-                            />
-                          </Grid>
-
-                          <Grid item xs={12} md={4}>
-                            <TextField
-                              fullWidth
-                              label="Control Number (Optional)"
-                              value={certificateFormData.manual_control_number}
-                              onChange={(e) => setCertificateFormData({
-                                ...certificateFormData,
-                                manual_control_number: e.target.value
-                              })}
+                              InputLabelProps={{ shrink: true }}
                             />
                           </Grid>
 
@@ -1053,6 +1173,32 @@ const DocumentsDashboard = () => {
                             />
                           </Grid>
 
+                          {/* Dynamic Fields */}
+                          {extractedPlaceholders.length > 0 && (
+                            <Grid item xs={12}>
+                              <Typography variant="subtitle2" sx={{ mb: 2, mt: 1, color: 'primary.main' }}>
+                                Additional Template Information
+                              </Typography>
+                              <Grid container spacing={2}>
+                                {extractedPlaceholders.map((field) => (
+                                  <Grid item xs={12} md={6} key={field}>
+                                    <TextField
+                                      fullWidth
+                                      label={field.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                                      value={dynamicFields[field] || ''}
+                                      onChange={(e) => setDynamicFields(prev => ({
+                                        ...prev,
+                                        [field]: e.target.value
+                                      }))}
+                                      required
+                                      helperText={`Value for {${field}}`}
+                                    />
+                                  </Grid>
+                                ))}
+                              </Grid>
+                            </Grid>
+                          )}
+
                           <Grid item xs={12}>
                             <Button
                               variant="contained"
@@ -1061,7 +1207,15 @@ const DocumentsDashboard = () => {
                                 setCertificateFormData(prev => ({ ...prev, use_manual_input: true }));
                                 setShowIssueDialog(true);
                               }}
-                              disabled={!certificateFormData.manual_resident_name || !certificateFormData.manual_certificate_type || !certificateFormData.manual_purpose || !selectedCertificateTemplate}
+                              disabled={
+                                !certificateFormData.manual_resident_name || 
+                                // Check if template is selected (type is derived from it)
+                                (!certificateFormData.manual_certificate_type && !selectedCertificateTemplate) || 
+                                !certificateFormData.manual_purpose || 
+                                !selectedCertificateTemplate ||
+                                // Check if all required dynamic fields are filled
+                                extractedPlaceholders.some(field => !dynamicFields[field])
+                              }
                               sx={{ backgroundColor: '#1DB954', py: 1.5 }}
                             >
                               Create Certificate
@@ -1558,102 +1712,15 @@ const DocumentsDashboard = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Upload Template File Dialog */}
-      <Dialog open={showUploadDialog} onClose={() => setShowUploadDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          Upload Document Template File
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Alert severity="info" sx={{ borderRadius: 2 }}>
-              <Typography variant="body2">
-                Upload PDF or Word documents to create templates. Supported formats: PDF, DOC, DOCX (Max: 10MB)
-              </Typography>
-            </Alert>
-
-            <TextField
-              fullWidth
-              label="Template Name"
-              value={uploadFormData.template_name}
-              onChange={(e) => setUploadFormData({
-                ...uploadFormData,
-                template_name: e.target.value
-              })}
-              required
-              helperText="Enter a name for this template (e.g., 'Indigency Certificate')"
-            />
-
-            <FormControl fullWidth required>
-              <InputLabel>Document Type</InputLabel>
-              <Select
-                value={uploadFormData.document_type}
-                onChange={(e) => setUploadFormData({
-                  ...uploadFormData,
-                  document_type: e.target.value
-                })}
-                label="Document Type"
-              >
-                {documentTypes.map(type => (
-                  <MenuItem key={type.value} value={type.value}>
-                    {type.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {uploadingFile && (
-              <Box sx={{ width: '100%', mb: 2 }}>
-                <LinearProgress variant="indeterminate" />
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  Uploading file...
-                </Typography>
-              </Box>
-            )}
-
-            <input
-              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              style={{ display: 'none' }}
-              id="template-file-upload"
-              type="file"
-              onChange={handleFileUpload}
-              disabled={uploadingFile || !uploadFormData.template_name || !uploadFormData.document_type}
-            />
-            <label htmlFor="template-file-upload">
-              <Button
-                variant="outlined"
-                component="span"
-                fullWidth
-                startIcon={<Download />}
-                disabled={uploadingFile || !uploadFormData.template_name || !uploadFormData.document_type}
-                sx={{
-                  borderColor: '#FF6B6B',
-                  color: '#FF6B6B',
-                  py: 2,
-                  borderStyle: 'dashed',
-                  '&:hover': {
-                    borderColor: '#FF6B6B',
-                    backgroundColor: 'rgba(255, 107, 107, 0.04)'
-                  }
-                }}
-              >
-                {uploadingFile ? 'Uploading...' : 'Choose File to Upload'}
-              </Button>
-            </label>
-
-            <Typography variant="caption" color="text.secondary">
-              Files will be stored securely and can be downloaded or deleted later.
-            </Typography>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setShowUploadDialog(false);
-            setUploadFormData({ template_name: '', document_type: 'barangay_clearance' });
-          }} disabled={uploadingFile}>
-            Cancel
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Template Upload Wizard */}
+      <TemplateUploadWizard 
+        open={showUploadDialog} 
+        onClose={() => setShowUploadDialog(false)} 
+        onSuccess={() => {
+          loadAllData();
+          showSnackbar('Template created successfully!', 'success');
+        }}
+      />
 
       <ConfirmationModal
         open={confirmationModalOpen}
@@ -2097,6 +2164,11 @@ const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage,
   const [backIdUrl, setBackIdUrl] = useState(null);
   const [loadingIds, setLoadingIds] = useState(false);
   const [statusFilter, setStatusFilter] = useState('pending');
+  
+  // Editable state
+  const [editableData, setEditableData] = useState({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [savingChanges, setSavingChanges] = useState(false);
 
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
   const [rejectionAction, setRejectionAction] = useState(null);
@@ -2116,6 +2188,10 @@ const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage,
 
   const handleViewRequest = async (request) => {
     setSelectedRequest(request);
+    // Initialize editable data from request_data
+    setEditableData(request.request_data || {});
+    setIsEditing(false);
+
     setViewDialogOpen(true);
     setLoadingIds(true);
     setFrontIdUrl(null);
@@ -2147,8 +2223,40 @@ const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage,
   const handleCloseDialog = () => {
     setViewDialogOpen(false);
     setSelectedRequest(null);
+    setEditableData({});
+    setIsEditing(false);
     if (frontIdUrl) URL.revokeObjectURL(frontIdUrl);
     if (backIdUrl) URL.revokeObjectURL(backIdUrl);
+  };
+
+  const handleSaveChanges = async () => {
+    if (!selectedRequest) return;
+    setSavingChanges(true);
+    try {
+        const response = await apiRequest(`certificate-requests/${selectedRequest.request_id}/details`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ request_data: editableData })
+        });
+
+        if (response.ok) {
+            showSnackbar('Request details updated successfully', 'success');
+            setIsEditing(false);
+            // Update local state to reflect changes without full reload
+            const updatedRequest = { ...selectedRequest, request_data: editableData };
+            setSelectedRequest(updatedRequest);
+            // Also trigger parent reload to keep table in sync
+            loadAllData();
+        } else {
+            const data = await response.json();
+            showSnackbar(data.message || 'Failed to update details', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating details:', error);
+        showSnackbar('Network error while saving changes', 'error');
+    } finally {
+        setSavingChanges(false);
+    }
   };
 
   const handleReject = (id) => {
@@ -2309,8 +2417,65 @@ const CertificateRequestsManagement = ({ user, requests, loadAllData, canManage,
                   <Typography variant="subtitle2">Type</Typography>
                   <Typography variant="body1" gutterBottom>{selectedRequest.document_type}</Typography>
 
-                  <Typography variant="subtitle2">Purpose</Typography>
-                  <Typography variant="body1" gutterBottom>{selectedRequest.request_data?.purpose}</Typography>
+                  <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                     <Typography variant="subtitle2">Request Details</Typography>
+                     {canManage && selectedRequest.status === 'pending' && !isEditing && (
+                        <Button size="small" startIcon={<Edit />} onClick={() => setIsEditing(true)}>
+                            Edit
+                        </Button>
+                     )}
+                  </Box>
+                  <Divider sx={{ mb: 2 }} />
+                  
+                  {isEditing ? (
+                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {Object.entries(editableData).map(([key, value]) => {
+                           // Skip internal keys if any, though usually we want all inputs
+                           if (key === 'is_manual' || key === 'control_no') return null;
+                           return (
+                             <TextField
+                                key={key}
+                                label={key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                                value={value}
+                                onChange={(e) => setEditableData(prev => ({ ...prev, [key]: e.target.value }))}
+                                fullWidth
+                                size="small"
+                                multiline={key === 'purpose'}
+                             />
+                           );
+                        })}
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                           <Button size="small" onClick={() => {
+                               setIsEditing(false);
+                               setEditableData(selectedRequest.request_data || {});
+                           }}>Cancel</Button>
+                           <Button 
+                              size="small" 
+                              variant="contained" 
+                              onClick={handleSaveChanges}
+                              disabled={savingChanges}
+                           >
+                               {savingChanges ? 'Saving...' : 'Save Changes'}
+                           </Button>
+                        </Box>
+                     </Box>
+                  ) : (
+                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {Object.entries(selectedRequest.request_data || {}).map(([key, value]) => {
+                           if (key === 'is_manual' || key === 'control_no') return null;
+                           return (
+                             <Box key={key}>
+                               <Typography variant="caption" color="text.secondary">
+                                 {key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                               </Typography>
+                               <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                                 {typeof value === 'object' ? JSON.stringify(value) : value}
+                               </Typography>
+                             </Box>
+                           );
+                        })}
+                     </Box>
+                  )}
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle2">ID Attachments</Typography>

@@ -440,9 +440,17 @@ class DocumentController {
   async downloadDocument(req, res) {
     try {
       const { request_id } = req.params;
+      const { controlNo } = req.query;
 
-      // Get the approved request with resident data
-      const requestData = await knex('document_requests')
+      if (!request_id && !controlNo) {
+        return res.status(400).json({
+          success: false,
+          message: 'Missing request identifier (request_id or controlNo)',
+        });
+      }
+
+      // Start building the query
+      let query = knex('document_requests')
         .select(
           'document_requests.*',
           'residents.First_Name',
@@ -455,9 +463,18 @@ class DocumentController {
         )
         .join('residents', 'document_requests.resident_id', 'residents.Resident_ID')
         .join('households', 'residents.Household_ID', 'households.Household_ID')
-        .where('document_requests.request_id', request_id)
-        .where('document_requests.status', 'approved')
-        .first();
+        .where('document_requests.status', 'approved');
+
+      // Apply filter based on available identifier
+      if (request_id) {
+        query = query.where('document_requests.request_id', request_id);
+      } else if (controlNo) {
+        // Fallback: Search inside JSON data for control number
+        query = query.where('document_requests.request_data', 'like', `%${controlNo}%`);
+      }
+
+      // Get the approved request with resident data
+      const requestData = await query.first();
 
       if (!requestData) {
         return res.status(404).json({
@@ -493,7 +510,13 @@ class DocumentController {
         // Use dynamic template generation
         await this._generateFromTemplate(res, template, requestData, requestDetails);
       } else {
-        // Fallback to legacy programmatic generation
+        // If NO template is found, error out (since we want to enforce templates now)
+        // Or keep the PDF fallback if you really need it, but the goal is "analyze everything in the documents"
+        // I will keep the PDF fallback but log a warning
+        console.warn(
+          `No template found for ${requestData.document_type}, falling back to legacy PDF.`
+        );
+
         // Create PDF document
         const doc = new PDFDocument({
           size: 'A4',
@@ -1219,14 +1242,35 @@ class DocumentController {
    */
   async _generateFromTemplate(res, template, requestData, requestDetails) {
     const fileBuffer = template.file_data;
+
+    // Debug logging for template format
+    console.log(`Generating document for ${requestData.document_type}`);
+    console.log(`Template Name: ${template.template_name}`);
+    console.log(`File Encoding: ${template.file_encoding}`);
+
+    // Check for PDF
     const isPDF =
       template.file_encoding === 'application/pdf' ||
-      template.template_name.toLowerCase().endsWith('.pdf');
+      (template.template_name && template.template_name.toLowerCase().endsWith('.pdf'));
+
+    // Robust check for DOCX
+    // 1. Check strict MIME type
+    // 2. Check strict extension
+    // 3. Check for PK header (Zip file signature) which indicates a DOCX/OpenXML file
+    const isZip =
+      fileBuffer &&
+      fileBuffer.length > 4 &&
+      fileBuffer[0] === 0x50 &&
+      fileBuffer[1] === 0x4b &&
+      fileBuffer[2] === 0x03 &&
+      fileBuffer[3] === 0x04;
+
     const isDOCX =
       template.file_encoding ===
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
       template.file_encoding === 'application/msword' ||
-      template.template_name.toLowerCase().endsWith('.docx');
+      (template.template_name && template.template_name.toLowerCase().endsWith('.docx')) ||
+      (!isPDF && isZip); // Fallback: if it's a zip and not PDF, assume DOCX
 
     // Merge data for templating
     const mergedData = this._mergeData(requestData, requestDetails);
@@ -1311,11 +1355,20 @@ class DocumentController {
     try {
       const templateDir = path.join(__dirname, '../../Certificate Templates');
       // Mapping of document_type to filename
-      // Note: Most files are .doc and incompatible. Only .docx files work.
       const fileMapping = {
         barangay_clearance: '1 bgy clearance.docx',
-        // Add more mappings here if files are converted to .docx
-        // 'bonafide_certificate': '1 bonafide blank.docx',
+        bonafide_certificate: '1 bonafide blank.docx',
+        building_permit: '1 building blank.docx',
+        business_closure: '1 closed biz blank.docx',
+        cohabitation_certificate: '1 cohabitation blank.docx',
+        excavation_permit: '1 excavation blank.docx',
+        fencing_permit: '1 fencing blank.docx',
+        good_moral_certificate: 'good moral_1.docx',
+        indigency_certificate: 'CUSTOM INDIGENCY_1.docx',
+        late_registration: '1 late registration.docx',
+        ojt_certification: 'certification OJT.docx',
+        low_income_housing: 'low income HOUSING 2 (Repaired).docx',
+        // 'medico_legal': '?', // Not found in list
       };
 
       const filename = fileMapping[documentType];
@@ -1383,6 +1436,47 @@ class DocumentController {
       or_no: requestDetails.or_number || '',
       prepared_by: requestDetails.prepared_by_officer || 'MARIA SANTOS',
       issued_at: 'Barangay Batia, Bocaue, Bulacan',
+
+      // Additional Fields for Specific Templates (from Analysis)
+      residency_years: requestDetails.residency_years || 'many', // Fallback for bonafide
+      business_name: requestDetails.business_name || '',
+      business_address: requestDetails.business_address || '',
+      business_owner: requestDetails.business_owner || residentName, // Fallback to resident
+      date_closed: requestDetails.closure_date
+        ? new Date(requestDetails.closure_date).toLocaleDateString('en-PH')
+        : '',
+
+      husband_name: requestDetails.partner1_name || '',
+      wife_name: requestDetails.partner2_name || '',
+      cohabitation_start_year: requestDetails.cohabitation_date
+        ? new Date(requestDetails.cohabitation_date).getFullYear()
+        : '',
+      blotter_entry_no: requestDetails.blotter_number || '',
+      blotter_date: requestDetails.blotter_date
+        ? new Date(requestDetails.blotter_date).toLocaleDateString('en-PH')
+        : '',
+      no_of_children: requestDetails.children_count || '0',
+      no_of_girls: requestDetails.girls_count || '0',
+      no_of_boys: requestDetails.boys_count || '0',
+
+      child_name: requestDetails.child_name || '',
+      father_name: requestDetails.father_name || '',
+      mother_name: requestDetails.mother_name || '',
+
+      student_name: residentName,
+      school: requestDetails.school || 'School Not Specified',
+      total_hours: requestDetails.total_hours || 'required',
+      start_date: requestDetails.start_date
+        ? new Date(requestDetails.start_date).toLocaleDateString('en-PH')
+        : '',
+      end_date: requestDetails.end_date
+        ? new Date(requestDetails.end_date).toLocaleDateString('en-PH')
+        : '',
+
+      occupation: requestDetails.occupation || 'Unemployed',
+      monthly_income: requestDetails.monthly_income || '0',
+
+      purpose: requestDetails.purpose || 'Official Request',
 
       // Request Details (User input overrides base data if same key)
       ...requestDetails,

@@ -77,10 +77,9 @@ module.exports = (db) => {
     });
   }));
 
-  // GET download generated document
+  // Document Generation & Download
+  router.get('/download', (req, res) => DocumentController.downloadDocument(req, res)); // New flexible download route
   router.get('/requests/:request_id/download', verifyToken, (req, res) => DocumentController.downloadDocument(req, res));
-  
-  // POST generate document (same as download but triggered via POST for generation)
   router.post('/requests/:request_id/generate', verifyToken, (req, res) => DocumentController.downloadDocument(req, res));
 
   // PUT update document request status

@@ -24,10 +24,16 @@ const ProtectedRoute = ({ children, requiredRoles = [] }) => {
   }
 
   // MFA Verification Check
-  // Roles 1 (Admin), 3 (Secretary), 4 (Clerk), and 12 (Resident) require MFA
-  const requiresMfa = [1, 3, 4, 12].includes(Number(user.role)) && user.mfa_verified !== true
+  // Roles 1 (Admin), 3 (Secretary), 4 (Clerk) require MFA
+  const requiresMfa = [1, 3, 4].includes(Number(user.role)) && user.mfa_verified !== true
   if (requiresMfa && location.pathname !== '/mfa' && location.pathname !== '/mfa-otp') {
     return <Navigate to="/mfa-otp" replace />
+  }
+
+  // Guest Email Verification Check
+  // Role 13 (Guest) requires Email Verification
+  if (Number(user.role) === 13 && user.email_verified === false && location.pathname !== '/guest/verify-email') {
+    return <Navigate to="/guest/verify-email" replace />
   }
 
   // Check role-based access
