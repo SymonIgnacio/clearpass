@@ -6,7 +6,7 @@ describe('AI Analysis Service', () => {
 
   beforeEach(() => {
     mockDb = {
-      execute: jest.fn()
+      execute: jest.fn(),
     };
     service = new AIAnalysisService(mockDb);
   });
@@ -34,7 +34,9 @@ describe('AI Analysis Service', () => {
       mockDb.execute.mockResolvedValue([[{ 1: 1 }]]);
       const isValid = await service.validateSitio('Northville 5');
       expect(isValid).toBe(true);
-      expect(mockDb.execute).toHaveBeenCalledWith(expect.stringContaining('SELECT 1'), ['Northville 5']);
+      expect(mockDb.execute).toHaveBeenCalledWith(expect.stringContaining('SELECT 1'), [
+        'Northville 5',
+      ]);
     });
 
     test('returns false if sitio does not exist', async () => {
@@ -47,18 +49,18 @@ describe('AI Analysis Service', () => {
   describe('logAnalysis', () => {
     test('inserts run and facts into database', async () => {
       mockDb.execute.mockResolvedValue([{ insertId: 1 }]);
-      
+
       const params = {
         analysisType: 'TEST_ANALYSIS',
         parameters: { foo: 'bar' },
         results: { outcome: 'success' },
         confidenceScore: 0.85,
         userId: 'user-123',
-        facts: [{ fact_type: 'TEST_FACT', fact_value: 'value' }]
+        facts: [{ fact_type: 'TEST_FACT', fact_value: 'value' }],
       };
 
       const runId = await service.logAnalysis(params);
-      
+
       expect(runId).toBeTruthy();
       expect(mockDb.execute).toHaveBeenCalledTimes(2); // 1 for run, 1 for fact
       expect(mockDb.execute).toHaveBeenCalledWith(

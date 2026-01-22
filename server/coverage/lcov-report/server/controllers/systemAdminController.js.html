@@ -413,7 +413,12 @@
 <a name='L348'></a><a href='#L348'>348</a>
 <a name='L349'></a><a href='#L349'>349</a>
 <a name='L350'></a><a href='#L350'>350</a>
-<a name='L351'></a><a href='#L351'>351</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L351'></a><a href='#L351'>351</a>
+<a name='L352'></a><a href='#L352'>352</a>
+<a name='L353'></a><a href='#L353'>353</a>
+<a name='L354'></a><a href='#L354'>354</a>
+<a name='L355'></a><a href='#L355'>355</a>
+<a name='L356'></a><a href='#L356'>356</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -500,6 +505,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -734,6 +742,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -775,19 +785,19 @@ class SystemAdminController {
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const timestamp = <span class="cstat-no" title="statement not covered" >new Date().toISOString().replace(/[:.]/g, '-');</span>
       const backupName = <span class="cstat-no" title="statement not covered" >`backup_${timestamp}.sql`;</span>
-      
+&nbsp;
       // Simple backup simulation - in production, use mysqldump
       const backupData = <span class="cstat-no" title="statement not covered" >{</span>
         timestamp: new Date().toISOString(),
         tables: ['users', 'residents', 'blotter', 'document_requests', 'notifications'],
         status: 'completed',
-        size: '2.5MB'
+        size: '2.5MB',
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      res.json({</span>
         success: true,
         data: { backup_name: backupName, ...backupData },
-        message: 'Backup created successfully'
+        message: 'Backup created successfully',
       });
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      console.error('Error creating backup:', error);</span>
@@ -809,12 +819,12 @@ class SystemAdminController {
         email: 'barangay.batia@bocaue.gov.ph',
         address: 'Barangay Batia, Bocaue, Bulacan',
         office_hours: '8:00 AM - 5:00 PM',
-        certificate_fee: 50.00
+        certificate_fee: 50.0,
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      res.json({</span>
         success: true,
-        data: settings.length &gt; 0 ? settings : [defaultSettings]
+        data: settings.length &gt; 0 ? settings : [defaultSettings],
       });
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      console.error('Error fetching settings:', error);</span>
@@ -825,13 +835,13 @@ class SystemAdminController {
 <span class="fstat-no" title="function not covered" >  as</span>ync updateSystemSettings(req, res) {
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const settings = <span class="cstat-no" title="statement not covered" >req.body;</span>
-      
+&nbsp;
       // In a real implementation, you'd update the system_settings table
       // For now, we'll just acknowledge the update
-      
+&nbsp;
 <span class="cstat-no" title="statement not covered" >      res.json({</span>
         success: true,
-        message: 'System settings updated successfully'
+        message: 'System settings updated successfully',
       });
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      console.error('Error updating settings:', error);</span>
@@ -844,17 +854,20 @@ class SystemAdminController {
       const { title, content, priority, target_audience } = <span class="cstat-no" title="statement not covered" >req.body;</span>
       const created_by = <span class="cstat-no" title="statement not covered" >req.user.id;</span>
 &nbsp;
-      const [result] = <span class="cstat-no" title="statement not covered" >await this.db.execute(`</span>
+      const [result] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+        `
         INSERT INTO announcements (title, content, priority, target_audience, created_by, status)
         VALUES (?, ?, ?, ?, ?, 'active')
-      `, [title, content, priority || 'normal', target_audience || 'all', created_by]);
+      `,
+        [title, content, priority || 'normal', target_audience || 'all', created_by]
+      );
 &nbsp;
       // Create notifications for all residents if target is 'all' or 'residents'
 <span class="cstat-no" title="statement not covered" >      if (target_audience === 'all' || target_audience === 'residents') {</span>
         const [residents] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
           'SELECT id FROM users WHERE role = 12 AND is_active = 1'
         );
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        if (residents.length &gt; 0 &amp;&amp; global.createBulkNotification) {</span>
           const residentIds = <span class="cstat-no" title="statement not covered" >residents.map(<span class="fstat-no" title="function not covered" >r </span>=&gt; <span class="cstat-no" title="statement not covered" >r.id)</span>;</span>
 <span class="cstat-no" title="statement not covered" >          await global.createBulkNotification(</span>
@@ -871,7 +884,7 @@ class SystemAdminController {
 <span class="cstat-no" title="statement not covered" >      res.status(201).json({</span>
         success: true,
         data: { announcement_id: result.insertId },
-        message: 'Announcement created successfully'
+        message: 'Announcement created successfully',
       });
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      console.error('Error creating announcement:', error);</span>
@@ -913,8 +926,8 @@ class SystemAdminController {
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total: countResult[0].total
-        }
+          total: countResult[0].total,
+        },
       });
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      console.error('Error fetching announcements:', error);</span>
@@ -946,7 +959,7 @@ class SystemAdminController {
         auto_approve_certificates: false,
         require_id_verification: true,
         notification_email: true,
-        notification_sms: false
+        notification_sms: false,
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      res.json({ success: true, data: settings });</span>
@@ -959,13 +972,13 @@ class SystemAdminController {
 <span class="fstat-no" title="function not covered" >  as</span>ync updateSettings(req, res) {
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const settings = <span class="cstat-no" title="statement not covered" >req.body;</span>
-      
+&nbsp;
       // In production, save to database
       // For now, acknowledge the update
-      
+&nbsp;
 <span class="cstat-no" title="statement not covered" >      res.json({</span>
         success: true,
-        message: 'Settings updated successfully'
+        message: 'Settings updated successfully',
       });
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      console.error('Error updating settings:', error);</span>
@@ -993,12 +1006,12 @@ class SystemAdminController {
          VALUES (?, ?, ?, ?, ?)`,
         [normalizedType, relativePath, file.mimetype, file.originalname, req.user?.id || null]
       );
-      
+&nbsp;
 <span class="cstat-no" title="statement not covered" >      res.json({</span>
         success: true,
         file_path: `/api/system-admin/assets/${normalizedType}/latest`,
         asset_id: result.insertId,
-        message: `${normalizedType} uploaded successfully`
+        message: `${normalizedType} uploaded successfully`,
       });
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      console.error('Error uploading file:', error);</span>
@@ -1053,7 +1066,7 @@ class SystemAdminController {
         secretary_name: 'Secretary Maria Santos',
         contact_number: '+63 123 456 7890',
         email: 'barangay.batia@bocaue.gov.ph',
-        exported_at: new Date().toISOString()
+        exported_at: new Date().toISOString(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      res.setHeader('Content-Type', 'application/json');</span>
@@ -1070,7 +1083,7 @@ class SystemAdminController {
       // Reset to default settings
 <span class="cstat-no" title="statement not covered" >      res.json({</span>
         success: true,
-        message: 'Settings reset to defaults successfully'
+        message: 'Settings reset to defaults successfully',
       });
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      console.error('Error resetting settings:', error);</span>
@@ -1083,17 +1096,19 @@ class SystemAdminController {
       const { page = <span class="branch-0 cbranch-no" title="branch not covered" >1,</span> limit = <span class="branch-0 cbranch-no" title="branch not covered" >10 </span>} = <span class="cstat-no" title="statement not covered" >req.query;</span>
       const offset = <span class="cstat-no" title="statement not covered" >(page - 1) * limit;</span>
 &nbsp;
-      const [announcements] = <span class="cstat-no" title="statement not covered" >await this.db.execute(`</span>
+      const [announcements] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+        `
         SELECT id, title, content, priority, created_at
         FROM announcements 
-        WHERE status = 'active' 
-        AND (target_audience = 'all' OR target_audience = 'residents')
+        WHERE is_active = 1 
         ORDER BY created_at DESC 
         LIMIT ? OFFSET ?
-      `, [parseInt(limit), offset]);
+      `,
+        [parseInt(limit), offset]
+      );
 &nbsp;
       const [countResult] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
-        'SELECT COUNT(*) as total FROM announcements WHERE status = "active" AND (target_audience = "all" OR target_audience = "residents")'
+        'SELECT COUNT(*) as total FROM announcements WHERE is_active = 1'
       );
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      res.json({</span>
@@ -1102,8 +1117,8 @@ class SystemAdminController {
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total: countResult[0].total
-        }
+          total: countResult[0].total,
+        },
       });
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      console.error('Error fetching resident announcements:', error);</span>
@@ -1120,7 +1135,7 @@ class SystemAdminController {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:37.883Z
+                at 2026-01-22T21:30:07.139Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

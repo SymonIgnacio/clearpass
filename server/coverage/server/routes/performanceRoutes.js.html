@@ -124,7 +124,10 @@
 <a name='L59'></a><a href='#L59'>59</a>
 <a name='L60'></a><a href='#L60'>60</a>
 <a name='L61'></a><a href='#L61'>61</a>
-<a name='L62'></a><a href='#L62'>62</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -153,19 +156,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -185,7 +190,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const express = <span class="cstat-no" title="statement not covered" >require('express');</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const express = <span class="cstat-no" title="statement not covered" >require('express');</span>
 const router = <span class="cstat-no" title="statement not covered" >express.Router();</span>
 const { verifyToken, checkRole } = <span class="cstat-no" title="statement not covered" >require('../middleware/authMiddleware');</span>
 const { register } = <span class="cstat-no" title="statement not covered" >require('../monitoring');</span>
@@ -210,9 +216,11 @@ const { register } = <span class="cstat-no" title="statement not covered" >requi
     memory: {
       used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
       total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
-      percentage: Math.round((process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100)
+      percentage: Math.round(
+        (process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100
+      ),
     },
-    cpu: process.cpuUsage()
+    cpu: process.cpuUsage(),
   };
 <span class="cstat-no" title="statement not covered" >  res.json(health);</span>
 });
@@ -221,39 +229,40 @@ const { register } = <span class="cstat-no" title="statement not covered" >requi
 <span class="cstat-no" title="statement not covered" >router.get('/summary', verifyToken, checkRole(['admin']), <span class="fstat-no" title="function not covered" >as</span>ync (req, res) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  try {</span>
     const db = <span class="cstat-no" title="statement not covered" >req.app.locals.db;</span>
-    
+&nbsp;
     const [dbStats] = <span class="cstat-no" title="statement not covered" >await db.execute('SHOW STATUS LIKE "Threads_connected"');</span>
     const [slowQueries] = <span class="cstat-no" title="statement not covered" >await db.execute('SHOW STATUS LIKE "Slow_queries"');</span>
     const [uptime] = <span class="cstat-no" title="statement not covered" >await db.execute('SHOW STATUS LIKE "Uptime"');</span>
-    
+&nbsp;
     const summary = <span class="cstat-no" title="statement not covered" >{</span>
       application: {
         uptime: process.uptime(),
         memory: process.memoryUsage(),
-        nodeVersion: process.version
+        nodeVersion: process.version,
       },
       database: {
         connections: dbStats[0]?.Value || 0,
         slowQueries: slowQueries[0]?.Value || 0,
-        uptime: uptime[0]?.Value || 0
+        uptime: uptime[0]?.Value || 0,
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    res.json(summary);</span>
   } catch (error) {
 <span class="cstat-no" title="statement not covered" >    res.status(500).json({ error: 'Failed to fetch performance summary' });</span>
   }
 });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >module.exports = router;</span></pre></td></tr></table></pre>
+<span class="cstat-no" title="statement not covered" >module.exports = router;</span>
+&nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:38.155Z
+                at 2026-01-22T21:30:07.384Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

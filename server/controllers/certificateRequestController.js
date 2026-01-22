@@ -18,31 +18,34 @@ class CertificateRequestController {
   async getAvailableTemplates(req, res) {
     try {
       const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
-      
+
       // Fetch DB Templates
       const [templates] = await db.execute(
         'SELECT id, template_name, display_name, document_type, required_fields, is_custom FROM document_templates WHERE is_active = 1'
       );
-      
-      // Fetch Certificate Types (for fees)
+
+      // Fetch Certificate Types (for validity)
       const [types] = await db.execute(
-        'SELECT id, name, fee, description, validity_days FROM certificate_types WHERE is_active = 1'
+        'SELECT id, name, description, validity_days FROM certificate_types WHERE is_active = 1'
       );
-      
-      // Merge: For each template, try to find a matching type to get fee/desc
+
+      // Merge: For each template, try to find a matching type to get desc
       const merged = templates.map(t => {
         // Try to match document_type (e.g. barangay_clearance) with type name (Barangay Clearance)
         // Normalize type name: Barangay Clearance -> barangay_clearance
         const matchingType = types.find(type => {
-           const normalizedTypeName = type.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
-           return normalizedTypeName === t.document_type || type.name === t.document_type;
+          const normalizedTypeName = type.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+          return normalizedTypeName === t.document_type || type.name === t.document_type;
         });
-        
+
         let parsedRequiredFields = [];
         try {
-            parsedRequiredFields = typeof t.required_fields === 'string' ? JSON.parse(t.required_fields) : t.required_fields;
+          parsedRequiredFields =
+            typeof t.required_fields === 'string'
+              ? JSON.parse(t.required_fields)
+              : t.required_fields;
         } catch (e) {
-            parsedRequiredFields = [];
+          parsedRequiredFields = [];
         }
 
         return {
@@ -53,13 +56,12 @@ class CertificateRequestController {
           required_fields: parsedRequiredFields || [],
           is_custom: t.is_custom,
           // Certificate Type Info
-          fee: matchingType ? matchingType.fee : 0,
           description: matchingType ? matchingType.description : 'Custom Certificate',
           validity_days: matchingType ? matchingType.validity_days : 365,
-          type_id: matchingType ? matchingType.id : null
+          type_id: matchingType ? matchingType.id : null,
         };
       });
-      
+
       res.json({ success: true, data: merged });
     } catch (error) {
       console.error('Error fetching available templates:', error);
@@ -85,7 +87,9 @@ class CertificateRequestController {
       const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
       // Handle file uploads first
       if (!req.files || !req.files.front_id || !req.files.back_id) {
-        return res.status(400).json({ success: false, message: 'Both Front and Back ID photos are required' });
+        return res
+          .status(400)
+          .json({ success: false, message: 'Both Front and Back ID photos are required' });
       }
 
       const { document_type, purpose, additional_data } = req.body;
@@ -98,10 +102,9 @@ class CertificateRequestController {
       }
 
       // Get resident data
-      const [residents] = await db.execute(
-        'SELECT * FROM residents WHERE Resident_ID = ?',
-        [resident_id]
-      );
+      const [residents] = await db.execute('SELECT * FROM residents WHERE Resident_ID = ?', [
+        resident_id,
+      ]);
 
       if (residents.length === 0) {
         return res.status(404).json({ success: false, message: 'Resident not found' });
@@ -110,24 +113,27 @@ class CertificateRequestController {
       const resident = residents[0];
       const request_id = `REQ-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
-      await db.execute(`
+      await db.execute(
+        `
         INSERT INTO document_requests (
           request_id, resident_id, document_type, status, 
           request_data, resident_data,
           attachment_front_id, attachment_back_id,
           attachment_front_mime, attachment_back_mime
         ) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)
-      `, [
-        request_id,
-        resident_id,
-        document_type,
-        JSON.stringify({ purpose, ...JSON.parse(additional_data || '{}') }),
-        JSON.stringify(resident),
-        frontIdFile.buffer,
-        backIdFile.buffer,
-        frontIdFile.mimetype,
-        backIdFile.mimetype
-      ]);
+      `,
+        [
+          request_id,
+          resident_id,
+          document_type,
+          JSON.stringify({ purpose, ...JSON.parse(additional_data || '{}') }),
+          JSON.stringify(resident),
+          frontIdFile.buffer,
+          backIdFile.buffer,
+          frontIdFile.mimetype,
+          backIdFile.mimetype,
+        ]
+      );
 
       // Create notification for staff
       if (global.createBulkNotification) {
@@ -135,7 +141,7 @@ class CertificateRequestController {
           'SELECT id FROM users WHERE role IN (2, 3, 4) AND is_active = 1'
         );
         const staffIds = staff.map(s => s.id);
-        
+
         await global.createBulkNotification(
           staffIds,
           'New Certificate Request',
@@ -149,7 +155,7 @@ class CertificateRequestController {
       res.status(201).json({
         success: true,
         data: { request_id },
-        message: 'Certificate request submitted successfully'
+        message: 'Certificate request submitted successfully',
       });
     } catch (error) {
       console.error('Error submitting certificate request:', error);
@@ -169,15 +175,26 @@ class CertificateRequestController {
         const [certRequests] = await db.execute(
           `
           SELECT 
-              request_id, document_type, status, created_at, 
-              'certificate' as type, remarks
+              request_id, document_type as certificate_type, status, created_at, 
+              'certificate' as type, remarks, request_data
           FROM document_requests 
           WHERE resident_id = ?
           ORDER BY created_at DESC
           `,
           [resident_id]
         );
-        requests = certRequests;
+        // Parse request_data to extract purpose
+        requests = certRequests.map(req => {
+          let purpose = 'N/A';
+          try {
+            const data = JSON.parse(req.request_data || '{}');
+            purpose = data.purpose || 'N/A';
+          } catch (e) { }
+          return {
+            ...req,
+            purpose
+          };
+        });
       }
 
       // Fetch Residency Verification Applications (For Guests & Residents)
@@ -190,7 +207,7 @@ class CertificateRequestController {
         `
         SELECT 
             application_id as request_id, 
-            'Residency Verification' as document_type, 
+            'Residency Verification' as certificate_type, 
             status, 
             created_at, 
             'application' as type,
@@ -202,8 +219,15 @@ class CertificateRequestController {
         [userEmail]
       );
 
+      const formattedApps = apps.map(app => ({
+        ...app,
+        purpose: 'Account Verification'
+      }));
+
       // Merge and Sort
-      const allRequests = [...requests, ...apps].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const allRequests = [...requests, ...formattedApps].sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      );
 
       // Pagination Logic
       const startIndex = (page - 1) * limit;
@@ -214,10 +238,10 @@ class CertificateRequestController {
         success: true,
         data: paginatedRequests,
         pagination: {
-            page: parseInt(page),
-            limit: parseInt(limit),
-            total: allRequests.length
-        }
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: allRequests.length,
+        },
       });
     } catch (error) {
       console.error('Error fetching requests:', error);
@@ -237,7 +261,9 @@ class CertificateRequestController {
       );
 
       if (result.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: 'Request not found or cannot be cancelled' });
+        return res
+          .status(404)
+          .json({ success: false, message: 'Request not found or cannot be cancelled' });
       }
 
       res.json({ success: true, message: 'Request cancelled successfully' });
@@ -262,9 +288,9 @@ class CertificateRequestController {
         FROM document_requests dr
         LEFT JOIN residents r ON dr.resident_id = r.Resident_ID
       `;
-      
+
       const params = [];
-      
+
       if (status !== 'all') {
         query += ' WHERE dr.status = ?';
         params.push(status);
@@ -282,21 +308,23 @@ class CertificateRequestController {
         countQuery += ' WHERE status = ?';
         countParams.push(status);
       }
-      
+
       const [countResult] = await db.execute(countQuery, countParams);
 
       res.json({
         success: true,
         data: requests.map(req => ({
           ...req,
-          resident_name: `${req.First_Name} ${req.Middle_Name || ''} ${req.Last_Name} ${req.Suffix || ''}`.trim(),
-          request_data: typeof req.request_data === 'string' ? JSON.parse(req.request_data) : req.request_data
+          resident_name:
+            `${req.First_Name} ${req.Middle_Name || ''} ${req.Last_Name} ${req.Suffix || ''}`.trim(),
+          request_data:
+            typeof req.request_data === 'string' ? JSON.parse(req.request_data) : req.request_data,
         })),
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total: countResult[0].total
-        }
+          total: countResult[0].total,
+        },
       });
     } catch (error) {
       console.error('Error fetching all requests:', error);
@@ -308,7 +336,7 @@ class CertificateRequestController {
     try {
       const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
       const { request_id, type } = req.params; // type: 'front' or 'back'
-      
+
       if (!['front', 'back'].includes(type)) {
         return res.status(400).json({ success: false, message: 'Invalid attachment type' });
       }
@@ -344,10 +372,9 @@ class CertificateRequestController {
       }
 
       // First check if request exists and is pending
-      const [rows] = await db.execute(
-        'SELECT status FROM document_requests WHERE request_id = ?',
-        [request_id]
-      );
+      const [rows] = await db.execute('SELECT status FROM document_requests WHERE request_id = ?', [
+        request_id,
+      ]);
 
       if (rows.length === 0) {
         return res.status(404).json({ success: false, message: 'Request not found' });
@@ -355,7 +382,7 @@ class CertificateRequestController {
 
       // Allow editing even if approved (user requested "editable"), but typically only pending should be.
       // Assuming Admin power allows editing anytime before completion.
-      
+
       const [result] = await db.execute(
         'UPDATE document_requests SET request_data = ? WHERE request_id = ?',
         [JSON.stringify(request_data), request_id]
@@ -364,12 +391,12 @@ class CertificateRequestController {
       // Audit Log
       try {
         await logAuditToDatabase(db, AUDIT_EVENTS.DATA_UPDATE, {
-            user_id: req.user?.id || null,
-            user_role: req.user?.role || null,
-            resource: `request/${request_id}`,
-            action: 'UPDATE_DETAILS',
-            result: 'SUCCESS',
-            additional_details: { updated_fields: Object.keys(request_data) }
+          user_id: req.user?.id || null,
+          user_role: req.user?.role || null,
+          resource: `request/${request_id}`,
+          action: 'UPDATE_DETAILS',
+          result: 'SUCCESS',
+          additional_details: { updated_fields: Object.keys(request_data) },
         });
       } catch (e) {
         console.warn('Audit log failed', e);
@@ -387,7 +414,7 @@ class CertificateRequestController {
       const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
       const { request_id } = req.params;
       const { status, remarks } = req.body; // status: 'approved', 'rejected'
-      
+
       if (!['approved', 'rejected'].includes(status)) {
         return res.status(400).json({ success: false, message: 'Invalid status' });
       }
@@ -402,34 +429,40 @@ class CertificateRequestController {
       }
 
       // Notify resident
-      const [rows] = await db.execute(`
+      const [rows] = await db.execute(
+        `
         SELECT dr.document_type, r.Email, r.First_Name, r.Last_Name, u.id as user_id
         FROM document_requests dr
         JOIN residents r ON dr.resident_id = r.Resident_ID
         LEFT JOIN users u ON r.Resident_ID = u.resident_id
         WHERE dr.request_id = ?
-      `, [request_id]);
+      `,
+        [request_id]
+      );
 
       if (rows.length > 0) {
         const { document_type, Email, First_Name, Last_Name, user_id } = rows[0];
 
         // Audit Log
         try {
-            const auditDetails = {
-                user_id: req.user?.id || null,
-                user_role: req.user?.role || null,
-                resource: `request/${request_id}`,
-                action: 'UPDATE_STATUS',
-                result: 'SUCCESS',
-                additional_details: { status, remarks, document_type }
-            };
-            // Map status to appropriate audit event
-            const eventType = status === 'approved' ? AUDIT_EVENTS.CERTIFICATE_RELEASED : AUDIT_EVENTS.CERTIFICATE_REJECTED; // Using closest available events
-            
-            // Assuming logAuditToDatabase handles the insert
-            await logAuditToDatabase(db, eventType, auditDetails);
+          const auditDetails = {
+            user_id: req.user?.id || null,
+            user_role: req.user?.role || null,
+            resource: `request/${request_id}`,
+            action: 'UPDATE_STATUS',
+            result: 'SUCCESS',
+            additional_details: { status, remarks, document_type },
+          };
+          // Map status to appropriate audit event
+          const eventType =
+            status === 'approved'
+              ? AUDIT_EVENTS.CERTIFICATE_RELEASED
+              : AUDIT_EVENTS.CERTIFICATE_REJECTED; // Using closest available events
+
+          // Assuming logAuditToDatabase handles the insert
+          await logAuditToDatabase(db, eventType, auditDetails);
         } catch (auditErr) {
-            console.warn('Failed to log audit for certificate update', auditErr);
+          console.warn('Failed to log audit for certificate update', auditErr);
         }
 
         if (global.createNotification && user_id) {
@@ -442,8 +475,10 @@ class CertificateRequestController {
             { request_id }
           );
         } else if (global.createNotification) {
-             // Fallback if no user_id found (e.g. resident account deleted), log warning
-             console.warn(`Could not send notification for request ${request_id}: No linked user account found.`);
+          // Fallback if no user_id found (e.g. resident account deleted), log warning
+          console.warn(
+            `Could not send notification for request ${request_id}: No linked user account found.`
+          );
         }
 
         if (Email) {
@@ -452,7 +487,7 @@ class CertificateRequestController {
             residentName: `${First_Name} ${Last_Name}`,
             requestType: document_type,
             status,
-            remarks
+            remarks,
           });
         }
       }

@@ -148,7 +148,18 @@
 <a name='L83'></a><a href='#L83'>83</a>
 <a name='L84'></a><a href='#L84'>84</a>
 <a name='L85'></a><a href='#L85'>85</a>
-<a name='L86'></a><a href='#L86'>86</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -160,6 +171,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -200,6 +213,10 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -221,22 +238,27 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >exports.up = <span class="fstat-no" title="function not covered" >as</span>ync function(knex) {</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >exports.up = <span class="fstat-no" title="function not covered" >as</span>ync function (knex) {</span>
   const hasApps = <span class="cstat-no" title="statement not covered" >await knex.schema.hasTable('resident_applications');</span>
 <span class="cstat-no" title="statement not covered" >  if (!hasApps) {</span>
-<span class="cstat-no" title="statement not covered" >    await knex.schema.createTable('resident_applications', <span class="fstat-no" title="function not covered" >fu</span>nction(table) {</span>
+<span class="cstat-no" title="statement not covered" >    await knex.schema.createTable('resident_applications', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {</span>
 <span class="cstat-no" title="statement not covered" >      table.string('application_id', 50).primary();</span>
 <span class="cstat-no" title="statement not covered" >      table.string('first_name', 100).notNullable();</span>
 <span class="cstat-no" title="statement not covered" >      table.string('middle_name', 100);</span>
@@ -244,7 +266,9 @@
 <span class="cstat-no" title="statement not covered" >      table.string('suffix', 20);</span>
 <span class="cstat-no" title="statement not covered" >      table.date('birthdate').notNullable();</span>
 <span class="cstat-no" title="statement not covered" >      table.enum('gender', ['Male', 'Female', 'Other']).defaultTo('Male');</span>
-<span class="cstat-no" title="statement not covered" >      table.enum('civil_status', ['Single', 'Married', 'Widowed', 'Separated', 'Divorced']).defaultTo('Single');</span>
+<span class="cstat-no" title="statement not covered" >      table</span>
+        .enum('civil_status', ['Single', 'Married', 'Widowed', 'Separated', 'Divorced'])
+        .defaultTo('Single');
 <span class="cstat-no" title="statement not covered" >      table.string('occupation', 100);</span>
 <span class="cstat-no" title="statement not covered" >      table.decimal('income_estimate', 10, 2).defaultTo(0);</span>
 <span class="cstat-no" title="statement not covered" >      table.string('email', 255).notNullable();</span>
@@ -263,7 +287,7 @@
 <span class="cstat-no" title="statement not covered" >      table.string('reviewed_by', 50);</span>
 <span class="cstat-no" title="statement not covered" >      table.timestamp('reviewed_at');</span>
 <span class="cstat-no" title="statement not covered" >      table.timestamps(true, true);</span>
-      
+&nbsp;
 <span class="cstat-no" title="statement not covered" >      table.index(['email']);</span>
 <span class="cstat-no" title="statement not covered" >      table.index(['status']);</span>
 <span class="cstat-no" title="statement not covered" >      table.index(['created_at']);</span>
@@ -272,7 +296,7 @@
 &nbsp;
   const hasAppDocs = <span class="cstat-no" title="statement not covered" >await knex.schema.hasTable('application_documents');</span>
 <span class="cstat-no" title="statement not covered" >  if (!hasAppDocs) {</span>
-<span class="cstat-no" title="statement not covered" >    await knex.schema.createTable('application_documents', <span class="fstat-no" title="function not covered" >fu</span>nction(table) {</span>
+<span class="cstat-no" title="statement not covered" >    await knex.schema.createTable('application_documents', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {</span>
 <span class="cstat-no" title="statement not covered" >      table.increments('id').primary();</span>
 <span class="cstat-no" title="statement not covered" >      table.string('application_id', 50).notNullable();</span>
 <span class="cstat-no" title="statement not covered" >      table.string('document_type', 50).notNullable();</span>
@@ -283,8 +307,12 @@
 <span class="cstat-no" title="statement not covered" >      table.string('verified_by', 50);</span>
 <span class="cstat-no" title="statement not covered" >      table.timestamp('verified_at');</span>
 <span class="cstat-no" title="statement not covered" >      table.timestamps(true, true);</span>
-      
-<span class="cstat-no" title="statement not covered" >      table.foreign('application_id').references('application_id').inTable('resident_applications').onDelete('CASCADE');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      table</span>
+        .foreign('application_id')
+        .references('application_id')
+        .inTable('resident_applications')
+        .onDelete('CASCADE');
 <span class="cstat-no" title="statement not covered" >      table.index(['application_id']);</span>
 <span class="cstat-no" title="statement not covered" >      table.index(['document_type']);</span>
 <span class="cstat-no" title="statement not covered" >      table.index(['verification_status']);</span>
@@ -293,7 +321,7 @@
 &nbsp;
   const hasResDocs = <span class="cstat-no" title="statement not covered" >await knex.schema.hasTable('resident_documents');</span>
 <span class="cstat-no" title="statement not covered" >  if (!hasResDocs) {</span>
-<span class="cstat-no" title="statement not covered" >    await knex.schema.createTable('resident_documents', <span class="fstat-no" title="function not covered" >fu</span>nction(table) {</span>
+<span class="cstat-no" title="statement not covered" >    await knex.schema.createTable('resident_documents', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {</span>
 <span class="cstat-no" title="statement not covered" >      table.increments('id').primary();</span>
 <span class="cstat-no" title="statement not covered" >      table.string('resident_id', 50).notNullable();</span>
 <span class="cstat-no" title="statement not covered" >      table.string('document_type', 50).notNullable();</span>
@@ -304,8 +332,12 @@
 <span class="cstat-no" title="statement not covered" >      table.string('verified_by', 50);</span>
 <span class="cstat-no" title="statement not covered" >      table.timestamp('verified_at');</span>
 <span class="cstat-no" title="statement not covered" >      table.timestamps(true, true);</span>
-      
-<span class="cstat-no" title="statement not covered" >      table.foreign('resident_id').references('Resident_ID').inTable('residents').onDelete('CASCADE');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      table</span>
+        .foreign('resident_id')
+        .references('Resident_ID')
+        .inTable('residents')
+        .onDelete('CASCADE');
 <span class="cstat-no" title="statement not covered" >      table.index(['resident_id']);</span>
 <span class="cstat-no" title="statement not covered" >      table.index(['document_type']);</span>
 <span class="cstat-no" title="statement not covered" >      table.index(['verification_status']);</span>
@@ -313,19 +345,20 @@
   }
 };
 &nbsp;
-<span class="cstat-no" title="statement not covered" >exports.down = <span class="fstat-no" title="function not covered" >fu</span>nction(knex) {</span>
+<span class="cstat-no" title="statement not covered" >exports.down = <span class="fstat-no" title="function not covered" >fu</span>nction (knex) {</span>
 <span class="cstat-no" title="statement not covered" >  return knex.schema</span>
     .dropTableIfExists('resident_documents')
     .dropTableIfExists('application_documents')
     .dropTableIfExists('resident_applications');
-};</pre></td></tr></table></pre>
+};
+&nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:38.155Z
+                at 2026-01-22T21:30:07.384Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

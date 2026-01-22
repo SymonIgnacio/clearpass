@@ -3,18 +3,24 @@ const BlotterComplaintController = require('../controllers/blotterComplaintContr
 const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { ROLES } = require('../config/roles');
 
-module.exports = (db) => {
+module.exports = db => {
   const router = express.Router();
   const controller = new BlotterComplaintController(db);
 
   // Get incident types
-  router.get('/incident-types', verifyToken, checkRole([ROLES.RESIDENT]), (req, res) => controller.getIncidentTypes(req, res));
+  router.get('/incident-types', verifyToken, checkRole([ROLES.RESIDENT]), (req, res) =>
+    controller.getIncidentTypes(req, res)
+  );
 
   // Submit complaint
-  router.post('/submit', verifyToken, checkRole([ROLES.RESIDENT]), (req, res) => controller.submitComplaint(req, res));
+  router.post('/submit', verifyToken, checkRole([ROLES.RESIDENT]), (req, res) =>
+    controller.submitComplaint(req, res)
+  );
 
   // Get my complaints
-  router.get('/my-complaints', verifyToken, checkRole([ROLES.RESIDENT]), (req, res) => controller.getMyComplaints(req, res));
+  router.get('/my-complaints', verifyToken, checkRole([ROLES.RESIDENT]), (req, res) =>
+    controller.getMyComplaints(req, res)
+  );
 
   return router;
 };

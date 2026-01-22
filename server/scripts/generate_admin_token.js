@@ -13,7 +13,7 @@ const adminPayload = {
   username: 'admin',
   role: 1, // IT Admin
   role_name: 'IT Admin',
-  mfa_verified: true
+  mfa_verified: true,
 };
 
 const token = jwt.sign(adminPayload, secret, { expiresIn: '1h' });

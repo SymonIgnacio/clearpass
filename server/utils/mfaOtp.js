@@ -63,7 +63,8 @@ const verifyOtpChallenge = async ({ db, userId, otp }) => {
   if (!rows.length) return { ok: false, reason: 'no_challenge' };
   const ch = rows[0];
   if (ch.consumed_at) return { ok: false, reason: 'consumed' };
-  if (new Date(ch.expires_at).getTime() < Date.now()) return { ok: false, reason: 'expired', challengeId: ch.id };
+  if (new Date(ch.expires_at).getTime() < Date.now())
+    return { ok: false, reason: 'expired', challengeId: ch.id };
   if (ch.attempts_remaining <= 0) return { ok: false, reason: 'locked', challengeId: ch.id };
 
   const match = await bcrypt.compare(String(otp || ''), ch.otp_hash);
@@ -84,6 +85,5 @@ module.exports = {
   getOtpExpiryMinutes,
   createOtpChallenge,
   verifyOtpChallenge,
-  sendOtpEmail
+  sendOtpEmail,
 };
-

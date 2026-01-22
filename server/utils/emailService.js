@@ -12,8 +12,8 @@ const createTransporter = () => {
     secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
     auth: {
       user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    }
+      pass: process.env.SMTP_PASS,
+    },
   });
 };
 
@@ -22,7 +22,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
     console.warn('SMTP not configured, skipping email sending.');
     return;
   }
-  
+
   try {
     const transporter = createTransporter();
     const info = await transporter.sendMail({
@@ -30,7 +30,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
       to,
       subject,
       text,
-      html
+      html,
     });
     console.log(`Email sent: ${info.messageId}`);
     return info;
@@ -43,7 +43,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
 const sendRequestStatusEmail = async ({ to, residentName, requestType, status, remarks }) => {
   const subject = `Update on your ${requestType} Request`;
   const capitalizedStatus = status.charAt(0).toUpperCase() + status.slice(1);
-  
+
   const html = `
     <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
       <h2>Hello ${residentName},</h2>
@@ -55,7 +55,7 @@ const sendRequestStatusEmail = async ({ to, residentName, requestType, status, r
       <p>ClearPass Team</p>
     </div>
   `;
-  
+
   const text = `Hello ${residentName},\n\nYour request for ${requestType} has been ${capitalizedStatus}.\n${remarks ? `Remarks: ${remarks}\n` : ''}\nPlease log in to your account for more details.\n\nBest regards,\nClearPass Team`;
 
   await sendEmail({ to, subject, html, text });
@@ -64,5 +64,5 @@ const sendRequestStatusEmail = async ({ to, residentName, requestType, status, r
 module.exports = {
   isSmtpConfigured,
   sendEmail,
-  sendRequestStatusEmail
+  sendRequestStatusEmail,
 };

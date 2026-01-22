@@ -9,7 +9,7 @@ const compressionMiddleware = compression({
     return compression.filter(req, res);
   },
   level: 6,
-  threshold: 1024
+  threshold: 1024,
 });
 
 module.exports = compressionMiddleware;

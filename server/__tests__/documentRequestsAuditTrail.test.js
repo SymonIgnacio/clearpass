@@ -13,13 +13,13 @@ jest.mock('../middleware/authMiddleware', () => ({
     next();
   },
   checkRole: () => (req, res, next) => next(),
-  verifyRole: (allowedRoles) => (req, res, next) => {
+  verifyRole: allowedRoles => (req, res, next) => {
     if (!req.user) return res.status(401).json({ error: 'Authentication required' });
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
     }
     next();
-  }
+  },
 }));
 
 describe('audit trail for document requests', () => {
@@ -36,7 +36,7 @@ describe('audit trail for document requests', () => {
             user_role: params[2],
             resource: params[5],
             action: params[6],
-            result: params[7]
+            result: params[7],
           });
           return [{ affectedRows: 1 }];
         }
@@ -56,7 +56,7 @@ describe('audit trail for document requests', () => {
           return [[]];
         }
         return [[]];
-      })
+      }),
     };
 
     const app = express();
@@ -90,7 +90,7 @@ describe('audit trail for document requests', () => {
     expect(logsRes.status).toBe(200);
     expect(logsRes.body.success).toBe(true);
 
-    const eventTypes = (logsRes.body.logs || []).map((l) => l.event_type);
+    const eventTypes = (logsRes.body.logs || []).map(l => l.event_type);
     expect(eventTypes).toContain('DOCUMENT_REQUEST_CREATED');
     expect(eventTypes).toContain('DOCUMENT_REQUEST_VIEWED');
   });

@@ -11,7 +11,7 @@ async function login() {
   try {
     const res = await axios.post(`${API_URL}/auth/login`, {
       username: 'superadmin',
-      password: process.env.SEED_DEFAULT_PASSWORD || 'Admin123!'
+      password: process.env.SEED_DEFAULT_PASSWORD || 'Admin123!',
     });
     return res.data.token;
   } catch (error) {
@@ -29,7 +29,7 @@ async function benchmarkEndpoint(name, url, token, iterations = 50) {
     const start = performance.now();
     try {
       await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       times.push(performance.now() - start);
     } catch (e) {
@@ -37,7 +37,7 @@ async function benchmarkEndpoint(name, url, token, iterations = 50) {
     }
     if (i % 10 === 0) process.stdout.write('.');
   }
-  
+
   if (times.length === 0) return;
 
   times.sort((a, b) => a - b);
@@ -59,9 +59,13 @@ async function benchmarkEndpoint(name, url, token, iterations = 50) {
 async function run() {
   console.log('🚀 Starting AI Service Benchmarks');
   const token = await login();
-  
+
   await benchmarkEndpoint('Dashboard Summary', `${API_URL}/ai-analytics/dashboard-summary`, token);
-  await benchmarkEndpoint('Secretary Risk Analytics', `${API_URL}/ai-analytics/secretary-analytics`, token);
+  await benchmarkEndpoint(
+    'Secretary Risk Analytics',
+    `${API_URL}/ai-analytics/secretary-analytics`,
+    token
+  );
   // await benchmarkEndpoint('Patrol Suggestions (AI Proxy)', `${API_URL}/ai/patrol`, token, 10); // Slower, fewer iters
 }
 

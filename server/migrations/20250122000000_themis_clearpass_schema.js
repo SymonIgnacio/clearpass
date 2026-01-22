@@ -5,34 +5,51 @@
  * Updates roles from 0-5 to 1-6 and ensures proper schema for ClearPass protocol
  */
 
-exports.up = async function(knex) {
+exports.up = async function (knex) {
   // Check columns for users table
   const hasResidentId = await knex.schema.hasColumn('users', 'resident_id');
   const hasPinCode = await knex.schema.hasColumn('users', 'pin_code');
 
-  await knex.schema.alterTable('users', function(table) {
+  await knex.schema.alterTable('users', function (table) {
     // Update role column to use THEMIS CLEARPASS hierarchy (1-6)
-    table.tinyint('role').notNullable().defaultTo(4).comment('THEMIS CLEARPASS Role ID: 1=IT Admin, 2=Clerk, 3=Blotter Officer, 4=Resident, 5=Captain, 6=Secretary').alter();
+    table
+      .tinyint('role')
+      .notNullable()
+      .defaultTo(4)
+      .comment(
+        'THEMIS CLEARPASS Role ID: 1=IT Admin, 2=Clerk, 3=Blotter Officer, 4=Resident, 5=Captain, 6=Secretary'
+      )
+      .alter();
 
     // Ensure resident_id column exists (for linking users to resident profiles)
     if (!hasResidentId) {
-      table.string('resident_id', 50).nullable().comment('Links user to resident profile for ClearPass validation');
-      table.foreign('resident_id').references('Resident_ID').inTable('residents').onDelete('SET NULL');
+      table
+        .string('resident_id', 50)
+        .nullable()
+        .comment('Links user to resident profile for ClearPass validation');
+      table
+        .foreign('resident_id')
+        .references('Resident_ID')
+        .inTable('residents')
+        .onDelete('SET NULL');
     }
 
     // Ensure pin_code column exists (for Role 4 Resident login)
     if (!hasPinCode) {
-      table.string('pin_code', 6).nullable().comment('6-digit PIN for ResidentID + PIN authentication');
+      table
+        .string('pin_code', 6)
+        .nullable()
+        .comment('6-digit PIN for ResidentID + PIN authentication');
     }
 
     // Add indexes for performance - wrap in try/catch in case they exist, or just leave it (knex usually throws if index exists)
     // For safety, we can skip explicit index creation if we aren't sure, but typically alterTable is idempotent-ish for columns if checked.
     // However, duplicate indexes might throw. Let's assume if columns were missing, indexes are missing.
     if (!hasResidentId) {
-        table.index(['role', 'resident_id']);
+      table.index(['role', 'resident_id']);
     }
     if (!hasPinCode) {
-        table.index('pin_code');
+      table.index('pin_code');
     }
   });
 
@@ -48,7 +65,7 @@ exports.up = async function(knex) {
         WHEN role = 5 THEN 4  -- Resident (was 5, now 4)
         ELSE 4                -- Default to Resident
       END
-    `)
+    `),
   });
 
   // Check columns for blotter table
@@ -56,11 +73,15 @@ exports.up = async function(knex) {
   const hasHearingCount = await knex.schema.hasColumn('blotter', 'hearing_count');
   const hasMissedHearings = await knex.schema.hasColumn('blotter', 'missed_hearings');
 
-  await knex.schema.alterTable('blotter', function(table) {
+  await knex.schema.alterTable('blotter', function (table) {
     // Ensure respondent_id links to residents for ClearPass checks
     if (!hasRespondentId) {
       table.string('respondent_id', 50).nullable().comment('Resident ID for ClearPass validation');
-      table.foreign('respondent_id').references('Resident_ID').inTable('residents').onDelete('SET NULL');
+      table
+        .foreign('respondent_id')
+        .references('Resident_ID')
+        .inTable('residents')
+        .onDelete('SET NULL');
     }
 
     // Ensure hearing_count and missed_hearings for ClearPass logic
@@ -68,17 +89,24 @@ exports.up = async function(knex) {
       table.integer('hearing_count').defaultTo(0).comment('Number of hearings scheduled');
     }
     if (!hasMissedHearings) {
-      table.integer('missed_hearings').defaultTo(0).comment('Number of missed hearings (ClearPass blocks at 3+)');
+      table
+        .integer('missed_hearings')
+        .defaultTo(0)
+        .comment('Number of missed hearings (ClearPass blocks at 3+)');
     }
 
     // Ensure status uses proper enum for ClearPass checks
-    table.enu('status', ['Pending', 'Active', 'Resolved', 'Dismissed']).defaultTo('Pending').comment('Case status for ClearPass validation').alter();
+    table
+      .enu('status', ['Pending', 'Active', 'Resolved', 'Dismissed'])
+      .defaultTo('Pending')
+      .comment('Case status for ClearPass validation')
+      .alter();
   });
 
   // Create clearance_requests table for structured clearance workflow
   const hasClearanceRequests = await knex.schema.hasTable('clearance_requests');
   if (!hasClearanceRequests) {
-    await knex.schema.createTable('clearance_requests', function(table) {
+    await knex.schema.createTable('clearance_requests', function (table) {
       table.increments('id').primary();
       table.string('request_id', 50).unique().notNullable();
       table.string('resident_id', 50).notNullable().comment('Resident requesting clearance');
@@ -94,7 +122,11 @@ exports.up = async function(knex) {
       table.timestamps(true, true);
 
       // Foreign keys
-      table.foreign('resident_id').references('Resident_ID').inTable('residents').onDelete('CASCADE');
+      table
+        .foreign('resident_id')
+        .references('Resident_ID')
+        .inTable('residents')
+        .onDelete('CASCADE');
       table.foreign('requested_by').references('id').inTable('users').onDelete('SET NULL');
       table.foreign('approved_by').references('id').inTable('users').onDelete('SET NULL');
       table.foreign('issued_by').references('id').inTable('users').onDelete('SET NULL');
@@ -107,22 +139,31 @@ exports.up = async function(knex) {
   }
 };
 
-exports.down = function(knex) {
-  return knex.schema.dropTableIfExists('clearance_requests')
+exports.down = function (knex) {
+  return knex.schema
+    .dropTableIfExists('clearance_requests')
     .then(() => {
-      return knex.schema.alterTable('blotter', function(table) {
+      return knex.schema.alterTable('blotter', function (table) {
         table.dropForeign(['respondent_id']);
         table.dropColumn('respondent_id');
         table.dropColumn('hearing_count');
         table.dropColumn('missed_hearings');
       });
-    }).then(() => {
-      return knex.schema.alterTable('users', function(table) {
+    })
+    .then(() => {
+      return knex.schema.alterTable('users', function (table) {
         table.dropForeign(['resident_id']);
         table.dropColumn('resident_id');
         table.dropColumn('pin_code');
         // Revert to old role system
-        table.tinyint('role').notNullable().defaultTo(5).comment('Legacy Role ID: 0=IT Admin, 1=Captain, 2=Secretary, 3=Clerk, 4=Blotter Officer, 5=Resident').alter();
+        table
+          .tinyint('role')
+          .notNullable()
+          .defaultTo(5)
+          .comment(
+            'Legacy Role ID: 0=IT Admin, 1=Captain, 2=Secretary, 3=Clerk, 4=Blotter Officer, 5=Resident'
+          )
+          .alter();
       });
     });
 };

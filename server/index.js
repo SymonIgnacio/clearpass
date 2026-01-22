@@ -33,7 +33,8 @@ const csrfProtection =
         cookie: {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
+          sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+          path: '/',
         },
       });
 
@@ -58,34 +59,91 @@ const port = process.env.SERVER_PORT || 3002;
 const http = require('http');
 const server = http.createServer(app);
 const WebSocketService = require('./services/websocketService');
+const crypto = require('crypto');
 
-// Rate limiting - DISABLED FOR DEVELOPMENT
+// Enhanced rate limiting with environment-specific configurations
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
+// Authentication rate limiting - stricter for production
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 1000, // Increased limit for testing
-  message: { error: 'Too many requests' },
+  limit: isDevelopment ? 100 : 20, // Much lower in production
+  message: { error: 'Too many authentication attempts. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  skipFailedRequests: false,
+  keyGenerator: req => {
+    // Use IP + user agent for better identification
+    return req.ip + ':' + req.get('User-Agent');
+  },
 });
 
+// Admin operations - very strict rate limiting
 const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: process.env.NODE_ENV === 'production' ? 20 : 5000,
-  message: { error: 'Too many admin requests' },
+  limit: isDevelopment ? 100 : 10, // Very restrictive in production
+  message: { error: 'Too many admin requests. Contact administrator if needed.' },
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  keyGenerator: req => {
+    // Include user ID if authenticated for better tracking
+    if (req.user && req.user.id) {
+      return `admin:${req.user.id}`;
+    }
+    return req.ip;
+  },
 });
 
+// General API rate limiting
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 5000, // Increased limit for testing
-  message: { error: 'Too many requests' },
+  limit: isDevelopment ? 1000 : 200, // Reasonable limits
+  message: { error: 'Too many API requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: false,
 });
 
-// Apply limits
+// File upload rate limiting - more restrictive
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: isDevelopment ? 50 : 10, // Very restrictive for uploads
+  message: { error: 'Too many upload attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: req => {
+    if (req.user && req.user.id) {
+      return `upload:${req.user.id}`;
+    }
+    return req.ip;
+  },
+});
+
+// Search rate limiting - prevent abuse of search endpoints
+const searchLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  limit: isDevelopment ? 100 : 30, // 30 searches per minute
+  message: { error: 'Too many search requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: req => {
+    if (req.user && req.user.id) {
+      return `search:${req.user.id}`;
+    }
+    return req.ip;
+  },
+});
+
+// Apply rate limiting to specific endpoint categories
 app.use('/api/auth', authLimiter);
+app.use('/api/admin', adminLimiter);
+app.use('/api/uploads', uploadLimiter);
+app.use('/api/residents/search', searchLimiter);
+app.use('/api/blotter/search', searchLimiter);
+
+// General API limiter for all other endpoints
+app.use('/api/', apiLimiter);
 
 // CORS configuration
 const corsOrigins =
@@ -121,32 +179,158 @@ app.use(
       return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
   })
 );
 
-// Security middleware
-app.use(helmet());
+// Enhanced logging system
+const { logger, securityLogger, requestLogger } = require('./utils/logger');
+
+// Request logging middleware
+app.use(requestLogger);
+
+// Enhanced security middleware with CSP
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'", // Required for Material-UI and Tailwind
+          'fonts.googleapis.com',
+          'cdnjs.cloudflare.com',
+        ],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-eval'", // Required for development mode with Vite
+        ],
+        imgSrc: [
+          "'self'",
+          'data:',
+          'blob:',
+          'http://localhost:3002', // For local development
+        ],
+        fontSrc: ["'self'", 'fonts.gstatic.com', 'data:'],
+        connectSrc: [
+          "'self'",
+          'http://localhost:3002',
+          'ws://localhost:3002', // WebSocket connections
+        ],
+        frameSrc: ["'none'"], // Prevent clickjacking
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        manifestSrc: ["'self'"],
+        workerSrc: ["'self'"],
+        upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : [],
+      },
+    },
+    hsts:
+      process.env.NODE_ENV === 'production'
+        ? {
+            maxAge: 31536000, // 1 year
+            includeSubDomains: true,
+            preload: true,
+          }
+        : false,
+    noSniff: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    xssFilter: true,
+    frameguard: { action: 'deny' },
+    crossOriginEmbedderPolicy: process.env.NODE_ENV === 'production' ? true : false,
+  })
+);
 app.use(cookieParser());
 app.use(xssClean());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(apiLimiter);
 
+// Request ID and basic structured logging
+app.use((req, res, next) => {
+  req.requestId = crypto.randomUUID();
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(
+      JSON.stringify({
+        reqId: req.requestId,
+        method: req.method,
+        path: req.originalUrl,
+        status: res.statusCode,
+        durationMs: duration,
+      })
+    );
+  });
+  next();
+});
+
 // CSRF protection for state-changing operations (excluding login for now)
-// app.use('/api/auth/login', csrfProtection);
+// Enable CSRF protection for all authentication endpoints (except login for form token)
 app.use('/api/auth/logout', csrfProtection);
+app.use('/api/auth/register', csrfProtection);
+app.use('/api/auth/reset-password', csrfProtection);
+app.use('/api/auth/change-password', csrfProtection);
+app.use('/api/auth/mfa', csrfProtection);
+
+// CSRF protection for residents endpoints (excluding GET requests)
 app.use('/api/residents', (req, res, next) => {
-  // Exclude legacy archive route from CSRF protection
-  // Matches /api/residents/:id/archive
-  if (req.path.match(/^\/.*\/archive$/)) {
+  // Skip CSRF for GET requests and legacy archive route
+  if (req.method === 'GET' || req.path.match(/^\/.*\/archive$/)) {
     return next();
   }
   csrfProtection(req, res, next);
 });
-app.use('/api/blotter', csrfProtection);
-// app.use('/api/certificates', csrfProtection); // Temporarily disabled to fix 403 error
+
+// CSRF protection for blotter endpoints (excluding GET requests)
+app.use('/api/blotter', (req, res, next) => {
+  if (req.method === 'GET') {
+    return next();
+  }
+  csrfProtection(req, res, next);
+});
+
+// Enable CSRF protection for certificates endpoints (excluding GET requests)
+app.use('/api/certificates', (req, res, next) => {
+  if (req.method === 'GET') {
+    return next();
+  }
+  csrfProtection(req, res, next);
+});
+
+// CSRF protection for documents and uploads
+app.use('/api/documents', csrfProtection);
+app.use('/api/uploads', csrfProtection);
+
+// CSRF protection for resident routes (excluding GET requests and login/register)
+app.use('/api/resident-auth', (req, res, next) => {
+  if (req.method === 'GET' || req.path.match(/^\/(login|register)$/)) {
+    return next();
+  }
+  csrfProtection(req, res, next);
+});
+
+app.use('/api/resident-profile', (req, res, next) => {
+  if (req.method === 'GET') {
+    return next();
+  }
+  csrfProtection(req, res, next);
+});
+
+app.use('/api/certificate-requests', (req, res, next) => {
+  if (req.method === 'GET') {
+    return next();
+  }
+  csrfProtection(req, res, next);
+});
+
+app.use('/api/blotter-requests', (req, res, next) => {
+  if (req.method === 'GET') {
+    return next();
+  }
+  csrfProtection(req, res, next);
+});
 
 // Audit logging middleware (before routes)
 app.use(auditMiddleware({ auditAll: false }));
@@ -179,17 +363,6 @@ app.get('/api/csrf-token', csrfProtection, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
 
-app.get('/api/debug/users', async (req, res) => {
-  try {
-    const [users] = await app.locals.db.execute(
-      'SELECT id, username, role, password_hash FROM users'
-    );
-    res.json(users);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
 // Add auth/me endpoint for authentication check
 app.get('/api/auth/me', verifyToken, authController.me);
 app.post('/api/auth/mfa/request', verifyToken, authController.requestMfaOtp);
@@ -210,6 +383,7 @@ app.use('/api/certificates', require('./routes/certificateRoutes')(db));
 app.use('/api/certificate-requests', require('./routes/certificateRequestRoutes')(db));
 app.use('/api/certificate-types', require('./routes/certificateTypeRoutes')(db)); // Add new route
 app.use('/api/blotter-complaints', require('./routes/blotterComplaintRoutes')(db));
+app.use('/api/blotter-requests', require('./routes/blotterRequestRoutes')(db));
 app.use('/api/resident-profile', require('./routes/residentProfileRoutes')(db));
 app.use('/api/case-management', require('./routes/caseManagementRoutes')(db));
 app.use('/api/templates', require('./routes/templateRoutes')(db));
@@ -297,6 +471,10 @@ async function startServer() {
 
   startDocumentRetentionScheduler(app.locals.db);
   startVulnerabilityScoreScheduler(app.locals.db);
+  const {
+    startBlotterRequestValidationReminderScheduler,
+  } = require('./jobs/blotterRequestValidationReminders');
+  startBlotterRequestValidationReminderScheduler(app.locals.db);
 
   // Initialize WebSocket service
   const wsService = new WebSocketService(server);

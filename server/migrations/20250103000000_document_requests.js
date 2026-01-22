@@ -1,7 +1,7 @@
 'use strict';
 
-exports.up = function(knex) {
-  return knex.schema.createTable('document_requests', function(table) {
+exports.up = function (knex) {
+  return knex.schema.createTable('document_requests', function (table) {
     table.string('request_id', 50).primary();
     table.string('resident_id', 50).notNullable();
     table.string('document_type', 100).notNullable();
@@ -29,6 +29,6 @@ exports.up = function(knex) {
   });
 };
 
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTable('document_requests');
 };

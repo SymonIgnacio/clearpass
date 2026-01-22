@@ -187,7 +187,7 @@ module.exports = db => {
   router.get(
     '/reports/pdf/:type',
     verifyToken,
-    verifyRole([ROLES.ADMIN]),
+    verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY]),
     asyncHandler(adminController.generatePDFReport)
   );
 

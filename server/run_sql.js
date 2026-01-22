@@ -11,7 +11,7 @@ async function runSQL() {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'barangay_management'
+    database: process.env.DB_NAME || 'barangay_management',
   });
 
   try {
@@ -118,7 +118,6 @@ async function runSQL() {
     } else {
       console.log('❌ ERROR: Some tables are still missing');
     }
-
   } catch (error) {
     console.error('❌ Database error:', error.message);
     console.error('❌ Full error:', error);

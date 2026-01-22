@@ -4,21 +4,21 @@ const jwt = require('jsonwebtoken');
 
 class WebSocketService {
   constructor(server) {
-    this.wss = new WebSocket.Server({ 
+    this.wss = new WebSocket.Server({
       server,
-      path: '/ws'
+      path: '/ws',
     });
-    
+
     this.clients = new Map(); // userId -> WebSocket
     this.setupWebSocket();
   }
 
   setupWebSocket() {
     this.wss.on('connection', (ws, req) => {
-      ws.on('message', (message) => {
+      ws.on('message', message => {
         try {
           const data = JSON.parse(message);
-          
+
           if (data.type === 'auth' && data.token) {
             this.authenticateClient(ws, data.token);
           }
@@ -32,16 +32,18 @@ class WebSocketService {
         this.removeClient(ws);
       });
 
-      ws.on('error', (error) => {
+      ws.on('error', error => {
         console.error('WebSocket error:', error);
         this.removeClient(ws);
       });
 
       // Send initial connection message
-      ws.send(JSON.stringify({ 
-        type: 'connection', 
-        message: 'Connected to notification service' 
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'connection',
+          message: 'Connected to notification service',
+        })
+      );
     });
   }
 
@@ -50,20 +52,24 @@ class WebSocketService {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       ws.userId = decoded.id;
       ws.userRole = decoded.role;
-      
+
       this.clients.set(decoded.id, ws);
-      
-      ws.send(JSON.stringify({ 
-        type: 'auth_success', 
-        message: 'Authentication successful' 
-      }));
-      
+
+      ws.send(
+        JSON.stringify({
+          type: 'auth_success',
+          message: 'Authentication successful',
+        })
+      );
+
       console.info(`WebSocket client authenticated: User ${decoded.id}`);
     } catch (error) {
-      ws.send(JSON.stringify({ 
-        type: 'auth_error', 
-        message: 'Authentication failed' 
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'auth_error',
+          message: 'Authentication failed',
+        })
+      );
       ws.close();
     }
   }
@@ -101,7 +107,7 @@ class WebSocketService {
 
   broadcast(data) {
     let sent = 0;
-    this.clients.forEach((client) => {
+    this.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify(data));
         sent++;

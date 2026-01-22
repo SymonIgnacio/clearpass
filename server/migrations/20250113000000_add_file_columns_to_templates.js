@@ -13,7 +13,7 @@ exports.up = function (knex) {
         table.integer('updated_by').unsigned();
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.timestamp('updated_at').defaultTo(knex.fn.now());
-        
+
         // File upload columns
         table.specificType('file_data', 'LONGBLOB');
         table.string('file_encoding', 50);
@@ -23,36 +23,43 @@ exports.up = function (knex) {
       });
     } else {
       // Alter table to add missing columns if it exists
-      return knex.schema.table('document_templates', function (table) {
-        // Check for columns before adding (knex doesn't have hasColumn in chain easily without async, 
-        // so we use specificType which is standard or try/catch in raw SQL, but here we just add them safely)
-        // Note: Knex doesn't support 'if not exists' for columns easily across all DBs. 
-        // We will try to add them. If they fail, it might be due to existence.
-        // However, a cleaner way is to assume they are missing based on previous analysis.
-        
-        // We use checks inside the up function logic
-      }).then(async () => {
-        const hasFileData = await knex.schema.hasColumn('document_templates', 'file_data');
-        if (!hasFileData) {
-          await knex.schema.alterTable('document_templates', table => {
-             table.specificType('file_data', 'LONGBLOB');
-          });
-        }
-        
-        const hasFileEncoding = await knex.schema.hasColumn('document_templates', 'file_encoding');
-        if (!hasFileEncoding) {
-           await knex.schema.alterTable('document_templates', table => {
-             table.string('file_encoding', 50);
-           });
-        }
-        
-        const hasCertTypeId = await knex.schema.hasColumn('document_templates', 'certificate_type_id');
-        if (!hasCertTypeId) {
-           await knex.schema.alterTable('document_templates', table => {
-             table.integer('certificate_type_id').nullable();
-           });
-        }
-      });
+      return knex.schema
+        .table('document_templates', function (table) {
+          // Check for columns before adding (knex doesn't have hasColumn in chain easily without async,
+          // so we use specificType which is standard or try/catch in raw SQL, but here we just add them safely)
+          // Note: Knex doesn't support 'if not exists' for columns easily across all DBs.
+          // We will try to add them. If they fail, it might be due to existence.
+          // However, a cleaner way is to assume they are missing based on previous analysis.
+          // We use checks inside the up function logic
+        })
+        .then(async () => {
+          const hasFileData = await knex.schema.hasColumn('document_templates', 'file_data');
+          if (!hasFileData) {
+            await knex.schema.alterTable('document_templates', table => {
+              table.specificType('file_data', 'LONGBLOB');
+            });
+          }
+
+          const hasFileEncoding = await knex.schema.hasColumn(
+            'document_templates',
+            'file_encoding'
+          );
+          if (!hasFileEncoding) {
+            await knex.schema.alterTable('document_templates', table => {
+              table.string('file_encoding', 50);
+            });
+          }
+
+          const hasCertTypeId = await knex.schema.hasColumn(
+            'document_templates',
+            'certificate_type_id'
+          );
+          if (!hasCertTypeId) {
+            await knex.schema.alterTable('document_templates', table => {
+              table.integer('certificate_type_id').nullable();
+            });
+          }
+        });
     }
   });
 };

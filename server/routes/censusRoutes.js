@@ -4,10 +4,14 @@ const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { ROLES } = require('../config/roles');
 
-module.exports = (db) => {
-  router.get('/', verifyToken, checkRole([ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.CLERK, ROLES.ADMIN]), asyncHandler(async (req, res) => {
-    // Get overall statistics with vulnerability data from joined tables
-    const [overallStats] = await db.execute(`
+module.exports = db => {
+  router.get(
+    '/',
+    verifyToken,
+    checkRole([ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.CLERK, ROLES.ADMIN]),
+    asyncHandler(async (req, res) => {
+      // Get overall statistics with vulnerability data from joined tables
+      const [overallStats] = await db.execute(`
       SELECT 
         COUNT(r.Resident_ID) as total_residents,
         SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as total_seniors,
@@ -18,8 +22,8 @@ module.exports = (db) => {
       WHERE r.Residency_Status = 'Active'
     `);
 
-    // Get statistics by sitio with vulnerability data
-    const [sitioStats] = await db.execute(`
+      // Get statistics by sitio with vulnerability data
+      const [sitioStats] = await db.execute(`
       SELECT 
         h.Sitio_ID,
         s.name as sitio_name,
@@ -36,11 +40,12 @@ module.exports = (db) => {
       ORDER BY s.name
     `);
 
-    res.json({
-      overall: overallStats[0],
-      bySitio: sitioStats
-    });
-  }));
+      res.json({
+        overall: overallStats[0],
+        bySitio: sitioStats,
+      });
+    })
+  );
 
   return router;
 };

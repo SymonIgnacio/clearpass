@@ -11,22 +11,22 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  charset: 'utf8mb4'
+  charset: 'utf8mb4',
 });
 
 // Database helper methods
 const db = {
   // Direct pool access
   pool: pool,
-  
+
   // Get connection from pool
   getConnection: () => pool.getConnection(),
-  
+
   // Execute query
   execute: (sql, params) => pool.execute(sql, params),
 
   // Close pool (for testing)
-  end: () => pool.end()
+  end: () => pool.end(),
 };
 
 // Get all residents with sitio information (OPTIMIZED)
@@ -103,7 +103,8 @@ async function getCertificates() {
 async function checkBlotterStatus(residentId) {
   const connection = await pool.getConnection();
   try {
-    const [rows] = await connection.execute(`
+    const [rows] = await connection.execute(
+      `
       SELECT
         COUNT(*) as active_cases,
         GROUP_CONCAT(Case_Number SEPARATOR ', ') as case_numbers,
@@ -112,12 +113,14 @@ async function checkBlotterStatus(residentId) {
       WHERE (JSON_EXTRACT(Complainant_Details, '$.id') = ? OR JSON_EXTRACT(Respondent_Details, '$.id') = ?)
       AND Status IN ('Pending', 'Scheduled for Mediation')
       AND Incident_Type IN ('Physical Injury', 'Unjust Vexation', 'Grave Threats', 'Malicious Mischief', 'Theft (Petty)', 'Estafa (Swindling)')
-    `, [residentId, residentId]);
+    `,
+      [residentId, residentId]
+    );
     return {
       hasActiveCases: rows[0].active_cases > 0,
       caseCount: rows[0].active_cases,
       caseNumbers: rows[0].case_numbers,
-      incidentTypes: rows[0].incident_types
+      incidentTypes: rows[0].incident_types,
     };
   } finally {
     connection.release();
@@ -128,16 +131,22 @@ async function checkBlotterStatus(residentId) {
 async function getDashboardStats() {
   const connection = await pool.getConnection();
   try {
-    const [residents] = await connection.execute('SELECT COUNT(*) as total FROM residents WHERE Residency_Status = "Active"');
-    const [certificates] = await connection.execute('SELECT COUNT(*) as total FROM certificates_log WHERE status = "Released"');
-    const [activeBlotters] = await connection.execute('SELECT COUNT(*) as total FROM blotter WHERE Status IN ("Pending", "Scheduled for Mediation")');
+    const [residents] = await connection.execute(
+      'SELECT COUNT(*) as total FROM residents WHERE Residency_Status = "Active"'
+    );
+    const [certificates] = await connection.execute(
+      'SELECT COUNT(*) as total FROM certificates_log WHERE status = "Released"'
+    );
+    const [activeBlotters] = await connection.execute(
+      'SELECT COUNT(*) as total FROM blotter WHERE Status IN ("Pending", "Scheduled for Mediation")'
+    );
     const [sitios] = await connection.execute('SELECT COUNT(*) as total FROM sitios');
 
     return {
       totalResidents: residents[0].total,
       totalCertificates: certificates[0].total,
       activeBlotters: activeBlotters[0].total,
-      totalSitios: sitios[0].total
+      totalSitios: sitios[0].total,
     };
   } finally {
     connection.release();
@@ -148,19 +157,14 @@ async function getDashboardStats() {
 async function createCertificate(certificateData) {
   const connection = await pool.getConnection();
   try {
-    const {
-      resident_id,
-      certificate_type,
-      purpose,
-      issued_by,
-      status,
-      fee_amount
-    } = certificateData;
+    const { resident_id, certificate_type, purpose, issued_by, status, fee_amount } =
+      certificateData;
 
     const control_no = `CERT-${Date.now()}`;
     const date_issued = new Date();
 
-    const [result] = await connection.execute(`
+    const [result] = await connection.execute(
+      `
       INSERT INTO certificates_log (
         control_no,
         resident_id,
@@ -170,17 +174,13 @@ async function createCertificate(certificateData) {
         status,
         fee_amount
       ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [
-      control_no,
-      resident_id,
-      certificate_type,
-      purpose,
-      date_issued,
-      status,
-      fee_amount
-    ]);
+    `,
+      [control_no, resident_id, certificate_type, purpose, date_issued, status, fee_amount]
+    );
 
-    const [rows] = await connection.execute('SELECT * FROM certificates_log WHERE control_no = ?', [control_no]);
+    const [rows] = await connection.execute('SELECT * FROM certificates_log WHERE control_no = ?', [
+      control_no,
+    ]);
     return rows[0];
   } finally {
     connection.release();
@@ -200,29 +200,36 @@ async function createBlotterRecord(blotterData) {
       location_sitio,
       narrative,
       status,
-      recorded_by
+      recorded_by,
     } = blotterData;
 
-    const case_number = await allocateBlotterCaseNumber(db, { incidentDate: `${incident_date} ${incident_time}` });
+    const case_number = await allocateBlotterCaseNumber(db, {
+      incidentDate: `${incident_date} ${incident_time}`,
+    });
 
-    const [result] = await connection.execute(`
+    const [result] = await connection.execute(
+      `
       INSERT INTO blotter (
         Case_Number, Complainant_Details, Respondent_Details,
         Incident_Type, DateTime_Incident, Location_Sitio,
         Narrative, status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      case_number,
-      JSON.stringify(complainant_details),
-      JSON.stringify(respondent_details || {}),
-      incident_type,
-      `${incident_date} ${incident_time}`,
-      location_sitio,
-      narrative,
-      status
-    ]);
+    `,
+      [
+        case_number,
+        JSON.stringify(complainant_details),
+        JSON.stringify(respondent_details || {}),
+        incident_type,
+        `${incident_date} ${incident_time}`,
+        location_sitio,
+        narrative,
+        status,
+      ]
+    );
 
-    const [rows] = await connection.execute('SELECT * FROM blotter WHERE Case_Number = ?', [case_number]);
+    const [rows] = await connection.execute('SELECT * FROM blotter WHERE Case_Number = ?', [
+      case_number,
+    ]);
     return rows[0];
   } finally {
     connection.release();
@@ -254,7 +261,9 @@ async function updateBlotterRecord(caseNumber, updates) {
       values
     );
 
-    const [rows] = await connection.execute('SELECT * FROM blotter WHERE Case_Number = ?', [caseNumber]);
+    const [rows] = await connection.execute('SELECT * FROM blotter WHERE Case_Number = ?', [
+      caseNumber,
+    ]);
     return rows[0];
   } finally {
     connection.release();
@@ -317,7 +326,7 @@ async function getCensusStatistics() {
 
     return {
       bySitio: stats,
-      overall: { ...totals[0], ...vulnerabilities[0] }
+      overall: { ...totals[0], ...vulnerabilities[0] },
     };
   } finally {
     connection.release();
@@ -328,7 +337,8 @@ async function getCensusStatistics() {
 async function getSitioCensus(sitioId) {
   const connection = await pool.getConnection();
   try {
-    const [stats] = await connection.execute(`
+    const [stats] = await connection.execute(
+      `
       SELECT
         s.id as sitio_id,
         s.name as sitio_name,
@@ -346,7 +356,9 @@ async function getSitioCensus(sitioId) {
       LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
       WHERE s.id = ?
       GROUP BY s.id, s.name
-    `, [sitioId]);
+    `,
+      [sitioId]
+    );
 
     return stats[0] || null;
   } finally {

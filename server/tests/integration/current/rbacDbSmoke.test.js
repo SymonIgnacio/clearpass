@@ -42,11 +42,23 @@ describe('Integration (current): RBAC + DB smoke', () => {
     await db.execute('DELETE FROM users');
     await db.execute(
       'INSERT INTO users (username, password_hash, role, email, full_name, is_active) VALUES (?, ?, ?, ?, ?, 1)',
-      ['it_admin_test', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', ROLES.ADMIN, 'it_admin@test.local', 'IT Admin Test']
+      [
+        'it_admin_test',
+        '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+        ROLES.ADMIN,
+        'it_admin@test.local',
+        'IT Admin Test',
+      ]
     );
     await db.execute(
       'INSERT INTO users (username, password_hash, role, email, full_name, is_active) VALUES (?, ?, ?, ?, ?, 1)',
-      ['resident_test', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', ROLES.RESIDENT, 'resident@test.local', 'Resident Test']
+      [
+        'resident_test',
+        '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+        ROLES.RESIDENT,
+        'resident@test.local',
+        'Resident Test',
+      ]
     );
   });
 
@@ -65,13 +77,19 @@ describe('Integration (current): RBAC + DB smoke', () => {
   };
 
   const sign = (role, id = '1') =>
-    jwt.sign({ id, username: 'test', role, role_name: 'test', mfa_verified: true }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
-    });
+    jwt.sign(
+      { id, username: 'test', role, role_name: 'test', mfa_verified: true },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: '1h',
+      }
+    );
 
   test('admin token can access /api/admin/users and returns data', async () => {
     const app = makeApp();
-    const res = await request(app).get('/api/admin/users').set('Authorization', `Bearer ${sign(ROLES.ADMIN, '1')}`);
+    const res = await request(app)
+      .get('/api/admin/users')
+      .set('Authorization', `Bearer ${sign(ROLES.ADMIN, '1')}`);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThanOrEqual(2);

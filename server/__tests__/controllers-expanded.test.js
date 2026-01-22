@@ -8,7 +8,7 @@ const blotterController = require('../controllers/blotterController');
 // Mock database
 const mockDb = {
   execute: jest.fn(),
-  getConnection: jest.fn()
+  getConnection: jest.fn(),
 };
 
 const app = express();
@@ -21,23 +21,21 @@ describe('Resident Controller', () => {
   });
 
   test('getAll returns residents list', async () => {
-    mockDb.execute.mockResolvedValue([[
-      { Resident_ID: 1, First_Name: 'Juan', Last_Name: 'Dela Cruz' }
-    ]]);
+    mockDb.execute.mockResolvedValue([
+      [{ Resident_ID: 1, First_Name: 'Juan', Last_Name: 'Dela Cruz' }],
+    ]);
 
     const req = { app: { locals: { db: mockDb } } };
     const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };
 
     await residentController.getAll(req, res);
-    expect(res.json).toHaveBeenCalledWith(expect.arrayContaining([
-      expect.objectContaining({ Resident_ID: 1 })
-    ]));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ Resident_ID: 1 })])
+    );
   });
 
   test('getById returns single resident', async () => {
-    mockDb.execute.mockResolvedValue([[
-      { Resident_ID: 1, First_Name: 'Juan' }
-    ]]);
+    mockDb.execute.mockResolvedValue([[{ Resident_ID: 1, First_Name: 'Juan' }]]);
 
     const req = { params: { id: 1 }, app: { locals: { db: mockDb } } };
     const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };
@@ -61,9 +59,7 @@ describe('Household Controller', () => {
   });
 
   test('getAll returns households', async () => {
-    mockDb.execute.mockResolvedValue([[
-      { Household_ID: 1, Household_Number: 'HH-001' }
-    ]]);
+    mockDb.execute.mockResolvedValue([[{ Household_ID: 1, Household_Number: 'HH-001' }]]);
 
     const req = { app: { locals: { db: mockDb } } };
     const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };
@@ -79,9 +75,7 @@ describe('User Controller', () => {
   });
 
   test('getAll returns users list', async () => {
-    mockDb.execute.mockResolvedValue([[
-      { id: 1, username: 'admin', role: 'admin' }
-    ]]);
+    mockDb.execute.mockResolvedValue([[{ id: 1, username: 'admin', role: 'admin' }]]);
 
     const req = { app: { locals: { db: mockDb } } };
     const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };
@@ -97,9 +91,7 @@ describe('Blotter Controller', () => {
   });
 
   test('getAll returns blotter entries', async () => {
-    mockDb.execute.mockResolvedValue([[
-      { case_number: 'BL-001', incident_type: 'Theft' }
-    ]]);
+    mockDb.execute.mockResolvedValue([[{ case_number: 'BL-001', incident_type: 'Theft' }]]);
 
     const req = { app: { locals: { db: mockDb } } };
     const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };

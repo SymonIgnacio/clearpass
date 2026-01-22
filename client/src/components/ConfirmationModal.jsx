@@ -8,7 +8,7 @@ import {
   Typography,
   TextField,
   Box,
-  IconButton
+  IconButton,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import WarningIcon from '@mui/icons-material/Warning';
@@ -30,7 +30,7 @@ const ConfirmationModal = ({
   inputPlaceholder = '',
   inputRequired = false,
   inputValue = '',
-  onInputChange = () => {}
+  onInputChange = () => {},
 }) => {
   const [localInputValue, setLocalInputValue] = useState('');
 
@@ -49,75 +49,85 @@ const ConfirmationModal = ({
 
   const getIcon = () => {
     switch (type) {
-      case 'success': return <CheckCircleIcon color="success" sx={{ fontSize: 40 }} />;
-      case 'warning': return <WarningIcon color="warning" sx={{ fontSize: 40 }} />;
-      case 'error': return <ErrorIcon color="error" sx={{ fontSize: 40 }} />;
-      default: return <InfoIcon color="info" sx={{ fontSize: 40 }} />;
+      case 'success':
+        return <CheckCircleIcon color='success' sx={{ fontSize: 40 }} />;
+      case 'warning':
+        return <WarningIcon color='warning' sx={{ fontSize: 40 }} />;
+      case 'error':
+        return <ErrorIcon color='error' sx={{ fontSize: 40 }} />;
+      default:
+        return <InfoIcon color='info' sx={{ fontSize: 40 }} />;
     }
   };
 
   const getColor = () => {
     switch (type) {
-      case 'success': return 'success';
-      case 'warning': return 'warning';
-      case 'error': return 'error';
-      default: return 'primary';
+      case 'success':
+        return 'success';
+      case 'warning':
+        return 'warning';
+      case 'error':
+        return 'error';
+      default:
+        return 'primary';
     }
   };
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={handleClose}
-      maxWidth="xs"
+      maxWidth='xs'
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 2, p: 1 }
+        sx: { borderRadius: 2, p: 1 },
       }}
     >
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+      <DialogTitle
+        sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {getIcon()}
-          <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>
+          <Typography variant='h6' component='span' sx={{ fontWeight: 600 }}>
             {title}
           </Typography>
         </Box>
-        <IconButton onClick={handleClose} size="small">
+        <IconButton onClick={handleClose} size='small'>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      
+
       <DialogContent>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: showInput ? 2 : 0, mt: 1 }}>
+        <Typography variant='body1' color='text.secondary' sx={{ mb: showInput ? 2 : 0, mt: 1 }}>
           {message}
         </Typography>
-        
+
         {showInput && (
           <TextField
             autoFocus
-            margin="dense"
+            margin='dense'
             label={inputLabel}
             placeholder={inputPlaceholder}
-            type="text"
+            type='text'
             fullWidth
-            variant="outlined"
+            variant='outlined'
             value={localInputValue}
-            onChange={(e) => setLocalInputValue(e.target.value)}
+            onChange={e => setLocalInputValue(e.target.value)}
             required={inputRequired}
             error={inputRequired && !localInputValue.trim()}
-            helperText={inputRequired && !localInputValue.trim() ? "This field is required" : ""}
+            helperText={inputRequired && !localInputValue.trim() ? 'This field is required' : ''}
           />
         )}
       </DialogContent>
-      
+
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={handleClose} color="inherit" variant="text">
+        <Button onClick={handleClose} color='inherit' variant='text'>
           {cancelText}
         </Button>
-        <Button 
-          onClick={handleConfirm} 
-          color={getColor()} 
-          variant="contained"
+        <Button
+          onClick={handleConfirm}
+          color={getColor()}
+          variant='contained'
           disabled={showInput && inputRequired && !localInputValue.trim()}
         >
           {confirmText}

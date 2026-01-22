@@ -1,14 +1,15 @@
 // API utility functions with cookie-based authentication
 import { addCsrfToken, clearCsrfToken } from './csrf.js';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  import.meta.env.VITE_API_BASE_URL || 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? 'http://localhost:3002/api' : '/api');
 
 // Generic authenticated fetch function
 export const apiRequest = async (endpoint, options = {}) => {
   let url = `${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
-  
+
   // Handle query parameters
   if (options.params) {
     const searchParams = new URLSearchParams();
@@ -25,30 +26,32 @@ export const apiRequest = async (endpoint, options = {}) => {
     delete options.params;
   }
 
-  console.log('🔗 API Request:', url, options.method || 'GET');
-  
   let headers = {
-    ...options.headers
+    ...options.headers,
   };
 
   // Set default Content-Type to application/json only if not FormData
   if (!(options.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
-  
+
   // Skip CSRF token for login/register endpoints to avoid circular dependency
   // But allow it for logout and other authenticated auth endpoints
-  if (['POST', 'PUT', 'DELETE'].includes(options.method) && 
-      !endpoint.includes('/auth/login') && 
-      !endpoint.includes('/auth/register')) {
+  if (
+    ['POST', 'PUT', 'DELETE'].includes(options.method) &&
+    !endpoint.includes('/auth/login') &&
+    !endpoint.includes('/auth/register')
+  ) {
     try {
       headers = await addCsrfToken(headers);
     } catch (csrfError) {
-      console.warn('CSRF token fetch failed:', csrfError);
-      // Continue without CSRF token for auth operations
+      // For certificates, this is critical
+      if (endpoint.includes('certificates')) {
+        // Failed to obtain CSRF token
+      }
     }
   }
-  
+
   const config = {
     credentials: 'include',
     headers,
@@ -59,13 +62,43 @@ export const apiRequest = async (endpoint, options = {}) => {
     config.body = JSON.stringify(config.body);
   }
 
-  const response = await fetch(url, config);
-  console.log('📊 API Response:', response.status, response.statusText);
+  let response = await fetch(url, config);
 
+  // Handle CSRF Token Mismatch (403 Forbidden with specific code)
+  if (response.status === 403) {
+    try {
+      // Clone response to read body without consuming original stream for the caller
+      const clonedRes = response.clone();
+      const errorData = await clonedRes.json();
+
+      if (
+        errorData.code === 'EBADCSRFTOKEN' ||
+        (errorData.message && errorData.message.toLowerCase().includes('csrf'))
+      ) {
+        // Clear cached token
+        clearCsrfToken();
+
+        // Refresh headers with new token
+        // addCsrfToken calls getCsrfToken which will fetch a new one since cache is cleared
+        headers = await addCsrfToken({ ...options.headers });
+        config.headers = headers;
+
+        // Increased delay to ensure cookie persistence (100ms was too short causing race conditions)
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Retry request once
+        response = await fetch(url, config);
+      }
+    } catch (e) {
+      // If parsing fails or retry fails, we just return the original 403 response
+      // so the application can handle the error normally
+    }
+  }
+
+  // For 401 responses, clear CSRF token and return response
+  // Don't throw error - let AuthContext handle it gracefully
   if (response.status === 401) {
     clearCsrfToken();
-    // Don't redirect here - let the component handle it
-    throw new Error('Authentication required');
   }
 
   return response;
@@ -74,8 +107,10 @@ export const apiRequest = async (endpoint, options = {}) => {
 // Convenience methods
 export const api = {
   get: (endpoint, options = {}) => apiRequest(endpoint, { method: 'GET', ...options }),
-  post: (endpoint, data, options = {}) => apiRequest(endpoint, { method: 'POST', body: data, ...options }),
-  put: (endpoint, data, options = {}) => apiRequest(endpoint, { method: 'PUT', body: data, ...options }),
+  post: (endpoint, data, options = {}) =>
+    apiRequest(endpoint, { method: 'POST', body: data, ...options }),
+  put: (endpoint, data, options = {}) =>
+    apiRequest(endpoint, { method: 'PUT', body: data, ...options }),
   delete: (endpoint, options = {}) => apiRequest(endpoint, { method: 'DELETE', ...options }),
 };
 
@@ -86,7 +121,6 @@ export const isAuthenticated = () => {
 
 // Get current user - use AuthContext instead
 export const getCurrentUser = () => {
-  console.warn('getCurrentUser is deprecated, use AuthContext instead');
   return null;
 };
 
@@ -95,21 +129,24 @@ export const logout = async () => {
   try {
     await apiRequest('/auth/logout', { method: 'POST' });
   } catch (error) {
-    console.error('Logout API call failed:', error);
+    // Logout API call failed - continue with local logout
   }
-  
+
   clearCsrfToken();
-  localStorage.clear();
+  // Clear only session-specific data, not all localStorage
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('csrfToken');
+  localStorage.removeItem('userPreferences');
   window.location.href = '/login';
 };
 
 // Specific API endpoint functions
-export const getResidentProfile = () => api.get('residents/me');
-export const updateResidentProfile = (data) => api.put('residents/me', data);
-export const uploadVerification = (formData) => {
-  return apiRequest('/residents/verification/upload', {
+export const getResidentProfile = () => api.get('resident-auth/profile');
+export const updateResidentProfile = data => api.put('resident-auth/profile', data);
+export const uploadVerification = formData => {
+  return apiRequest('/resident-auth/upload-verification', {
     method: 'POST',
-    body: formData
+    body: formData,
   });
 };
 export const generateDocument = (id, data) => api.post(`documents/requests/${id}/generate`, data);

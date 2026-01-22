@@ -13,11 +13,11 @@ class CacheService {
       this.client = redis.createClient({
         url: process.env.REDIS_URL || 'redis://localhost:6379',
         socket: {
-          reconnectStrategy: (retries) => Math.min(retries * 50, 500)
-        }
+          reconnectStrategy: retries => Math.min(retries * 50, 500),
+        },
       });
 
-      this.client.on('error', (err) => logger.error('Redis error', { error: err.message }));
+      this.client.on('error', err => logger.error('Redis error', { error: err.message }));
       this.client.on('connect', () => logger.info('Redis connected'));
       this.client.on('disconnect', () => {
         this.isConnected = false;
@@ -104,7 +104,7 @@ const cacheMiddleware = (ttl = 3600) => {
     }
 
     const originalJson = res.json.bind(res);
-    res.json = (data) => {
+    res.json = data => {
       cacheService.set(key, data, ttl);
       return originalJson(data);
     };

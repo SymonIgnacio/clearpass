@@ -1,10 +1,18 @@
 const bcrypt = require('bcryptjs');
 const { ROLES } = require('../config/roles');
 
-exports.seed = async function(knex) {
+exports.seed = async function (knex) {
   // First, delete any existing staff users to avoid conflicts
   await knex('users')
-    .where('username', 'in', ['superadmin', 'captain', 'captain01', 'secretary', 'secretary01', 'clerk', 'clerk01'])
+    .where('username', 'in', [
+      'superadmin',
+      'captain',
+      'captain01',
+      'secretary',
+      'secretary01',
+      'clerk',
+      'clerk01',
+    ])
     .del();
 
   const seedPassword = process.env.SEED_DEFAULT_PASSWORD;
@@ -22,7 +30,7 @@ exports.seed = async function(knex) {
       email: 'superadmin@barangay.local',
       role: ROLES.ADMIN,
       is_active: true,
-      created_at: knex.fn.now()
+      created_at: knex.fn.now(),
     },
     {
       username: 'captain',
@@ -31,7 +39,7 @@ exports.seed = async function(knex) {
       email: 'captain@barangay.local',
       role: ROLES.CAPTAIN,
       is_active: true,
-      created_at: knex.fn.now()
+      created_at: knex.fn.now(),
     },
     {
       username: 'secretary',
@@ -40,7 +48,7 @@ exports.seed = async function(knex) {
       email: 'secretary@barangay.local',
       role: ROLES.SECRETARY,
       is_active: true,
-      created_at: knex.fn.now()
+      created_at: knex.fn.now(),
     },
     {
       username: 'clerk',
@@ -49,8 +57,8 @@ exports.seed = async function(knex) {
       email: 'clerk@barangay.local',
       role: ROLES.CLERK,
       is_active: true,
-      created_at: knex.fn.now()
-    }
+      created_at: knex.fn.now(),
+    },
   ]);
 
   console.log('✅ Staff users seeded successfully');

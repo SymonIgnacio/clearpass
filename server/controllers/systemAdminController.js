@@ -10,19 +10,19 @@ class SystemAdminController {
     try {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const backupName = `backup_${timestamp}.sql`;
-      
+
       // Simple backup simulation - in production, use mysqldump
       const backupData = {
         timestamp: new Date().toISOString(),
         tables: ['users', 'residents', 'blotter', 'document_requests', 'notifications'],
         status: 'completed',
-        size: '2.5MB'
+        size: '2.5MB',
       };
 
       res.json({
         success: true,
         data: { backup_name: backupName, ...backupData },
-        message: 'Backup created successfully'
+        message: 'Backup created successfully',
       });
     } catch (error) {
       console.error('Error creating backup:', error);
@@ -44,12 +44,12 @@ class SystemAdminController {
         email: 'barangay.batia@bocaue.gov.ph',
         address: 'Barangay Batia, Bocaue, Bulacan',
         office_hours: '8:00 AM - 5:00 PM',
-        certificate_fee: 50.00
+        certificate_fee: 50.0,
       };
 
       res.json({
         success: true,
-        data: settings.length > 0 ? settings : [defaultSettings]
+        data: settings.length > 0 ? settings : [defaultSettings],
       });
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -60,13 +60,13 @@ class SystemAdminController {
   async updateSystemSettings(req, res) {
     try {
       const settings = req.body;
-      
+
       // In a real implementation, you'd update the system_settings table
       // For now, we'll just acknowledge the update
-      
+
       res.json({
         success: true,
-        message: 'System settings updated successfully'
+        message: 'System settings updated successfully',
       });
     } catch (error) {
       console.error('Error updating settings:', error);
@@ -79,17 +79,20 @@ class SystemAdminController {
       const { title, content, priority, target_audience } = req.body;
       const created_by = req.user.id;
 
-      const [result] = await this.db.execute(`
+      const [result] = await this.db.execute(
+        `
         INSERT INTO announcements (title, content, priority, target_audience, created_by, status)
         VALUES (?, ?, ?, ?, ?, 'active')
-      `, [title, content, priority || 'normal', target_audience || 'all', created_by]);
+      `,
+        [title, content, priority || 'normal', target_audience || 'all', created_by]
+      );
 
       // Create notifications for all residents if target is 'all' or 'residents'
       if (target_audience === 'all' || target_audience === 'residents') {
         const [residents] = await this.db.execute(
           'SELECT id FROM users WHERE role = 12 AND is_active = 1'
         );
-        
+
         if (residents.length > 0 && global.createBulkNotification) {
           const residentIds = residents.map(r => r.id);
           await global.createBulkNotification(
@@ -106,7 +109,7 @@ class SystemAdminController {
       res.status(201).json({
         success: true,
         data: { announcement_id: result.insertId },
-        message: 'Announcement created successfully'
+        message: 'Announcement created successfully',
       });
     } catch (error) {
       console.error('Error creating announcement:', error);
@@ -148,8 +151,8 @@ class SystemAdminController {
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total: countResult[0].total
-        }
+          total: countResult[0].total,
+        },
       });
     } catch (error) {
       console.error('Error fetching announcements:', error);
@@ -181,7 +184,7 @@ class SystemAdminController {
         auto_approve_certificates: false,
         require_id_verification: true,
         notification_email: true,
-        notification_sms: false
+        notification_sms: false,
       };
 
       res.json({ success: true, data: settings });
@@ -194,13 +197,13 @@ class SystemAdminController {
   async updateSettings(req, res) {
     try {
       const settings = req.body;
-      
+
       // In production, save to database
       // For now, acknowledge the update
-      
+
       res.json({
         success: true,
-        message: 'Settings updated successfully'
+        message: 'Settings updated successfully',
       });
     } catch (error) {
       console.error('Error updating settings:', error);
@@ -228,12 +231,12 @@ class SystemAdminController {
          VALUES (?, ?, ?, ?, ?)`,
         [normalizedType, relativePath, file.mimetype, file.originalname, req.user?.id || null]
       );
-      
+
       res.json({
         success: true,
         file_path: `/api/system-admin/assets/${normalizedType}/latest`,
         asset_id: result.insertId,
-        message: `${normalizedType} uploaded successfully`
+        message: `${normalizedType} uploaded successfully`,
       });
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -288,7 +291,7 @@ class SystemAdminController {
         secretary_name: 'Secretary Maria Santos',
         contact_number: '+63 123 456 7890',
         email: 'barangay.batia@bocaue.gov.ph',
-        exported_at: new Date().toISOString()
+        exported_at: new Date().toISOString(),
       };
 
       res.setHeader('Content-Type', 'application/json');
@@ -305,7 +308,7 @@ class SystemAdminController {
       // Reset to default settings
       res.json({
         success: true,
-        message: 'Settings reset to defaults successfully'
+        message: 'Settings reset to defaults successfully',
       });
     } catch (error) {
       console.error('Error resetting settings:', error);
@@ -318,13 +321,16 @@ class SystemAdminController {
       const { page = 1, limit = 10 } = req.query;
       const offset = (page - 1) * limit;
 
-      const [announcements] = await this.db.execute(`
+      const [announcements] = await this.db.execute(
+        `
         SELECT id, title, content, priority, created_at
         FROM announcements 
         WHERE is_active = 1 
         ORDER BY created_at DESC 
         LIMIT ? OFFSET ?
-      `, [parseInt(limit), offset]);
+      `,
+        [parseInt(limit), offset]
+      );
 
       const [countResult] = await this.db.execute(
         'SELECT COUNT(*) as total FROM announcements WHERE is_active = 1'
@@ -336,8 +342,8 @@ class SystemAdminController {
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total: countResult[0].total
-        }
+          total: countResult[0].total,
+        },
       });
     } catch (error) {
       console.error('Error fetching resident announcements:', error);

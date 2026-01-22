@@ -9,7 +9,7 @@ import {
   AlertTitle,
   Paper,
   IconButton,
-  Collapse
+  Collapse,
 } from '@mui/material';
 import {
   Error as ErrorIcon,
@@ -17,7 +17,7 @@ import {
   ExpandMore,
   ExpandLess,
   BugReport,
-  Home
+  Home,
 } from '@mui/icons-material';
 
 class ErrorBoundary extends React.Component {
@@ -28,7 +28,7 @@ class ErrorBoundary extends React.Component {
       error: null,
       errorInfo: null,
       showDetails: false,
-      errorId: null
+      errorId: null,
     };
   }
 
@@ -43,7 +43,7 @@ class ErrorBoundary extends React.Component {
 
     this.setState({
       error: error,
-      errorInfo: errorInfo
+      errorInfo: errorInfo,
     });
 
     // In a real application, you might want to send this to an error reporting service
@@ -60,7 +60,7 @@ class ErrorBoundary extends React.Component {
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
       url: window.location.href,
-      errorId: this.state.errorId
+      errorId: this.state.errorId,
     };
 
     console.log('Error Report:', errorReport);
@@ -75,7 +75,7 @@ class ErrorBoundary extends React.Component {
       error: null,
       errorInfo: null,
       showDetails: false,
-      errorId: null
+      errorId: null,
     });
   };
 
@@ -85,7 +85,7 @@ class ErrorBoundary extends React.Component {
 
   toggleDetails = () => {
     this.setState(prevState => ({
-      showDetails: !prevState.showDetails
+      showDetails: !prevState.showDetails,
     }));
   };
 
@@ -102,7 +102,7 @@ class ErrorBoundary extends React.Component {
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: '#f5f5f5',
-            p: 2
+            p: 2,
           }}
         >
           <Card sx={{ maxWidth: 600, width: '100%', boxShadow: 3 }}>
@@ -113,33 +113,34 @@ class ErrorBoundary extends React.Component {
                   bgcolor: 'error.main',
                   color: 'error.contrastText',
                   p: 3,
-                  textAlign: 'center'
+                  textAlign: 'center',
                 }}
               >
                 <ErrorIcon sx={{ fontSize: 48, mb: 1 }} />
-                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+                <Typography variant='h5' sx={{ fontWeight: 'bold', mb: 1 }}>
                   Something went wrong
                 </Typography>
-                <Typography variant="body1">
+                <Typography variant='body1'>
                   We're sorry, but something unexpected happened.
                 </Typography>
               </Box>
 
               {/* Main Content */}
               <Box sx={{ p: 3 }}>
-                <Alert severity="error" sx={{ mb: 3 }}>
+                <Alert severity='error' sx={{ mb: 3 }}>
                   <AlertTitle>Application Error</AlertTitle>
-                  An unexpected error occurred in the application. This has been reported to our technical team.
+                  An unexpected error occurred in the application. This has been reported to our
+                  technical team.
                 </Alert>
 
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
                   Error ID: <code>{this.state.errorId}</code>
                 </Typography>
 
                 {/* Action Buttons */}
                 <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
                   <Button
-                    variant="contained"
+                    variant='contained'
                     startIcon={<Refresh />}
                     onClick={this.handleRetry}
                     sx={{ flex: 1, minWidth: 120 }}
@@ -147,7 +148,7 @@ class ErrorBoundary extends React.Component {
                     Try Again
                   </Button>
                   <Button
-                    variant="outlined"
+                    variant='outlined'
                     startIcon={<Home />}
                     onClick={this.handleGoHome}
                     sx={{ flex: 1, minWidth: 120 }}
@@ -166,7 +167,7 @@ class ErrorBoundary extends React.Component {
                       sx={{
                         mb: 2,
                         textTransform: 'none',
-                        color: 'text.secondary'
+                        color: 'text.secondary',
                       }}
                     >
                       {showDetails ? 'Hide' : 'Show'} Technical Details
@@ -180,22 +181,30 @@ class ErrorBoundary extends React.Component {
                           border: '1px solid',
                           borderColor: 'grey.200',
                           maxHeight: 300,
-                          overflow: 'auto'
+                          overflow: 'auto',
                         }}
                       >
-                        <Typography variant="h6" color="error" gutterBottom>
+                        <Typography variant='h6' color='error' gutterBottom>
                           Error Details
                         </Typography>
-                        <Typography variant="body2" component="pre" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                        <Typography
+                          variant='body2'
+                          component='pre'
+                          sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
+                        >
                           {error && error.toString()}
                         </Typography>
 
                         {errorInfo && (
                           <>
-                            <Typography variant="h6" color="error" sx={{ mt: 2, mb: 1 }}>
+                            <Typography variant='h6' color='error' sx={{ mt: 2, mb: 1 }}>
                               Component Stack
                             </Typography>
-                            <Typography variant="body2" component="pre" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                            <Typography
+                              variant='body2'
+                              component='pre'
+                              sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
+                            >
                               {errorInfo.componentStack}
                             </Typography>
                           </>
@@ -206,7 +215,7 @@ class ErrorBoundary extends React.Component {
                 )}
 
                 {/* User-Friendly Message */}
-                <Alert severity="info" sx={{ mt: 3 }}>
+                <Alert severity='info' sx={{ mt: 3 }}>
                   <AlertTitle>What can you do?</AlertTitle>
                   <ul style={{ margin: 0, paddingLeft: '1.2em' }}>
                     <li>Click "Try Again" to reload the current page</li>

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Icon = (props) => React.createElement('span', props);
+const Icon = props => React.createElement('span', props);
 
 export default Icon;
 
@@ -72,4 +72,3 @@ export const Upload = Icon;
 export const VerifiedUser = Icon;
 export const Visibility = Icon;
 export const Warning = Icon;
-

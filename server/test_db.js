@@ -6,7 +6,7 @@ async function testDatabase() {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'barangay_management'
+    database: process.env.DB_NAME || 'barangay_management',
   });
 
   try {
@@ -17,7 +17,9 @@ async function testDatabase() {
     console.log('Total residents:', residents[0].count);
 
     if (residents[0].count > 0) {
-      const [sample] = await db.execute('SELECT Resident_ID, First_Name, Last_Name, Residency_Status, Gender, Mobile_Number FROM residents LIMIT 3');
+      const [sample] = await db.execute(
+        'SELECT Resident_ID, First_Name, Last_Name, Residency_Status, Gender, Mobile_Number FROM residents LIMIT 3'
+      );
       console.log('Sample residents:', JSON.stringify(sample, null, 2));
     }
 
@@ -44,26 +46,26 @@ async function testDatabase() {
           Complainant_Details: JSON.stringify({
             name: 'Juan Dela Cruz',
             address: 'Block 1, Lot 1, Batia Proper',
-            contact: '09171234567'
+            contact: '09171234567',
           }),
           Respondent_Details: JSON.stringify({
             name: 'Pedro Garcia',
             address: 'Block 1, Lot 2, Batia Proper',
-            contact: '09171234568'
+            contact: '09171234568',
           }),
           respondent_id: respondentId,
           Incident_Type: 'Physical Injury',
           Narrative: 'Complainant alleges respondent punched him during a dispute.',
           DateTime_Incident: '2025-01-15 14:30:00',
           Location_Sitio: 'Batia Proper',
-          Status: 'Active'
+          Status: 'Active',
         },
         {
           Case_Number: 'BLOT-2025-01-002',
           Complainant_Details: JSON.stringify({
             name: 'Maria Santos',
             address: 'Block 2, Lot 1, Batia Proper',
-            contact: '09171234569'
+            contact: '09171234569',
           }),
           Respondent_Details: null,
           respondent_id: null,
@@ -71,58 +73,62 @@ async function testDatabase() {
           Narrative: 'Complainant reports stolen mobile phone worth ₱5,000.',
           DateTime_Incident: '2025-01-20 09:15:00',
           Location_Sitio: 'Northville 5',
-          Status: 'Resolved'
+          Status: 'Resolved',
         },
         {
           Case_Number: 'BLOT-2025-01-003',
           Complainant_Details: JSON.stringify({
             name: 'Antonio Reyes',
             address: 'Block 3, Lot 5, Batia Proper',
-            contact: '09171234570'
+            contact: '09171234570',
           }),
           Respondent_Details: JSON.stringify({
             name: 'Unknown Person',
-            description: 'Male, approximately 25 years old, wearing red shirt'
+            description: 'Male, approximately 25 years old, wearing red shirt',
           }),
           respondent_id: null,
           Incident_Type: 'Malicious Mischief',
           Narrative: 'Complainant reports damage to his motorcycle tires.',
           DateTime_Incident: '2025-01-25 22:45:00',
           Location_Sitio: 'St. Martha',
-          Status: 'Pending'
-        }
+          Status: 'Pending',
+        },
       ];
 
       for (const blotterRecord of sampleBlotters) {
-        await db.execute(`
+        await db.execute(
+          `
           INSERT INTO blotter (
             Case_Number, Complainant_Details, Respondent_Details, respondent_id,
             Incident_Type, Narrative, DateTime_Incident, Location_Sitio, Status, created_at, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-        `, [
-          blotterRecord.Case_Number,
-          blotterRecord.Complainant_Details,
-          blotterRecord.Respondent_Details,
-          blotterRecord.respondent_id,
-          blotterRecord.Incident_Type,
-          blotterRecord.Narrative,
-          blotterRecord.DateTime_Incident,
-          blotterRecord.Location_Sitio,
-          blotterRecord.Status
-        ]);
+        `,
+          [
+            blotterRecord.Case_Number,
+            blotterRecord.Complainant_Details,
+            blotterRecord.Respondent_Details,
+            blotterRecord.respondent_id,
+            blotterRecord.Incident_Type,
+            blotterRecord.Narrative,
+            blotterRecord.DateTime_Incident,
+            blotterRecord.Location_Sitio,
+            blotterRecord.Status,
+          ]
+        );
       }
 
       console.log('✅ Added', sampleBlotters.length, 'sample blotter records');
     } else {
       // Show sample records if they exist
-      const [sampleBlotters] = await db.execute('SELECT Case_Number, Incident_Type, Status, Location_Sitio, created_at FROM blotter LIMIT 3');
+      const [sampleBlotters] = await db.execute(
+        'SELECT Case_Number, Incident_Type, Status, Location_Sitio, created_at FROM blotter LIMIT 3'
+      );
       console.log('Sample blotter records:', JSON.stringify(sampleBlotters, null, 2));
     }
 
     // Test certificates table
     const [certs] = await db.execute('SELECT COUNT(*) as count FROM certificates_log');
     console.log('Total certificates:', certs[0].count);
-
   } catch (error) {
     console.error('Database test error:', error);
   } finally {

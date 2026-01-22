@@ -15,11 +15,11 @@ describe('authMiddleware verifyToken normalization', () => {
 
     const req = {
       cookies: {},
-      headers: { authorization: `Bearer ${token}` }
+      headers: { authorization: `Bearer ${token}` },
     };
     const res = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn(),
     };
     const next = jest.fn();
 
@@ -30,4 +30,3 @@ describe('authMiddleware verifyToken normalization', () => {
     expect(req.user.resident_id).toBe('RES-TEST-1');
   });
 });
-

@@ -9,7 +9,8 @@ class ResidentProfileController {
 
       // Handle Guest/Applicant scenario
       if (!resident_id) {
-        const [applications] = await this.db.execute(`
+        const [applications] = await this.db.execute(
+          `
           SELECT 
             application_id as Resident_ID,
             first_name as First_Name,
@@ -35,20 +36,22 @@ class ResidentProfileController {
           FROM resident_applications 
           WHERE email = ? 
           ORDER BY created_at DESC LIMIT 1
-        `, [req.user.email]);
+        `,
+          [req.user.email]
+        );
 
         if (applications.length === 0) {
-           // Fallback if no application found but user exists (should rarely happen for guests)
-           return res.json({ 
-             success: true, 
-             data: { 
-               First_Name: req.user.username, 
-               Last_Name: '', 
-               Residency_Status: 'Guest' 
-             } 
-           });
+          // Fallback if no application found but user exists (should rarely happen for guests)
+          return res.json({
+            success: true,
+            data: {
+              First_Name: req.user.username,
+              Last_Name: '',
+              Residency_Status: 'Guest',
+            },
+          });
         }
-        
+
         // Add calculated fields for consistency
         const app = applications[0];
         app.Vulnerability_Score = this.calculateVulnerabilityScore({
@@ -56,13 +59,14 @@ class ResidentProfileController {
           Is_PWD: app.Is_PWD,
           Is_Senior: false, // Not tracked in applications explicitly usually
           Is_Solo_Parent: app.Is_Solo_Parent,
-          Is_Out_of_School_Youth: app.Is_Out_of_School_Youth
+          Is_Out_of_School_Youth: app.Is_Out_of_School_Youth,
         });
 
         return res.json({ success: true, data: app });
       }
 
-      const [residents] = await this.db.execute(`
+      const [residents] = await this.db.execute(
+        `
         SELECT r.*, r.Email as email, h.Street_Address, h.Household_Number, s.name as sitio_name,
                v.Is_4Ps, v.Is_PWD, v.Is_Senior, v.Is_Solo_Parent, v.Is_Out_of_School_Youth,
                v.Disability_Type, v.Vulnerability_Score, v.validation_status
@@ -71,7 +75,9 @@ class ResidentProfileController {
         LEFT JOIN sitios s ON h.Sitio_ID = s.id
         LEFT JOIN vulnerabilities v ON r.Resident_ID = v.Resident_ID
         WHERE r.Resident_ID = ?
-      `, [resident_id]);
+      `,
+        [resident_id]
+      );
 
       if (residents.length === 0) {
         return res.status(404).json({ success: false, message: 'Resident not found' });
@@ -79,7 +85,7 @@ class ResidentProfileController {
 
       res.json({ success: true, data: residents[0] });
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error fetching profile:', { err: error, reqId: req.requestId });
       res.status(500).json({ success: false, message: 'Failed to fetch profile' });
     }
   }
@@ -87,57 +93,81 @@ class ResidentProfileController {
   async updateProfile(req, res) {
     try {
       const resident_id = req.user.resident_id;
-      const { 
-        First_Name, Last_Name, Middle_Name, Suffix,
-        Mobile_Number, Occupation, Income_Estimate,
-        Civil_Status, email
+      const {
+        First_Name,
+        Last_Name,
+        Middle_Name,
+        Suffix,
+        Mobile_Number,
+        Occupation,
+        Income_Estimate,
+        Civil_Status,
+        email,
       } = req.body;
 
       if (!resident_id) {
-          // Handle Guest/Applicant update (update resident_applications)
-          // Note: Applicants typically cannot change their name/email easily as it's part of the application identity,
-          // but we allow updating contact info and other details.
-          await this.db.execute(`
+        // Handle Guest/Applicant update (update resident_applications)
+        // Note: Applicants typically cannot change their name/email easily as it's part of the application identity,
+        // but we allow updating contact info and other details.
+        await this.db.execute(
+          `
             UPDATE resident_applications SET 
               first_name = ?, last_name = ?, middle_name = ?, suffix = ?,
               mobile_number = ?, occupation = ?, income_estimate = ?,
               civil_status = ?, updated_at = NOW()
             WHERE email = ?
-          `, [
-            First_Name, Last_Name, Middle_Name, Suffix,
-            Mobile_Number, Occupation, Income_Estimate,
-            Civil_Status, req.user.email
-          ]);
-          
-          // If email is being changed, we need to update users table too, but we used email as the lookup key above.
-          // Changing email for an unverified applicant is risky without re-verification logic.
-          // For now, we skip email updates for guests or require them to contact admin.
+          `,
+          [
+            First_Name,
+            Last_Name,
+            Middle_Name,
+            Suffix,
+            Mobile_Number,
+            Occupation,
+            Income_Estimate,
+            Civil_Status,
+            req.user.email,
+          ]
+        );
+
+        // If email is being changed, we need to update users table too, but we used email as the lookup key above.
+        // Changing email for an unverified applicant is risky without re-verification logic.
+        // For now, we skip email updates for guests or require them to contact admin.
       } else {
-          // Handle Verified Resident update
-          await this.db.execute(`
+        // Handle Verified Resident update
+        await this.db.execute(
+          `
             UPDATE residents SET 
               First_Name = ?, Last_Name = ?, Middle_Name = ?, Suffix = ?,
               Mobile_Number = ?, Occupation = ?, Income_Estimate = ?,
               Civil_Status = ?, updated_at = NOW()
             WHERE Resident_ID = ?
-          `, [
-            First_Name, Last_Name, Middle_Name, Suffix,
-            Mobile_Number, Occupation, Income_Estimate,
-            Civil_Status, resident_id
-          ]);
+          `,
+          [
+            First_Name,
+            Last_Name,
+            Middle_Name,
+            Suffix,
+            Mobile_Number,
+            Occupation,
+            Income_Estimate,
+            Civil_Status,
+            resident_id,
+          ]
+        );
 
-          // Update user email if provided
-          if (email) {
-            await this.db.execute(
-              'UPDATE users SET email = ? WHERE resident_id = ?',
-              [email, resident_id]
-            );
-          }
+        // Update user email if provided
+        if (email) {
+          await this.db.execute('UPDATE users SET email = ? WHERE resident_id = ?', [
+            email,
+            resident_id,
+          ]);
+        }
       }
 
       res.json({ success: true, message: 'Profile updated successfully' });
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('Error updating profile:', { err: error, reqId: req.requestId });
       res.status(500).json({ success: false, message: 'Failed to update profile' });
     }
   }
@@ -148,47 +178,97 @@ class ResidentProfileController {
 
       // Block guests/applicants from submitting beneficiary claims until they are verified residents
       if (!resident_id) {
-          return res.status(403).json({ 
-              success: false, 
-              message: 'Beneficiary claims can only be submitted by verified residents. Please complete your residency verification first.' 
-          });
+        return res.status(403).json({
+          success: false,
+          message:
+            'Beneficiary claims can only be submitted by verified residents. Please complete your residency verification first.',
+        });
       }
 
       // Handle multipart form data
-      const {
-        Is_4Ps, Is_PWD, Is_Senior, Is_Solo_Parent, Is_Out_of_School_Youth,
-        Disability_Type
-      } = req.body;
+      const { Is_4Ps, Is_PWD, Is_Senior, Is_Solo_Parent, Is_Out_of_School_Youth, Disability_Type } =
+        req.body;
 
       // Handle file uploads if any
       const files = req.files || {};
-      
+      const toBool = val => val === 'true' || val === true || val === '1';
+
+      // Server-side validation for required documents
+      if (toBool(Is_4Ps) && !(files.Is_4Ps_File && files.Is_4Ps_File.length > 0)) {
+        return res.status(400).json({ success: false, message: '4Ps ID proof is required' });
+      }
+      if (toBool(Is_PWD) && (!Disability_Type || Disability_Type.length === 0)) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Disability Type is required for PWD' });
+      }
+      if (toBool(Is_PWD) && (!files.Is_PWD_File_Front || !files.Is_PWD_File_Back)) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'PWD ID front and back are required' });
+      }
+      if (toBool(Is_Senior) && (!files.Is_Senior_File_Front || !files.Is_Senior_File_Back)) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Senior ID front and back are required' });
+      }
+      if (
+        toBool(Is_Solo_Parent) &&
+        (!files.Is_Solo_Parent_File_Front || !files.Is_Solo_Parent_File_Back)
+      ) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Solo Parent ID front and back are required' });
+      }
+      if (
+        toBool(Is_Out_of_School_Youth) &&
+        !(files.Is_Out_of_School_Youth_File && files.Is_Out_of_School_Youth_File.length > 0)
+      ) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Out of School Youth certification is required' });
+      }
+
       // We will store document proofs in a separate table or reuse resident_documents
       // For this implementation, we assume we insert into resident_documents
-      
+
       const uploadDocument = async (file, type) => {
         if (!file) return;
-        
+
         // Store in database as BLOB
-        await this.db.execute(`
+        await this.db.execute(
+          `
           INSERT INTO resident_documents (
             resident_id, document_type, file_name, file_path, file_data, mime_type, verification_status, created_at
           ) VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())
-        `, [
-          resident_id, 
-          type, 
-          file.originalname, 
-          'database_blob', // Placeholder as file is stored in DB
-          file.buffer,
-          file.mimetype
-        ]);
+        `,
+          [resident_id, type, file.originalname, 'database_blob', file.buffer, file.mimetype]
+        );
       };
 
-      if (files.Is_4Ps_File && files.Is_4Ps_File.length > 0) await uploadDocument(files.Is_4Ps_File[0], '4Ps Proof');
-      if (files.Is_PWD_File && files.Is_PWD_File.length > 0) await uploadDocument(files.Is_PWD_File[0], 'PWD ID');
-      if (files.Is_Senior_File && files.Is_Senior_File.length > 0) await uploadDocument(files.Is_Senior_File[0], 'Senior ID');
-      if (files.Is_Solo_Parent_File && files.Is_Solo_Parent_File.length > 0) await uploadDocument(files.Is_Solo_Parent_File[0], 'Solo Parent ID');
-      if (files.Is_Out_of_School_Youth_File && files.Is_Out_of_School_Youth_File.length > 0) await uploadDocument(files.Is_Out_of_School_Youth_File[0], 'OSY Certification');
+      if (files.Is_4Ps_File && files.Is_4Ps_File.length > 0)
+        await uploadDocument(files.Is_4Ps_File[0], '4Ps Proof');
+
+      // Handle PWD (Front/Back)
+      if (files.Is_PWD_File_Front && files.Is_PWD_File_Front.length > 0)
+        await uploadDocument(files.Is_PWD_File_Front[0], 'PWD ID (Front)');
+      if (files.Is_PWD_File_Back && files.Is_PWD_File_Back.length > 0)
+        await uploadDocument(files.Is_PWD_File_Back[0], 'PWD ID (Back)');
+
+      // Handle Senior (Front/Back)
+      if (files.Is_Senior_File_Front && files.Is_Senior_File_Front.length > 0)
+        await uploadDocument(files.Is_Senior_File_Front[0], 'Senior ID (Front)');
+      if (files.Is_Senior_File_Back && files.Is_Senior_File_Back.length > 0)
+        await uploadDocument(files.Is_Senior_File_Back[0], 'Senior ID (Back)');
+
+      // Handle Solo Parent (Front/Back)
+      if (files.Is_Solo_Parent_File_Front && files.Is_Solo_Parent_File_Front.length > 0)
+        await uploadDocument(files.Is_Solo_Parent_File_Front[0], 'Solo Parent ID (Front)');
+      if (files.Is_Solo_Parent_File_Back && files.Is_Solo_Parent_File_Back.length > 0)
+        await uploadDocument(files.Is_Solo_Parent_File_Back[0], 'Solo Parent ID (Back)');
+
+      if (files.Is_Out_of_School_Youth_File && files.Is_Out_of_School_Youth_File.length > 0)
+        await uploadDocument(files.Is_Out_of_School_Youth_File[0], 'OSY Certification');
 
       // Check if vulnerability record exists
       const [existing] = await this.db.execute(
@@ -197,40 +277,55 @@ class ResidentProfileController {
       );
 
       // Helper to convert 'true'/'false' strings to booleans (FormData sends strings)
-      const toBool = (val) => val === 'true' || val === true || val === '1';
-
       const vulnerability_score = this.calculateVulnerabilityScore({
         Is_4Ps: toBool(Is_4Ps),
         Is_PWD: toBool(Is_PWD),
         Is_Senior: toBool(Is_Senior),
         Is_Solo_Parent: toBool(Is_Solo_Parent),
-        Is_Out_of_School_Youth: toBool(Is_Out_of_School_Youth)
+        Is_Out_of_School_Youth: toBool(Is_Out_of_School_Youth),
       });
 
       if (existing.length > 0) {
         // Update existing record and set status to pending
-        await this.db.execute(`
+        await this.db.execute(
+          `
           UPDATE vulnerabilities SET 
             Is_4Ps = ?, Is_PWD = ?, Is_Senior = ?, Is_Solo_Parent = ?, 
             Is_Out_of_School_Youth = ?, Disability_Type = ?, 
             Vulnerability_Score = ?, validation_status = 'pending', updated_at = NOW()
           WHERE Resident_ID = ?
-        `, [
-          toBool(Is_4Ps), toBool(Is_PWD), toBool(Is_Senior), toBool(Is_Solo_Parent), 
-          toBool(Is_Out_of_School_Youth), Disability_Type || null,
-          vulnerability_score, resident_id
-        ]);
+        `,
+          [
+            toBool(Is_4Ps),
+            toBool(Is_PWD),
+            toBool(Is_Senior),
+            toBool(Is_Solo_Parent),
+            toBool(Is_Out_of_School_Youth),
+            Disability_Type || null,
+            vulnerability_score,
+            resident_id,
+          ]
+        );
       } else {
         // Create new record with pending status
-        await this.db.execute(`
+        await this.db.execute(
+          `
           INSERT INTO vulnerabilities (
             Resident_ID, Is_4Ps, Is_PWD, Is_Senior, Is_Solo_Parent,
             Is_Out_of_School_Youth, Disability_Type, Vulnerability_Score, validation_status
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-        `, [
-          resident_id, toBool(Is_4Ps), toBool(Is_PWD), toBool(Is_Senior), toBool(Is_Solo_Parent),
-          toBool(Is_Out_of_School_Youth), Disability_Type || null, vulnerability_score
-        ]);
+        `,
+          [
+            resident_id,
+            toBool(Is_4Ps),
+            toBool(Is_PWD),
+            toBool(Is_Senior),
+            toBool(Is_Solo_Parent),
+            toBool(Is_Out_of_School_Youth),
+            Disability_Type || null,
+            vulnerability_score,
+          ]
+        );
       }
 
       // Create notification for staff
@@ -238,7 +333,7 @@ class ResidentProfileController {
         'SELECT id FROM users WHERE role IN (2, 3) AND is_active = 1'
       );
       const staffIds = staff.map(s => s.id);
-      
+
       const [resident] = await this.db.execute(
         'SELECT First_Name, Last_Name FROM residents WHERE Resident_ID = ?',
         [resident_id]
@@ -255,13 +350,13 @@ class ResidentProfileController {
         );
       }
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: 'Request for acknowledgement submitted successfully',
-        vulnerability_score 
+        vulnerability_score,
       });
     } catch (error) {
-      console.error('Error updating beneficiary status:', error);
+      console.error('Error updating beneficiary status:', { err: error, reqId: req.requestId });
       res.status(500).json({ success: false, message: 'Failed to update beneficiary status' });
     }
   }
@@ -279,10 +374,10 @@ class ResidentProfileController {
   async getVerificationStatus(req, res) {
     try {
       // If resident_id is present, query by that, otherwise use user id
-      const query = req.user.resident_id 
+      const query = req.user.resident_id
         ? 'SELECT email_verified, phone_verified, verified_at FROM users WHERE resident_id = ?'
         : 'SELECT email_verified, phone_verified, verified_at FROM users WHERE id = ?';
-      
+
       const param = req.user.resident_id || req.user.id;
 
       const [user] = await this.db.execute(query, [param]);
@@ -293,7 +388,7 @@ class ResidentProfileController {
 
       res.json({ success: true, data: user[0] });
     } catch (error) {
-      console.error('Error fetching verification status:', error);
+      console.error('Error fetching verification status:', { err: error, reqId: req.requestId });
       res.status(500).json({ success: false, message: 'Failed to fetch verification status' });
     }
   }
@@ -312,7 +407,7 @@ class ResidentProfileController {
       );
       res.json({ certificates: certs[0].total });
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
+      console.error('Error fetching dashboard stats:', { err: error, reqId: req.requestId });
       res.status(500).json({ success: false, message: 'Failed to fetch dashboard stats' });
     }
   }

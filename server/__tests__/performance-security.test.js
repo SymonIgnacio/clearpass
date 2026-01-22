@@ -50,7 +50,7 @@ describe('Performance & Security Validation Suite', () => {
       "' OR 1=1; --",
       "') OR ('1'='1",
       "'; SELECT * FROM information_schema.tables; --",
-      "admin'; SHUTDOWN; --"
+      "admin'; SHUTDOWN; --",
     ];
 
     test('prevents SQL injection in resident search', async () => {
@@ -64,9 +64,8 @@ describe('Performance & Security Validation Suite', () => {
         expect(Array.isArray(response.body)).toBe(true);
 
         // Should not return unauthorized data
-        const hasUsersTableData = response.body.some(item =>
-          item.hasOwnProperty('password_hash') ||
-          item.hasOwnProperty('username')
+        const hasUsersTableData = response.body.some(
+          item => item.hasOwnProperty('password_hash') || item.hasOwnProperty('username')
         );
         expect(hasUsersTableData).toBe(false);
       }
@@ -87,7 +86,7 @@ describe('Performance & Security Validation Suite', () => {
       const maliciousData = {
         resident_id: "' OR '1'='1",
         certificate_type: "Barangay Clearance'; DROP TABLE certificates_log; --",
-        purpose: "Test"
+        purpose: 'Test',
       };
 
       const response = await agent
@@ -97,9 +96,7 @@ describe('Performance & Security Validation Suite', () => {
         .expect(400); // Should fail validation
 
       // Verify certificates table still exists
-      const [tables] = await testDb.execute(
-        "SHOW TABLES LIKE 'certificates_log'"
-      );
+      const [tables] = await testDb.execute("SHOW TABLES LIKE 'certificates_log'");
       expect(tables.length).toBe(1);
     });
 
@@ -112,7 +109,7 @@ describe('Performance & Security Validation Suite', () => {
         '<svg onload=alert(1)>',
         '"><script>alert(1)</script>',
         "'><script>alert(1)</script>",
-        '<body onload=alert(1)>'
+        '<body onload=alert(1)>',
       ];
 
       for (const payload of xssPayloads) {
@@ -125,7 +122,7 @@ describe('Performance & Security Validation Suite', () => {
           civil_status: 'Single',
           occupation: 'Developer',
           mobile_number: '09123456789',
-          email: 'test@example.com'
+          email: 'test@example.com',
         };
 
         const response = await agent
@@ -149,13 +146,14 @@ describe('Performance & Security Validation Suite', () => {
 
     test('validates and sanitizes JSON inputs', async () => {
       const maliciousJson = {
-        complainant_details: '{"name": "</script><script>alert(1)</script>", "contact": "09123456789"}',
+        complainant_details:
+          '{"name": "</script><script>alert(1)</script>", "contact": "09123456789"}',
         respondent_details: '{"name": "Test Respondent", "contact": "09876543210"}',
         incident_type: 'Physical Injury',
         narrative: 'Test incident',
         dateTime_incident: '2024-01-01 10:00:00',
         location_sitio: 'Batia Proper',
-        status: 'Pending'
+        status: 'Pending',
       };
 
       const response = await agent
@@ -180,7 +178,7 @@ describe('Performance & Security Validation Suite', () => {
         '..\\..\\..\\windows\\system32\\config\\sam',
         '/etc/shadow',
         '....//....//....//etc/passwd',
-        '..%2F..%2F..%2Fetc%2Fpasswd'
+        '..%2F..%2F..%2Fetc%2Fpasswd',
       ];
 
       for (const payload of pathTraversalPayloads) {
@@ -216,11 +214,9 @@ describe('Performance & Security Validation Suite', () => {
       const startTime = Date.now();
 
       // Create 50 concurrent requests
-      const requests = Array(50).fill().map(() =>
-        agent
-          .get('/api/residents')
-          .set('Authorization', `Bearer ${authToken}`)
-      );
+      const requests = Array(50)
+        .fill()
+        .map(() => agent.get('/api/residents').set('Authorization', `Bearer ${authToken}`));
 
       const responses = await Promise.all(requests);
       const endTime = Date.now();
@@ -247,14 +243,14 @@ describe('Performance & Security Validation Suite', () => {
       const startTime = Date.now();
 
       // Create 50 concurrent login requests
-      const requests = Array(50).fill().map(() =>
-        agent
-          .post('/api/auth/login')
-          .send({
+      const requests = Array(50)
+        .fill()
+        .map(() =>
+          agent.post('/api/auth/login').send({
             username: 'testadmin',
-            password: 'password'
+            password: 'password',
           })
-      );
+        );
 
       const responses = await Promise.all(requests);
       const endTime = Date.now();
@@ -279,13 +275,15 @@ describe('Performance & Security Validation Suite', () => {
 
     test('maintains performance under memory pressure', async () => {
       // Create large dataset
-      const largeDataPromises = Array(100).fill().map((_, i) =>
-        createTestResident({
-          first_name: `LoadTest${i}`,
-          last_name: 'User',
-          email: `loadtest${i}@example.com`
-        })
-      );
+      const largeDataPromises = Array(100)
+        .fill()
+        .map((_, i) =>
+          createTestResident({
+            first_name: `LoadTest${i}`,
+            last_name: 'User',
+            email: `loadtest${i}@example.com`,
+          })
+        );
 
       await Promise.all(largeDataPromises);
 
@@ -306,9 +304,9 @@ describe('Performance & Security Validation Suite', () => {
 
     test('handles database connection pool exhaustion gracefully', async () => {
       // Simulate connection pool exhaustion by creating many concurrent DB operations
-      const dbOperations = Array(20).fill().map(() =>
-        testDb.execute('SELECT COUNT(*) as count FROM residents')
-      );
+      const dbOperations = Array(20)
+        .fill()
+        .map(() => testDb.execute('SELECT COUNT(*) as count FROM residents'));
 
       const startTime = Date.now();
       const results = await Promise.all(dbOperations);
@@ -341,7 +339,7 @@ describe('Performance & Security Validation Suite', () => {
         civil_status: 'Single',
         occupation: 'Developer',
         mobile_number: '09123456789',
-        email: 'recovery@example.com'
+        email: 'recovery@example.com',
       };
 
       // Mock database connection failure during execution
@@ -350,7 +348,8 @@ describe('Performance & Security Validation Suite', () => {
 
       db.pool.execute = jest.fn().mockImplementation((sql, params) => {
         callCount++;
-        if (callCount === 2) { // Fail on second call (during vulnerability insert)
+        if (callCount === 2) {
+          // Fail on second call (during vulnerability insert)
           return Promise.reject(new Error('Connection lost'));
         }
         return originalExecute.call(db.pool, sql, params);
@@ -366,10 +365,9 @@ describe('Performance & Security Validation Suite', () => {
       db.pool.execute = originalExecute;
 
       // Verify partial data was cleaned up (transaction rollback)
-      const [residents] = await testDb.execute(
-        'SELECT * FROM residents WHERE email = ?',
-        ['recovery@example.com']
-      );
+      const [residents] = await testDb.execute('SELECT * FROM residents WHERE email = ?', [
+        'recovery@example.com',
+      ]);
 
       expect(residents.length).toBe(0); // Should be rolled back
     });
@@ -408,7 +406,7 @@ describe('Performance & Security Validation Suite', () => {
         '{"unclosed": "brace"',
         'not json at all',
         '{"nested": {"invalid": json}}',
-        ''
+        '',
       ];
 
       for (const payload of malformedPayloads) {
@@ -456,7 +454,7 @@ describe('Performance & Security Validation Suite', () => {
         civil_status: 'Single',
         occupation: 'Developer',
         mobile_number: '09123456789',
-        email: 'large@example.com'
+        email: 'large@example.com',
       };
 
       const response = await agent
@@ -477,20 +475,20 @@ describe('Performance & Security Validation Suite', () => {
   describe('Rate Limiting & DoS Protection', () => {
     test('enforces rate limiting on authentication endpoints', async () => {
       // Make multiple rapid login attempts
-      const loginAttempts = Array(10).fill().map(() =>
-        agent
-          .post('/api/auth/login')
-          .send({
+      const loginAttempts = Array(10)
+        .fill()
+        .map(() =>
+          agent.post('/api/auth/login').send({
             username: 'testadmin',
-            password: 'wrongpassword'
+            password: 'wrongpassword',
           })
-      );
+        );
 
       const responses = await Promise.allSettled(loginAttempts);
 
       // At least some should be rate limited (429 status)
-      const rateLimited = responses.some(result =>
-        result.status === 'fulfilled' && result.value.status === 429
+      const rateLimited = responses.some(
+        result => result.status === 'fulfilled' && result.value.status === 429
       );
 
       // Note: Rate limiting might not be enabled in test environment
@@ -500,12 +498,14 @@ describe('Performance & Security Validation Suite', () => {
 
     test('handles concurrent file upload limits', async () => {
       // Test concurrent file uploads
-      const uploadPromises = Array(5).fill().map((_, i) =>
-        agent
-          .post('/api/upload')
-          .set('Authorization', `Bearer ${authToken}`)
-          .attach('file', Buffer.from(`test content ${i}`), `test${i}.jpg`)
-      );
+      const uploadPromises = Array(5)
+        .fill()
+        .map((_, i) =>
+          agent
+            .post('/api/upload')
+            .set('Authorization', `Bearer ${authToken}`)
+            .attach('file', Buffer.from(`test content ${i}`), `test${i}.jpg`)
+        );
 
       const results = await Promise.allSettled(uploadPromises);
 
@@ -555,7 +555,7 @@ describe('Performance & Security Validation Suite', () => {
       .post('/api/auth/login')
       .send({
         username: 'testadmin',
-        password: 'password'
+        password: 'password',
       })
       .expect(200);
 
@@ -572,7 +572,7 @@ describe('Performance & Security Validation Suite', () => {
       civil_status: data.civil_status || 'Single',
       occupation: data.occupation || 'Unemployed',
       mobile_number: data.mobile_number || '09123456789',
-      email: data.email
+      email: data.email,
     };
 
     const response = await agent
@@ -588,7 +588,9 @@ describe('Performance & Security Validation Suite', () => {
 
     for (const table of testTables) {
       try {
-        await testDb.execute(`DELETE FROM ${table} WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 HOUR)`);
+        await testDb.execute(
+          `DELETE FROM ${table} WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 HOUR)`
+        );
       } catch (error) {
         console.warn(`Could not clean up table ${table}:`, error.message);
       }

@@ -5,7 +5,7 @@ const fs = require('fs').promises;
 
 const mockDb = {
   execute: jest.fn(),
-  getConnection: jest.fn()
+  getConnection: jest.fn(),
 };
 
 jest.mock('../database', () => mockDb);
@@ -17,7 +17,7 @@ jest.mock('../middleware/authMiddleware', () => ({
   },
   checkRole: () => (req, res, next) => next(),
   verifyRole: () => (req, res, next) => next(),
-  enforceReadOnly: (req, res, next) => next()
+  enforceReadOnly: (req, res, next) => next(),
 }));
 
 describe('audit trail for document downloads', () => {
@@ -41,7 +41,18 @@ describe('audit trail for document downloads', () => {
     mockDb.execute.mockImplementation(async (sql, params) => {
       const q = String(sql).toLowerCase();
       if (q.includes('from resident_documents')) {
-        return [[{ resident_id: 'RES-A', file_path: filePath, file_name: 'x.pdf', encryption_alg: null, encryption_iv: null, encryption_tag: null }]];
+        return [
+          [
+            {
+              resident_id: 'RES-A',
+              file_path: filePath,
+              file_name: 'x.pdf',
+              encryption_alg: null,
+              encryption_iv: null,
+              encryption_tag: null,
+            },
+          ],
+        ];
       }
       if (q.includes('insert into audit_logs')) {
         auditEvents.push(params[0]);
@@ -73,7 +84,17 @@ describe('audit trail for document downloads', () => {
     mockDb.execute.mockImplementation(async (sql, params) => {
       const q = String(sql).toLowerCase();
       if (q.includes('from application_documents')) {
-        return [[{ file_path: filePath, file_name: 'a.pdf', encryption_alg: null, encryption_iv: null, encryption_tag: null }]];
+        return [
+          [
+            {
+              file_path: filePath,
+              file_name: 'a.pdf',
+              encryption_alg: null,
+              encryption_iv: null,
+              encryption_tag: null,
+            },
+          ],
+        ];
       }
       if (q.includes('insert into audit_logs')) {
         auditEvents.push(params[0]);
@@ -90,4 +111,3 @@ describe('audit trail for document downloads', () => {
     await fs.unlink(filePath);
   });
 });
-

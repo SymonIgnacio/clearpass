@@ -44,16 +44,19 @@ describe('QRCodeGenerator Component', () => {
     QRCode.toDataURL.mockResolvedValue('data:image/png;base64,test-qr-code');
 
     render(<QRCodeGenerator />);
-    
+
     const input = screen.getByPlaceholderText('Enter text to encode...');
     fireEvent.change(input, { target: { value: 'Test Content' } });
 
     // Wait for debounce and generation
     await waitFor(() => {
-      expect(QRCode.toDataURL).toHaveBeenCalledWith('Test Content', expect.objectContaining({
-        width: 256,
-        color: { dark: '#000000', light: '#ffffff' }
-      }));
+      expect(QRCode.toDataURL).toHaveBeenCalledWith(
+        'Test Content',
+        expect.objectContaining({
+          width: 256,
+          color: { dark: '#000000', light: '#ffffff' },
+        })
+      );
     });
 
     // Verify image is displayed
@@ -66,24 +69,29 @@ describe('QRCodeGenerator Component', () => {
     render(<QRCodeGenerator />);
 
     // Change input first to trigger generation logic
-    fireEvent.change(screen.getByPlaceholderText('Enter text to encode...'), { target: { value: 'Test' } });
+    fireEvent.change(screen.getByPlaceholderText('Enter text to encode...'), {
+      target: { value: 'Test' },
+    });
 
     // Change Color
     const colorInput = screen.getByLabelText('Foreground Color');
     fireEvent.change(colorInput, { target: { value: '#ff0000' } });
 
     await waitFor(() => {
-      expect(QRCode.toDataURL).toHaveBeenCalledWith('Test', expect.objectContaining({
-        color: { dark: '#ff0000', light: '#ffffff' }
-      }));
+      expect(QRCode.toDataURL).toHaveBeenCalledWith(
+        'Test',
+        expect.objectContaining({
+          color: { dark: '#ff0000', light: '#ffffff' },
+        })
+      );
     });
   });
 
   it('handles generation errors gracefully', async () => {
     QRCode.toDataURL.mockRejectedValue(new Error('Generation failed'));
-    
+
     render(<QRCodeGenerator />);
-    
+
     const input = screen.getByPlaceholderText('Enter text to encode...');
     fireEvent.change(input, { target: { value: 'Error Test' } });
 
@@ -95,22 +103,24 @@ describe('QRCodeGenerator Component', () => {
   it('downloads QR code', async () => {
     vi.useFakeTimers();
     QRCode.toDataURL.mockResolvedValue('data:image/png;base64,test-qr-code');
-    
+
     // Mock link click setup BEFORE render
     const originalCreateElement = document.createElement.bind(document);
     const linkMock = originalCreateElement('a');
     const clickSpy = vi.spyOn(linkMock, 'click');
 
-    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tagName) => {
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation(tagName => {
       if (tagName === 'a') return linkMock;
       return originalCreateElement(tagName);
     });
 
     render(<QRCodeGenerator />);
-    
+
     // Generate QR first
-    fireEvent.change(screen.getByPlaceholderText('Enter text to encode...'), { target: { value: 'Download Test' } });
-    
+    fireEvent.change(screen.getByPlaceholderText('Enter text to encode...'), {
+      target: { value: 'Download Test' },
+    });
+
     act(() => {
       vi.advanceTimersByTime(1000);
     });

@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>0/14</span>
             </div>
         
             
@@ -83,7 +83,13 @@
 <a name='L18'></a><a href='#L18'>18</a>
 <a name='L19'></a><a href='#L19'>19</a>
 <a name='L20'></a><a href='#L20'>20</a>
-<a name='L21'></a><a href='#L21'>21</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -94,12 +100,18 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -108,18 +120,24 @@ const BlotterComplaintController = <span class="cstat-no" title="statement not c
 const { verifyToken, checkRole } = <span class="cstat-no" title="statement not covered" >require('../middleware/authMiddleware');</span>
 const { ROLES } = <span class="cstat-no" title="statement not covered" >require('../config/roles');</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >module.exports = <span class="fstat-no" title="function not covered" >(d</span>b) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >module.exports = <span class="fstat-no" title="function not covered" >db</span> =&gt; {</span>
   const router = <span class="cstat-no" title="statement not covered" >express.Router();</span>
   const controller = <span class="cstat-no" title="statement not covered" >new BlotterComplaintController(db);</span>
 &nbsp;
   // Get incident types
-<span class="cstat-no" title="statement not covered" >  router.get('/incident-types', verifyToken, checkRole([ROLES.RESIDENT]), <span class="fstat-no" title="function not covered" >(r</span>eq, res) =&gt; <span class="cstat-no" title="statement not covered" >controller.getIncidentTypes(req, res))</span>;</span>
+<span class="cstat-no" title="statement not covered" >  router.get('/incident-types', verifyToken, checkRole([ROLES.RESIDENT]), <span class="fstat-no" title="function not covered" >(r</span>eq, res) =&gt;</span>
+<span class="cstat-no" title="statement not covered" >    controller.getIncidentTypes(req, res)</span>
+  );
 &nbsp;
   // Submit complaint
-<span class="cstat-no" title="statement not covered" >  router.post('/submit', verifyToken, checkRole([ROLES.RESIDENT]), <span class="fstat-no" title="function not covered" >(r</span>eq, res) =&gt; <span class="cstat-no" title="statement not covered" >controller.submitComplaint(req, res))</span>;</span>
+<span class="cstat-no" title="statement not covered" >  router.post('/submit', verifyToken, checkRole([ROLES.RESIDENT]), <span class="fstat-no" title="function not covered" >(r</span>eq, res) =&gt;</span>
+<span class="cstat-no" title="statement not covered" >    controller.submitComplaint(req, res)</span>
+  );
 &nbsp;
   // Get my complaints
-<span class="cstat-no" title="statement not covered" >  router.get('/my-complaints', verifyToken, checkRole([ROLES.RESIDENT]), <span class="fstat-no" title="function not covered" >(r</span>eq, res) =&gt; <span class="cstat-no" title="statement not covered" >controller.getMyComplaints(req, res))</span>;</span>
+<span class="cstat-no" title="statement not covered" >  router.get('/my-complaints', verifyToken, checkRole([ROLES.RESIDENT]), <span class="fstat-no" title="function not covered" >(r</span>eq, res) =&gt;</span>
+<span class="cstat-no" title="statement not covered" >    controller.getMyComplaints(req, res)</span>
+  );
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  return router;</span>
 };
@@ -130,7 +148,7 @@ const { ROLES } = <span class="cstat-no" title="statement not covered" >require(
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:37.883Z
+                at 2026-01-22T21:30:07.139Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -32,8 +32,8 @@ import {
   Avatar,
   IconButton,
   Tooltip,
-  Alert
-} from '@mui/material'
+  Alert,
+} from '@mui/material';
 import {
   Add,
   Edit,
@@ -50,39 +50,39 @@ import {
   Warning,
   Download,
   Refresh,
-  Visibility
-} from '@mui/icons-material'
-import { apiRequest } from '../utils/api'
-import { useNotifications } from '../contexts/NotificationContext'
+  Visibility,
+} from '@mui/icons-material';
+import { apiRequest } from '../utils/api';
+import { useNotifications } from '../contexts/NotificationContext';
 
-import WriteProtected from '../components/WriteProtected'
-import ConfirmationModal from '../components/ConfirmationModal'
-import QRCodeModal from '../components/QRCodeModal'
-import CredentialsModal from '../components/CredentialsModal'
+import WriteProtected from '../components/WriteProtected';
+import ConfirmationModal from '../components/ConfirmationModal';
+import QRCodeModal from '../components/QRCodeModal';
+import CredentialsModal from '../components/CredentialsModal';
 
 const Residents = () => {
-  const { notify } = useNotifications()
-  const [residents, setResidents] = useState([])
-  const [households, setHouseholds] = useState([])
-  const [sitios, setSitios] = useState([])
-  const [open, setOpen] = useState(false)
-  const [openHousehold, setOpenHousehold] = useState(false)
-  const [openBulkImport, setOpenBulkImport] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [viewOnly, setViewOnly] = useState(false)
-  const [selectedHousehold, setSelectedHousehold] = useState(null)
-  const [tabValue, setTabValue] = useState(0)
-  const [duplicateCheck, setDuplicateCheck] = useState(null)
-  const [bulkImportResult, setBulkImportResult] = useState(null)
-  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false)
-  const [confirmationAction, setConfirmationAction] = useState(null)
-  
+  const { notify } = useNotifications();
+  const [residents, setResidents] = useState([]);
+  const [households, setHouseholds] = useState([]);
+  const [sitios, setSitios] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [openHousehold, setOpenHousehold] = useState(false);
+  const [openBulkImport, setOpenBulkImport] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [viewOnly, setViewOnly] = useState(false);
+  const [selectedHousehold, setSelectedHousehold] = useState(null);
+  const [tabValue, setTabValue] = useState(0);
+  const [duplicateCheck, setDuplicateCheck] = useState(null);
+  const [bulkImportResult, setBulkImportResult] = useState(null);
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState(null);
+
   // New modal states
-  const [qrModalOpen, setQrModalOpen] = useState(false)
-  const [selectedQrCode, setSelectedQrCode] = useState(null)
-  const [selectedResidentName, setSelectedResidentName] = useState('')
-  const [credentialsModalOpen, setCredentialsModalOpen] = useState(false)
-  const [newCredentials, setNewCredentials] = useState(null)
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [selectedQrCode, setSelectedQrCode] = useState(null);
+  const [selectedResidentName, setSelectedResidentName] = useState('');
+  const [credentialsModalOpen, setCredentialsModalOpen] = useState(false);
+  const [newCredentials, setNewCredentials] = useState(null);
 
   const [formData, setFormData] = useState({
     household_id: '',
@@ -105,50 +105,50 @@ const Residents = () => {
     is_solo_parent: false,
     is_out_of_school_youth: false,
     disability_type: '',
-    documents: {}
-  })
+    documents: {},
+  });
 
   const [householdFormData, setHouseholdFormData] = useState({
     Household_Number: '',
     Sitio_ID: '',
     Street_Address: '',
-    Household_Type: 'Nuclear'
-  })
+    Household_Type: 'Nuclear',
+  });
 
   // Filter and search states
-  const [searchTerm, setSearchTerm] = useState('')
-  const [genderFilter, setGenderFilter] = useState('')
-  const [sitioFilter, setSitioFilter] = useState('')
-  const [vulnerabilityFilter, setVulnerabilityFilter] = useState('')
-  const [residencyFilter, setResidencyFilter] = useState('')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [searchTerm, setSearchTerm] = useState('');
+  const [genderFilter, setGenderFilter] = useState('');
+  const [sitioFilter, setSitioFilter] = useState('');
+  const [vulnerabilityFilter, setVulnerabilityFilter] = useState('');
+  const [residencyFilter, setResidencyFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
-    fetchResidents()
-    fetchHouseholds()
-    fetchSitios()
-  }, [])
+    fetchResidents();
+    fetchHouseholds();
+    fetchSitios();
+  }, []);
 
   // Trigger fetch when filters change
   useEffect(() => {
-    fetchResidents()
-  }, [searchTerm, genderFilter, sitioFilter, vulnerabilityFilter, dateFrom, dateTo])
+    fetchResidents();
+  }, [searchTerm, genderFilter, sitioFilter, vulnerabilityFilter, dateFrom, dateTo]);
 
   const fetchResidents = async () => {
     try {
-      const params = new URLSearchParams()
-      if (searchTerm) params.append('search', searchTerm)
-      if (genderFilter) params.append('gender', genderFilter)
-      if (sitioFilter) params.append('sitio_id', sitioFilter)
-      if (residencyFilter) params.append('residency_status', residencyFilter)
-      if (vulnerabilityFilter === 'vulnerable') params.append('show_vulnerable', 'true')
-      if (dateFrom) params.append('dateFrom', dateFrom)
-      if (dateTo) params.append('dateTo', dateTo)
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('search', searchTerm);
+      if (genderFilter) params.append('gender', genderFilter);
+      if (sitioFilter) params.append('sitio_id', sitioFilter);
+      if (residencyFilter) params.append('residency_status', residencyFilter);
+      if (vulnerabilityFilter === 'vulnerable') params.append('show_vulnerable', 'true');
+      if (dateFrom) params.append('dateFrom', dateFrom);
+      if (dateTo) params.append('dateTo', dateTo);
 
-      const response = await apiRequest(`residents?${params}`)
+      const response = await apiRequest(`residents?${params}`);
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json();
         // Convert MySQL boolean values (0/1) to proper JavaScript booleans
         const processedResidents = (data.data || data).map(resident => ({
           ...resident,
@@ -156,41 +156,41 @@ const Residents = () => {
           Is_PWD: Boolean(resident.Is_PWD),
           Is_Senior: Boolean(resident.Is_Senior),
           Is_Solo_Parent: Boolean(resident.Is_Solo_Parent),
-          Is_Out_of_School_Youth: Boolean(resident.Is_Out_of_School_Youth)
-        }))
-        setResidents(processedResidents)
+          Is_Out_of_School_Youth: Boolean(resident.Is_Out_of_School_Youth),
+        }));
+        setResidents(processedResidents);
       }
     } catch (error) {
-      console.error('Error fetching residents:', error)
+      console.error('Error fetching residents:', error);
     }
-  }
+  };
 
   const fetchHouseholds = async () => {
     try {
-      const response = await apiRequest('households')
+      const response = await apiRequest('households');
       if (response.ok) {
-        const data = await response.json()
-        setHouseholds(data)
+        const data = await response.json();
+        setHouseholds(data);
       }
     } catch (error) {
-      console.error('Error fetching households:', error)
+      console.error('Error fetching households:', error);
     }
-  }
+  };
 
   const fetchSitios = async () => {
     try {
-      const response = await apiRequest('sitios')
+      const response = await apiRequest('sitios');
       if (response.ok) {
-        const data = await response.json()
-        setSitios(data)
+        const data = await response.json();
+        setSitios(data);
       }
     } catch (error) {
-      console.error('Error fetching sitios:', error)
+      console.error('Error fetching sitios:', error);
     }
-  }
+  };
 
   const checkDuplicate = async () => {
-    if (!formData.first_name || !formData.last_name || !formData.birthdate) return
+    if (!formData.first_name || !formData.last_name || !formData.birthdate) return;
 
     try {
       const response = await apiRequest('residents/check-duplicate', {
@@ -198,49 +198,49 @@ const Residents = () => {
         body: {
           first_name: formData.first_name,
           last_name: formData.last_name,
-          birthdate: formData.birthdate
-        }
-      })
+          birthdate: formData.birthdate,
+        },
+      });
 
       if (response.ok) {
-        const result = await response.json()
-        setDuplicateCheck(result)
+        const result = await response.json();
+        setDuplicateCheck(result);
       }
     } catch (error) {
-      console.error('Error checking duplicates:', error)
+      console.error('Error checking duplicates:', error);
     }
-  }
+  };
 
   const handleDocumentUpload = (event, documentType) => {
-    const file = event.target.files[0]
-    if (!file) return
+    const file = event.target.files[0];
+    if (!file) return;
 
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      notify('File size must be less than 5MB', 'warning')
-      return
+      notify('File size must be less than 5MB', 'warning');
+      return;
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) {
-      notify('Only JPG, PNG, and PDF files are allowed', 'warning')
-      return
+      notify('Only JPG, PNG, and PDF files are allowed', 'warning');
+      return;
     }
 
     setFormData(prev => ({
       ...prev,
       documents: {
         ...prev.documents,
-        [documentType]: file
-      }
-    }))
-  }
+        [documentType]: file,
+      },
+    }));
+  };
 
   const handleOpenDialog = (resident = null, isViewOnly = false) => {
-    setViewOnly(isViewOnly)
+    setViewOnly(isViewOnly);
     if (resident) {
-      setEditing(resident)
+      setEditing(resident);
       setFormData({
         household_id: resident.Household_ID || '',
         relation_to_head: resident.Relation_to_Head || 'Head',
@@ -256,16 +256,18 @@ const Residents = () => {
         email: resident.Email || '',
         mobile_number: resident.Mobile_Number || '',
         voter_status: resident.Voter_Status || 'Non-Registered',
-        date_arrival: resident.Date_Arrival ? resident.Date_Arrival.split('T')[0] : new Date().toISOString().split('T')[0],
+        date_arrival: resident.Date_Arrival
+          ? resident.Date_Arrival.split('T')[0]
+          : new Date().toISOString().split('T')[0],
         is_4ps: resident.Is_4Ps || false,
         is_pwd: resident.Is_PWD || false,
         is_solo_parent: resident.Is_Solo_Parent || false,
         is_out_of_school_youth: resident.Is_Out_of_School_Youth || false,
         disability_type: resident.Disability_Type || '',
-        documents: {}
-      })
+        documents: {},
+      });
     } else {
-      setEditing(null)
+      setEditing(null);
       setFormData({
         household_id: '',
         relation_to_head: 'Head',
@@ -287,60 +289,60 @@ const Residents = () => {
         is_solo_parent: false,
         is_out_of_school_youth: false,
         disability_type: '',
-        documents: {}
-      })
+        documents: {},
+      });
     }
-    setDuplicateCheck(null)
-    setOpen(true)
-  }
+    setDuplicateCheck(null);
+    setOpen(true);
+  };
 
   const handleCloseDialog = () => {
-    setOpen(false)
-    setEditing(null)
-    setDuplicateCheck(null)
-    setViewOnly(false)
-  }
+    setOpen(false);
+    setEditing(null);
+    setDuplicateCheck(null);
+    setViewOnly(false);
+  };
 
   const handleSave = async () => {
     // Form validation
     if (!formData.household_id || formData.household_id === '') {
-      notify('Please select a household for the resident.', 'warning')
-      return
+      notify('Please select a household for the resident.', 'warning');
+      return;
     }
 
     if (!formData.first_name || !formData.first_name.trim()) {
-      notify('First name is required.', 'warning')
-      return
+      notify('First name is required.', 'warning');
+      return;
     }
 
     if (!formData.last_name || !formData.last_name.trim()) {
-      notify('Last name is required.', 'warning')
-      return
+      notify('Last name is required.', 'warning');
+      return;
     }
 
     if (!formData.birthdate) {
-      notify('Birthdate is required.', 'warning')
-      return
+      notify('Birthdate is required.', 'warning');
+      return;
     }
 
     if (!formData.email || !formData.email.trim()) {
-      notify('Email address is required.', 'warning')
-      return
+      notify('Email address is required.', 'warning');
+      return;
     }
 
     // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      notify('Please enter a valid email address.', 'warning')
-      return
+      notify('Please enter a valid email address.', 'warning');
+      return;
     }
 
     // Mobile number validation (if provided)
     if (formData.mobile_number && formData.mobile_number.trim()) {
-      const mobileRegex = /^(09|\+639)\d{9}$/
+      const mobileRegex = /^(09|\+639)\d{9}$/;
       if (!mobileRegex.test(formData.mobile_number.replace(/\s/g, ''))) {
-        notify('Please enter a valid PH mobile number (e.g., 09123456789).', 'warning')
-        return
+        notify('Please enter a valid PH mobile number (e.g., 09123456789).', 'warning');
+        return;
       }
     }
 
@@ -349,160 +351,161 @@ const Residents = () => {
       { field: 'is_4ps', docType: '4ps', name: '4Ps Member' },
       { field: 'is_pwd', docType: 'pwd', name: 'PWD' },
       { field: 'is_solo_parent', docType: 'solo_parent', name: 'Solo Parent' },
-      { field: 'is_out_of_school_youth', docType: 'osy', name: 'Out of School Youth' }
-    ]
+      { field: 'is_out_of_school_youth', docType: 'osy', name: 'Out of School Youth' },
+    ];
 
     for (const check of vulnerabilityChecks) {
       if (formData[check.field] && !formData.documents[check.docType]) {
-        notify(`Please upload supporting document for ${check.name} status.`, 'warning')
-        return
+        notify(`Please upload supporting document for ${check.name} status.`, 'warning');
+        return;
       }
     }
 
     try {
-      const endpoint = editing ? `residents/${editing.Resident_ID}` : 'residents'
-      const method = editing ? 'put' : 'post'
+      const endpoint = editing ? `residents/${editing.Resident_ID}` : 'residents';
+      const method = editing ? 'put' : 'post';
 
       // Create FormData for file uploads
-      const submitData = new FormData()
-      
+      const submitData = new FormData();
+
       // Add all form fields
       Object.keys(formData).forEach(key => {
         if (key !== 'documents') {
-          submitData.append(key, formData[key])
+          submitData.append(key, formData[key]);
         }
-      })
+      });
 
       // Add document files
       Object.keys(formData.documents).forEach(docType => {
         if (formData.documents[docType]) {
-          submitData.append(`document_${docType}`, formData.documents[docType])
+          submitData.append(`document_${docType}`, formData.documents[docType]);
         }
-      })
+      });
 
       // Use apiRequest for FormData
       const response = await apiRequest(endpoint, {
         method: method.toUpperCase(),
-        body: submitData
-      })
+        body: submitData,
+      });
 
       if (response.ok) {
-        const result = await response.json()
-        fetchResidents()
-        handleCloseDialog()
+        const result = await response.json();
+        fetchResidents();
+        handleCloseDialog();
 
         // Show different messages for create vs update
         if (editing) {
-          notify('Resident updated successfully!', 'success')
+          notify('Resident updated successfully!', 'success');
         } else {
           // Show generated credentials for new resident
-          setNewCredentials(result)
-          setCredentialsModalOpen(true)
+          setNewCredentials(result);
+          setCredentialsModalOpen(true);
         }
       } else {
-        const error = await response.json()
-        notify('Error: ' + (error.error || 'Unknown error'), 'error')
+        const error = await response.json();
+        notify('Error: ' + (error.error || 'Unknown error'), 'error');
       }
     } catch (error) {
-      console.error('Error saving resident:', error)
-      notify('Error saving resident: ' + error.message, 'error')
+      console.error('Error saving resident:', error);
+      notify('Error saving resident: ' + error.message, 'error');
     }
-  }
+  };
 
-  const handleConfirmationConfirm = (inputValue) => {
+  const handleConfirmationConfirm = inputValue => {
     if (confirmationAction && confirmationAction.onConfirm) {
-      confirmationAction.onConfirm(inputValue)
+      confirmationAction.onConfirm(inputValue);
     }
-    setConfirmationModalOpen(false)
-    setConfirmationAction(null)
-  }
+    setConfirmationModalOpen(false);
+    setConfirmationAction(null);
+  };
 
-  const handleArchive = async (residentId) => {
+  const handleArchive = async residentId => {
     setConfirmationAction({
       title: 'Archive Resident',
-      message: 'Please provide a reason for archiving this resident. This action will move the resident to the archive list.',
+      message:
+        'Please provide a reason for archiving this resident. This action will move the resident to the archive list.',
       icon: 'warning',
       showInput: true,
       inputLabel: 'Departure Reason',
       inputRequired: true,
       confirmText: 'Archive',
-      onConfirm: async (reason) => {
+      onConfirm: async reason => {
         try {
           const response = await apiRequest(`residents/${residentId}/archive`, {
             method: 'put',
             body: {
               departure_reason: reason,
-              departure_date: new Date().toISOString()
-            }
-          })
+              departure_date: new Date().toISOString(),
+            },
+          });
 
           if (response.ok) {
-            fetchResidents()
-            notify('Resident archived successfully', 'success')
+            fetchResidents();
+            notify('Resident archived successfully', 'success');
           } else {
-            notify('Error archiving resident', 'error')
+            notify('Error archiving resident', 'error');
           }
         } catch (error) {
-          console.error('Error archiving resident:', error)
-          notify('Error archiving resident: ' + error.message, 'error')
+          console.error('Error archiving resident:', error);
+          notify('Error archiving resident: ' + error.message, 'error');
         }
-      }
-    })
-    setConfirmationModalOpen(true)
-  }
+      },
+    });
+    setConfirmationModalOpen(true);
+  };
 
-  const handleBulkImport = async (event) => {
-    const file = event.target.files[0]
-    if (!file) return
+  const handleBulkImport = async event => {
+    const file = event.target.files[0];
+    if (!file) return;
 
-    const formDataUpload = new FormData()
-    formDataUpload.append('file', file)
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', file);
 
     try {
       // For file uploads, we can use apiRequest as it handles FormData correctly
       const response = await apiRequest('/residents/bulk-import', {
         method: 'POST',
-        body: formDataUpload
-      })
+        body: formDataUpload,
+      });
 
-      const result = await response.json()
-      setBulkImportResult(result)
+      const result = await response.json();
+      setBulkImportResult(result);
 
       if (response.ok) {
-        fetchResidents()
-        setTimeout(() => setOpenBulkImport(false), 3000)
+        fetchResidents();
+        setTimeout(() => setOpenBulkImport(false), 3000);
       }
     } catch (error) {
-      console.error('Error in bulk import:', error)
-      setBulkImportResult({ error: error.message })
+      console.error('Error in bulk import:', error);
+      setBulkImportResult({ error: error.message });
     }
-  }
+  };
 
-  const generateQR = async (resident) => {
+  const generateQR = async resident => {
     try {
       const response = await apiRequest(`residents/${resident.Resident_ID}/generate-qr`, {
-        method: 'POST'
-      })
+        method: 'POST',
+      });
 
       if (response.ok) {
-        const result = await response.json()
-        
+        const result = await response.json();
+
         // Open the QR Modal instead of alert
-        setSelectedQrCode(result.qr_code)
-        setSelectedResidentName(`${resident.First_Name} ${resident.Last_Name}`)
-        setQrModalOpen(true)
+        setSelectedQrCode(result.qr_code);
+        setSelectedResidentName(`${resident.First_Name} ${resident.Last_Name}`);
+        setQrModalOpen(true);
       }
     } catch (error) {
-      console.error('Error generating QR:', error)
-      notify('Error generating QR code', 'error')
+      console.error('Error generating QR:', error);
+      notify('Error generating QR code', 'error');
     }
-  }
+  };
 
-  const getHouseholdMembers = async (householdId) => {
+  const getHouseholdMembers = async householdId => {
     try {
-      const response = await apiRequest(`households/${householdId}/members`)
+      const response = await apiRequest(`households/${householdId}/members`);
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json();
         // Convert MySQL boolean values (0/1) to proper JavaScript booleans for household members
         const processedHousehold = {
           ...data,
@@ -512,113 +515,126 @@ const Residents = () => {
             Is_PWD: Boolean(member.Is_PWD),
             Is_Senior: Boolean(member.Is_Senior),
             Is_Solo_Parent: Boolean(member.Is_Solo_Parent),
-            Is_Out_of_School_Youth: Boolean(member.Is_Out_of_School_Youth)
-          }))
-        }
-        setSelectedHousehold(processedHousehold)
+            Is_Out_of_School_Youth: Boolean(member.Is_Out_of_School_Youth),
+          })),
+        };
+        setSelectedHousehold(processedHousehold);
       }
     } catch (error) {
-      console.error('Error fetching household members:', error)
+      console.error('Error fetching household members:', error);
     }
-  }
+  };
 
   // Filtered and searched residents
   const filteredResidents = useMemo(() => {
-    return residents.filter((resident) => {
+    return residents.filter(resident => {
       // Search term filter
-      const searchMatch = !searchTerm ||
-        `${resident.First_Name} ${resident.Middle_Name} ${resident.Last_Name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const searchMatch =
+        !searchTerm ||
+        `${resident.First_Name} ${resident.Middle_Name} ${resident.Last_Name}`
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         resident.Household_Number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         resident.sitio_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        resident.Occupation?.toLowerCase().includes(searchTerm.toLowerCase())
+        resident.Occupation?.toLowerCase().includes(searchTerm.toLowerCase());
 
       // Gender filter
-      const genderMatch = !genderFilter || resident.Gender === genderFilter
+      const genderMatch = !genderFilter || resident.Gender === genderFilter;
 
       // Sitio filter
-      const sitioMatch = !sitioFilter || resident.sitio_name === sitioFilter
+      const sitioMatch = !sitioFilter || resident.sitio_name === sitioFilter;
 
       // Vulnerability filter
-      const vulnerabilityMatch = !vulnerabilityFilter ||
+      const vulnerabilityMatch =
+        !vulnerabilityFilter ||
         (vulnerabilityFilter === 'vulnerable' && resident.Vulnerability_Score > 0) ||
         (vulnerabilityFilter === 'senior' && resident.Is_Senior) ||
         (vulnerabilityFilter === 'pwd' && resident.Is_PWD) ||
         (vulnerabilityFilter === '4ps' && resident.Is_4Ps) ||
         (vulnerabilityFilter === 'solo_parent' && resident.Is_Solo_Parent) ||
-        (vulnerabilityFilter === 'osy' && resident.Is_Out_of_School_Youth)
+        (vulnerabilityFilter === 'osy' && resident.Is_Out_of_School_Youth);
 
-      return searchMatch && genderMatch && sitioMatch && vulnerabilityMatch
-    })
-  }, [residents, searchTerm, genderFilter, sitioFilter, vulnerabilityFilter])
+      return searchMatch && genderMatch && sitioMatch && vulnerabilityMatch;
+    });
+  }, [residents, searchTerm, genderFilter, sitioFilter, vulnerabilityFilter]);
 
   const generateResidentsPDF = async () => {
     try {
       // Create URL with current filters
-      const params = new URLSearchParams()
+      const params = new URLSearchParams();
 
       // Add filters
-      if (searchTerm) params.append('search', searchTerm)
-      if (genderFilter) params.append('gender', genderFilter)
-      if (sitioFilter) params.append('sitio', sitioFilter)
-      if (vulnerabilityFilter === 'vulnerable') params.append('vulnerability', vulnerabilityFilter)
-      if (vulnerabilityFilter && vulnerabilityFilter !== 'vulnerable') params.append('vulnerability', vulnerabilityFilter)
-      if (residencyFilter) params.append('residencyFilter', residencyFilter)
-      if (dateFrom) params.append('dateFrom', dateFrom)
-      if (dateTo) params.append('dateTo', dateTo)
+      if (searchTerm) params.append('search', searchTerm);
+      if (genderFilter) params.append('gender', genderFilter);
+      if (sitioFilter) params.append('sitio', sitioFilter);
+      if (vulnerabilityFilter === 'vulnerable') params.append('vulnerability', vulnerabilityFilter);
+      if (vulnerabilityFilter && vulnerabilityFilter !== 'vulnerable')
+        params.append('vulnerability', vulnerabilityFilter);
+      if (residencyFilter) params.append('residencyFilter', residencyFilter);
+      if (dateFrom) params.append('dateFrom', dateFrom);
+      if (dateTo) params.append('dateTo', dateTo);
 
       // Call the PDF export endpoint
       const response = await apiRequest(`admin/reports/pdf/residents?${params}`, {
-        method: 'GET'
-      })
+        method: 'GET',
+      });
 
       if (!response.ok) {
-        throw new Error(`Failed to generate PDF: ${response.statusText}`)
+        throw new Error(`Failed to generate PDF: ${response.statusText}`);
       }
 
       // Download the PDF
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `residents_report_${new Date().toISOString().split('T')[0]}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `residents_report_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
-      notify('Residents PDF report downloaded successfully!', 'success')
+      notify('Residents PDF report downloaded successfully!', 'success');
     } catch (error) {
-      console.error('PDF generation error:', error)
-      notify(`Failed to generate PDF: ${error.message}`, 'error')
+      console.error('PDF generation error:', error);
+      notify(`Failed to generate PDF: ${error.message}`, 'error');
     }
-  }
+  };
 
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">
+        <Typography variant='h4'>
           <People sx={{ mr: 1, verticalAlign: 'middle' }} />
           Resident Profiling & RBIM
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" startIcon={<Download />} onClick={generateResidentsPDF}>
+          <Button variant='outlined' startIcon={<Download />} onClick={generateResidentsPDF}>
             Export PDF
           </Button>
-          <Button variant="outlined" startIcon={<Refresh />} onClick={() => fetchResidents()}>
+          <Button variant='outlined' startIcon={<Refresh />} onClick={() => fetchResidents()}>
             Refresh
           </Button>
           <WriteProtected>
-            <Button variant="outlined" startIcon={<CloudUpload />} onClick={() => setOpenBulkImport(true)}>
+            <Button
+              variant='outlined'
+              startIcon={<CloudUpload />}
+              onClick={() => setOpenBulkImport(true)}
+            >
               Bulk Import
             </Button>
           </WriteProtected>
           <WriteProtected>
-            <Button variant="outlined" startIcon={<FamilyRestroom />} onClick={() => setOpenHousehold(true)}>
+            <Button
+              variant='outlined'
+              startIcon={<FamilyRestroom />}
+              onClick={() => setOpenHousehold(true)}
+            >
               Add Household
             </Button>
           </WriteProtected>
           <WriteProtected>
-            <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()}>
+            <Button variant='contained' startIcon={<Add />} onClick={() => handleOpenDialog()}>
               Add Resident
             </Button>
           </WriteProtected>
@@ -626,15 +642,15 @@ const Residents = () => {
       </Box>
 
       <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ mb: 3 }}>
-        <Tab label="Residents" />
-        <Tab label="Households" />
+        <Tab label='Residents' />
+        <Tab label='Households' />
       </Tabs>
 
       {tabValue === 0 && (
         <>
           {/* Search and Filter Controls */}
           <Paper sx={{ p: 2, mb: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+            <Typography variant='h6' sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
               <FilterList sx={{ mr: 1 }} />
               Search & Filter Residents
             </Typography>
@@ -643,27 +659,27 @@ const Residents = () => {
               <Grid xs={12} md={3}>
                 <TextField
                   fullWidth
-                  label="Search"
+                  label='Search'
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={e => setSearchTerm(e.target.value)}
                   InputProps={{
                     startAdornment: (
-                      <InputAdornment position="start">
+                      <InputAdornment position='start'>
                         <Search />
                       </InputAdornment>
                     ),
                   }}
-                  placeholder="Search by name, household, sitio..."
+                  placeholder='Search by name, household, sitio...'
                 />
               </Grid>
 
               <Grid xs={12} sm={6} md={2}>
                 <TextField
                   fullWidth
-                  label="Date From"
-                  type="date"
+                  label='Date From'
+                  type='date'
                   value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
+                  onChange={e => setDateFrom(e.target.value)}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
@@ -671,39 +687,39 @@ const Residents = () => {
               <Grid xs={12} sm={6} md={2}>
                 <TextField
                   fullWidth
-                  label="Date To"
-                  type="date"
+                  label='Date To'
+                  type='date'
                   value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
+                  onChange={e => setDateTo(e.target.value)}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
 
               <Grid xs={12} sm={6} md={2}>
-                <FormControl fullWidth size="small">
+                <FormControl fullWidth size='small'>
                   <InputLabel>Gender</InputLabel>
                   <Select
                     value={genderFilter}
-                    onChange={(e) => setGenderFilter(e.target.value)}
-                    label="Gender"
+                    onChange={e => setGenderFilter(e.target.value)}
+                    label='Gender'
                     sx={{
                       minWidth: 120,
                       '& .MuiSelect-select': {
                         fontSize: '0.875rem',
                         padding: '8px 14px',
-                      }
+                      },
                     }}
                   >
-                    <MenuItem value="">
+                    <MenuItem value=''>
                       <Box sx={{ fontSize: '0.875rem' }}>All</Box>
                     </MenuItem>
-                    <MenuItem value="Male">
+                    <MenuItem value='Male'>
                       <Box sx={{ fontSize: '0.875rem' }}>Male</Box>
                     </MenuItem>
-                    <MenuItem value="Female">
+                    <MenuItem value='Female'>
                       <Box sx={{ fontSize: '0.875rem' }}>Female</Box>
                     </MenuItem>
-                    <MenuItem value="Other">
+                    <MenuItem value='Other'>
                       <Box sx={{ fontSize: '0.875rem' }}>Other</Box>
                     </MenuItem>
                   </Select>
@@ -711,24 +727,24 @@ const Residents = () => {
               </Grid>
 
               <Grid xs={12} sm={6} md={2}>
-                <FormControl fullWidth size="small">
+                <FormControl fullWidth size='small'>
                   <InputLabel>Sitio</InputLabel>
                   <Select
                     value={sitioFilter}
-                    onChange={(e) => setSitioFilter(e.target.value)}
-                    label="Sitio"
+                    onChange={e => setSitioFilter(e.target.value)}
+                    label='Sitio'
                     sx={{
                       minWidth: 140,
                       '& .MuiSelect-select': {
                         fontSize: '0.875rem',
                         padding: '8px 14px',
-                      }
+                      },
                     }}
                   >
-                    <MenuItem value="">
+                    <MenuItem value=''>
                       <Box sx={{ fontSize: '0.875rem' }}>All Sitios</Box>
                     </MenuItem>
-                    {sitios.map((sitio) => (
+                    {sitios.map(sitio => (
                       <MenuItem key={sitio.id} value={sitio.name}>
                         <Box sx={{ fontSize: '0.875rem' }}>{sitio.name}</Box>
                       </MenuItem>
@@ -738,39 +754,39 @@ const Residents = () => {
               </Grid>
 
               <Grid xs={12} sm={6} md={1}>
-                <FormControl fullWidth size="small">
+                <FormControl fullWidth size='small'>
                   <InputLabel>Vulnerabilities</InputLabel>
                   <Select
                     value={vulnerabilityFilter}
-                    onChange={(e) => setVulnerabilityFilter(e.target.value)}
-                    label="Vulnerabilities"
+                    onChange={e => setVulnerabilityFilter(e.target.value)}
+                    label='Vulnerabilities'
                     sx={{
                       minWidth: 120,
                       '& .MuiSelect-select': {
                         fontSize: '0.875rem',
                         padding: '8px 14px',
-                      }
+                      },
                     }}
                   >
-                    <MenuItem value="">
+                    <MenuItem value=''>
                       <Box sx={{ fontSize: '0.875rem' }}>All</Box>
                     </MenuItem>
-                    <MenuItem value="vulnerable">
+                    <MenuItem value='vulnerable'>
                       <Box sx={{ fontSize: '0.875rem' }}>Any</Box>
                     </MenuItem>
-                    <MenuItem value="senior">
+                    <MenuItem value='senior'>
                       <Box sx={{ fontSize: '0.875rem' }}>Senior</Box>
                     </MenuItem>
-                    <MenuItem value="pwd">
+                    <MenuItem value='pwd'>
                       <Box sx={{ fontSize: '0.875rem' }}>PWD</Box>
                     </MenuItem>
-                    <MenuItem value="4ps">
+                    <MenuItem value='4ps'>
                       <Box sx={{ fontSize: '0.875rem' }}>4Ps</Box>
                     </MenuItem>
-                    <MenuItem value="solo_parent">
+                    <MenuItem value='solo_parent'>
                       <Box sx={{ fontSize: '0.875rem' }}>Solo</Box>
                     </MenuItem>
-                    <MenuItem value="osy">
+                    <MenuItem value='osy'>
                       <Box sx={{ fontSize: '0.875rem' }}>OSY</Box>
                     </MenuItem>
                   </Select>
@@ -778,22 +794,31 @@ const Residents = () => {
               </Grid>
             </Grid>
 
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
+            <Box
+              sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+            >
+              <Typography variant='body2' color='text.secondary'>
                 Showing {filteredResidents.length} of {residents.length} residents
               </Typography>
               <Button
-                size="small"
+                size='small'
                 onClick={() => {
-                  setSearchTerm('')
-                  setDateFrom('')
-                  setDateTo('')
-                  setGenderFilter('')
-                  setSitioFilter('')
-                  setVulnerabilityFilter('')
-                  fetchResidents()
+                  setSearchTerm('');
+                  setDateFrom('');
+                  setDateTo('');
+                  setGenderFilter('');
+                  setSitioFilter('');
+                  setVulnerabilityFilter('');
+                  fetchResidents();
                 }}
-                disabled={!searchTerm && !dateFrom && !dateTo && !genderFilter && !sitioFilter && !vulnerabilityFilter}
+                disabled={
+                  !searchTerm &&
+                  !dateFrom &&
+                  !dateTo &&
+                  !genderFilter &&
+                  !sitioFilter &&
+                  !vulnerabilityFilter
+                }
               >
                 Clear Filters
               </Button>
@@ -818,22 +843,24 @@ const Residents = () => {
                 {filteredResidents.map((resident, index) => (
                   <TableRow key={`${resident.Resident_ID}-${index}`}>
                     <TableCell>
-                      <Avatar src={resident.Profile_Photo_URL} alt="Profile">
-                        {resident.First_Name?.[0]}{resident.Last_Name?.[0]}
+                      <Avatar src={resident.Profile_Photo_URL} alt='Profile'>
+                        {resident.First_Name?.[0]}
+                        {resident.Last_Name?.[0]}
                       </Avatar>
                     </TableCell>
                     <TableCell>
-                      {resident.First_Name} {resident.Middle_Name} {resident.Last_Name} {resident.Suffix}
+                      {resident.First_Name} {resident.Middle_Name} {resident.Last_Name}{' '}
+                      {resident.Suffix}
                       <br />
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant='caption' color='text.secondary'>
                         {resident.Relation_to_Head} • {resident.Occupation}
                       </Typography>
                     </TableCell>
                     <TableCell>{resident.Age}</TableCell>
                     <TableCell>
                       <Button
-                        size="small"
-                        variant="text"
+                        size='small'
+                        variant='text'
                         onClick={() => getHouseholdMembers(resident.Household_ID)}
                       >
                         {resident.Household_Number}
@@ -842,46 +869,59 @@ const Residents = () => {
                     <TableCell>{resident.sitio_name}</TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                        {resident.Is_Senior && <Chip label="Senior" size="small" color="primary" />}
-                        {resident.Is_PWD && <Chip label="PWD" size="small" color="secondary" />}
-                        {resident.Is_4Ps && <Chip label="4Ps" size="small" color="info" />}
-                        {resident.Is_Solo_Parent && <Chip label="Solo Parent" size="small" color="warning" />}
-                        {resident.Is_Out_of_School_Youth && <Chip label="OSY" size="small" color="error" />}
+                        {resident.Is_Senior && <Chip label='Senior' size='small' color='primary' />}
+                        {resident.Is_PWD && <Chip label='PWD' size='small' color='secondary' />}
+                        {resident.Is_4Ps && <Chip label='4Ps' size='small' color='info' />}
+                        {resident.Is_Solo_Parent && (
+                          <Chip label='Solo Parent' size='small' color='warning' />
+                        )}
+                        {resident.Is_Out_of_School_Youth && (
+                          <Chip label='OSY' size='small' color='error' />
+                        )}
                       </Box>
                     </TableCell>
                     <TableCell>
                       <Chip
                         label={resident.Residency_Status}
                         color={resident.Residency_Status === 'Active' ? 'success' : 'default'}
-                        size="small"
+                        size='small'
                       />
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <WriteProtected fallback={
-                          <Tooltip title="View Details">
-                            <IconButton size="small" onClick={() => handleOpenDialog(resident, true)}>
-                              <Visibility />
-                            </IconButton>
-                          </Tooltip>
-                        }>
-                          <Tooltip title="Edit">
-                            <IconButton size="small" onClick={() => handleOpenDialog(resident)}>
+                        <WriteProtected
+                          fallback={
+                            <Tooltip title='View Details'>
+                              <IconButton
+                                size='small'
+                                onClick={() => handleOpenDialog(resident, true)}
+                              >
+                                <Visibility />
+                              </IconButton>
+                            </Tooltip>
+                          }
+                        >
+                          <Tooltip title='Edit'>
+                            <IconButton size='small' onClick={() => handleOpenDialog(resident)}>
                               <Edit />
                             </IconButton>
                           </Tooltip>
                         </WriteProtected>
                         <WriteProtected>
-                          <Tooltip title="Generate QR ID">
-                            <IconButton size="small" onClick={() => generateQR(resident)}>
+                          <Tooltip title='Generate QR ID'>
+                            <IconButton size='small' onClick={() => generateQR(resident)}>
                               <QrCode />
                             </IconButton>
                           </Tooltip>
                         </WriteProtected>
                         <WriteProtected>
                           {resident.Residency_Status === 'Active' && (
-                            <Tooltip title="Archive Resident">
-                              <IconButton size="small" color="error" onClick={() => handleArchive(resident.Resident_ID)}>
+                            <Tooltip title='Archive Resident'>
+                              <IconButton
+                                size='small'
+                                color='error'
+                                onClick={() => handleArchive(resident.Resident_ID)}
+                              >
                                 <Delete />
                               </IconButton>
                             </Tooltip>
@@ -899,7 +939,9 @@ const Residents = () => {
 
       {tabValue === 1 && (
         <Box>
-          <Typography variant="h6" sx={{ mb: 2 }}>Household Management</Typography>
+          <Typography variant='h6' sx={{ mb: 2 }}>
+            Household Management
+          </Typography>
           <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
             <Table sx={{ minWidth: 700 }}>
               <TableHead>
@@ -913,7 +955,7 @@ const Residents = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {households.map((household) => (
+                {households.map(household => (
                   <TableRow key={household.Household_ID}>
                     <TableCell>{household.Household_Number}</TableCell>
                     <TableCell>{household.Street_Address}</TableCell>
@@ -921,7 +963,10 @@ const Residents = () => {
                     <TableCell>{household.Household_Type}</TableCell>
                     <TableCell>{household.Total_Members}</TableCell>
                     <TableCell>
-                      <Button size="small" onClick={() => getHouseholdMembers(household.Household_ID)}>
+                      <Button
+                        size='small'
+                        onClick={() => getHouseholdMembers(household.Household_ID)}
+                      >
                         View Family
                       </Button>
                     </TableCell>
@@ -935,34 +980,47 @@ const Residents = () => {
 
       {/* Household Members View */}
       {selectedHousehold && (
-        <Dialog open={!!selectedHousehold} onClose={() => setSelectedHousehold(null)} maxWidth="md" fullWidth>
-          <DialogTitle>Household Members - {selectedHousehold.household?.Household_Number}</DialogTitle>
+        <Dialog
+          open={!!selectedHousehold}
+          onClose={() => setSelectedHousehold(null)}
+          maxWidth='md'
+          fullWidth
+        >
+          <DialogTitle>
+            Household Members - {selectedHousehold.household?.Household_Number}
+          </DialogTitle>
           <DialogContent>
-            <Typography variant="subtitle1" sx={{ mb: 2 }}>
-              {selectedHousehold.household?.Street_Address}, {selectedHousehold.household?.sitio_name}
+            <Typography variant='subtitle1' sx={{ mb: 2 }}>
+              {selectedHousehold.household?.Street_Address},{' '}
+              {selectedHousehold.household?.sitio_name}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {selectedHousehold.household?.Household_Type} Family • {selectedHousehold.members?.length} members
+            <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
+              {selectedHousehold.household?.Household_Type} Family •{' '}
+              {selectedHousehold.members?.length} members
             </Typography>
 
-            {selectedHousehold.members?.map((member) => (
+            {selectedHousehold.members?.map(member => (
               <Card key={member.Resident_ID} sx={{ mb: 2 }}>
                 <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar src={member.Profile_Photo_URL}>
-                    {member.First_Name?.[0]}{member.Last_Name?.[0]}
+                    {member.First_Name?.[0]}
+                    {member.Last_Name?.[0]}
                   </Avatar>
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="h6">
+                    <Typography variant='h6'>
                       {member.First_Name} {member.Middle_Name} {member.Last_Name}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {member.Relation_to_Head} • Age {member.Age} • {member.Occupation || 'No occupation'}
+                    <Typography variant='body2' color='text.secondary'>
+                      {member.Relation_to_Head} • Age {member.Age} •{' '}
+                      {member.Occupation || 'No occupation'}
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                      {member.Is_Senior && <Chip label="Senior" size="small" color="primary" />}
-                      {member.Is_PWD && <Chip label="PWD" size="small" color="secondary" />}
-                      {member.Is_4Ps && <Chip label="4Ps" size="small" color="info" />}
-                      {member.Is_Solo_Parent && <Chip label="Solo Parent" size="small" color="warning" />}
+                      {member.Is_Senior && <Chip label='Senior' size='small' color='primary' />}
+                      {member.Is_PWD && <Chip label='PWD' size='small' color='secondary' />}
+                      {member.Is_4Ps && <Chip label='4Ps' size='small' color='info' />}
+                      {member.Is_Solo_Parent && (
+                        <Chip label='Solo Parent' size='small' color='warning' />
+                      )}
                     </Box>
                   </Box>
                   <Chip
@@ -980,467 +1038,548 @@ const Residents = () => {
       )}
 
       {/* Add/Edit Resident Dialog */}
-      <Dialog open={open} onClose={handleCloseDialog} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ 
-          bgcolor: 'primary.main', 
-          color: 'white', 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1 
-        }}>
+      <Dialog open={open} onClose={handleCloseDialog} maxWidth='lg' fullWidth>
+        <DialogTitle
+          sx={{
+            bgcolor: 'primary.main',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
+        >
           <People />
-          {viewOnly ? 'View Resident Information' : (editing ? 'Edit Resident Information' : 'Add New Resident')}
+          {viewOnly
+            ? 'View Resident Information'
+            : editing
+              ? 'Edit Resident Information'
+              : 'Add New Resident'}
         </DialogTitle>
-        <DialogContent sx={{ p: 3, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'background.default' : 'white' }}>
+        <DialogContent
+          sx={{
+            p: 3,
+            bgcolor: theme => (theme.palette.mode === 'dark' ? 'background.default' : 'white'),
+          }}
+        >
           <Box sx={{ pt: 1 }}>
             {/* Duplicate Check */}
-            {!editing && !viewOnly && formData.first_name && formData.last_name && formData.birthdate && (
-              <Box sx={{ mb: 3 }}>
-                <Button variant="outlined" onClick={checkDuplicate} sx={{ mb: 1 }}>
-                  Check for Duplicates
-                </Button>
-                {duplicateCheck && (
-                  <Alert severity={duplicateCheck.is_duplicate ? 'warning' : 'success'} sx={{ mt: 1 }}>
-                    {duplicateCheck.message}
-                    {duplicateCheck.duplicates?.length > 0 && (
-                      <ul>
-                        {duplicateCheck.duplicates.slice(0, 3).map((dup, idx) => (
-                          <li key={idx}>
-                            {dup.First_Name} {dup.Last_Name} ({dup.sitio_name}) - {dup.Residency_Status}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </Alert>
-                )}
-              </Box>
-            )}
+            {!editing &&
+              !viewOnly &&
+              formData.first_name &&
+              formData.last_name &&
+              formData.birthdate && (
+                <Box sx={{ mb: 3 }}>
+                  <Button variant='outlined' onClick={checkDuplicate} sx={{ mb: 1 }}>
+                    Check for Duplicates
+                  </Button>
+                  {duplicateCheck && (
+                    <Alert
+                      severity={duplicateCheck.is_duplicate ? 'warning' : 'success'}
+                      sx={{ mt: 1 }}
+                    >
+                      {duplicateCheck.message}
+                      {duplicateCheck.duplicates?.length > 0 && (
+                        <ul>
+                          {duplicateCheck.duplicates.slice(0, 3).map((dup, idx) => (
+                            <li key={idx}>
+                              {dup.First_Name} {dup.Last_Name} ({dup.sitio_name}) -{' '}
+                              {dup.Residency_Status}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </Alert>
+                  )}
+                </Box>
+              )}
 
             {/* Household Information Section */}
-            <fieldset disabled={viewOnly} style={{ border: 'none', padding: 0, margin: 0, width: '100%' }}>
-            <Paper sx={{ p: 2, mb: 3, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'grey.50' }}>
-              <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
-                Household Information
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid xs={12} sm={8}>
-                  <FormControl fullWidth size="medium">
-                    <InputLabel>Household *</InputLabel>
-                    <Select
-                      value={formData.household_id || ''}
-                      onChange={(e) => setFormData({...formData, household_id: e.target.value})}
-                      label="Household *"
-                      required
-                    >
-                      <MenuItem value="">
-                        <em>Select a household</em>
-                      </MenuItem>
-                      {households.map((household) => (
-                        <MenuItem key={household.Household_ID} value={household.Household_ID}>
-                          {household.Household_Number} - {household.Street_Address} ({household.sitio_name})
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid xs={12} sm={4}>
-                  <FormControl fullWidth size="medium">
-                    <InputLabel>Relation to Head</InputLabel>
-                    <Select
-                      value={formData.relation_to_head || 'Head'}
-                      onChange={(e) => setFormData({...formData, relation_to_head: e.target.value})}
-                      label="Relation to Head"
-                    >
-                      <MenuItem value="Head">Head of Household</MenuItem>
-                      <MenuItem value="Spouse">Spouse</MenuItem>
-                      <MenuItem value="Child">Child</MenuItem>
-                      <MenuItem value="Parent">Parent</MenuItem>
-                      <MenuItem value="Sibling">Sibling</MenuItem>
-                      <MenuItem value="Relative">Other Relative</MenuItem>
-                      <MenuItem value="Boarder">Boarder</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </Grid>
-            </Paper>
-
-            {/* Personal Information Section */}
-            <Paper sx={{ p: 2, mb: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
-                Personal Information
-              </Typography>
-              <Grid container spacing={2}>
-
-                <Grid xs={12} sm={3}>
-                  <TextField
-                    fullWidth
-                    label="First Name *"
-                    value={formData.first_name || ''}
-                    onChange={(e) => setFormData({...formData, first_name: e.target.value})}
-                    required
-                    size="medium"
-                  />
-                </Grid>
-                <Grid xs={12} sm={3}>
-                  <TextField
-                    fullWidth
-                    label="Middle Name"
-                    value={formData.middle_name || ''}
-                    onChange={(e) => setFormData({...formData, middle_name: e.target.value})}
-                    size="medium"
-                  />
-                </Grid>
-                <Grid xs={12} sm={3}>
-                  <TextField
-                    fullWidth
-                    label="Last Name *"
-                    value={formData.last_name || ''}
-                    onChange={(e) => setFormData({...formData, last_name: e.target.value})}
-                    required
-                    size="medium"
-                  />
-                </Grid>
-                <Grid xs={12} sm={3}>
-                  <TextField
-                    fullWidth
-                    label="Suffix"
-                    value={formData.suffix || ''}
-                    onChange={(e) => setFormData({...formData, suffix: e.target.value})}
-                    placeholder="Jr., Sr., III"
-                    size="medium"
-                  />
-                </Grid>
-
-                <Grid xs={12} sm={4}>
-                  <TextField
-                    fullWidth
-                    label="Birthdate *"
-                    type="date"
-                    value={formData.birthdate || ''}
-                    onChange={(e) => setFormData({...formData, birthdate: e.target.value})}
-                    required
-                    InputLabelProps={{ shrink: true }}
-                    size="medium"
-                  />
-                </Grid>
-                <Grid xs={12} sm={4}>
-                  <FormControl fullWidth size="medium">
-                    <InputLabel>Gender</InputLabel>
-                    <Select
-                      value={formData.gender || 'Male'}
-                      onChange={(e) => setFormData({...formData, gender: e.target.value})}
-                      label="Gender"
-                    >
-                      <MenuItem value="Male">Male</MenuItem>
-                      <MenuItem value="Female">Female</MenuItem>
-                      <MenuItem value="Other">Other</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid xs={12} sm={4}>
-                  <FormControl fullWidth size="medium">
-                    <InputLabel>Civil Status</InputLabel>
-                    <Select
-                      value={formData.civil_status || 'Single'}
-                      onChange={(e) => setFormData({...formData, civil_status: e.target.value})}
-                      label="Civil Status"
-                    >
-                      <MenuItem value="Single">Single</MenuItem>
-                      <MenuItem value="Married">Married</MenuItem>
-                      <MenuItem value="Widowed">Widowed</MenuItem>
-                      <MenuItem value="Separated">Separated</MenuItem>
-                      <MenuItem value="Divorced">Divorced</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </Grid>
-            </Paper>
-
-            {/* Contact & Status Information */}
-            <Paper sx={{ p: 2, mb: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
-                Contact & Status Information
-              </Typography>
-              <Grid container spacing={2}>
-
-                <Grid xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Email Address *"
-                    type="email"
-                    value={formData.email || ''}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    required
-                    placeholder="resident@example.com"
-                    size="medium"
-                  />
-                </Grid>
-                <Grid xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Mobile Number"
-                    value={formData.mobile_number || ''}
-                    onChange={(e) => setFormData({...formData, mobile_number: e.target.value})}
-                    placeholder="09XXXXXXXXX"
-                    size="medium"
-                  />
-                </Grid>
-                <Grid xs={12} sm={6}>
-                  <FormControl fullWidth size="medium">
-                    <InputLabel>Voter Status</InputLabel>
-                    <Select
-                      value={formData.voter_status || 'Non-Registered'}
-                      onChange={(e) => setFormData({...formData, voter_status: e.target.value})}
-                      label="Voter Status"
-                    >
-                      <MenuItem value="Registered">Registered Voter</MenuItem>
-                      <MenuItem value="Non-Registered">Not Registered</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Date of Arrival"
-                    type="date"
-                    value={formData.date_arrival || new Date().toISOString().split('T')[0]}
-                    onChange={(e) => setFormData({...formData, date_arrival: e.target.value})}
-                    InputLabelProps={{ shrink: true }}
-                    size="medium"
-                  />
-                </Grid>
-              </Grid>
-            </Paper>
-
-            {/* Employment Information */}
-            <Paper sx={{ p: 2, mb: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
-                Employment Information
-              </Typography>
-              <Grid container spacing={2}>
-
-                <Grid xs={12} sm={8}>
-                  <TextField
-                    fullWidth
-                    label="Occupation"
-                    value={formData.occupation || ''}
-                    onChange={(e) => setFormData({...formData, occupation: e.target.value})}
-                    placeholder="e.g., Teacher, Farmer, Student, Unemployed"
-                    size="medium"
-                  />
-                </Grid>
-                <Grid xs={12} sm={4}>
-                  <TextField
-                    fullWidth
-                    label="Monthly Income (₱)"
-                    type="number"
-                    value={formData.income_estimate || 0}
-                    onChange={(e) => setFormData({...formData, income_estimate: parseFloat(e.target.value) || 0})}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">₱</InputAdornment>,
-                    }}
-                    size="medium"
-                  />
-                </Grid>
-              </Grid>
-            </Paper>
-
-            {/* Vulnerabilities Section */}
-            <Paper sx={{ p: 2, mb: 2, bgcolor: 'warning.50', border: '1px solid', borderColor: 'warning.200' }}>
-              <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>Vulnerabilities & Special Categories</Typography>
-              <Alert severity="info" sx={{ mb: 2 }}>
-                <Typography variant="body2">
-                  <strong>Document Verification Required:</strong> All vulnerability declarations require supporting documents (JPG, PNG, PDF - max 5MB)
+            <fieldset
+              disabled={viewOnly}
+              style={{ border: 'none', padding: 0, margin: 0, width: '100%' }}
+            >
+              <Paper
+                sx={{
+                  p: 2,
+                  mb: 3,
+                  bgcolor: theme =>
+                    theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'grey.50',
+                }}
+              >
+                <Typography variant='h6' sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
+                  Household Information
                 </Typography>
-              </Alert>
-              <Grid container spacing={2}>
-                <Grid xs={6} sm={3}>
-                  <FormControl fullWidth size="medium">
-                    <InputLabel>4Ps Member</InputLabel>
-                    <Select
-                      value={formData.is_4ps ? 'true' : 'false'}
-                      onChange={(e) => setFormData({...formData, is_4ps: e.target.value === 'true'})}
-                      label="4Ps Member"
-                    >
-                      <MenuItem value="false">No</MenuItem>
-                      <MenuItem value="true">Yes</MenuItem>
-                    </Select>
-                  </FormControl>
-                  {formData.is_4ps && (
-                    <Box sx={{ mt: 1 }}>
-                      <input
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        style={{ display: 'none' }}
-                        id="4ps-document"
-                        type="file"
-                        onChange={(e) => handleDocumentUpload(e, '4ps')}
-                      />
-                      <label htmlFor="4ps-document">
-                        <Button
-                          variant="outlined"
-                          component="span"
-                          size="small"
-                          fullWidth
-                          startIcon={<CloudUpload />}
-                        >
-                          Upload 4Ps ID
-                        </Button>
-                      </label>
-                      {formData.documents?.['4ps'] && (
-                        <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
-                          ✓ Document uploaded
-                        </Typography>
-                      )}
-                    </Box>
-                  )}
+                <Grid container spacing={2}>
+                  <Grid xs={12} sm={8}>
+                    <FormControl fullWidth size='medium'>
+                      <InputLabel>Household *</InputLabel>
+                      <Select
+                        value={formData.household_id || ''}
+                        onChange={e => setFormData({ ...formData, household_id: e.target.value })}
+                        label='Household *'
+                        required
+                      >
+                        <MenuItem value=''>
+                          <em>Select a household</em>
+                        </MenuItem>
+                        {households.map(household => (
+                          <MenuItem key={household.Household_ID} value={household.Household_ID}>
+                            {household.Household_Number} - {household.Street_Address} (
+                            {household.sitio_name})
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid xs={12} sm={4}>
+                    <FormControl fullWidth size='medium'>
+                      <InputLabel>Relation to Head</InputLabel>
+                      <Select
+                        value={formData.relation_to_head || 'Head'}
+                        onChange={e =>
+                          setFormData({ ...formData, relation_to_head: e.target.value })
+                        }
+                        label='Relation to Head'
+                      >
+                        <MenuItem value='Head'>Head of Household</MenuItem>
+                        <MenuItem value='Spouse'>Spouse</MenuItem>
+                        <MenuItem value='Child'>Child</MenuItem>
+                        <MenuItem value='Parent'>Parent</MenuItem>
+                        <MenuItem value='Sibling'>Sibling</MenuItem>
+                        <MenuItem value='Relative'>Other Relative</MenuItem>
+                        <MenuItem value='Boarder'>Boarder</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
                 </Grid>
-                <Grid xs={6} sm={3}>
-                  <FormControl fullWidth size="medium">
-                    <InputLabel>PWD</InputLabel>
-                    <Select
-                      value={formData.is_pwd ? 'true' : 'false'}
-                      onChange={(e) => setFormData({...formData, is_pwd: e.target.value === 'true'})}
-                      label="PWD"
-                    >
-                      <MenuItem value="false">No</MenuItem>
-                      <MenuItem value="true">Yes</MenuItem>
-                    </Select>
-                  </FormControl>
-                  {formData.is_pwd && (
-                    <Box sx={{ mt: 1 }}>
-                      <input
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        style={{ display: 'none' }}
-                        id="pwd-document"
-                        type="file"
-                        onChange={(e) => handleDocumentUpload(e, 'pwd')}
-                      />
-                      <label htmlFor="pwd-document">
-                        <Button
-                          variant="outlined"
-                          component="span"
-                          size="small"
-                          fullWidth
-                          startIcon={<CloudUpload />}
-                        >
-                          Upload PWD ID
-                        </Button>
-                      </label>
-                      {formData.documents?.['pwd'] && (
-                        <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
-                          ✓ Document uploaded
-                        </Typography>
-                      )}
-                    </Box>
-                  )}
-                </Grid>
-                <Grid xs={6} sm={3}>
-                  <FormControl fullWidth size="medium">
-                    <InputLabel>Solo Parent</InputLabel>
-                    <Select
-                      value={formData.is_solo_parent ? 'true' : 'false'}
-                      onChange={(e) => setFormData({...formData, is_solo_parent: e.target.value === 'true'})}
-                      label="Solo Parent"
-                    >
-                      <MenuItem value="false">No</MenuItem>
-                      <MenuItem value="true">Yes</MenuItem>
-                    </Select>
-                  </FormControl>
-                  {formData.is_solo_parent && (
-                    <Box sx={{ mt: 1 }}>
-                      <input
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        style={{ display: 'none' }}
-                        id="solo-parent-document"
-                        type="file"
-                        onChange={(e) => handleDocumentUpload(e, 'solo_parent')}
-                      />
-                      <label htmlFor="solo-parent-document">
-                        <Button
-                          variant="outlined"
-                          component="span"
-                          size="small"
-                          fullWidth
-                          startIcon={<CloudUpload />}
-                        >
-                          Upload Solo Parent ID
-                        </Button>
-                      </label>
-                      {formData.documents?.['solo_parent'] && (
-                        <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
-                          ✓ Document uploaded
-                        </Typography>
-                      )}
-                    </Box>
-                  )}
-                </Grid>
-                <Grid xs={6} sm={3}>
-                  <FormControl fullWidth size="medium">
-                    <InputLabel>OSY</InputLabel>
-                    <Select
-                      value={formData.is_out_of_school_youth ? 'true' : 'false'}
-                      onChange={(e) => setFormData({...formData, is_out_of_school_youth: e.target.value === 'true'})}
-                      label="OSY"
-                    >
-                      <MenuItem value="false">No</MenuItem>
-                      <MenuItem value="true">Yes</MenuItem>
-                    </Select>
-                  </FormControl>
-                  {formData.is_out_of_school_youth && (
-                    <Box sx={{ mt: 1 }}>
-                      <input
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        style={{ display: 'none' }}
-                        id="osy-document"
-                        type="file"
-                        onChange={(e) => handleDocumentUpload(e, 'osy')}
-                      />
-                      <label htmlFor="osy-document">
-                        <Button
-                          variant="outlined"
-                          component="span"
-                          size="small"
-                          fullWidth
-                          startIcon={<CloudUpload />}
-                        >
-                          Upload Certificate
-                        </Button>
-                      </label>
-                      {formData.documents?.['osy'] && (
-                        <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
-                          ✓ Document uploaded
-                        </Typography>
-                      )}
-                    </Box>
-                  )}
-                </Grid>
-                {formData.is_pwd && (
-                  <Grid xs={12}>
+              </Paper>
+
+              {/* Personal Information Section */}
+              <Paper sx={{ p: 2, mb: 3 }}>
+                <Typography variant='h6' sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
+                  Personal Information
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid xs={12} sm={3}>
                     <TextField
                       fullWidth
-                      label="Disability Type"
-                      value={formData.disability_type || ''}
-                      onChange={(e) => setFormData({...formData, disability_type: e.target.value})}
-                      placeholder="e.g., Mobility Impairment, Visual Impairment, Hearing Impairment, etc."
-                      size="medium"
-                      sx={{ mt: 2 }}
+                      label='First Name *'
+                      value={formData.first_name || ''}
+                      onChange={e => setFormData({ ...formData, first_name: e.target.value })}
+                      required
+                      size='medium'
                     />
                   </Grid>
-                )}
-              </Grid>
-            </Paper>
+                  <Grid xs={12} sm={3}>
+                    <TextField
+                      fullWidth
+                      label='Middle Name'
+                      value={formData.middle_name || ''}
+                      onChange={e => setFormData({ ...formData, middle_name: e.target.value })}
+                      size='medium'
+                    />
+                  </Grid>
+                  <Grid xs={12} sm={3}>
+                    <TextField
+                      fullWidth
+                      label='Last Name *'
+                      value={formData.last_name || ''}
+                      onChange={e => setFormData({ ...formData, last_name: e.target.value })}
+                      required
+                      size='medium'
+                    />
+                  </Grid>
+                  <Grid xs={12} sm={3}>
+                    <TextField
+                      fullWidth
+                      label='Suffix'
+                      value={formData.suffix || ''}
+                      onChange={e => setFormData({ ...formData, suffix: e.target.value })}
+                      placeholder='Jr., Sr., III'
+                      size='medium'
+                    />
+                  </Grid>
+
+                  <Grid xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      label='Birthdate *'
+                      type='date'
+                      value={formData.birthdate || ''}
+                      onChange={e => setFormData({ ...formData, birthdate: e.target.value })}
+                      required
+                      InputLabelProps={{ shrink: true }}
+                      size='medium'
+                    />
+                  </Grid>
+                  <Grid xs={12} sm={4}>
+                    <FormControl fullWidth size='medium'>
+                      <InputLabel>Gender</InputLabel>
+                      <Select
+                        value={formData.gender || 'Male'}
+                        onChange={e => setFormData({ ...formData, gender: e.target.value })}
+                        label='Gender'
+                      >
+                        <MenuItem value='Male'>Male</MenuItem>
+                        <MenuItem value='Female'>Female</MenuItem>
+                        <MenuItem value='Other'>Other</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid xs={12} sm={4}>
+                    <FormControl fullWidth size='medium'>
+                      <InputLabel>Civil Status</InputLabel>
+                      <Select
+                        value={formData.civil_status || 'Single'}
+                        onChange={e => setFormData({ ...formData, civil_status: e.target.value })}
+                        label='Civil Status'
+                      >
+                        <MenuItem value='Single'>Single</MenuItem>
+                        <MenuItem value='Married'>Married</MenuItem>
+                        <MenuItem value='Widowed'>Widowed</MenuItem>
+                        <MenuItem value='Separated'>Separated</MenuItem>
+                        <MenuItem value='Divorced'>Divorced</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              {/* Contact & Status Information */}
+              <Paper sx={{ p: 2, mb: 3 }}>
+                <Typography variant='h6' sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
+                  Contact & Status Information
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label='Email Address *'
+                      type='email'
+                      value={formData.email || ''}
+                      onChange={e => setFormData({ ...formData, email: e.target.value })}
+                      required
+                      placeholder='resident@example.com'
+                      size='medium'
+                    />
+                  </Grid>
+                  <Grid xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label='Mobile Number'
+                      value={formData.mobile_number || ''}
+                      onChange={e => setFormData({ ...formData, mobile_number: e.target.value })}
+                      placeholder='09XXXXXXXXX'
+                      size='medium'
+                    />
+                  </Grid>
+                  <Grid xs={12} sm={6}>
+                    <FormControl fullWidth size='medium'>
+                      <InputLabel>Voter Status</InputLabel>
+                      <Select
+                        value={formData.voter_status || 'Non-Registered'}
+                        onChange={e => setFormData({ ...formData, voter_status: e.target.value })}
+                        label='Voter Status'
+                      >
+                        <MenuItem value='Registered'>Registered Voter</MenuItem>
+                        <MenuItem value='Non-Registered'>Not Registered</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label='Date of Arrival'
+                      type='date'
+                      value={formData.date_arrival || new Date().toISOString().split('T')[0]}
+                      onChange={e => setFormData({ ...formData, date_arrival: e.target.value })}
+                      InputLabelProps={{ shrink: true }}
+                      size='medium'
+                    />
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              {/* Employment Information */}
+              <Paper sx={{ p: 2, mb: 3 }}>
+                <Typography variant='h6' sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
+                  Employment Information
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid xs={12} sm={8}>
+                    <TextField
+                      fullWidth
+                      label='Occupation'
+                      value={formData.occupation || ''}
+                      onChange={e => setFormData({ ...formData, occupation: e.target.value })}
+                      placeholder='e.g., Teacher, Farmer, Student, Unemployed'
+                      size='medium'
+                    />
+                  </Grid>
+                  <Grid xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      label='Monthly Income (₱)'
+                      type='number'
+                      value={formData.income_estimate || 0}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          income_estimate: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      InputProps={{
+                        startAdornment: <InputAdornment position='start'>₱</InputAdornment>,
+                      }}
+                      size='medium'
+                    />
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              {/* Vulnerabilities Section */}
+              <Paper
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  bgcolor: 'warning.50',
+                  border: '1px solid',
+                  borderColor: 'warning.200',
+                }}
+              >
+                <Typography variant='h6' sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
+                  Vulnerabilities & Special Categories
+                </Typography>
+                <Alert severity='info' sx={{ mb: 2 }}>
+                  <Typography variant='body2'>
+                    <strong>Document Verification Required:</strong> All vulnerability declarations
+                    require supporting documents (JPG, PNG, PDF - max 5MB)
+                  </Typography>
+                </Alert>
+                <Grid container spacing={2}>
+                  <Grid xs={6} sm={3}>
+                    <FormControl fullWidth size='medium'>
+                      <InputLabel>4Ps Member</InputLabel>
+                      <Select
+                        value={formData.is_4ps ? 'true' : 'false'}
+                        onChange={e =>
+                          setFormData({ ...formData, is_4ps: e.target.value === 'true' })
+                        }
+                        label='4Ps Member'
+                      >
+                        <MenuItem value='false'>No</MenuItem>
+                        <MenuItem value='true'>Yes</MenuItem>
+                      </Select>
+                    </FormControl>
+                    {formData.is_4ps && (
+                      <Box sx={{ mt: 1 }}>
+                        <input
+                          accept='.jpg,.jpeg,.png,.pdf'
+                          style={{ display: 'none' }}
+                          id='4ps-document'
+                          type='file'
+                          onChange={e => handleDocumentUpload(e, '4ps')}
+                        />
+                        <label htmlFor='4ps-document'>
+                          <Button
+                            variant='outlined'
+                            component='span'
+                            size='small'
+                            fullWidth
+                            startIcon={<CloudUpload />}
+                          >
+                            Upload 4Ps ID
+                          </Button>
+                        </label>
+                        {formData.documents?.['4ps'] && (
+                          <Typography
+                            variant='caption'
+                            color='success.main'
+                            sx={{ display: 'block', mt: 0.5 }}
+                          >
+                            ✓ Document uploaded
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                  </Grid>
+                  <Grid xs={6} sm={3}>
+                    <FormControl fullWidth size='medium'>
+                      <InputLabel>PWD</InputLabel>
+                      <Select
+                        value={formData.is_pwd ? 'true' : 'false'}
+                        onChange={e =>
+                          setFormData({ ...formData, is_pwd: e.target.value === 'true' })
+                        }
+                        label='PWD'
+                      >
+                        <MenuItem value='false'>No</MenuItem>
+                        <MenuItem value='true'>Yes</MenuItem>
+                      </Select>
+                    </FormControl>
+                    {formData.is_pwd && (
+                      <Box sx={{ mt: 1 }}>
+                        <input
+                          accept='.jpg,.jpeg,.png,.pdf'
+                          style={{ display: 'none' }}
+                          id='pwd-document'
+                          type='file'
+                          onChange={e => handleDocumentUpload(e, 'pwd')}
+                        />
+                        <label htmlFor='pwd-document'>
+                          <Button
+                            variant='outlined'
+                            component='span'
+                            size='small'
+                            fullWidth
+                            startIcon={<CloudUpload />}
+                          >
+                            Upload PWD ID
+                          </Button>
+                        </label>
+                        {formData.documents?.['pwd'] && (
+                          <Typography
+                            variant='caption'
+                            color='success.main'
+                            sx={{ display: 'block', mt: 0.5 }}
+                          >
+                            ✓ Document uploaded
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                  </Grid>
+                  <Grid xs={6} sm={3}>
+                    <FormControl fullWidth size='medium'>
+                      <InputLabel>Solo Parent</InputLabel>
+                      <Select
+                        value={formData.is_solo_parent ? 'true' : 'false'}
+                        onChange={e =>
+                          setFormData({ ...formData, is_solo_parent: e.target.value === 'true' })
+                        }
+                        label='Solo Parent'
+                      >
+                        <MenuItem value='false'>No</MenuItem>
+                        <MenuItem value='true'>Yes</MenuItem>
+                      </Select>
+                    </FormControl>
+                    {formData.is_solo_parent && (
+                      <Box sx={{ mt: 1 }}>
+                        <input
+                          accept='.jpg,.jpeg,.png,.pdf'
+                          style={{ display: 'none' }}
+                          id='solo-parent-document'
+                          type='file'
+                          onChange={e => handleDocumentUpload(e, 'solo_parent')}
+                        />
+                        <label htmlFor='solo-parent-document'>
+                          <Button
+                            variant='outlined'
+                            component='span'
+                            size='small'
+                            fullWidth
+                            startIcon={<CloudUpload />}
+                          >
+                            Upload Solo Parent ID
+                          </Button>
+                        </label>
+                        {formData.documents?.['solo_parent'] && (
+                          <Typography
+                            variant='caption'
+                            color='success.main'
+                            sx={{ display: 'block', mt: 0.5 }}
+                          >
+                            ✓ Document uploaded
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                  </Grid>
+                  <Grid xs={6} sm={3}>
+                    <FormControl fullWidth size='medium'>
+                      <InputLabel>OSY</InputLabel>
+                      <Select
+                        value={formData.is_out_of_school_youth ? 'true' : 'false'}
+                        onChange={e =>
+                          setFormData({
+                            ...formData,
+                            is_out_of_school_youth: e.target.value === 'true',
+                          })
+                        }
+                        label='OSY'
+                      >
+                        <MenuItem value='false'>No</MenuItem>
+                        <MenuItem value='true'>Yes</MenuItem>
+                      </Select>
+                    </FormControl>
+                    {formData.is_out_of_school_youth && (
+                      <Box sx={{ mt: 1 }}>
+                        <input
+                          accept='.jpg,.jpeg,.png,.pdf'
+                          style={{ display: 'none' }}
+                          id='osy-document'
+                          type='file'
+                          onChange={e => handleDocumentUpload(e, 'osy')}
+                        />
+                        <label htmlFor='osy-document'>
+                          <Button
+                            variant='outlined'
+                            component='span'
+                            size='small'
+                            fullWidth
+                            startIcon={<CloudUpload />}
+                          >
+                            Upload Certificate
+                          </Button>
+                        </label>
+                        {formData.documents?.['osy'] && (
+                          <Typography
+                            variant='caption'
+                            color='success.main'
+                            sx={{ display: 'block', mt: 0.5 }}
+                          >
+                            ✓ Document uploaded
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                  </Grid>
+                  {formData.is_pwd && (
+                    <Grid xs={12}>
+                      <TextField
+                        fullWidth
+                        label='Disability Type'
+                        value={formData.disability_type || ''}
+                        onChange={e =>
+                          setFormData({ ...formData, disability_type: e.target.value })
+                        }
+                        placeholder='e.g., Mobility Impairment, Visual Impairment, Hearing Impairment, etc.'
+                        size='medium'
+                        sx={{ mt: 2 }}
+                      />
+                    </Grid>
+                  )}
+                </Grid>
+              </Paper>
             </fieldset>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 3, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'grey.50', gap: 1 }}>
-          <Button onClick={handleCloseDialog} variant="outlined" size="large">
+        <DialogActions
+          sx={{
+            p: 3,
+            bgcolor: theme =>
+              theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'grey.50',
+            gap: 1,
+          }}
+        >
+          <Button onClick={handleCloseDialog} variant='outlined' size='large'>
             {viewOnly ? 'Close' : 'Cancel'}
           </Button>
           {!viewOnly && (
-            <Button 
-              onClick={handleSave} 
-              variant="contained" 
-              size="large"
+            <Button
+              onClick={handleSave}
+              variant='contained'
+              size='large'
               startIcon={editing ? <Edit /> : <Add />}
               sx={{ minWidth: 140 }}
             >
@@ -1451,15 +1590,17 @@ const Residents = () => {
       </Dialog>
 
       {/* Add Household Dialog */}
-      <Dialog open={openHousehold} onClose={() => setOpenHousehold(false)} maxWidth="sm" fullWidth>
+      <Dialog open={openHousehold} onClose={() => setOpenHousehold(false)} maxWidth='sm' fullWidth>
         <DialogTitle>Add New Household</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
               fullWidth
-              label="Household Number"
+              label='Household Number'
               value={householdFormData.Household_Number}
-              onChange={(e) => setHouseholdFormData({...householdFormData, Household_Number: e.target.value})}
+              onChange={e =>
+                setHouseholdFormData({ ...householdFormData, Household_Number: e.target.value })
+              }
               required
             />
 
@@ -1467,12 +1608,16 @@ const Residents = () => {
               <InputLabel>Sitio</InputLabel>
               <Select
                 value={householdFormData.Sitio_ID}
-                onChange={(e) => setHouseholdFormData({...householdFormData, Sitio_ID: e.target.value})}
-                label="Sitio"
+                onChange={e =>
+                  setHouseholdFormData({ ...householdFormData, Sitio_ID: e.target.value })
+                }
+                label='Sitio'
                 required
               >
-                {sitios.map((sitio) => (
-                  <MenuItem key={sitio.id} value={sitio.id}>{sitio.name}</MenuItem>
+                {sitios.map(sitio => (
+                  <MenuItem key={sitio.id} value={sitio.id}>
+                    {sitio.name}
+                  </MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -1481,9 +1626,11 @@ const Residents = () => {
               fullWidth
               multiline
               rows={2}
-              label="Street Address"
+              label='Street Address'
               value={householdFormData.Street_Address}
-              onChange={(e) => setHouseholdFormData({...householdFormData, Street_Address: e.target.value})}
+              onChange={e =>
+                setHouseholdFormData({ ...householdFormData, Street_Address: e.target.value })
+              }
               required
             />
 
@@ -1491,47 +1638,57 @@ const Residents = () => {
               <InputLabel>Household Type</InputLabel>
               <Select
                 value={householdFormData.Household_Type}
-                onChange={(e) => setHouseholdFormData({...householdFormData, Household_Type: e.target.value})}
-                label="Household Type"
+                onChange={e =>
+                  setHouseholdFormData({ ...householdFormData, Household_Type: e.target.value })
+                }
+                label='Household Type'
               >
-                <MenuItem value="Nuclear">Nuclear</MenuItem>
-                <MenuItem value="Extended">Extended</MenuItem>
-                <MenuItem value="Single">Single</MenuItem>
-                <MenuItem value="Boarding">Boarding</MenuItem>
+                <MenuItem value='Nuclear'>Nuclear</MenuItem>
+                <MenuItem value='Extended'>Extended</MenuItem>
+                <MenuItem value='Single'>Single</MenuItem>
+                <MenuItem value='Boarding'>Boarding</MenuItem>
               </Select>
             </FormControl>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenHousehold(false)}>Cancel</Button>
-          <Button onClick={async () => {
-            try {
-              const response = await apiRequest('households', {
-                method: 'post',
-                body: householdFormData
-              })
+          <Button
+            onClick={async () => {
+              try {
+                const response = await apiRequest('households', {
+                  method: 'post',
+                  body: householdFormData,
+                });
 
-              if (response.ok) {
-                fetchHouseholds()
-                setOpenHousehold(false)
-                setHouseholdFormData({
-                  Household_Number: '',
-                  Sitio_ID: '',
-                  Street_Address: '',
-                  Household_Type: 'Nuclear'
-                })
+                if (response.ok) {
+                  fetchHouseholds();
+                  setOpenHousehold(false);
+                  setHouseholdFormData({
+                    Household_Number: '',
+                    Sitio_ID: '',
+                    Street_Address: '',
+                    Household_Type: 'Nuclear',
+                  });
+                }
+              } catch (error) {
+                console.error('Error creating household:', error);
               }
-            } catch (error) {
-              console.error('Error creating household:', error)
-            }
-          }} variant="contained">
+            }}
+            variant='contained'
+          >
             Add Household
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Bulk Import Dialog */}
-      <Dialog open={openBulkImport} onClose={() => setOpenBulkImport(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={openBulkImport}
+        onClose={() => setOpenBulkImport(false)}
+        maxWidth='sm'
+        fullWidth
+      >
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CloudUpload />
@@ -1540,64 +1697,63 @@ const Residents = () => {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
-            <Typography variant="body1" sx={{ mb: 2, fontWeight: 500 }}>
+            <Typography variant='body1' sx={{ mb: 2, fontWeight: 500 }}>
               Upload Resident Data
             </Typography>
 
-            <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
-              Upload an Excel file (.xlsx or .xls) with resident data. The file should contain columns for:
-              First Name, Last Name, Birthdate, Gender, Mobile Number, and other resident details.
+            <Typography variant='body2' sx={{ mb: 3, color: 'text.secondary' }}>
+              Upload an Excel file (.xlsx or .xls) with resident data. The file should contain
+              columns for: First Name, Last Name, Birthdate, Gender, Mobile Number, and other
+              resident details.
             </Typography>
 
-            <Alert severity="info" sx={{ mb: 3 }}>
-              <Typography variant="body2">
-                <strong>Supported formats:</strong> .xlsx, .xls<br />
+            <Alert severity='info' sx={{ mb: 3 }}>
+              <Typography variant='body2'>
+                <strong>Supported formats:</strong> .xlsx, .xls
+                <br />
                 <strong>Maximum file size:</strong> 10MB
               </Typography>
             </Alert>
 
             <input
-              accept=".xlsx,.xls"
+              accept='.xlsx,.xls'
               style={{ display: 'none' }}
-              id="bulk-import-file"
-              type="file"
+              id='bulk-import-file'
+              type='file'
               onChange={handleBulkImport}
             />
-            <label htmlFor="bulk-import-file">
+            <label htmlFor='bulk-import-file'>
               <Button
-                variant="contained"
-                component="span"
+                variant='contained'
+                component='span'
                 startIcon={<CloudUpload />}
                 fullWidth
-                size="large"
+                size='large'
                 sx={{ py: 2 }}
               >
                 Choose Excel File
               </Button>
             </label>
 
-            <Typography variant="caption" sx={{ mt: 1, display: 'block', color: 'text.secondary' }}>
+            <Typography variant='caption' sx={{ mt: 1, display: 'block', color: 'text.secondary' }}>
               Click to browse and select your Excel file
             </Typography>
 
             {bulkImportResult && (
               <Box sx={{ mt: 3 }}>
                 {bulkImportResult.error ? (
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    <Typography variant="body2">
+                  <Alert severity='error' sx={{ mb: 2 }}>
+                    <Typography variant='body2'>
                       <strong>Import Failed:</strong> {bulkImportResult.error}
                     </Typography>
                   </Alert>
                 ) : (
-                  <Alert severity="success" sx={{ mb: 2 }}>
-                    <Typography variant="body2">
+                  <Alert severity='success' sx={{ mb: 2 }}>
+                    <Typography variant='body2'>
                       <strong>Import Completed Successfully!</strong>
-                      <br />
-                      • {bulkImportResult.results?.imported || 0} residents imported
-                      <br />
-                      • {bulkImportResult.results?.skipped || 0} records skipped
-                      <br />
-                      • {bulkImportResult.results?.errors?.length || 0} errors encountered
+                      <br />• {bulkImportResult.results?.imported || 0} residents imported
+                      <br />• {bulkImportResult.results?.skipped || 0} records skipped
+                      <br />• {bulkImportResult.results?.errors?.length || 0} errors encountered
                     </Typography>
                   </Alert>
                 )}
@@ -1608,10 +1764,10 @@ const Residents = () => {
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button
             onClick={() => {
-              setOpenBulkImport(false)
-              setBulkImportResult(null)
+              setOpenBulkImport(false);
+              setBulkImportResult(null);
             }}
-            variant="outlined"
+            variant='outlined'
           >
             Close
           </Button>
@@ -1621,11 +1777,15 @@ const Residents = () => {
       <ConfirmationModal
         open={confirmationModalOpen}
         onClose={() => {
-          if (!confirmationAction?.type || confirmationAction.type === 'info' || confirmationAction.type === 'error') {
-            setConfirmationModalOpen(false)
-            setConfirmationAction(null)
+          if (
+            !confirmationAction?.type ||
+            confirmationAction.type === 'info' ||
+            confirmationAction.type === 'error'
+          ) {
+            setConfirmationModalOpen(false);
+            setConfirmationAction(null);
           } else {
-            setConfirmationModalOpen(false)
+            setConfirmationModalOpen(false);
           }
         }}
         onConfirm={handleConfirmationConfirm}
@@ -1638,9 +1798,9 @@ const Residents = () => {
       />
 
       {/* New Modals */}
-      <QRCodeModal 
-        open={qrModalOpen} 
-        onClose={() => setQrModalOpen(false)} 
+      <QRCodeModal
+        open={qrModalOpen}
+        onClose={() => setQrModalOpen(false)}
         qrCode={selectedQrCode}
         residentName={selectedResidentName}
       />
@@ -1651,7 +1811,7 @@ const Residents = () => {
         credentials={newCredentials}
       />
     </Box>
-  )
-}
+  );
+};
 
-export default Residents
+export default Residents;

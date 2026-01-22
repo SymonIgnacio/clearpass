@@ -7,7 +7,7 @@ import {
   Alert,
   CircularProgress,
   Chip,
-  Pagination
+  Pagination,
 } from '@mui/material';
 import { Campaign as CampaignIcon } from '@mui/icons-material';
 import { apiRequest } from '../utils/api';
@@ -25,10 +25,10 @@ const ResidentAnnouncements = () => {
   const fetchAnnouncements = async () => {
     try {
       const response = await apiRequest('/system-admin/announcements/public', {
-        params: { page: pagination.page, limit: pagination.limit }
+        params: { page: pagination.page, limit: pagination.limit },
       });
       const data = await response.json();
-      
+
       if (data.success) {
         setAnnouncements(data.data);
         setPagination(prev => ({ ...prev, total: data.pagination.total }));
@@ -40,19 +40,22 @@ const ResidentAnnouncements = () => {
     }
   };
 
-  const getPriorityColor = (priority) => {
+  const getPriorityColor = priority => {
     switch (priority) {
-      case 'urgent': return 'error';
-      case 'important': return 'warning';
-      default: return 'info';
+      case 'urgent':
+        return 'error';
+      case 'important':
+        return 'warning';
+      default:
+        return 'info';
     }
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = dateString => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -68,13 +71,15 @@ const ResidentAnnouncements = () => {
     <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
         <CampaignIcon sx={{ mr: 1, color: 'primary.main' }} />
-        <Typography variant="h4">
-          Barangay Announcements
-        </Typography>
+        <Typography variant='h4'>Barangay Announcements</Typography>
       </Box>
 
       {message.text && (
-        <Alert severity={message.type} sx={{ mb: 3 }} onClose={() => setMessage({ type: '', text: '' })}>
+        <Alert
+          severity={message.type}
+          sx={{ mb: 3 }}
+          onClose={() => setMessage({ type: '', text: '' })}
+        >
           {message.text}
         </Alert>
       )}
@@ -83,35 +88,42 @@ const ResidentAnnouncements = () => {
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 4 }}>
             <CampaignIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary">
+            <Typography variant='h6' color='text.secondary'>
               No announcements available
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant='body2' color='text.secondary'>
               Check back later for updates from the barangay office.
             </Typography>
           </CardContent>
         </Card>
       ) : (
         <>
-          {announcements.map((announcement) => (
+          {announcements.map(announcement => (
             <Card key={announcement.id} sx={{ mb: 2 }}>
               <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                  <Typography variant="h6" sx={{ flexGrow: 1, mr: 2 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    mb: 2,
+                  }}
+                >
+                  <Typography variant='h6' sx={{ flexGrow: 1, mr: 2 }}>
                     {announcement.title}
                   </Typography>
-                  <Chip 
-                    label={announcement.priority.toUpperCase()} 
+                  <Chip
+                    label={announcement.priority.toUpperCase()}
                     color={getPriorityColor(announcement.priority)}
-                    size="small"
+                    size='small'
                   />
                 </Box>
-                
-                <Typography variant="body1" paragraph>
+
+                <Typography variant='body1' paragraph>
                   {announcement.content}
                 </Typography>
-                
-                <Typography variant="caption" color="text.secondary">
+
+                <Typography variant='caption' color='text.secondary'>
                   Posted on {formatDate(announcement.created_at)}
                 </Typography>
               </CardContent>
@@ -124,7 +136,7 @@ const ResidentAnnouncements = () => {
                 count={Math.ceil(pagination.total / pagination.limit)}
                 page={pagination.page}
                 onChange={(e, page) => setPagination(prev => ({ ...prev, page }))}
-                color="primary"
+                color='primary'
               />
             </Box>
           )}

@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/33</span>
+                <span class='fraction'>0/36</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/33</span>
+                <span class='fraction'>0/36</span>
             </div>
         
             
@@ -148,7 +148,11 @@
 <a name='L83'></a><a href='#L83'>83</a>
 <a name='L84'></a><a href='#L84'>84</a>
 <a name='L85'></a><a href='#L85'>85</a>
-<a name='L86'></a><a href='#L86'>86</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -192,6 +196,22 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -200,18 +220,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -277,26 +285,30 @@ async function <span class="fstat-no" title="function not covered" >allocateBlot
 <span class="cstat-no" title="statement not covered" >    await connection.beginTransaction();</span>
     const { year, month, monthPadded } = <span class="cstat-no" title="statement not covered" >getYearMonth(incidentDate);</span>
 &nbsp;
-    const [rows] = <span class="cstat-no" title="statement not covered" >await connection.execute(</span>
-      'SELECT next_seq FROM blotter_case_sequences WHERE year = ? AND month = ? FOR UPDATE',
-      [year, month]
-    );
-&nbsp;
     let nextSeq;
-<span class="cstat-no" title="statement not covered" >    if (!rows.length) {</span>
-      const maxExisting = <span class="cstat-no" title="statement not covered" >await getMaxExistingSequence(connection, year, monthPadded);</span>
-<span class="cstat-no" title="statement not covered" >      nextSeq = maxExisting + 1;</span>
-<span class="cstat-no" title="statement not covered" >      await connection.execute(</span>
-        'INSERT INTO blotter_case_sequences (year, month, next_seq) VALUES (?, ?, ?)',
-        [year, month, nextSeq]
+<span class="cstat-no" title="statement not covered" >    try {</span>
+      const [rows] = <span class="cstat-no" title="statement not covered" >await connection.execute(</span>
+        'SELECT next_seq FROM blotter_case_sequences WHERE year = ? AND month = ? FOR UPDATE',
+        [year, month]
       );
-    } else {
-      const current = <span class="cstat-no" title="statement not covered" >Number(rows[0].next_seq);</span>
-<span class="cstat-no" title="statement not covered" >      nextSeq = (Number.isFinite(current) ? current : 0) + 1;</span>
-<span class="cstat-no" title="statement not covered" >      await connection.execute(</span>
-        'UPDATE blotter_case_sequences SET next_seq = ? WHERE year = ? AND month = ?',
-        [nextSeq, year, month]
-      );
+<span class="cstat-no" title="statement not covered" >      if (!rows.length) {</span>
+        const maxExisting = <span class="cstat-no" title="statement not covered" >await getMaxExistingSequence(connection, year, monthPadded);</span>
+<span class="cstat-no" title="statement not covered" >        nextSeq = maxExisting + 1;</span>
+<span class="cstat-no" title="statement not covered" >        await connection.execute(</span>
+          'INSERT INTO blotter_case_sequences (year, month, next_seq) VALUES (?, ?, ?)',
+          [year, month, nextSeq]
+        );
+      } else {
+        const current = <span class="cstat-no" title="statement not covered" >Number(rows[0].next_seq);</span>
+<span class="cstat-no" title="statement not covered" >        nextSeq = (Number.isFinite(current) ? current : 0) + 1;</span>
+<span class="cstat-no" title="statement not covered" >        await connection.execute(</span>
+          'UPDATE blotter_case_sequences SET next_seq = ? WHERE year = ? AND month = ?',
+          [nextSeq, year, month]
+        );
+      }
+    } catch (seqErr) {
+      const fallbackMax = <span class="cstat-no" title="statement not covered" >await getMaxExistingSequence(connection, year, monthPadded);</span>
+<span class="cstat-no" title="statement not covered" >      nextSeq = fallbackMax + 1;</span>
     }
 &nbsp;
     const caseNumber = <span class="cstat-no" title="statement not covered" >formatCaseNumber(year, monthPadded, nextSeq);</span>
@@ -325,7 +337,7 @@ async function <span class="fstat-no" title="function not covered" >allocateBlot
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:37.883Z
+                at 2026-01-22T21:30:07.139Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -90,20 +90,16 @@
 <a name='L25'></a><a href='#L25'>25</a>
 <a name='L26'></a><a href='#L26'>26</a>
 <a name='L27'></a><a href='#L27'>27</a>
-<a name='L28'></a><a href='#L28'>28</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -113,34 +109,44 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">&nbsp;
-<span class="cstat-no" title="statement not covered" >exports.up = <span class="fstat-no" title="function not covered" >fu</span>nction(knex) {</span>
-<span class="cstat-no" title="statement not covered" >  return knex.schema.hasColumn('residents', 'Age').then(<span class="fstat-no" title="function not covered" >ex</span>ists =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (!exists) {</span>
-<span class="cstat-no" title="statement not covered" >      return knex.schema.alterTable('residents', <span class="fstat-no" title="function not covered" >fu</span>nction(table) {</span>
-<span class="cstat-no" title="statement not covered" >        table.integer('Age').defaultTo(0).comment('Calculated age from Birthdate');</span>
-<span class="cstat-no" title="statement not covered" >        table.index('Age');</span>
-      });
-    }
-  }).then(<span class="fstat-no" title="function not covered" >()</span> =&gt; {
-    // Populate Age
-<span class="cstat-no" title="statement not covered" >    return knex.raw(`</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >exports.up = <span class="fstat-no" title="function not covered" >fu</span>nction (knex) {</span>
+<span class="cstat-no" title="statement not covered" >  return knex.schema</span>
+    .hasColumn('residents', 'Age')
+    .then(<span class="fstat-no" title="function not covered" >ex</span>ists =&gt; {
+<span class="cstat-no" title="statement not covered" >      if (!exists) {</span>
+<span class="cstat-no" title="statement not covered" >        return knex.schema.alterTable('residents', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {</span>
+<span class="cstat-no" title="statement not covered" >          table.integer('Age').defaultTo(0).comment('Calculated age from Birthdate');</span>
+<span class="cstat-no" title="statement not covered" >          table.index('Age');</span>
+        });
+      }
+    })
+    .then(<span class="fstat-no" title="function not covered" >()</span> =&gt; {
+      // Populate Age
+<span class="cstat-no" title="statement not covered" >      return knex.raw(`</span>
       UPDATE residents 
       SET Age = TIMESTAMPDIFF(YEAR, Birthdate, CURDATE())
       WHERE Birthdate IS NOT NULL
     `);
-  });
+    });
 };
 &nbsp;
-<span class="cstat-no" title="statement not covered" >exports.down = <span class="fstat-no" title="function not covered" >fu</span>nction(knex) {</span>
-  // We can drop the column if we want to revert fully, 
+<span class="cstat-no" title="statement not covered" >exports.down = <span class="fstat-no" title="function not covered" >fu</span>nction (knex) {</span>
+  // We can drop the column if we want to revert fully,
   // but if it was supposed to be there, maybe just leave it.
   // For strict rollback:
-<span class="cstat-no" title="statement not covered" >  return knex.schema.alterTable('residents', <span class="fstat-no" title="function not covered" >fu</span>nction(table) {</span>
+<span class="cstat-no" title="statement not covered" >  return knex.schema.alterTable('residents', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {</span>
 <span class="cstat-no" title="statement not covered" >    table.dropColumn('Age');</span>
   });
 };
@@ -151,7 +157,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:38.155Z
+                at 2026-01-22T21:30:07.384Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

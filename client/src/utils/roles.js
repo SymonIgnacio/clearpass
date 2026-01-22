@@ -9,18 +9,18 @@ export const THEMIS_ROLES = {
   1: { id: 1, key: 'admin', name: 'Admin', displayName: 'IT Admin' },
   6: { id: 6, key: 'blotter_officer', name: 'Blotter Officer', displayName: 'Blotter Officer' },
   12: { id: 12, key: 'resident', name: 'Resident', displayName: 'Resident' },
-  13: { id: 13, key: 'guest', name: 'Guest', displayName: 'Guest' }
+  13: { id: 13, key: 'guest', name: 'Guest', displayName: 'Guest' },
 };
 
 // Legacy role mapping for backward compatibility
 export const ROLE_MAPPING = {
-  'admin': THEMIS_ROLES[1],
-  'captain': THEMIS_ROLES[2],
-  'secretary': THEMIS_ROLES[3],
-  'clerk': THEMIS_ROLES[4],
-  'blotter_officer': THEMIS_ROLES[6],
-  'resident': THEMIS_ROLES[12],
-  'guest': THEMIS_ROLES[13]
+  admin: THEMIS_ROLES[1],
+  captain: THEMIS_ROLES[2],
+  secretary: THEMIS_ROLES[3],
+  clerk: THEMIS_ROLES[4],
+  blotter_officer: THEMIS_ROLES[6],
+  resident: THEMIS_ROLES[12],
+  guest: THEMIS_ROLES[13],
 };
 
 /**
@@ -28,7 +28,7 @@ export const ROLE_MAPPING = {
  * @param {number|string} role - Numeric role ID or string role key
  * @returns {object|null} THEMIS role object or null if not found
  */
-export const getThemisRole = (role) => {
+export const getThemisRole = role => {
   if (typeof role === 'number') {
     return THEMIS_ROLES[role] || null;
   }
@@ -52,7 +52,7 @@ export const getThemisRole = (role) => {
  * @param {number|string} role - Numeric role ID or string role key
  * @returns {string|null} Role key or null if not found
  */
-export const getRoleKey = (role) => {
+export const getRoleKey = role => {
   const themisRole = getThemisRole(role);
   return themisRole ? themisRole.key : null;
 };
@@ -62,7 +62,7 @@ export const getRoleKey = (role) => {
  * @param {number|string} role - Numeric role ID or string role key
  * @returns {string|null} Display name or null if not found
  */
-export const getRoleDisplayName = (role) => {
+export const getRoleDisplayName = role => {
   const themisRole = getThemisRole(role);
   return themisRole ? themisRole.displayName : null;
 };
@@ -94,7 +94,7 @@ export const hasRole = (user, allowedRoles) => {
  * @param {object} user - User object with role property
  * @returns {boolean} True if user is staff (not resident)
  */
-export const isStaffUser = (user) => {
+export const isStaffUser = user => {
   if (!user || !user.role) return false;
   const userRoleKey = getRoleKey(user.role);
   return userRoleKey && userRoleKey !== 'resident';
@@ -105,7 +105,7 @@ export const isStaffUser = (user) => {
  * @param {object} user - User object with role property
  * @returns {boolean} True if user has management access
  */
-export const hasManagementAccess = (user) => {
+export const hasManagementAccess = user => {
   return hasRole(user, ['admin', 'captain', 'secretary']);
 };
 
@@ -114,7 +114,7 @@ export const hasManagementAccess = (user) => {
  * @param {object} user - User object with role property
  * @returns {boolean} True if user can manage events
  */
-export const canManageEvents = (user) => {
+export const canManageEvents = user => {
   return hasRole(user, ['captain', 'secretary']);
 };
 
@@ -123,7 +123,7 @@ export const canManageEvents = (user) => {
  * @param {object} user - User object with role property
  * @returns {boolean} True if user can manage templates
  */
-export const canManageTemplates = (user) => {
+export const canManageTemplates = user => {
   return hasRole(user, ['admin', 'captain']);
 };
 
@@ -132,7 +132,7 @@ export const canManageTemplates = (user) => {
  * @param {object} user - User object with role property
  * @returns {boolean} True if user can view analytics
  */
-export const canViewAnalytics = (user) => {
+export const canViewAnalytics = user => {
   return hasRole(user, ['admin', 'captain']);
 };
 
@@ -141,7 +141,7 @@ export const canViewAnalytics = (user) => {
  * @param {number|string} role - Role to check
  * @returns {number} Hierarchy level (0-6, higher = more permissions)
  */
-export const getRoleLevel = (role) => {
+export const getRoleLevel = role => {
   const themisRole = getThemisRole(role);
   return themisRole ? themisRole.id : 0;
 };
@@ -166,7 +166,7 @@ export const ROLES = {
   ADMIN: 1,
   BLOTTER_OFFICER: 6,
   RESIDENT: 12,
-  GUEST: 13
+  GUEST: 13,
 };
 
 export const ROLE_KEYS = {
@@ -176,5 +176,5 @@ export const ROLE_KEYS = {
   ADMIN: 'admin',
   BLOTTER_OFFICER: 'blotter_officer',
   RESIDENT: 'resident',
-  GUEST: 'guest'
+  GUEST: 'guest',
 };

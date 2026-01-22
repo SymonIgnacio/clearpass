@@ -6,3 +6,6 @@ timestamp,message,confidence,predicted_intent
 2026-01-14T03:23:23.688279,xyz123 random text,0.16720401260252754,blotter_inquiry
 2026-01-14T03:26:32.666958,xyz123 random text,0.16720401260252754,blotter_inquiry
 2026-01-14T03:53:53.210275,xyz123 random text,0.16720401260252754,blotter_inquiry
+2026-01-21T12:30:40.184271,Check Status,0.16720401260252754,blotter_inquiry
+2026-01-21T12:31:16.105227,9:30am January 22,0.16720401260252754,blotter_inquiry
+2026-01-21T12:38:26.256916,Check Status,0.16720401260252754,blotter_inquiry

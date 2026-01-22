@@ -6,13 +6,16 @@ async function checkTables() {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'barangay_management'
+    database: process.env.DB_NAME || 'barangay_management',
   });
 
   try {
     console.log('Checking for notifications tables...');
     const [tables] = await db.execute('SHOW TABLES LIKE "notifications%"');
-    console.log('Found tables with "notifications%" pattern:', tables.map(t => Object.values(t)[0]));
+    console.log(
+      'Found tables with "notifications%" pattern:',
+      tables.map(t => Object.values(t)[0])
+    );
 
     // Also check for user_notifications specifically
     const [userNotifTables] = await db.execute('SHOW TABLES LIKE "user_notifications"');
@@ -25,7 +28,9 @@ async function checkTables() {
 
       // Test if we can query them
       const [notifications] = await db.execute('SELECT COUNT(*) as count FROM notifications');
-      const [userNotifications] = await db.execute('SELECT COUNT(*) as count FROM user_notifications');
+      const [userNotifications] = await db.execute(
+        'SELECT COUNT(*) as count FROM user_notifications'
+      );
 
       console.log(`Notifications: ${notifications[0].count} records`);
       console.log(`User notifications: ${userNotifications[0].count} records`);

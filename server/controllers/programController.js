@@ -24,7 +24,8 @@ class ProgramController {
         values.push(sitio_id);
       }
 
-      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+      const whereClause =
+        whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
       const query = `
         SELECT p.*, s.name as sitio_name,
@@ -54,8 +55,8 @@ class ProgramController {
           page: parseInt(page),
           limit: parseInt(limit),
           total: totalRows[0].total,
-          pages: Math.ceil(totalRows[0].total / parseInt(limit))
-        }
+          pages: Math.ceil(totalRows[0].total / parseInt(limit)),
+        },
       });
     } catch (error) {
       console.error('Error fetching programs:', error);
@@ -66,7 +67,8 @@ class ProgramController {
   // Get program by ID
   getById = async (req, res) => {
     try {
-      const [rows] = await this.db.execute(`
+      const [rows] = await this.db.execute(
+        `
         SELECT p.*, s.name as sitio_name,
           COUNT(pp.participant_id) as participants_count
         FROM community_programs p
@@ -74,7 +76,9 @@ class ProgramController {
         LEFT JOIN program_participants pp ON p.id = pp.program_id
         WHERE p.id = ?
         GROUP BY p.id
-      `, [req.params.id]);
+      `,
+        [req.params.id]
+      );
 
       if (rows.length === 0) {
         return res.status(404).json({ error: 'Program not found' });
@@ -90,36 +94,51 @@ class ProgramController {
   // Create new program
   create = async (req, res) => {
     const connection = await this.db.getConnection();
-    
+
     try {
       await connection.beginTransaction();
 
       const {
-        program_name, description, program_date, sitio_id,
-        target_beneficiaries, status = 'Planned', organizer,
-        budget_allocated = 0, notes
+        program_name,
+        description,
+        program_date,
+        sitio_id,
+        target_beneficiaries,
+        status = 'Planned',
+        organizer,
+        budget_allocated = 0,
+        notes,
       } = req.body;
 
       if (!program_name || !program_date) {
         return res.status(400).json({ error: 'Program name and date are required' });
       }
 
-      const [result] = await connection.execute(`
+      const [result] = await connection.execute(
+        `
         INSERT INTO community_programs (
           program_name, description, program_date, sitio_id,
           target_beneficiaries, status, organizer, budget_allocated, notes
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        program_name.trim(), description?.trim(), program_date,
-        sitio_id, JSON.stringify(target_beneficiaries || []), status,
-        organizer?.trim(), budget_allocated, notes?.trim()
-      ]);
+      `,
+        [
+          program_name.trim(),
+          description?.trim(),
+          program_date,
+          sitio_id,
+          JSON.stringify(target_beneficiaries || []),
+          status,
+          organizer?.trim(),
+          budget_allocated,
+          notes?.trim(),
+        ]
+      );
 
       await connection.commit();
 
       res.status(201).json({
         id: result.insertId,
-        message: 'Program created successfully'
+        message: 'Program created successfully',
       });
     } catch (error) {
       await connection.rollback();
@@ -133,28 +152,62 @@ class ProgramController {
   // Update program
   update = async (req, res) => {
     const connection = await this.db.getConnection();
-    
+
     try {
       await connection.beginTransaction();
 
       const programId = req.params.id;
       const {
-        program_name, description, program_date, sitio_id,
-        target_beneficiaries, status, organizer, budget_allocated, notes
+        program_name,
+        description,
+        program_date,
+        sitio_id,
+        target_beneficiaries,
+        status,
+        organizer,
+        budget_allocated,
+        notes,
       } = req.body;
 
       const updates = [];
       const values = [];
 
-      if (program_name !== undefined) { updates.push('program_name = ?'); values.push(program_name.trim()); }
-      if (description !== undefined) { updates.push('description = ?'); values.push(description?.trim()); }
-      if (program_date !== undefined) { updates.push('program_date = ?'); values.push(program_date); }
-      if (sitio_id !== undefined) { updates.push('sitio_id = ?'); values.push(sitio_id); }
-      if (target_beneficiaries !== undefined) { updates.push('target_beneficiaries = ?'); values.push(JSON.stringify(target_beneficiaries)); }
-      if (status !== undefined) { updates.push('status = ?'); values.push(status); }
-      if (organizer !== undefined) { updates.push('organizer = ?'); values.push(organizer?.trim()); }
-      if (budget_allocated !== undefined) { updates.push('budget_allocated = ?'); values.push(budget_allocated); }
-      if (notes !== undefined) { updates.push('notes = ?'); values.push(notes?.trim()); }
+      if (program_name !== undefined) {
+        updates.push('program_name = ?');
+        values.push(program_name.trim());
+      }
+      if (description !== undefined) {
+        updates.push('description = ?');
+        values.push(description?.trim());
+      }
+      if (program_date !== undefined) {
+        updates.push('program_date = ?');
+        values.push(program_date);
+      }
+      if (sitio_id !== undefined) {
+        updates.push('sitio_id = ?');
+        values.push(sitio_id);
+      }
+      if (target_beneficiaries !== undefined) {
+        updates.push('target_beneficiaries = ?');
+        values.push(JSON.stringify(target_beneficiaries));
+      }
+      if (status !== undefined) {
+        updates.push('status = ?');
+        values.push(status);
+      }
+      if (organizer !== undefined) {
+        updates.push('organizer = ?');
+        values.push(organizer?.trim());
+      }
+      if (budget_allocated !== undefined) {
+        updates.push('budget_allocated = ?');
+        values.push(budget_allocated);
+      }
+      if (notes !== undefined) {
+        updates.push('notes = ?');
+        values.push(notes?.trim());
+      }
 
       if (updates.length === 0) {
         return res.status(400).json({ error: 'No fields to update' });
@@ -180,7 +233,7 @@ class ProgramController {
   // Add participant to program
   addParticipant = async (req, res) => {
     const connection = await this.db.getConnection();
-    
+
     try {
       await connection.beginTransaction();
 
@@ -201,10 +254,13 @@ class ProgramController {
         return res.status(400).json({ error: 'Resident is already a participant' });
       }
 
-      await connection.execute(`
+      await connection.execute(
+        `
         INSERT INTO program_participants (program_id, resident_id, joined_at)
         VALUES (?, ?, NOW())
-      `, [programId, resident_id]);
+      `,
+        [programId, resident_id]
+      );
 
       await connection.commit();
       res.json({ message: 'Participant added successfully' });
@@ -228,12 +284,15 @@ class ProgramController {
       }
 
       // Get participants with mobile numbers
-      const [participants] = await this.db.execute(`
+      const [participants] = await this.db.execute(
+        `
         SELECT r.Mobile_Number, r.First_Name, r.Last_Name
         FROM program_participants pp
         JOIN residents r ON pp.resident_id = r.Resident_ID
         WHERE pp.program_id = ? AND r.Mobile_Number IS NOT NULL AND r.Mobile_Number != ''
-      `, [programId]);
+      `,
+        [programId]
+      );
 
       // In a real implementation, you would integrate with an SMS service here
       // For now, we'll just simulate the SMS sending
@@ -242,7 +301,7 @@ class ProgramController {
       res.json({
         message: 'SMS notifications sent successfully',
         sms_sent: smsCount,
-        participants_notified: participants.length
+        participants_notified: participants.length,
       });
     } catch (error) {
       console.error('Error sending notifications:', error);

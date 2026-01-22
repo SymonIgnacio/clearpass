@@ -1,4 +1,9 @@
-const { auditMiddleware, logAuditEvent, logAuditToDatabase, AUDIT_EVENTS } = require('../middleware/auditLogger');
+const {
+  auditMiddleware,
+  logAuditEvent,
+  logAuditToDatabase,
+  AUDIT_EVENTS,
+} = require('../middleware/auditLogger');
 const winston = require('winston');
 
 // Mock winston
@@ -25,7 +30,7 @@ describe('Audit Logger Middleware', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Mock request and response
     req = {
       method: 'GET',
@@ -33,7 +38,7 @@ describe('Audit Logger Middleware', () => {
       ip: '127.0.0.1',
       get: jest.fn().mockReturnValue('test-user-agent'),
       user: { id: 'user123', role: 'admin' },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
 
     res = {
@@ -68,11 +73,14 @@ describe('Audit Logger Middleware', () => {
       // Verify logAuditEvent was called (via winston mock inspection)
       // Since logAuditEvent uses the global logger instance, we check the logger mock
       const logger = winston.createLogger();
-      expect(logger.info).toHaveBeenCalledWith('AUDIT_EVENT', expect.objectContaining({
-        user_id: 'user123',
-        action: 'GET',
-        resource: '/api/test'
-      }));
+      expect(logger.info).toHaveBeenCalledWith(
+        'AUDIT_EVENT',
+        expect.objectContaining({
+          user_id: 'user123',
+          action: 'GET',
+          resource: '/api/test',
+        })
+      );
     });
 
     test('should log to database if db is available', () => {
@@ -95,10 +103,13 @@ describe('Audit Logger Middleware', () => {
       res.json({ error: 'Invalid credentials' });
 
       const logger = winston.createLogger();
-      expect(logger.warn).toHaveBeenCalledWith('SECURITY_EVENT', expect.objectContaining({
-        event_type: AUDIT_EVENTS.LOGIN_FAILED,
-        result: 'FAILED'
-      }));
+      expect(logger.warn).toHaveBeenCalledWith(
+        'SECURITY_EVENT',
+        expect.objectContaining({
+          event_type: AUDIT_EVENTS.LOGIN_FAILED,
+          result: 'FAILED',
+        })
+      );
     });
   });
 
@@ -106,17 +117,23 @@ describe('Audit Logger Middleware', () => {
     test('should log info event', () => {
       logAuditEvent(AUDIT_EVENTS.USER_CREATED, { user_id: '123' });
       const logger = winston.createLogger();
-      expect(logger.info).toHaveBeenCalledWith('AUDIT_EVENT', expect.objectContaining({
-        event_type: AUDIT_EVENTS.USER_CREATED
-      }));
+      expect(logger.info).toHaveBeenCalledWith(
+        'AUDIT_EVENT',
+        expect.objectContaining({
+          event_type: AUDIT_EVENTS.USER_CREATED,
+        })
+      );
     });
 
     test('should log security event as warn', () => {
       logAuditEvent(AUDIT_EVENTS.UNAUTHORIZED_ACCESS, { ip_address: '1.1.1.1' });
       const logger = winston.createLogger();
-      expect(logger.warn).toHaveBeenCalledWith('SECURITY_EVENT', expect.objectContaining({
-        event_type: AUDIT_EVENTS.UNAUTHORIZED_ACCESS
-      }));
+      expect(logger.warn).toHaveBeenCalledWith(
+        'SECURITY_EVENT',
+        expect.objectContaining({
+          event_type: AUDIT_EVENTS.UNAUTHORIZED_ACCESS,
+        })
+      );
     });
   });
 
@@ -129,9 +146,9 @@ describe('Audit Logger Middleware', () => {
     test('should handle db errors gracefully', async () => {
       mockDb.execute.mockRejectedValue(new Error('DB Error'));
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      
+
       await logAuditToDatabase(mockDb, AUDIT_EVENTS.USER_UPDATED, {});
-      
+
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();
     });

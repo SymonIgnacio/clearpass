@@ -94,7 +94,7 @@ const login = async (req, res) => {
     }
 
     const mfaEnforced = isMfaEnforced();
-    const mfaRequired = mfaEnforced && [ROLES.RESIDENT].includes(normalizedRole);
+    const mfaRequired = mfaEnforced && [ROLES.RESIDENT, ROLES.GUEST].includes(normalizedRole);
 
     if (mfaRequired) {
       if (!user.email) {
@@ -143,6 +143,8 @@ const login = async (req, res) => {
         expiresIn: mfaRequired
           ? process.env.MFA_PENDING_JWT_EXPIRES_IN || '15m'
           : process.env.JWT_EXPIRES_IN || '24h',
+        issuer: process.env.JWT_ISSUER || 'barangay-management-system',
+        audience: process.env.JWT_AUDIENCE || 'barangay-users',
       }
     );
 
@@ -150,9 +152,9 @@ const login = async (req, res) => {
     res.cookie('authToken', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       path: '/',
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     const auditDetails = {
@@ -225,7 +227,7 @@ const logout = async (req, res) => {
     res.clearCookie('authToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       path: '/',
     });
 
@@ -243,13 +245,16 @@ const me = async (req, res) => {
     }
 
     // CLEARPASS: Use role column (Database Aligned) with Resident Status Check
+    // Handle users without resident_id (Guest users) properly
     const [users] = await db.execute(
-      `SELECT u.*, r.Residency_Status,
+      `SELECT u.*, r.Residency_Status, r.Resident_ID as real_resident_id,
         CASE 
+          WHEN u.role = 13 THEN 13
           WHEN r.Residency_Status = 'Pending Verification' THEN 13
           ELSE u.role
         END as effective_role,
         CASE 
+          WHEN u.role = 13 THEN 'Guest'
           WHEN r.Residency_Status = 'Pending Verification' THEN 'Guest'
           WHEN u.role = 1 THEN 'IT Admin'
           WHEN u.role = 2 THEN 'Captain'
@@ -266,38 +271,48 @@ const me = async (req, res) => {
     );
 
     if (users.length === 0) {
-      return res.status(401).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     const user = users[0];
-    // Use effective_role instead of raw role
     const normalizedRole = normalizeRole(user.effective_role);
 
-    // CLEARPASS: Refresh Token if Role or Resident ID changed (Self-Healing Session)
-    if (normalizedRole !== req.user.role || user.resident_id !== req.user.resident_id || !req.user.email) {
-        const token = jwt.sign(
-          {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            role: normalizedRole,
-            role_name: user.role_name,
-            resident_id: user.resident_id,
-            mfa_verified: req.user.mfa_verified,
-          },
-          process.env.JWT_SECRET,
-          {
-            expiresIn: process.env.JWT_EXPIRES_IN || '24h',
-          }
-        );
+    // For Guest users (role 13), resident_id may be null - this is expected
+    const residentId = user.resident_id || user.real_resident_id || null;
 
-        res.cookie('authToken', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
-          path: '/',
-          maxAge: 24 * 60 * 60 * 1000,
-        });
+    // CLEARPASS: Refresh Token if Role or Resident ID changed (Self-Healing Session)
+    // Also refresh if token is missing critical fields (username, role_name, etc.)
+    const shouldRefreshToken =
+      normalizedRole !== req.user.role ||
+      residentId !== req.user.resident_id ||
+      !req.user.username ||
+      !req.user.role_name ||
+      !req.user.email;
+
+    if (shouldRefreshToken) {
+      const token = jwt.sign(
+        {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: normalizedRole,
+          role_name: user.role_name,
+          resident_id: residentId,
+          mfa_verified: req.user.mfa_verified,
+        },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: process.env.JWT_EXPIRES_IN || '24h',
+        }
+      );
+
+      res.cookie('authToken', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        path: '/',
+        maxAge: 24 * 60 * 60 * 1000,
+      });
     }
 
     res.json({
@@ -309,7 +324,7 @@ const me = async (req, res) => {
         role_name: user.role_name,
         email: user.email,
         full_name: user.full_name,
-        resident_id: user.resident_id,
+        resident_id: residentId,
         mfa_verified: isMfaEnforced() ? req.user.mfa_verified === true : true,
       },
     });
@@ -447,12 +462,12 @@ const verifyMfaOtpCode = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
 
-    res.cookie('authToken', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+      res.cookie('authToken', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        maxAge: 24 * 60 * 60 * 1000,
+      });
 
     const auditDetails = {
       user_id: user.id,

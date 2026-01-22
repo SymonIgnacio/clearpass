@@ -7,12 +7,12 @@ const dbConfig = {
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'bmw_barangay_batia',
-  port: process.env.DB_PORT || 3306
+  port: process.env.DB_PORT || 3306,
 };
 
 async function seedUserHashes() {
   let connection;
-  
+
   try {
     connection = await mysql.createConnection(dbConfig);
     console.log('✅ Connected to database');
@@ -36,10 +36,7 @@ async function seedUserHashes() {
     );
 
     for (const user of users) {
-      await connection.execute(
-        'UPDATE users SET password_hash = ? WHERE id = ?',
-        [hash, user.id]
-      );
+      await connection.execute('UPDATE users SET password_hash = ? WHERE id = ?', [hash, user.id]);
       console.log(`   ✅ Updated ${user.username} (${user.role_name || 'No Role'})`);
     }
 
@@ -48,7 +45,6 @@ async function seedUserHashes() {
     users.forEach(user => {
       console.log(`   - ${user.username} (${user.role_name || 'No Role'})`);
     });
-
   } catch (error) {
     console.error('❌ Error:', error.message);
     process.exit(1);

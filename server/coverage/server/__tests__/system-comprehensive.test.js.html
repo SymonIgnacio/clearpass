@@ -483,7 +483,9 @@
 <a name='L418'></a><a href='#L418'>418</a>
 <a name='L419'></a><a href='#L419'>419</a>
 <a name='L420'></a><a href='#L420'>420</a>
-<a name='L421'></a><a href='#L421'>421</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L421'></a><a href='#L421'>421</a>
+<a name='L422'></a><a href='#L422'>422</a>
+<a name='L423'></a><a href='#L423'>423</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -617,25 +619,11 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -643,7 +631,23 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -919,7 +923,7 @@ const app = <span class="cstat-no" title="statement not covered" >express();</sp
 // Mock database
 const mockDb = <span class="cstat-no" title="statement not covered" >{</span>
   execute: jest.fn(),
-  getConnection: jest.fn()
+  getConnection: jest.fn(),
 };
 &nbsp;
 // Mock controllers
@@ -954,13 +958,13 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
           Complainant_Details: { name: 'John Doe' },
           Incident_Type: 'Theft',
           Narrative: 'Test incident',
-          Location_Sitio: 'Batia'
+          Location_Sitio: 'Batia',
         },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await blotterController.create(req, res);</span>
@@ -968,7 +972,7 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
 <span class="cstat-no" title="statement not covered" >      expect(res.status).toHaveBeenCalledWith(403);</span>
 <span class="cstat-no" title="statement not covered" >      expect(res.json).toHaveBeenCalledWith({</span>
         success: false,
-        message: 'Security Alert: Captains are Read-Only.'
+        message: 'Security Alert: Captains are Read-Only.',
       });
     });
 &nbsp;
@@ -977,11 +981,11 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
         user: { role_id: 5, role: 'Captain' },
         body: { Status: 'Resolved' },
         params: { caseNumber: 'BLOT-2025-01-0001' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await blotterController.update(req, res);</span>
@@ -989,7 +993,7 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
 <span class="cstat-no" title="statement not covered" >      expect(res.status).toHaveBeenCalledWith(403);</span>
 <span class="cstat-no" title="statement not covered" >      expect(res.json).toHaveBeenCalledWith({</span>
         success: false,
-        message: 'Security Alert: Captains are Read-Only.'
+        message: 'Security Alert: Captains are Read-Only.',
       });
     });
 &nbsp;
@@ -997,11 +1001,11 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
       const req = <span class="cstat-no" title="statement not covered" >{</span>
         user: { role_id: 5, role: 'Captain' },
         params: { caseNumber: 'BLOT-2025-01-0001' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await blotterController.delete(req, res);</span>
@@ -1009,22 +1013,22 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
 <span class="cstat-no" title="statement not covered" >      expect(res.status).toHaveBeenCalledWith(403);</span>
 <span class="cstat-no" title="statement not covered" >      expect(res.json).toHaveBeenCalledWith({</span>
         success: false,
-        message: 'Security Alert: Captains are Read-Only.'
+        message: 'Security Alert: Captains are Read-Only.',
       });
     });
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    test('✅ Captain CAN read blotter records', <span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >      mockDb.execute.mockResolvedValue([[</span>
-        { Case_Number: 'BLOT-2025-01-0001', Incident_Type: 'Theft' }
-      ]]);
+<span class="cstat-no" title="statement not covered" >      mockDb.execute.mockResolvedValue([</span>
+        [{ Case_Number: 'BLOT-2025-01-0001', Incident_Type: 'Theft' }],
+      ]);
 &nbsp;
       const req = <span class="cstat-no" title="statement not covered" >{</span>
         user: { role_id: 5, role: 'Captain' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await blotterController.getAll(req, res);</span>
@@ -1034,7 +1038,8 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
     });
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    test('✅ Admin CAN create blotter record', <span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >      mockDb.execute.mockResolvedValueOnce([[]]) // resident check</span>
+<span class="cstat-no" title="statement not covered" >      mockDb.execute</span>
+        .mockResolvedValueOnce([[]]) // resident check
         .mockResolvedValueOnce([{ insertId: 1 }]); // insert
 &nbsp;
       const req = <span class="cstat-no" title="statement not covered" >{</span>
@@ -1043,13 +1048,13 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
           Complainant_Details: { name: 'John Doe' },
           Incident_Type: 'Theft',
           Narrative: 'Test incident',
-          Location_Sitio: 'Batia'
+          Location_Sitio: 'Batia',
         },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await blotterController.create(req, res);</span>
@@ -1057,13 +1062,14 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
 <span class="cstat-no" title="statement not covered" >      expect(res.status).toHaveBeenCalledWith(201);</span>
 <span class="cstat-no" title="statement not covered" >      expect(res.json).toHaveBeenCalledWith(</span>
         expect.objectContaining({
-          message: 'Blotter record created successfully'
+          message: 'Blotter record created successfully',
         })
       );
     });
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    test('✅ Clerk CAN create blotter record', <span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >      mockDb.execute.mockResolvedValueOnce([[]]) // resident check</span>
+<span class="cstat-no" title="statement not covered" >      mockDb.execute</span>
+        .mockResolvedValueOnce([[]]) // resident check
         .mockResolvedValueOnce([{ insertId: 1 }]); // insert
 &nbsp;
       const req = <span class="cstat-no" title="statement not covered" >{</span>
@@ -1072,13 +1078,13 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
           Complainant_Details: { name: 'Jane Doe' },
           Incident_Type: 'Noise',
           Narrative: 'Loud music',
-          Location_Sitio: 'Northville'
+          Location_Sitio: 'Northville',
         },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await blotterController.create(req, res);</span>
@@ -1098,21 +1104,21 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
       const req = <span class="cstat-no" title="statement not covered" >{</span>
         user: { role_id: 2, role: 'Admin' },
         body: {
-          Complainant_Details: { name: 'John Doe' }
+          Complainant_Details: { name: 'John Doe' },
           // Missing: Incident_Type, Narrative, Location_Sitio
         },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await blotterController.create(req, res);</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      expect(res.status).toHaveBeenCalledWith(400);</span>
 <span class="cstat-no" title="statement not covered" >      expect(res.json).toHaveBeenCalledWith({</span>
-        error: 'Required fields missing'
+        error: 'Required fields missing',
       });
     });
 &nbsp;
@@ -1126,20 +1132,20 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
           Incident_Type: 'Theft',
           Narrative: 'Test',
           Location_Sitio: 'Batia',
-          respondent_id: 999
+          respondent_id: 999,
         },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await blotterController.create(req, res);</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      expect(res.status).toHaveBeenCalledWith(400);</span>
 <span class="cstat-no" title="statement not covered" >      expect(res.json).toHaveBeenCalledWith({</span>
-        error: 'Invalid respondent_id - resident not found'
+        error: 'Invalid respondent_id - resident not found',
       });
     });
 &nbsp;
@@ -1152,13 +1158,13 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
           Complainant_Details: { name: 'John Doe' },
           Incident_Type: 'Theft',
           Narrative: 'Test',
-          Location_Sitio: 'Batia'
+          Location_Sitio: 'Batia',
         },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await blotterController.create(req, res);</span>
@@ -1166,7 +1172,7 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
 <span class="cstat-no" title="statement not covered" >      expect(res.status).toHaveBeenCalledWith(201);</span>
 <span class="cstat-no" title="statement not covered" >      expect(res.json).toHaveBeenCalledWith(</span>
         expect.objectContaining({
-          Case_Number: expect.stringMatching(/^BLOT-\d{4}-\d{2}-\d{4}$/)
+          Case_Number: expect.stringMatching(/^BLOT-\d{4}-\d{2}-\d{4}$/),
         })
       );
     });
@@ -1180,20 +1186,20 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
         user: { role_id: 2, role: 'Admin' },
         body: {
           Status: 'Resolved',
-          Narrative: 'Updated narrative'
+          Narrative: 'Updated narrative',
         },
         params: { caseNumber: 'BLOT-2025-01-0001' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await blotterController.update(req, res);</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      expect(res.json).toHaveBeenCalledWith({</span>
-        message: 'Blotter record updated successfully'
+        message: 'Blotter record updated successfully',
       });
     });
 &nbsp;
@@ -1202,18 +1208,18 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
         user: { role_id: 2, role: 'Admin' },
         body: {},
         params: { caseNumber: 'BLOT-2025-01-0001' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await blotterController.update(req, res);</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      expect(res.status).toHaveBeenCalledWith(400);</span>
 <span class="cstat-no" title="statement not covered" >      expect(res.json).toHaveBeenCalledWith({</span>
-        error: 'No fields to update'
+        error: 'No fields to update',
       });
     });
   });
@@ -1225,17 +1231,17 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
       const req = <span class="cstat-no" title="statement not covered" >{</span>
         user: { role_id: 2, role: 'Admin' },
         params: { caseNumber: 'BLOT-2025-01-0001' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await blotterController.delete(req, res);</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      expect(res.json).toHaveBeenCalledWith({</span>
-        message: 'Blotter record deleted successfully'
+        message: 'Blotter record deleted successfully',
       });
     });
   });
@@ -1247,7 +1253,7 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
     { id: 3, name: 'Secretary', canWrite: true },
     { id: 4, name: 'Clerk', canWrite: true },
     { id: 5, name: 'Captain', canWrite: false },
-    { id: 6, name: 'Tanod', canWrite: true }
+    { id: 6, name: 'Tanod', canWrite: true },
   ];
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  roles.forEach(<span class="fstat-no" title="function not covered" >ro</span>le =&gt; {</span>
@@ -1261,13 +1267,13 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
             Complainant_Details: { name: 'Test' },
             Incident_Type: 'Test',
             Narrative: 'Test',
-            Location_Sitio: 'Test'
+            Location_Sitio: 'Test',
           },
-          app: { locals: { db: mockDb } }
+          app: { locals: { db: mockDb } },
         };
         const res = <span class="cstat-no" title="statement not covered" >{</span>
           status: jest.fn().mockReturnThis(),
-          json: jest.fn()
+          json: jest.fn(),
         };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >        await blotterController.create(req, res);</span>
@@ -1303,7 +1309,7 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
     // Verify error handling structure exists
     const createSource = <span class="cstat-no" title="statement not covered" >blotterController.create.toString();</span>
     const getAllSource = <span class="cstat-no" title="statement not covered" >blotterController.getAll.toString();</span>
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    expect(createSource).toContain('try');</span>
 <span class="cstat-no" title="statement not covered" >    expect(createSource).toContain('catch');</span>
 <span class="cstat-no" title="statement not covered" >    expect(getAllSource).toContain('try');</span>
@@ -1330,7 +1336,7 @@ const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_s
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:38.155Z
+                at 2026-01-22T21:30:07.384Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

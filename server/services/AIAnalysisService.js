@@ -18,13 +18,13 @@ class AIAnalysisService {
     // 10 items -> 0.5
     // 50+ items -> 0.9
     let sizeScore = 1 / (1 + Math.exp(-0.1 * (sampleSize - 10)));
-    
+
     // Adjust by variance if provided (high variance reduces confidence)
     let varianceFactor = 1.0;
     if (variance !== null) {
       // Assuming variance is normalized or typical range
       // This is a heuristic: high variance = lower confidence
-      varianceFactor = 1 / (1 + variance); 
+      varianceFactor = 1 / (1 + variance);
     }
 
     return parseFloat((sizeScore * varianceFactor * dataQualityScore).toFixed(2));
@@ -32,7 +32,7 @@ class AIAnalysisService {
 
   /**
    * Validate if a sitio exists in the database
-   * @param {string} sitioName 
+   * @param {string} sitioName
    * @returns {Promise<boolean>}
    */
   async validateSitio(sitioName) {
@@ -51,40 +51,53 @@ class AIAnalysisService {
    * @param {string} params.userId - User who triggered it (optional)
    * @param {Array<Object>} params.facts - Key facts derived/used { fact_type, fact_value, source, confidence }
    */
-  async logAnalysis({ analysisType, parameters, results, confidenceScore, userId = null, facts = [] }) {
+  async logAnalysis({
+    analysisType,
+    parameters,
+    results,
+    confidenceScore,
+    userId = null,
+    facts = [],
+  }) {
     try {
       const runId = crypto.randomUUID();
-      
+
       // 1. Insert Run
-      await this.db.execute(`
+      await this.db.execute(
+        `
         INSERT INTO ai_analysis_runs (
           id, analysis_type, parameters, results, 
           confidence_score, triggered_by, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, NOW())
-      `, [
-        runId,
-        analysisType,
-        JSON.stringify(parameters),
-        JSON.stringify(results),
-        confidenceScore,
-        userId
-      ]);
+      `,
+        [
+          runId,
+          analysisType,
+          JSON.stringify(parameters),
+          JSON.stringify(results),
+          confidenceScore,
+          userId,
+        ]
+      );
 
       // 2. Insert Facts (if any)
       if (facts.length > 0) {
         for (const fact of facts) {
-          await this.db.execute(`
+          await this.db.execute(
+            `
             INSERT INTO ai_analysis_facts (
               run_id, fact_type, fact_value, 
               source, confidence_score
             ) VALUES (?, ?, ?, ?, ?)
-          `, [
-            runId,
-            fact.fact_type,
-            JSON.stringify(fact.fact_value),
-            fact.source || 'internal_db',
-            fact.confidence || confidenceScore
-          ]);
+          `,
+            [
+              runId,
+              fact.fact_type,
+              JSON.stringify(fact.fact_value),
+              fact.source || 'internal_db',
+              fact.confidence || confidenceScore,
+            ]
+          );
         }
       }
 
@@ -92,13 +105,13 @@ class AIAnalysisService {
     } catch (error) {
       console.error('Failed to log AI analysis:', error);
       // Don't throw, just return null so we don't break the main flow
-      return null; 
+      return null;
     }
   }
 
   /**
    * Cross-reference AI outputs with authoritative data
-   * @param {Array<string>} sitiosMentioned 
+   * @param {Array<string>} sitiosMentioned
    * @returns {Promise<Object>} Verification results
    */
   async crossReferenceSitios(sitiosMentioned) {

@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/85</span>
+                <span class='fraction'>0/87</span>
             </div>
         
             
@@ -382,7 +382,16 @@
 <a name='L317'></a><a href='#L317'>317</a>
 <a name='L318'></a><a href='#L318'>318</a>
 <a name='L319'></a><a href='#L319'>319</a>
-<a name='L320'></a><a href='#L320'>320</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L320'></a><a href='#L320'>320</a>
+<a name='L321'></a><a href='#L321'>321</a>
+<a name='L322'></a><a href='#L322'>322</a>
+<a name='L323'></a><a href='#L323'>323</a>
+<a name='L324'></a><a href='#L324'>324</a>
+<a name='L325'></a><a href='#L325'>325</a>
+<a name='L326'></a><a href='#L326'>326</a>
+<a name='L327'></a><a href='#L327'>327</a>
+<a name='L328'></a><a href='#L328'>328</a>
+<a name='L329'></a><a href='#L329'>329</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -567,6 +576,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -582,10 +598,12 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -714,18 +732,18 @@ const auditLogger = <span class="cstat-no" title="statement not covered" >winsto
   ),
   defaultMeta: { service: 'clearpass-audit' },
   transports: [
-    new winston.transports.File({ 
+    new winston.transports.File({
       filename: path.join(__dirname, '../logs/audit.log'),
       maxsize: 5242880, // 5MB
-      maxFiles: 10
+      maxFiles: 10,
     }),
-    new winston.transports.File({ 
+    new winston.transports.File({
       filename: path.join(__dirname, '../logs/security.log'),
       level: 'warn',
       maxsize: 5242880,
-      maxFiles: 10
-    })
-  ]
+      maxFiles: 10,
+    }),
+  ],
 });
 &nbsp;
 // Audit event types
@@ -735,18 +753,18 @@ const AUDIT_EVENTS = <span class="cstat-no" title="statement not covered" >{</sp
   LOGIN_FAILED: 'LOGIN_FAILED',
   LOGOUT: 'LOGOUT',
   TOKEN_EXPIRED: 'TOKEN_EXPIRED',
-  
+&nbsp;
   // User Management
   USER_CREATED: 'USER_CREATED',
   USER_UPDATED: 'USER_UPDATED',
   USER_DELETED: 'USER_DELETED',
   ROLE_CHANGED: 'ROLE_CHANGED',
-  
+&nbsp;
   // Resident Management
   RESIDENT_REGISTERED: 'RESIDENT_REGISTERED',
   RESIDENT_VERIFIED: 'RESIDENT_VERIFIED',
   RESIDENT_UPDATED: 'RESIDENT_UPDATED',
-  
+&nbsp;
   // Certificate Operations
   CERTIFICATE_REQUESTED: 'CERTIFICATE_REQUESTED',
   CERTIFICATE_ISSUED: 'CERTIFICATE_ISSUED',
@@ -759,18 +777,18 @@ const AUDIT_EVENTS = <span class="cstat-no" title="statement not covered" >{</sp
   RESIDENT_DOCUMENT_DOWNLOADED: 'RESIDENT_DOCUMENT_DOWNLOADED',
   APPLICATION_DOCUMENTS_VIEWED: 'APPLICATION_DOCUMENTS_VIEWED',
   APPLICATION_DOCUMENT_DOWNLOADED: 'APPLICATION_DOCUMENT_DOWNLOADED',
-  
+&nbsp;
   // Blotter Operations
   BLOTTER_CREATED: 'BLOTTER_CREATED',
   BLOTTER_UPDATED: 'BLOTTER_UPDATED',
   BLOTTER_RESOLVED: 'BLOTTER_RESOLVED',
   VULNERABLE_CASE_FILED: 'VULNERABLE_CASE_FILED',
-  
+&nbsp;
   // System Operations
   BACKUP_CREATED: 'BACKUP_CREATED',
   BACKUP_RESTORED: 'BACKUP_RESTORED',
   SYSTEM_CONFIG_CHANGED: 'SYSTEM_CONFIG_CHANGED',
-  
+&nbsp;
   // Security Events
   UNAUTHORIZED_ACCESS: 'UNAUTHORIZED_ACCESS',
   SUSPICIOUS_ACTIVITY: 'SUSPICIOUS_ACTIVITY',
@@ -778,7 +796,7 @@ const AUDIT_EVENTS = <span class="cstat-no" title="statement not covered" >{</sp
   ADMIN_ACTION: 'ADMIN_ACTION',
   MFA_OTP_SENT: 'MFA_OTP_SENT',
   MFA_OTP_VERIFIED: 'MFA_OTP_VERIFIED',
-  MFA_OTP_FAILED: 'MFA_OTP_FAILED'
+  MFA_OTP_FAILED: 'MFA_OTP_FAILED',
 };
 &nbsp;
 // Audit logging function
@@ -794,7 +812,7 @@ const logAuditEvent = <span class="cstat-no" title="statement not covered" ><spa
     action: details.action || null,
     result: details.result || 'SUCCESS',
     details: details.additional_details || {},
-    session_id: details.session_id || null
+    session_id: details.session_id || null,
   };
 &nbsp;
   // Log to audit file
@@ -809,7 +827,7 @@ const logAuditEvent = <span class="cstat-no" title="statement not covered" ><spa
 };
 &nbsp;
 // Check if event is security-related
-const isSecurityEvent = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(e</span>ventType) =&gt; {</span>
+const isSecurityEvent = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >ev</span>entType =&gt; {</span>
   const securityEvents = <span class="cstat-no" title="statement not covered" >[</span>
     AUDIT_EVENTS.LOGIN_FAILED,
     AUDIT_EVENTS.UNAUTHORIZED_ACCESS,
@@ -821,7 +839,7 @@ const isSecurityEvent = <span class="cstat-no" title="statement not covered" ><s
     AUDIT_EVENTS.SYSTEM_CONFIG_CHANGED,
     AUDIT_EVENTS.MFA_OTP_SENT,
     AUDIT_EVENTS.MFA_OTP_VERIFIED,
-    AUDIT_EVENTS.MFA_OTP_FAILED
+    AUDIT_EVENTS.MFA_OTP_FAILED,
   ];
 <span class="cstat-no" title="statement not covered" >  return securityEvents.includes(eventType);</span>
 };
@@ -830,13 +848,13 @@ const isSecurityEvent = <span class="cstat-no" title="statement not covered" ><s
 const auditMiddleware = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(o</span>ptions = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  return <span class="fstat-no" title="function not covered" >(r</span>eq, res, next) =&gt; {</span>
     const startTime = <span class="cstat-no" title="statement not covered" >Date.now();</span>
-    
+&nbsp;
     // Store original res.json to intercept responses
     const originalJson = <span class="cstat-no" title="statement not covered" >res.json;</span>
-    
-<span class="cstat-no" title="statement not covered" >    res.json = <span class="fstat-no" title="function not covered" >fu</span>nction(data) {</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    res.json = <span class="fstat-no" title="function not covered" >fu</span>nction (data) {</span>
       const duration = <span class="cstat-no" title="statement not covered" >Date.now() - startTime;</span>
-      
+&nbsp;
       // Determine if this should be audited
 <span class="cstat-no" title="statement not covered" >      if (shouldAuditRequest(req, options)) {</span>
         const auditDetails = <span class="cstat-no" title="statement not covered" >{</span>
@@ -852,9 +870,9 @@ const auditMiddleware = <span class="cstat-no" title="statement not covered" ><s
             url: req.originalUrl,
             status_code: res.statusCode,
             duration_ms: duration,
-            body_size: JSON.stringify(data).length
+            body_size: JSON.stringify(data).length,
           },
-          session_id: req.sessionID
+          session_id: req.sessionID,
         };
 &nbsp;
         // Log appropriate event type based on the request
@@ -865,10 +883,10 @@ const auditMiddleware = <span class="cstat-no" title="statement not covered" ><s
 <span class="cstat-no" title="statement not covered" >          logAuditToDatabase(db, eventType, auditDetails);</span>
         }
       }
-      
+&nbsp;
 <span class="cstat-no" title="statement not covered" >      return originalJson.call(this, data);</span>
     };
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    next();</span>
   };
 };
@@ -877,19 +895,26 @@ const auditMiddleware = <span class="cstat-no" title="statement not covered" ><s
 const shouldAuditRequest = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(r</span>eq, options) =&gt; {</span>
   // Always audit authentication endpoints
 <span class="cstat-no" title="statement not covered" >  if (req.originalUrl.includes('/auth/')) <span class="cstat-no" title="statement not covered" >return true;</span></span>
-  
+&nbsp;
   // Always audit admin endpoints
 <span class="cstat-no" title="statement not covered" >  if (req.originalUrl.includes('/admin/')) <span class="cstat-no" title="statement not covered" >return true;</span></span>
-  
+&nbsp;
   // Always audit data modification operations
 <span class="cstat-no" title="statement not covered" >  if (['POST', 'PUT', 'DELETE'].includes(req.method)) <span class="cstat-no" title="statement not covered" >return true;</span></span>
-  
+&nbsp;
   // Audit sensitive GET operations
-  const sensitiveEndpoints = <span class="cstat-no" title="statement not covered" >['/users', '/residents', '/blotter', '/certificates', '/documents/requests', '/secretary'];</span>
+  const sensitiveEndpoints = <span class="cstat-no" title="statement not covered" >[</span>
+    '/users',
+    '/residents',
+    '/blotter',
+    '/certificates',
+    '/documents/requests',
+    '/secretary',
+  ];
 <span class="cstat-no" title="statement not covered" >  if (sensitiveEndpoints.some(<span class="fstat-no" title="function not covered" >en</span>dpoint =&gt; <span class="cstat-no" title="statement not covered" >req.originalUrl.includes(endpoint))</span>) {</span>
 <span class="cstat-no" title="statement not covered" >    return true;</span>
   }
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  return options.auditAll || false;</span>
 };
 &nbsp;
@@ -899,17 +924,19 @@ const determineEventType = <span class="cstat-no" title="statement not covered" 
   const method = <span class="cstat-no" title="statement not covered" >req.method;</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  if (url.includes('/secretary/applications/') &amp;&amp; url.includes('/documents')) {</span>
-<span class="cstat-no" title="statement not covered" >    if (method === 'GET' &amp;&amp; url.includes('/download')) <span class="cstat-no" title="statement not covered" >return AUDIT_EVENTS.APPLICATION_DOCUMENT_DOWNLOADED;</span></span>
+<span class="cstat-no" title="statement not covered" >    if (method === 'GET' &amp;&amp; url.includes('/download'))</span>
+<span class="cstat-no" title="statement not covered" >      return AUDIT_EVENTS.APPLICATION_DOCUMENT_DOWNLOADED;</span>
 <span class="cstat-no" title="statement not covered" >    if (method === 'GET') <span class="cstat-no" title="statement not covered" >return AUDIT_EVENTS.APPLICATION_DOCUMENTS_VIEWED;</span></span>
   }
 <span class="cstat-no" title="statement not covered" >  if (url.includes('/secretary/documents/') &amp;&amp; url.includes('/download') &amp;&amp; method === 'GET') {</span>
 <span class="cstat-no" title="statement not covered" >    return AUDIT_EVENTS.RESIDENT_DOCUMENT_DOWNLOADED;</span>
   }
 <span class="cstat-no" title="statement not covered" >  if (url.includes('/residents/') &amp;&amp; url.includes('/documents')) {</span>
-<span class="cstat-no" title="statement not covered" >    if (method === 'GET' &amp;&amp; url.includes('/download')) <span class="cstat-no" title="statement not covered" >return AUDIT_EVENTS.RESIDENT_DOCUMENT_DOWNLOADED;</span></span>
+<span class="cstat-no" title="statement not covered" >    if (method === 'GET' &amp;&amp; url.includes('/download'))</span>
+<span class="cstat-no" title="statement not covered" >      return AUDIT_EVENTS.RESIDENT_DOCUMENT_DOWNLOADED;</span>
 <span class="cstat-no" title="statement not covered" >    if (method === 'GET') <span class="cstat-no" title="statement not covered" >return AUDIT_EVENTS.RESIDENT_DOCUMENTS_VIEWED;</span></span>
   }
-  
+&nbsp;
   // Authentication events
 <span class="cstat-no" title="statement not covered" >  if (url.includes('/auth/login')) {</span>
 <span class="cstat-no" title="statement not covered" >    return statusCode &lt; 400 ? AUDIT_EVENTS.LOGIN_SUCCESS : AUDIT_EVENTS.LOGIN_FAILED;</span>
@@ -921,20 +948,20 @@ const determineEventType = <span class="cstat-no" title="statement not covered" 
 <span class="cstat-no" title="statement not covered" >  if (url.includes('/auth/mfa/verify')) {</span>
 <span class="cstat-no" title="statement not covered" >    return statusCode &lt; 400 ? AUDIT_EVENTS.MFA_OTP_VERIFIED : AUDIT_EVENTS.MFA_OTP_FAILED;</span>
   }
-  
+&nbsp;
   // User management events
 <span class="cstat-no" title="statement not covered" >  if (url.includes('/users')) {</span>
 <span class="cstat-no" title="statement not covered" >    if (method === 'POST') <span class="cstat-no" title="statement not covered" >return AUDIT_EVENTS.USER_CREATED;</span></span>
 <span class="cstat-no" title="statement not covered" >    if (method === 'PUT') <span class="cstat-no" title="statement not covered" >return AUDIT_EVENTS.USER_UPDATED;</span></span>
 <span class="cstat-no" title="statement not covered" >    if (method === 'DELETE') <span class="cstat-no" title="statement not covered" >return AUDIT_EVENTS.USER_DELETED;</span></span>
   }
-  
+&nbsp;
   // Resident events
 <span class="cstat-no" title="statement not covered" >  if (url.includes('/resident')) {</span>
 <span class="cstat-no" title="statement not covered" >    if (method === 'POST' &amp;&amp; url.includes('/register')) <span class="cstat-no" title="statement not covered" >return AUDIT_EVENTS.RESIDENT_REGISTERED;</span></span>
 <span class="cstat-no" title="statement not covered" >    if (method === 'PUT') <span class="cstat-no" title="statement not covered" >return AUDIT_EVENTS.RESIDENT_UPDATED;</span></span>
   }
-  
+&nbsp;
   // Certificate events
 <span class="cstat-no" title="statement not covered" >  if (url.includes('/certificate')) {</span>
 <span class="cstat-no" title="statement not covered" >    if (method === 'POST') <span class="cstat-no" title="statement not covered" >return AUDIT_EVENTS.CERTIFICATE_REQUESTED;</span></span>
@@ -947,23 +974,23 @@ const determineEventType = <span class="cstat-no" title="statement not covered" 
 <span class="cstat-no" title="statement not covered" >    if (method === 'POST') <span class="cstat-no" title="statement not covered" >return AUDIT_EVENTS.DOCUMENT_REQUEST_CREATED;</span></span>
 <span class="cstat-no" title="statement not covered" >    if (method === 'PUT') <span class="cstat-no" title="statement not covered" >return AUDIT_EVENTS.DOCUMENT_REQUEST_UPDATED;</span></span>
   }
-  
+&nbsp;
   // Blotter events
 <span class="cstat-no" title="statement not covered" >  if (url.includes('/blotter')) {</span>
 <span class="cstat-no" title="statement not covered" >    if (method === 'POST') <span class="cstat-no" title="statement not covered" >return AUDIT_EVENTS.BLOTTER_CREATED;</span></span>
 <span class="cstat-no" title="statement not covered" >    if (method === 'PUT') <span class="cstat-no" title="statement not covered" >return AUDIT_EVENTS.BLOTTER_UPDATED;</span></span>
   }
-  
+&nbsp;
   // Admin events
 <span class="cstat-no" title="statement not covered" >  if (url.includes('/admin/')) {</span>
 <span class="cstat-no" title="statement not covered" >    return AUDIT_EVENTS.ADMIN_ACTION;</span>
   }
-  
+&nbsp;
   // Unauthorized access
 <span class="cstat-no" title="statement not covered" >  if (statusCode === 401 || statusCode === 403) {</span>
 <span class="cstat-no" title="statement not covered" >    return AUDIT_EVENTS.UNAUTHORIZED_ACCESS;</span>
   }
-  
+&nbsp;
   // Default for other operations
 <span class="cstat-no" title="statement not covered" >  return 'API_REQUEST';</span>
 };
@@ -982,7 +1009,7 @@ const logAuditToDatabase = <span class="cstat-no" title="statement not covered" 
       result: details.result || 'SUCCESS',
       details: JSON.stringify(details.additional_details || {}),
       session_id: details.session_id ?? null,
-      created_at: new Date()
+      created_at: new Date(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await db.execute(</span>
@@ -1001,7 +1028,7 @@ const logAuditToDatabase = <span class="cstat-no" title="statement not covered" 
         auditEntry.result,
         auditEntry.details,
         auditEntry.session_id,
-        auditEntry.created_at
+        auditEntry.created_at,
       ]
     );
 &nbsp;
@@ -1018,7 +1045,7 @@ const logAuditToDatabase = <span class="cstat-no" title="statement not covered" 
   logAuditEvent,
   logAuditToDatabase,
   AUDIT_EVENTS,
-  auditLogger
+  auditLogger,
 };
 &nbsp;</pre></td></tr></table></pre>
 
@@ -1027,7 +1054,7 @@ const logAuditToDatabase = <span class="cstat-no" title="statement not covered" 
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:38.155Z
+                at 2026-01-22T21:30:07.384Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

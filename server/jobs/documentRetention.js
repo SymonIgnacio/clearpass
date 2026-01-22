@@ -10,7 +10,7 @@ const parseRetentionDays = () => {
   return n;
 };
 
-const runDocumentRetention = async (db) => {
+const runDocumentRetention = async db => {
   const days = parseRetentionDays();
 
   const disposeTable = async (tableName, idColumn = 'id') => {
@@ -59,7 +59,7 @@ const runDocumentRetention = async (db) => {
   await disposeTable('application_documents', 'id');
 };
 
-const startDocumentRetentionScheduler = (db) => {
+const startDocumentRetentionScheduler = db => {
   const enabled = process.env.DOCUMENT_RETENTION_ENABLED === 'true';
   if (!enabled) return null;
 
@@ -74,4 +74,3 @@ const startDocumentRetentionScheduler = (db) => {
 };
 
 module.exports = { runDocumentRetention, startDocumentRetentionScheduler };
-

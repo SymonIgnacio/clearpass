@@ -10,7 +10,7 @@ exports.up = async function (knex) {
     { username: 'secretary', role: 3 },
     { username: 'clerk', role: 4 },
     { username: 'officer', role: 6 },
-    { username: 'resident', role: 12 }
+    { username: 'resident', role: 12 },
   ];
 
   for (const entry of usernameToRole) {
@@ -21,4 +21,3 @@ exports.up = async function (knex) {
 exports.down = async function () {
   return;
 };
-

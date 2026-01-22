@@ -162,7 +162,11 @@
 <a name='L97'></a><a href='#L97'>97</a>
 <a name='L98'></a><a href='#L98'>98</a>
 <a name='L99'></a><a href='#L99'>99</a>
-<a name='L100'></a><a href='#L100'>100</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -247,32 +251,36 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const mysql = <span class="cstat-no" title="statement not covered" >require('mysql2/promise');</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const mysql = <span class="cstat-no" title="statement not covered" >require('mysql2/promise');</span>
 <span class="cstat-no" title="statement not covered" >require('dotenv').config();</span>
 &nbsp;
 async function <span class="fstat-no" title="function not covered" >createTestDatabase(</span>) {
   let connection;
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  try {</span>
 <span class="cstat-no" title="statement not covered" >    connection = await mysql.createConnection({</span>
       host: process.env.DB_HOST || 'localhost',
       user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || '',
-      port: process.env.DB_PORT || 3306
+      port: process.env.DB_PORT || 3306,
     });
 &nbsp;
     // Create test database
@@ -281,13 +289,13 @@ async function <span class="fstat-no" title="function not covered" >createTestDa
 &nbsp;
     // Close and reconnect to the test database
 <span class="cstat-no" title="statement not covered" >    await connection.end();</span>
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    connection = await mysql.createConnection({</span>
       host: process.env.DB_HOST || 'localhost',
       user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || '',
       database: 'barangay_management_test',
-      port: process.env.DB_PORT || 3306
+      port: process.env.DB_PORT || 3306,
     });
 &nbsp;
     // Create basic tables for testing
@@ -340,11 +348,14 @@ async function <span class="fstat-no" title="function not covered" >createTestDa
     // Insert test user
     const bcrypt = <span class="cstat-no" title="statement not covered" >require('bcryptjs');</span>
     const hashedPassword = <span class="cstat-no" title="statement not covered" >await bcrypt.hash('admin123', 10);</span>
-    
-<span class="cstat-no" title="statement not covered" >    await connection.query(`</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    await connection.query(</span>
+      `
       INSERT IGNORE INTO users (username, password_hash, role_id, full_name) 
       VALUES ('admin', ?, 5, 'Test Admin')
-    `, [hashedPassword]);
+    `,
+      [hashedPassword]
+    );
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    console.log('Test database setup completed');</span>
   } catch (error) {
@@ -360,14 +371,15 @@ async function <span class="fstat-no" title="function not covered" >createTestDa
 <span class="cstat-no" title="statement not covered" >  createTestDatabase();</span>
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >module.exports = createTestDatabase;</span></pre></td></tr></table></pre>
+<span class="cstat-no" title="statement not covered" >module.exports = createTestDatabase;</span>
+&nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:37.883Z
+                at 2026-01-22T21:30:07.139Z
             </div>
         <script src="../prettify.js"></script>
         <script>

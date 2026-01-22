@@ -13,5 +13,5 @@ module.exports = {
     await knex.raw('ALTER TABLE document_templates MODIFY COLUMN file_data BLOB');
 
     console.log('✅ Reverted file_data column to BLOB');
-  }
+  },
 };

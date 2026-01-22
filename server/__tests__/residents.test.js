@@ -10,8 +10,8 @@ jest.mock('../database', () => ({
     execute: jest.fn(),
     commit: jest.fn(),
     rollback: jest.fn(),
-    release: jest.fn()
-  }))
+    release: jest.fn(),
+  })),
 }));
 
 const db = require('../database');
@@ -34,15 +34,15 @@ describe('Residents API Tests', () => {
           First_Name: 'Juan',
           Last_Name: 'Dela Cruz',
           Residency_Status: 'Active',
-          sitio_name: 'Batia Proper'
+          sitio_name: 'Batia Proper',
         },
         {
           Resident_ID: 'RES-2025-002',
           First_Name: 'Maria',
           Last_Name: 'Santos',
           Residency_Status: 'Active',
-          sitio_name: 'Northville 5'
-        }
+          sitio_name: 'Northville 5',
+        },
       ];
 
       db.query
@@ -66,13 +66,11 @@ describe('Residents API Tests', () => {
           Resident_ID: 'RES-2025-001',
           First_Name: 'Juan',
           Last_Name: 'Dela Cruz',
-          Mobile_Number: '09171234567'
-        }
+          Mobile_Number: '09171234567',
+        },
       ];
 
-      db.query
-        .mockResolvedValueOnce([mockResidents])
-        .mockResolvedValueOnce([{ total: 1 }]);
+      db.query.mockResolvedValueOnce([mockResidents]).mockResolvedValueOnce([{ total: 1 }]);
 
       const response = await request(app)
         .get('/api/residents?search=Juan')
@@ -88,13 +86,11 @@ describe('Residents API Tests', () => {
           Resident_ID: 'RES-2025-001',
           First_Name: 'Juan',
           Last_Name: 'Dela Cruz',
-          sitio_name: 'Batia Proper'
-        }
+          sitio_name: 'Batia Proper',
+        },
       ];
 
-      db.query
-        .mockResolvedValueOnce([mockResidents])
-        .mockResolvedValueOnce([{ total: 1 }]);
+      db.query.mockResolvedValueOnce([mockResidents]).mockResolvedValueOnce([{ total: 1 }]);
 
       const response = await request(app)
         .get('/api/residents?sitio_id=1')
@@ -111,13 +107,11 @@ describe('Residents API Tests', () => {
           First_Name: 'Juan',
           Last_Name: 'Dela Cruz',
           Vulnerability_Score: 75,
-          Is_Senior: true
-        }
+          Is_Senior: true,
+        },
       ];
 
-      db.query
-        .mockResolvedValueOnce([mockResidents])
-        .mockResolvedValueOnce([{ total: 1 }]);
+      db.query.mockResolvedValueOnce([mockResidents]).mockResolvedValueOnce([{ total: 1 }]);
 
       const response = await request(app)
         .get('/api/residents?show_vulnerable=true')
@@ -134,7 +128,7 @@ describe('Residents API Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         commit: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
@@ -150,12 +144,10 @@ describe('Residents API Tests', () => {
         last_name: 'Garcia',
         birthdate: '1990-05-15',
         gender: 'Male',
-        mobile_number: '09171234569'
+        mobile_number: '09171234569',
       };
 
-      const response = await request(app)
-        .post('/api/residents')
-        .send(newResident);
+      const response = await request(app).post('/api/residents').send(newResident);
 
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('resident_id');
@@ -164,12 +156,10 @@ describe('Residents API Tests', () => {
     });
 
     test('should validate required fields', async () => {
-      const response = await request(app)
-        .post('/api/residents')
-        .send({
-          first_name: 'Pedro'
-          // Missing required fields
-        });
+      const response = await request(app).post('/api/residents').send({
+        first_name: 'Pedro',
+        // Missing required fields
+      });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
@@ -180,46 +170,47 @@ describe('Residents API Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         rollback: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
       mockConnection.execute.mockResolvedValueOnce([[]]); // No household found
 
-      const response = await request(app)
-        .post('/api/residents')
-        .send({
-          household_id: 'INVALID-HH',
-          first_name: 'Pedro',
-          last_name: 'Garcia',
-          birthdate: '1990-05-15'
-        });
+      const response = await request(app).post('/api/residents').send({
+        household_id: 'INVALID-HH',
+        first_name: 'Pedro',
+        last_name: 'Garcia',
+        birthdate: '1990-05-15',
+      });
 
       expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty('error', 'Invalid household_id - household does not exist');
+      expect(response.body).toHaveProperty(
+        'error',
+        'Invalid household_id - household does not exist'
+      );
       expect(mockConnection.rollback).toHaveBeenCalled();
     });
   });
 
   describe('POST /api/residents/check-duplicate', () => {
     test('should detect duplicate resident', async () => {
-      const duplicateData = [{
-        Resident_ID: 'RES-2025-001',
-        First_Name: 'Juan',
-        Last_Name: 'Dela Cruz',
-        Birthdate: '1985-03-15',
-        Residency_Status: 'Active'
-      }];
+      const duplicateData = [
+        {
+          Resident_ID: 'RES-2025-001',
+          First_Name: 'Juan',
+          Last_Name: 'Dela Cruz',
+          Birthdate: '1985-03-15',
+          Residency_Status: 'Active',
+        },
+      ];
 
       db.query.mockResolvedValue([duplicateData]);
 
-      const response = await request(app)
-        .post('/api/residents/check-duplicate')
-        .send({
-          first_name: 'Juan',
-          last_name: 'Dela Cruz',
-          birthdate: '1985-03-15'
-        });
+      const response = await request(app).post('/api/residents/check-duplicate').send({
+        first_name: 'Juan',
+        last_name: 'Dela Cruz',
+        birthdate: '1985-03-15',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.is_duplicate).toBe(true);
@@ -230,13 +221,11 @@ describe('Residents API Tests', () => {
     test('should return no duplicates found', async () => {
       db.query.mockResolvedValue([[]]); // No duplicates
 
-      const response = await request(app)
-        .post('/api/residents/check-duplicate')
-        .send({
-          first_name: 'New',
-          last_name: 'Resident',
-          birthdate: '1995-08-20'
-        });
+      const response = await request(app).post('/api/residents/check-duplicate').send({
+        first_name: 'New',
+        last_name: 'Resident',
+        birthdate: '1995-08-20',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.is_duplicate).toBe(false);
@@ -244,12 +233,10 @@ describe('Residents API Tests', () => {
     });
 
     test('should validate required fields', async () => {
-      const response = await request(app)
-        .post('/api/residents/check-duplicate')
-        .send({
-          first_name: 'Test'
-          // Missing last_name and birthdate
-        });
+      const response = await request(app).post('/api/residents/check-duplicate').send({
+        first_name: 'Test',
+        // Missing last_name and birthdate
+      });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
@@ -270,7 +257,7 @@ describe('Residents API Tests', () => {
         Is_4Ps: true,
         Is_PWD: false,
         Is_Senior: false,
-        Vulnerability_Score: 25
+        Vulnerability_Score: 25,
       };
 
       db.query.mockResolvedValue([[mockResident]]);
@@ -303,7 +290,7 @@ describe('Residents API Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         commit: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
@@ -312,12 +299,10 @@ describe('Residents API Tests', () => {
       const updateData = {
         first_name: 'Juan Carlos',
         mobile_number: '09181234567',
-        is_pwd: true
+        is_pwd: true,
       };
 
-      const response = await request(app)
-        .put('/api/residents/RES-2025-001')
-        .send(updateData);
+      const response = await request(app).put('/api/residents/RES-2025-001').send(updateData);
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('message', 'Resident updated successfully');
@@ -329,7 +314,7 @@ describe('Residents API Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         commit: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
@@ -349,7 +334,7 @@ describe('Residents API Tests', () => {
         execute: jest.fn(),
         commit: jest.fn(),
         rollback: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
@@ -370,7 +355,7 @@ describe('Residents API Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         commit: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
@@ -378,13 +363,11 @@ describe('Residents API Tests', () => {
         .mockResolvedValueOnce() // Update resident status
         .mockResolvedValueOnce(); // Update household count
 
-      const response = await request(app)
-        .put('/api/residents/RES-2025-001/archive')
-        .send({
-          departure_date: '2024-12-01',
-          departure_reason: 'Job relocation',
-          destination: 'Manila'
-        });
+      const response = await request(app).put('/api/residents/RES-2025-001/archive').send({
+        departure_date: '2024-12-01',
+        departure_reason: 'Job relocation',
+        destination: 'Manila',
+      });
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('message', 'Resident archived successfully');
@@ -397,18 +380,16 @@ describe('Residents API Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         rollback: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
       mockConnection.execute.mockResolvedValue([{ count: 3 }]); // Multiple residents in household
 
-      const response = await request(app)
-        .put('/api/residents/RES-2025-001/archive')
-        .send({
-          departure_date: '2024-12-01',
-          departure_reason: 'Relocation'
-        });
+      const response = await request(app).put('/api/residents/RES-2025-001/archive').send({
+        departure_date: '2024-12-01',
+        departure_reason: 'Relocation',
+      });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
@@ -421,15 +402,23 @@ describe('Residents API Tests', () => {
       const mockResident = {
         Resident_ID: 'RES-2025-001',
         First_Name: 'Juan',
-        Last_Name: 'Dela Cruz'
+        Last_Name: 'Dela Cruz',
       };
 
       db.query
         .mockResolvedValueOnce([[mockResident]]) // Update QR
-        .mockResolvedValueOnce([[{ Resident_ID: 'RES-2025-001', First_Name: 'Juan', Last_Name: 'Dela Cruz', sitio_name: 'Batia Proper' }]]); // Get updated resident
+        .mockResolvedValueOnce([
+          [
+            {
+              Resident_ID: 'RES-2025-001',
+              First_Name: 'Juan',
+              Last_Name: 'Dela Cruz',
+              sitio_name: 'Batia Proper',
+            },
+          ],
+        ]); // Get updated resident
 
-      const response = await request(app)
-        .post('/api/residents/RES-2025-001/generate-qr');
+      const response = await request(app).post('/api/residents/RES-2025-001/generate-qr');
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('qr_code');
@@ -443,7 +432,7 @@ describe('Residents API Tests', () => {
       const mockHousehold = {
         Household_ID: 'H-2025-001',
         Household_Number: 'HH-001',
-        sitio_name: 'Batia Proper'
+        sitio_name: 'Batia Proper',
       };
 
       const mockMembers = [
@@ -453,7 +442,7 @@ describe('Residents API Tests', () => {
           Last_Name: 'Dela Cruz',
           Relation_to_Head: 'Head',
           Is_4Ps: true,
-          Vulnerability_Score: 25
+          Vulnerability_Score: 25,
         },
         {
           Resident_ID: 'RES-2025-002',
@@ -461,8 +450,8 @@ describe('Residents API Tests', () => {
           Last_Name: 'Dela Cruz',
           Relation_to_Head: 'Spouse',
           Is_Senior: true,
-          Vulnerability_Score: 40
-        }
+          Vulnerability_Score: 40,
+        },
       ];
 
       db.query

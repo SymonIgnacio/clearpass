@@ -200,7 +200,8 @@
 <a name='L135'></a><a href='#L135'>135</a>
 <a name='L136'></a><a href='#L136'>136</a>
 <a name='L137'></a><a href='#L137'>137</a>
-<a name='L138'></a><a href='#L138'>138</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -288,7 +289,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -320,6 +320,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -356,33 +358,33 @@ const testSuites = <span class="cstat-no" title="statement not covered" >[</span
   {
     name: '🔒 Security Tests',
     file: '__tests__/system-comprehensive.test.js',
-    description: 'Captain read-only enforcement &amp; privilege escalation'
+    description: 'Captain read-only enforcement &amp; privilege escalation',
   },
   {
     name: '🧪 Controller Tests',
     file: '__tests__/controllers.test.js',
-    description: 'Business logic validation'
+    description: 'Business logic validation',
   },
   {
     name: '🌐 API Integration Tests',
     file: '__tests__/api-integration.test.js',
-    description: 'End-to-end API workflows'
+    description: 'End-to-end API workflows',
   },
   {
     name: '👤 Authentication Tests',
     file: '__tests__/authController.test.js',
-    description: 'JWT &amp; role-based access'
+    description: 'JWT &amp; role-based access',
   },
   {
     name: '📜 Certificate Tests',
     file: '__tests__/certificates.test.js',
-    description: 'Document generation &amp; validation'
+    description: 'Document generation &amp; validation',
   },
   {
     name: '👥 Resident Tests',
     file: '__tests__/residents.test.js',
-    description: 'Resident management operations'
-  }
+    description: 'Resident management operations',
+  },
 ];
 &nbsp;
 let totalTests = <span class="cstat-no" title="statement not covered" >0;</span>
@@ -400,37 +402,36 @@ const results = <span class="cstat-no" title="statement not covered" >[];</span>
 // Run comprehensive test suite
 <span class="cstat-no" title="statement not covered" >try {</span>
 <span class="cstat-no" title="statement not covered" >  console.log('▶️  Running Comprehensive System Tests...\n');</span>
-  
+&nbsp;
   const output = <span class="cstat-no" title="statement not covered" >execSync('npm test -- --testPathPattern=system-comprehensive.test.js --verbose', {</span>
     encoding: 'utf-8',
-    stdio: 'pipe'
+    stdio: 'pipe',
   });
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  console.log(output);</span>
-  
+&nbsp;
   // Parse results
   const passMatch = <span class="cstat-no" title="statement not covered" >output.match(/(\d+) passed/);</span>
   const failMatch = <span class="cstat-no" title="statement not covered" >output.match(/(\d+) failed/);</span>
   const totalMatch = <span class="cstat-no" title="statement not covered" >output.match(/Tests:\s+(\d+)/);</span>
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  if (passMatch) <span class="cstat-no" title="statement not covered" >passedTests += parseInt(passMatch[1]);</span></span>
 <span class="cstat-no" title="statement not covered" >  if (failMatch) <span class="cstat-no" title="statement not covered" >failedTests += parseInt(failMatch[1]);</span></span>
 <span class="cstat-no" title="statement not covered" >  if (totalMatch) <span class="cstat-no" title="statement not covered" >totalTests += parseInt(totalMatch[1]);</span></span>
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  results.push({</span>
     suite: 'Comprehensive System Tests',
     status: failedTests === 0 ? '✅ PASS' : '❌ FAIL',
     passed: passedTests,
     failed: failedTests,
-    total: totalTests
+    total: totalTests,
   });
-  
 } catch (error) {
 <span class="cstat-no" title="statement not covered" >  console.error('❌ Test execution failed:', error.message);</span>
 <span class="cstat-no" title="statement not covered" >  results.push({</span>
     suite: 'Comprehensive System Tests',
     status: '❌ FAIL',
-    error: error.message
+    error: error.message,
   });
 }
 &nbsp;
@@ -456,7 +457,9 @@ const results = <span class="cstat-no" title="statement not covered" >[];</span>
 <span class="cstat-no" title="statement not covered" >console.log('-'.repeat(70));</span>
 <span class="cstat-no" title="statement not covered" >console.log(`\n📈 Overall Results:`);</span>
 <span class="cstat-no" title="statement not covered" >console.log(`   Total Tests: ${totalTests}`);</span>
-<span class="cstat-no" title="statement not covered" >console.log(`   Passed: ${passedTests} (${totalTests &gt; 0 ? Math.round((passedTests/totalTests)*100) : 0}%)`);</span>
+<span class="cstat-no" title="statement not covered" >console.log(</span>
+  `   Passed: ${passedTests} (${totalTests &gt; 0 ? Math.round((passedTests / totalTests) * 100) : 0}%)`
+);
 <span class="cstat-no" title="statement not covered" >console.log(`   Failed: ${failedTests}`);</span>
 <span class="cstat-no" title="statement not covered" >console.log(`\n   Status: ${failedTests === 0 ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}`);</span>
 <span class="cstat-no" title="statement not covered" >console.log('\n' + '='.repeat(70));</span>
@@ -466,7 +469,7 @@ const results = <span class="cstat-no" title="statement not covered" >[];</span>
 <span class="cstat-no" title="statement not covered" >try {</span>
 <span class="cstat-no" title="statement not covered" >  execSync('npm test -- --coverage --coverageReporters=text', {</span>
     encoding: 'utf-8',
-    stdio: 'inherit'
+    stdio: 'inherit',
   });
 } catch (error) {
 <span class="cstat-no" title="statement not covered" >  console.log('⚠️  Coverage report generation skipped');</span>
@@ -481,7 +484,7 @@ const results = <span class="cstat-no" title="statement not covered" >[];</span>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:38.155Z
+                at 2026-01-22T21:30:07.384Z
             </div>
         <script src="../prettify.js"></script>
         <script>

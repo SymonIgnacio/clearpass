@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -10,85 +10,85 @@ import {
   Alert,
   CircularProgress,
   Avatar,
-  Grid
-} from '@mui/material'
-import { LockOutlined, PersonAdd } from '@mui/icons-material'
-import { useAuth } from '../contexts/useAuth'
+  Grid,
+} from '@mui/material';
+import { LockOutlined, PersonAdd } from '@mui/icons-material';
+import { useAuth } from '../contexts/useAuth';
 
 const OfficerLogin = () => {
-  const { login, user, loading: authLoading, isAuthenticated } = useAuth()
-  const navigate = useNavigate()
+  const { login, user, loading: authLoading, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     username: '',
-    password: ''
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+    password: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (authLoading) return
-    if (!isAuthenticated || !user) return
-    const destination = Number(user.role) === 12 ? '/resident/dashboard' : '/'
-    navigate(destination, { replace: true })
-  }, [authLoading, isAuthenticated, user, navigate])
+    if (authLoading) return;
+    if (!isAuthenticated || !user) return;
+    const destination = Number(user.role) === 12 ? '/resident/dashboard' : '/';
+    navigate(destination, { replace: true });
+  }, [authLoading, isAuthenticated, user, navigate]);
 
-  const handleChange = (e) => {
+  const handleChange = e => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
-    })
-  }
+      [e.target.name]: e.target.value,
+    });
+  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+  const handleSubmit = async e => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
     try {
       console.log('🔐 OfficerLogin: Attempting login with credentials');
 
       // Use the AuthContext login method which handles cookie-based auth
-      const data = await login(formData, { endpoint: '/auth/officer-login' })
+      const data = await login(formData, { endpoint: '/auth/officer-login' });
 
       console.log('🔐 OfficerLogin: Login completed successfully');
 
       if (data?.mfa_required) {
-        navigate('/mfa', { replace: true })
+        navigate('/mfa', { replace: true });
       } else {
-        navigate('/', { replace: true })
+        navigate('/', { replace: true });
       }
     } catch (err) {
-      console.error('❌ OfficerLogin: Login error:', err)
+      console.error('❌ OfficerLogin: Login error:', err);
 
       // Enhanced error handling with more specific messages
-      let errorMessage = 'Login failed. Please try again.'
+      let errorMessage = 'Login failed. Please try again.';
 
       if (err.message) {
         // Handle specific error types
         if (err.message.includes('Invalid token')) {
-          errorMessage = 'Authentication failed. Please contact support if this persists.'
+          errorMessage = 'Authentication failed. Please contact support if this persists.';
         } else if (err.message.includes('401')) {
-          errorMessage = 'Invalid credentials. Please check your username and password.'
+          errorMessage = 'Invalid credentials. Please check your username and password.';
         } else if (err.message.includes('403')) {
-          errorMessage = 'Access denied. Your account may not have permission to log in.'
+          errorMessage = 'Access denied. Your account may not have permission to log in.';
         } else if (err.message.includes('500')) {
-          errorMessage = 'Server error. Please try again later.'
+          errorMessage = 'Server error. Please try again later.';
         } else if (err.message.includes('No authentication token')) {
-          errorMessage = 'Authentication failed. Please contact support.'
+          errorMessage = 'Authentication failed. Please contact support.';
         } else {
-          errorMessage = `Login failed: ${err.message}`
+          errorMessage = `Login failed: ${err.message}`;
         }
       }
 
-      setError(errorMessage)
+      setError(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <Container component="main" maxWidth="sm">
+    <Container component='main' maxWidth='sm'>
       <Box
         sx={{
           marginTop: 8,
@@ -105,59 +105,57 @@ const OfficerLogin = () => {
             flexDirection: 'column',
             alignItems: 'center',
             width: '100%',
-            borderRadius: 3
+            borderRadius: 3,
           }}
         >
           <Avatar sx={{ m: 1, bgcolor: 'primary.main', width: 56, height: 56 }}>
             <LockOutlined sx={{ fontSize: 32 }} />
           </Avatar>
 
-          <Typography component="h1" variant="h4" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
+          <Typography component='h1' variant='h4' sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
             Officer Login
           </Typography>
 
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
+          <Typography variant='body1' color='text.secondary' sx={{ mb: 3, textAlign: 'center' }}>
             Sign in to access the barangay management system
           </Typography>
 
-          <Typography variant="body2" color="primary" sx={{ mb: 2, fontWeight: 500 }}>
+          <Typography variant='body2' color='primary' sx={{ mb: 2, fontWeight: 500 }}>
             Staff & Officers Only
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+            <Alert severity='error' sx={{ width: '100%', mb: 2 }}>
               {error}
             </Alert>
           )}
 
-
-
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
+          <Box component='form' onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
             <TextField
-              margin="normal"
+              margin='normal'
               required
               fullWidth
-              id="username"
-              label="Username"
-              name="username"
-              autoComplete="username"
+              id='username'
+              label='Username'
+              name='username'
+              autoComplete='username'
               autoFocus
               value={formData.username}
               onChange={handleChange}
               disabled={loading}
               sx={{ mb: 2 }}
-              helperText="Use your staff username (e.g., captain, secretary)"
+              helperText='Use your staff username (e.g., captain, secretary)'
             />
 
             <TextField
-              margin="normal"
+              margin='normal'
               required
               fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
+              name='password'
+              label='Password'
+              type='password'
+              id='password'
+              autoComplete='current-password'
               value={formData.password}
               onChange={handleChange}
               disabled={loading}
@@ -165,38 +163,36 @@ const OfficerLogin = () => {
             />
 
             <Button
-              type="submit"
+              type='submit'
               fullWidth
-              variant="contained"
+              variant='contained'
               disabled={loading}
               sx={{
                 mt: 2,
                 mb: 2,
                 height: 48,
                 fontSize: '1rem',
-                fontWeight: 600
+                fontWeight: 600,
               }}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In as Officer'}
+              {loading ? <CircularProgress size={24} color='inherit' /> : 'Sign In as Officer'}
             </Button>
 
-
-
             <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography variant='body2' color='text.secondary' sx={{ mb: 1 }}>
                 For residents and the general public:
               </Typography>
               <Button
                 component={Link}
-                to="/resident/login"
-                variant="outlined"
+                to='/resident/login'
+                variant='outlined'
                 startIcon={<PersonAdd />}
                 disabled={loading}
                 sx={{
                   borderRadius: 2,
                   px: 3,
                   py: 1,
-                  fontWeight: 500
+                  fontWeight: 500,
                 }}
               >
                 Use Resident Login
@@ -204,9 +200,7 @@ const OfficerLogin = () => {
             </Box>
           </Box>
 
-
-
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 3, textAlign: 'center' }}>
+          <Typography variant='body2' color='text.secondary' sx={{ mt: 3, textAlign: 'center' }}>
             © 2025 Barangay Management System
             <br />
             Authorized Personnel Access
@@ -214,7 +208,7 @@ const OfficerLogin = () => {
         </Paper>
       </Box>
     </Container>
-  )
-}
+  );
+};
 
-export default OfficerLogin
+export default OfficerLogin;

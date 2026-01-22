@@ -3,16 +3,7 @@ const crypto = require('crypto');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-const SITIOS = [
-  'Batia Proper',
-  'Northville 5',
-  'St. Martha',
-  'AFP/PNP',
-  'Old Site',
-  'New Site',
-  'Riverside',
-  'Hilltop',
-];
+const SITIOS = ['Batia Proper', 'Northville 5', 'St. Martha', 'AFP/PNP'];
 
 const INCIDENT_TYPES = [
   'Physical Injury',

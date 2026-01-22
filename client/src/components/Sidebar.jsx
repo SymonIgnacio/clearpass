@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Drawer,
   List,
@@ -15,19 +15,17 @@ import {
   Chip,
   Button,
   Paper,
-  Collapse
-} from '@mui/material'
-import { useTheme } from '@mui/material/styles'
-import useMediaQuery from '@mui/material/useMediaQuery'
+  Collapse,
+} from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import {
   Dashboard,
   People,
   Gavel,
   Description,
   Assessment,
-  SmartToy,
   Security,
-  Event,
   Logout,
   Person,
   Settings,
@@ -36,28 +34,28 @@ import {
   AdminPanelSettings,
   FolderShared,
   Assignment,
-  QrCode
-} from '@mui/icons-material'
-import { useAuth } from '../contexts/useAuth'
+  QrCode,
+} from '@mui/icons-material';
+import { useAuth } from '../contexts/useAuth';
 
-export const DRAWER_WIDTH = 280
+export const DRAWER_WIDTH = 280;
 
 const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { user, logout } = useAuth()
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [openSubmenus, setOpenSubmenus] = useState({
     residentServices: true,
     caseManagement: true,
     administration: true,
-    analytics: true
-  })
+    analytics: true,
+  });
 
-  const handleToggleSubmenu = (key) => {
-    setOpenSubmenus((prev) => ({ ...prev, [key]: !prev[key] }))
-  }
+  const handleToggleSubmenu = key => {
+    setOpenSubmenus(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const menuStructure = [
     {
@@ -65,13 +63,13 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
       icon: <Dashboard />,
       path: '/',
       description: 'Overview & Analytics',
-      roles: [1, 2, 3, 4, 6]
+      roles: [1, 2, 3, 4, 6],
     },
     {
       text: 'My Dashboard',
       icon: <Dashboard />,
       path: '/resident/dashboard',
-      roles: [12, 13]
+      roles: [12, 13],
     },
     {
       text: 'Resident Portal',
@@ -82,47 +80,41 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         {
           text: 'My Profile',
           path: '/resident/profile',
-          roles: [12, 13]
+          roles: [12, 13],
         },
         {
           text: 'My Documents',
           path: '/resident/documents',
-          roles: [12, 13]
-        },
-        {
-          text: 'Community Programs',
-          icon: <Event />,
-          path: '/resident/programs',
-          roles: [12, 13]
+          roles: [12, 13],
         },
         {
           text: 'My Certificates',
           icon: <Description />,
           path: '/resident/request-certificate',
-          roles: [12, 13]
+          roles: [12, 13],
         },
         {
           text: 'My Requests',
           path: '/resident/requests',
-          roles: [12]
+          roles: [12],
         },
         {
           text: 'File Blotter',
           icon: <Gavel />,
           path: '/resident/blotter-report',
-          roles: [12, 13]
+          roles: [12, 13],
         },
         {
           text: 'My Complaints',
           path: '/resident/complaints',
-          roles: [12]
+          roles: [12],
         },
         {
           text: 'Announcements',
           path: '/resident/announcements',
-          roles: [12]
-        }
-      ]
+          roles: [12],
+        },
+      ],
     },
     {
       text: 'Resident Services',
@@ -133,24 +125,24 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         {
           text: 'Resident Records',
           path: '/residents',
-          roles: [1, 2, 3, 4] // Admin, Captain, Secretary, Clerk (Read Only)
+          roles: [1, 2, 3, 4], // Admin, Captain, Secretary, Clerk (Read Only)
         },
         {
           text: 'Certificates',
           path: '/clerk/documents', // Consolidated Document Issuance
-          roles: [1, 4] // Admin, Clerk
+          roles: [1, 4], // Admin, Clerk
         },
         {
           text: 'Residency Verification',
           path: '/secretary/residency-verification',
-          roles: [1, 3] // Admin, Secretary
+          roles: [1, 3], // Admin, Secretary
         },
         {
           text: 'Beneficiary Eligibility Review',
           path: '/secretary/beneficiaries',
-          roles: [1, 3] // Admin, Secretary
-        }
-      ]
+          roles: [1, 3], // Admin, Secretary
+        },
+      ],
     },
     {
       text: 'Case Management',
@@ -161,9 +153,15 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         {
           text: 'Blotter Records',
           path: '/blotter',
-          roles: [1, 6]
-        }
-      ]
+          roles: [1, 6],
+        },
+        {
+          text: 'Blotter Requests',
+          icon: <Assignment />,
+          path: '/officer/requests',
+          roles: [1, 6],
+        },
+      ],
     },
     {
       text: 'Analytics',
@@ -174,31 +172,9 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         {
           text: 'Reports',
           path: '/reports',
-          roles: [1, 3]
+          roles: [1, 3],
         },
-        {
-          text: 'AI Insights',
-          path: '/reports?tab=ai',
-          roles: [1, 2, 3, 4, 6],
-          badge: 'AI'
-        },
-        {
-          text: 'Patrol AI',
-          path: '/ai-patrol',
-          roles: [1, 2, 6], // Admin, Captain, Officer
-          badge: 'Beta'
-        },
-        {
-          text: 'Ronda Analytics',
-          path: '/ronda-analytics',
-          roles: [1, 2, 6] // Admin, Captain, Officer
-        },
-        {
-          text: 'Clerk Forecasts',
-          path: '/clerk/ai-insights',
-          roles: [1, 4] // Admin, Clerk
-        }
-      ]
+      ],
     },
     {
       text: 'Administration',
@@ -209,70 +185,70 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         {
           text: 'User Management',
           path: '/admin/staff',
-          roles: [1]
+          roles: [1],
         },
         {
           text: 'System Logs',
           path: '/admin/logs',
-          roles: [1]
+          roles: [1],
         },
         {
           text: 'Settings',
           path: '/admin/settings',
-          roles: [1]
+          roles: [1],
         },
         {
           text: 'Backup & Restore',
           path: '/admin/backup',
-          roles: [1]
-        }
-      ]
-    }
-  ]
+          roles: [1],
+        },
+      ],
+    },
+  ];
 
   // Filter menu items based on user role
-  const getVisibleItems = (items) => {
-    if (!user || !user.role) return []
-    const userRole = Number(user.role)
+  const getVisibleItems = items => {
+    if (!user || !user.role) return [];
+    const userRole = Number(user.role);
 
     return items.reduce((acc, item) => {
       // Check if user has role for this item
-      const hasRole = item.roles.includes(userRole)
-      
+      const hasRole = item.roles.includes(userRole);
+
       if (item.children) {
         // Recursively filter children
-        const visibleChildren = getVisibleItems(item.children)
-        
+        const visibleChildren = getVisibleItems(item.children);
+
         // If user has access to parent OR at least one child
         if (hasRole || visibleChildren.length > 0) {
-          acc.push({ ...item, children: visibleChildren })
+          acc.push({ ...item, children: visibleChildren });
         }
       } else if (hasRole) {
-        acc.push(item)
+        acc.push(item);
       }
-      return acc
-    }, [])
-  }
+      return acc;
+    }, []);
+  };
 
-  const visibleMenu = getVisibleItems(menuStructure)
+  const visibleMenu = getVisibleItems(menuStructure);
 
-  const renderMenuItem = (item) => {
-    const isParent = item.children && item.children.length > 0
-    const isOpen = openSubmenus[item.key]
-    
+  const renderMenuItem = item => {
+    const isParent = item.children && item.children.length > 0;
+    const isOpen = openSubmenus[item.key];
+
     // Improved active state detection
-    let isActive = false
-    
+    let isActive = false;
+
     if (!isParent) {
       if (item.path.includes('?')) {
         // Strict match for items with query params (e.g. AI Insights)
-        isActive = (location.pathname + location.search) === item.path
+        isActive = location.pathname + location.search === item.path;
       } else {
         // For items without query params (e.g. Reports), ensure current URL has no conflicting query param
         // This prevents 'Reports' from being active when 'AI Insights' (/reports?tab=ai) is active
-        const isPathMatch = location.pathname === item.path
-        const hasConflictingQuery = location.search && location.search.includes('tab=ai')
-        isActive = isPathMatch && !hasConflictingQuery
+        const isPathMatch = location.pathname === item.path;
+        const hasConflictingQuery = location.search && location.search.includes('tab=ai');
+        isActive = isPathMatch && !hasConflictingQuery;
       }
     }
 
@@ -286,34 +262,34 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
                 borderRadius: 2,
                 py: 1.5,
                 px: 2,
-                '&:hover': { backgroundColor: 'rgba(26, 115, 232, 0.04)' }
+                '&:hover': { backgroundColor: 'rgba(26, 115, 232, 0.04)' },
               }}
             >
               <ListItemIcon sx={{ minWidth: 40, color: 'text.secondary' }}>
                 {item.icon}
               </ListItemIcon>
-              <ListItemText 
-                primary={item.text} 
+              <ListItemText
+                primary={item.text}
                 primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }}
               />
-              {isOpen ? <ExpandLess color="action" /> : <ExpandMore color="action" />}
+              {isOpen ? <ExpandLess color='action' /> : <ExpandMore color='action' />}
             </ListItemButton>
           </ListItem>
-          <Collapse in={isOpen} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding>
+          <Collapse in={isOpen} timeout='auto' unmountOnExit>
+            <List component='div' disablePadding>
               {item.children.map(child => renderMenuItem(child))}
             </List>
           </Collapse>
         </React.Fragment>
-      )
+      );
     }
 
     return (
       <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
         <ListItemButton
           onClick={() => {
-            navigate(item.path)
-            if (isMobile) onMobileClose()
+            navigate(item.path);
+            if (isMobile) onMobileClose();
           }}
           sx={{
             borderRadius: 2,
@@ -324,12 +300,12 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
             backgroundColor: isActive ? 'primary.main' : 'transparent',
             color: isActive ? 'primary.contrastText' : 'inherit',
             boxShadow: isActive ? '0 2px 8px rgba(26, 115, 232, 0.25)' : 'none',
-            '& .MuiListItemText-primary': { 
-              color: isActive ? 'primary.contrastText' : 'inherit', 
-              fontWeight: isActive ? 500 : 400 
+            '& .MuiListItemText-primary': {
+              color: isActive ? 'primary.contrastText' : 'inherit',
+              fontWeight: isActive ? 500 : 400,
             },
-            '& .MuiListItemIcon-root': { 
-              color: isActive ? 'primary.contrastText' : 'text.secondary' 
+            '& .MuiListItemIcon-root': {
+              color: isActive ? 'primary.contrastText' : 'text.secondary',
             },
             '&:hover': {
               backgroundColor: isActive ? 'primary.main' : 'rgba(26, 115, 232, 0.04)',
@@ -337,20 +313,22 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
           }}
         >
           {item.icon && (
-            <ListItemIcon sx={{ minWidth: 40, color: isActive ? 'primary.contrastText' : 'text.secondary' }}>
+            <ListItemIcon
+              sx={{ minWidth: 40, color: isActive ? 'primary.contrastText' : 'text.secondary' }}
+            >
               {item.icon}
             </ListItemIcon>
           )}
           <ListItemText
             primary={
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                <Typography variant='body2' sx={{ fontSize: '0.875rem' }}>
                   {item.text}
                 </Typography>
                 {item.badge && (
                   <Chip
                     label={item.badge}
-                    size="small"
+                    size='small'
                     sx={{
                       height: 16,
                       fontSize: '0.625rem',
@@ -365,8 +343,8 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
           />
         </ListItemButton>
       </ListItem>
-    )
-  }
+    );
+  };
 
   const drawer = (
     <>
@@ -376,10 +354,15 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
             <Security sx={{ fontSize: 20 }} />
           </Avatar>
           <Box>
-            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, fontSize: '1.125rem', color: 'text.primary' }}>
+            <Typography
+              variant='h6'
+              noWrap
+              component='div'
+              sx={{ fontWeight: 500, fontSize: '1.125rem', color: 'text.primary' }}
+            >
               Barangay MS
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+            <Typography variant='caption' sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
               Management System
             </Typography>
           </Box>
@@ -388,24 +371,30 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
 
       <Divider sx={{ mx: 2, my: 1 }} />
 
-      <List sx={{ px: 2 }}>
-        {visibleMenu.map((item) => renderMenuItem(item))}
-      </List>
+      <List sx={{ px: 2 }}>{visibleMenu.map(item => renderMenuItem(item))}</List>
 
       <Box sx={{ flexGrow: 1 }} />
 
       {user && (
         <Box sx={{ p: 2, mx: 2 }}>
-          <Paper sx={{ p: 2, borderRadius: 2, backgroundColor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+          <Paper
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              backgroundColor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
               <Avatar sx={{ width: 32, height: 32, mr: 1.5, bgcolor: 'primary.main' }}>
                 <Person sx={{ fontSize: 16 }} />
               </Avatar>
               <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }} noWrap>
+                <Typography variant='body2' sx={{ fontWeight: 500, fontSize: '0.875rem' }} noWrap>
                   {user.full_name || user.username || 'User'}
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                <Typography variant='caption' sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
                   {user.role_name || 'Staff'}
                 </Typography>
               </Box>
@@ -413,8 +402,8 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
 
             <Button
               fullWidth
-              variant="outlined"
-              size="small"
+              variant='outlined'
+              size='small'
               onClick={logout}
               startIcon={<Logout />}
               sx={{
@@ -423,7 +412,11 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
                 fontSize: '0.75rem',
                 fontWeight: 500,
                 textTransform: 'none',
-                '&:hover': { backgroundColor: 'error.main', color: 'white', borderColor: 'error.main' },
+                '&:hover': {
+                  backgroundColor: 'error.main',
+                  color: 'white',
+                  borderColor: 'error.main',
+                },
               }}
             >
               Logout
@@ -432,17 +425,21 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         </Box>
       )}
     </>
-  )
+  );
 
   return (
-    <Box component="nav" sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }} aria-label="sidebar navigation">
+    <Box
+      component='nav'
+      sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
+      aria-label='sidebar navigation'
+    >
       {isMobile ? (
         <Drawer
-          variant="temporary"
+          variant='temporary'
           open={mobileOpen}
           onClose={onMobileClose}
           ModalProps={{ keepMounted: true }}
-          anchor="left"
+          anchor='left'
           sx={{
             '& .MuiDrawer-paper': {
               width: DRAWER_WIDTH,
@@ -457,9 +454,9 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         </Drawer>
       ) : (
         <Drawer
-          variant="permanent"
+          variant='permanent'
           open
-          anchor="left"
+          anchor='left'
           sx={{
             width: DRAWER_WIDTH,
             flexShrink: 0,
@@ -476,7 +473,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         </Drawer>
       )}
     </Box>
-  )
-}
+  );
+};
 
-export default Sidebar
+export default Sidebar;

@@ -1,7 +1,7 @@
 exports.up = async function (knex) {
   const hasResidentDocs = await knex.schema.hasTable('resident_documents');
   if (hasResidentDocs) {
-    await knex.schema.alterTable('resident_documents', (table) => {
+    await knex.schema.alterTable('resident_documents', table => {
       table.string('encryption_alg', 32);
       table.integer('encryption_version').unsigned();
       table.string('encryption_iv', 64);
@@ -14,7 +14,7 @@ exports.up = async function (knex) {
 
   const hasAppDocs = await knex.schema.hasTable('application_documents');
   if (hasAppDocs) {
-    await knex.schema.alterTable('application_documents', (table) => {
+    await knex.schema.alterTable('application_documents', table => {
       table.string('encryption_alg', 32);
       table.integer('encryption_version').unsigned();
       table.string('encryption_iv', 64);
@@ -29,7 +29,7 @@ exports.up = async function (knex) {
 exports.down = async function (knex) {
   const hasResidentDocs = await knex.schema.hasTable('resident_documents');
   if (hasResidentDocs) {
-    await knex.schema.alterTable('resident_documents', (table) => {
+    await knex.schema.alterTable('resident_documents', table => {
       table.dropColumn('encryption_alg');
       table.dropColumn('encryption_version');
       table.dropColumn('encryption_iv');
@@ -42,7 +42,7 @@ exports.down = async function (knex) {
 
   const hasAppDocs = await knex.schema.hasTable('application_documents');
   if (hasAppDocs) {
-    await knex.schema.alterTable('application_documents', (table) => {
+    await knex.schema.alterTable('application_documents', table => {
       table.dropColumn('encryption_alg');
       table.dropColumn('encryption_version');
       table.dropColumn('encryption_iv');

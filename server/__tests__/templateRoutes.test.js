@@ -5,8 +5,11 @@ const templateRoutes = require('../routes/templateRoutes');
 
 // Mock middlewares
 jest.mock('../middleware/authMiddleware', () => ({
-  verifyToken: (req, res, next) => { req.user = { id: 'admin1', role: 'admin' }; next(); },
-  checkRole: (roles) => (req, res, next) => next(),
+  verifyToken: (req, res, next) => {
+    req.user = { id: 'admin1', role: 'admin' };
+    next();
+  },
+  checkRole: roles => (req, res, next) => next(),
 }));
 
 // Mock DB
@@ -26,7 +29,13 @@ describe('Template Routes', () => {
   describe('GET /api/templates', () => {
     test('should return all active templates', async () => {
       const mockTemplates = [
-        { id: 1, template_name: 'Temp1', is_active: 1, file_data: Buffer.from('test'), has_file: 1 }
+        {
+          id: 1,
+          template_name: 'Temp1',
+          is_active: 1,
+          file_data: Buffer.from('test'),
+          has_file: 1,
+        },
       ];
       db.execute.mockResolvedValueOnce([mockTemplates]);
 
@@ -40,19 +49,20 @@ describe('Template Routes', () => {
   describe('POST /api/templates', () => {
     test('should create a new template', async () => {
       db.execute.mockResolvedValueOnce([{ insertId: 1 }]);
-      
+
       const response = await request(app)
         .post('/api/templates')
         .send({ template_name: 'New Temp', document_type: 'Clearance' });
 
       expect(response.status).toBe(201);
-      expect(db.execute).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO document_templates'), expect.any(Array));
+      expect(db.execute).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO document_templates'),
+        expect.any(Array)
+      );
     });
 
     test('should validate required fields', async () => {
-      const response = await request(app)
-        .post('/api/templates')
-        .send({});
+      const response = await request(app).post('/api/templates').send({});
 
       expect(response.status).toBe(400);
     });
@@ -106,18 +116,20 @@ describe('Template Routes', () => {
   describe('GET /api/templates/:id/download', () => {
     test('should download template file', async () => {
       const fileData = Buffer.from('file content');
-      db.execute.mockResolvedValueOnce([[{ template_name: 'Temp.docx', file_data: fileData, file_encoding: 'application/docx' }]]);
+      db.execute.mockResolvedValueOnce([
+        [{ template_name: 'Temp.docx', file_data: fileData, file_encoding: 'application/docx' }],
+      ]);
 
       const response = await request(app).get('/api/templates/1/download');
-      
+
       expect(response.status).toBe(200);
       expect(response.headers['content-type']).toBe('application/docx');
       // Verify body is either the buffer or check length if body parsing is skipped
       if (Buffer.isBuffer(response.body)) {
-          expect(response.body).toEqual(fileData);
+        expect(response.body).toEqual(fileData);
       } else {
-          // Fallback if supertest returns empty object for unparsed binary
-          expect(response.header['content-length']).toBeDefined(); 
+        // Fallback if supertest returns empty object for unparsed binary
+        expect(response.header['content-length']).toBeDefined();
       }
     });
 

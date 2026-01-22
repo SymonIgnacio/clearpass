@@ -17,33 +17,33 @@ const testSuites = [
   {
     name: '🔒 Security Tests',
     file: '__tests__/system-comprehensive.test.js',
-    description: 'Captain read-only enforcement & privilege escalation'
+    description: 'Captain read-only enforcement & privilege escalation',
   },
   {
     name: '🧪 Controller Tests',
     file: '__tests__/controllers.test.js',
-    description: 'Business logic validation'
+    description: 'Business logic validation',
   },
   {
     name: '🌐 API Integration Tests',
     file: '__tests__/api-integration.test.js',
-    description: 'End-to-end API workflows'
+    description: 'End-to-end API workflows',
   },
   {
     name: '👤 Authentication Tests',
     file: '__tests__/authController.test.js',
-    description: 'JWT & role-based access'
+    description: 'JWT & role-based access',
   },
   {
     name: '📜 Certificate Tests',
     file: '__tests__/certificates.test.js',
-    description: 'Document generation & validation'
+    description: 'Document generation & validation',
   },
   {
     name: '👥 Resident Tests',
     file: '__tests__/residents.test.js',
-    description: 'Resident management operations'
-  }
+    description: 'Resident management operations',
+  },
 ];
 
 let totalTests = 0;
@@ -61,37 +61,36 @@ console.log('\n' + '-'.repeat(70) + '\n');
 // Run comprehensive test suite
 try {
   console.log('▶️  Running Comprehensive System Tests...\n');
-  
+
   const output = execSync('npm test -- --testPathPattern=system-comprehensive.test.js --verbose', {
     encoding: 'utf-8',
-    stdio: 'pipe'
+    stdio: 'pipe',
   });
-  
+
   console.log(output);
-  
+
   // Parse results
   const passMatch = output.match(/(\d+) passed/);
   const failMatch = output.match(/(\d+) failed/);
   const totalMatch = output.match(/Tests:\s+(\d+)/);
-  
+
   if (passMatch) passedTests += parseInt(passMatch[1]);
   if (failMatch) failedTests += parseInt(failMatch[1]);
   if (totalMatch) totalTests += parseInt(totalMatch[1]);
-  
+
   results.push({
     suite: 'Comprehensive System Tests',
     status: failedTests === 0 ? '✅ PASS' : '❌ FAIL',
     passed: passedTests,
     failed: failedTests,
-    total: totalTests
+    total: totalTests,
   });
-  
 } catch (error) {
   console.error('❌ Test execution failed:', error.message);
   results.push({
     suite: 'Comprehensive System Tests',
     status: '❌ FAIL',
-    error: error.message
+    error: error.message,
   });
 }
 
@@ -117,7 +116,9 @@ results.forEach(result => {
 console.log('-'.repeat(70));
 console.log(`\n📈 Overall Results:`);
 console.log(`   Total Tests: ${totalTests}`);
-console.log(`   Passed: ${passedTests} (${totalTests > 0 ? Math.round((passedTests/totalTests)*100) : 0}%)`);
+console.log(
+  `   Passed: ${passedTests} (${totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0}%)`
+);
 console.log(`   Failed: ${failedTests}`);
 console.log(`\n   Status: ${failedTests === 0 ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}`);
 console.log('\n' + '='.repeat(70));
@@ -127,7 +128,7 @@ console.log('\n📊 Generating Coverage Report...\n');
 try {
   execSync('npm test -- --coverage --coverageReporters=text', {
     encoding: 'utf-8',
-    stdio: 'inherit'
+    stdio: 'inherit',
   });
 } catch (error) {
   console.log('⚠️  Coverage report generation skipped');

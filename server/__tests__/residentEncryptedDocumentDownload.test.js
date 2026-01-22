@@ -8,7 +8,7 @@ const { encryptFileToEncryptedPath } = require('../utils/documentStorage');
 
 const mockDb = {
   execute: jest.fn(),
-  getConnection: jest.fn()
+  getConnection: jest.fn(),
 };
 
 jest.mock('../database', () => mockDb);
@@ -19,7 +19,7 @@ jest.mock('../middleware/authMiddleware', () => ({
     next();
   },
   checkRole: () => (req, res, next) => next(),
-  enforceReadOnly: (req, res, next) => next()
+  enforceReadOnly: (req, res, next) => next(),
 }));
 
 describe('encrypted resident document downloads', () => {
@@ -56,15 +56,15 @@ describe('encrypted resident document downloads', () => {
           file_name: 'test.pdf',
           encryption_alg: encrypted.encryption_alg,
           encryption_iv: encrypted.encryption_iv,
-          encryption_tag: encrypted.encryption_tag
-        }
-      ]
+          encryption_tag: encrypted.encryption_tag,
+        },
+      ],
     ]);
 
     const binaryParser = (response, callback) => {
       response.setEncoding('binary');
       let data = '';
-      response.on('data', (chunk) => {
+      response.on('data', chunk => {
         data += chunk;
       });
       response.on('end', () => {

@@ -5,8 +5,11 @@ const certificateTypeRoutes = require('../routes/certificateTypeRoutes');
 
 // Mock middlewares
 jest.mock('../middleware/authMiddleware', () => ({
-  verifyToken: (req, res, next) => { req.user = { id: 'admin1', role: 'admin' }; next(); },
-  checkRole: (roles) => (req, res, next) => next(),
+  verifyToken: (req, res, next) => {
+    req.user = { id: 'admin1', role: 'admin' };
+    next();
+  },
+  checkRole: roles => (req, res, next) => next(),
 }));
 
 // Mock DB
@@ -26,7 +29,7 @@ describe('Certificate Type Routes', () => {
   describe('POST /api/certificate-types', () => {
     test('should create a new certificate type', async () => {
       db.execute.mockResolvedValueOnce([{ insertId: 1 }]);
-      
+
       const response = await request(app)
         .post('/api/certificate-types')
         .send({ name: 'New Type', fee: 50 });
@@ -39,9 +42,7 @@ describe('Certificate Type Routes', () => {
     });
 
     test('should validate required fields', async () => {
-      const response = await request(app)
-        .post('/api/certificate-types')
-        .send({}); // Missing name
+      const response = await request(app).post('/api/certificate-types').send({}); // Missing name
 
       expect(response.status).toBe(400);
     });

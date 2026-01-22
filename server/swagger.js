@@ -6,21 +6,22 @@ const options = {
     info: {
       title: 'ClearPass Barangay Management System API',
       version: '1.0.0',
-      description: 'Comprehensive API documentation for ClearPass - A digital management system for Philippine barangays',
+      description:
+        'Comprehensive API documentation for ClearPass - A digital management system for Philippine barangays',
       contact: {
         name: 'ClearPass Development Team',
-        email: 'support@clearpass.local'
-      }
+        email: 'support@clearpass.local',
+      },
     },
     servers: [
       {
         url: 'http://localhost:3001/api',
-        description: 'Development server'
+        description: 'Development server',
       },
       {
         url: 'https://clearpass.local/api',
-        description: 'Production server'
-      }
+        description: 'Production server',
+      },
     ],
     components: {
       securitySchemes: {
@@ -28,8 +29,8 @@ const options = {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'JWT token obtained from /api/auth/login'
-        }
+          description: 'JWT token obtained from /api/auth/login',
+        },
       },
       schemas: {
         Error: {
@@ -37,111 +38,111 @@ const options = {
           properties: {
             success: {
               type: 'boolean',
-              example: false
+              example: false,
             },
             error: {
               type: 'object',
               properties: {
                 code: {
                   type: 'string',
-                  example: 'VALIDATION_ERROR'
+                  example: 'VALIDATION_ERROR',
                 },
                 message: {
                   type: 'string',
-                  example: 'Validation failed'
-                }
-              }
+                  example: 'Validation failed',
+                },
+              },
             },
             timestamp: {
               type: 'string',
-              format: 'date-time'
-            }
-          }
+              format: 'date-time',
+            },
+          },
         },
         Resident: {
           type: 'object',
           properties: {
             Resident_ID: {
               type: 'string',
-              example: 'RES-1234567890-A1B2'
+              example: 'RES-1234567890-A1B2',
             },
             First_Name: {
               type: 'string',
-              example: 'Juan'
+              example: 'Juan',
             },
             Last_Name: {
               type: 'string',
-              example: 'Dela Cruz'
+              example: 'Dela Cruz',
             },
             Mobile_Number: {
               type: 'string',
-              example: '09171234567'
+              example: '09171234567',
             },
             Residency_Status: {
               type: 'string',
-              enum: ['Active', 'Inactive', 'Temporary']
-            }
-          }
+              enum: ['Active', 'Inactive', 'Temporary'],
+            },
+          },
         },
         Certificate: {
           type: 'object',
           properties: {
             control_no: {
               type: 'string',
-              example: 'CLR-1234567890-A1B2C3D4'
+              example: 'CLR-1234567890-A1B2C3D4',
             },
             resident_id: {
-              type: 'string'
+              type: 'string',
             },
             certificate_type: {
               type: 'string',
-              example: 'Barangay Clearance'
+              example: 'Barangay Clearance',
             },
             purpose: {
               type: 'string',
-              example: 'Employment'
+              example: 'Employment',
             },
             status: {
               type: 'string',
-              enum: ['Pending', 'Approved', 'Released', 'Rejected']
-            }
-          }
-        }
-      }
+              enum: ['Pending', 'Approved', 'Released', 'Rejected'],
+            },
+          },
+        },
+      },
     },
     security: [
       {
-        bearerAuth: []
-      }
+        bearerAuth: [],
+      },
     ],
     tags: [
       {
         name: 'Authentication',
-        description: 'User authentication and authorization'
+        description: 'User authentication and authorization',
       },
       {
         name: 'Residents',
-        description: 'Resident management operations'
+        description: 'Resident management operations',
       },
       {
         name: 'Certificates',
-        description: 'Certificate issuance and management'
+        description: 'Certificate issuance and management',
       },
       {
         name: 'Blotter',
-        description: 'Incident reporting and case management'
+        description: 'Incident reporting and case management',
       },
       {
         name: 'Census',
-        description: 'Population statistics and analytics'
+        description: 'Population statistics and analytics',
       },
       {
         name: 'Admin',
-        description: 'Administrative operations and reports'
-      }
-    ]
+        description: 'Administrative operations and reports',
+      },
+    ],
   },
-  apis: ['./routes/*.js', './controllers/*.js']
+  apis: ['./routes/*.js', './controllers/*.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(options);

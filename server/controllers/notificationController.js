@@ -28,7 +28,7 @@ class NotificationController {
       params.push(parseInt(limit), offset);
 
       const [notifications] = await this.db.execute(query, params);
-      
+
       const [countResult] = await this.db.execute(
         `SELECT COUNT(*) as total FROM user_notifications WHERE user_id = ?${unread_only === 'true' ? ' AND is_read = 0' : ''}`,
         [userId]
@@ -40,8 +40,8 @@ class NotificationController {
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total: countResult[0].total
-        }
+          total: countResult[0].total,
+        },
       });
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -98,7 +98,14 @@ class NotificationController {
     }
   }
 
-  async createNotification(userId, title, message, type = 'info', priority = 'normal', data = null) {
+  async createNotification(
+    userId,
+    title,
+    message,
+    type = 'info',
+    priority = 'normal',
+    data = null
+  ) {
     try {
       // Insert notification
       const [notificationResult] = await this.db.execute(
@@ -122,14 +129,14 @@ class NotificationController {
         priority,
         data,
         is_read: false,
-        created_at: new Date()
+        created_at: new Date(),
       };
 
       // Emit to WebSocket if available
       if (global.wsService) {
         global.wsService.sendToUser(userId, {
           type: 'notification',
-          data: notification
+          data: notification,
         });
       }
 
@@ -141,7 +148,14 @@ class NotificationController {
   }
 
   // Create notification for multiple users
-  async createBulkNotification(userIds, title, message, type = 'info', priority = 'normal', data = null) {
+  async createBulkNotification(
+    userIds,
+    title,
+    message,
+    type = 'info',
+    priority = 'normal',
+    data = null
+  ) {
     try {
       // Insert notification
       const [notificationResult] = await this.db.execute(
@@ -169,7 +183,7 @@ class NotificationController {
         priority,
         data,
         is_read: false,
-        created_at: new Date()
+        created_at: new Date(),
       };
 
       // Emit to WebSocket for all users if available
@@ -177,7 +191,7 @@ class NotificationController {
         userIds.forEach(userId => {
           global.wsService.sendToUser(userId, {
             type: 'notification',
-            data: notification
+            data: notification,
           });
         });
       }

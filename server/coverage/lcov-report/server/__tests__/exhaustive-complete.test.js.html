@@ -899,6 +899,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1022,8 +1026,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1110,8 +1112,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1643,7 +1643,7 @@ const bcrypt = <span class="cstat-no" title="statement not covered" >require('bc
 // Mock setup
 const mockDb = <span class="cstat-no" title="statement not covered" >{</span>
   execute: jest.fn(),
-  getConnection: jest.fn()
+  getConnection: jest.fn(),
 };
 &nbsp;
 const mockConnection = <span class="cstat-no" title="statement not covered" >{</span>
@@ -1651,7 +1651,7 @@ const mockConnection = <span class="cstat-no" title="statement not covered" >{</
   beginTransaction: jest.fn(),
   commit: jest.fn(),
   rollback: jest.fn(),
-  release: jest.fn()
+  release: jest.fn(),
 };
 &nbsp;
 const JWT_SECRET = <span class="cstat-no" title="statement not covered" >'test_secret';</span>
@@ -1675,21 +1675,25 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 <span class="cstat-no" title="statement not covered" >  describe('Login Functionality', <span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    test('✅ Admin login successful', <span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
       const hashedPassword = <span class="cstat-no" title="statement not covered" >await bcrypt.hash('admin123', 10);</span>
-<span class="cstat-no" title="statement not covered" >      mockDb.execute.mockResolvedValueOnce([[{</span>
-        id: 1,
-        username: 'admin',
-        password_hash: hashedPassword,
-        role_id: 5,
-        role: 'Admin'
-      }]]);
+<span class="cstat-no" title="statement not covered" >      mockDb.execute.mockResolvedValueOnce([</span>
+        [
+          {
+            id: 1,
+            username: 'admin',
+            password_hash: hashedPassword,
+            role_id: 5,
+            role: 'Admin',
+          },
+        ],
+      ]);
 &nbsp;
       const req = <span class="cstat-no" title="statement not covered" >{</span>
         body: { username: 'admin', password: 'admin123' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await authController.login(req, res);</span>
@@ -1697,7 +1701,7 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 <span class="cstat-no" title="statement not covered" >      expect(res.json).toHaveBeenCalledWith(</span>
         expect.objectContaining({
           token: expect.any(String),
-          user: expect.objectContaining({ username: 'admin' })
+          user: expect.objectContaining({ username: 'admin' }),
         })
       );
     });
@@ -1707,11 +1711,11 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
       const req = <span class="cstat-no" title="statement not covered" >{</span>
         body: { username: 'invalid', password: 'wrong' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await authController.login(req, res);</span>
@@ -1722,11 +1726,11 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 <span class="cstat-no" title="statement not covered" >    test('❌ Login fails with missing credentials', <span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
       const req = <span class="cstat-no" title="statement not covered" >{</span>
         body: {},
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await authController.login(req, res);</span>
@@ -1752,13 +1756,13 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
           Last_Name: 'Dela Cruz',
           Birthdate: '1990-01-01',
           Gender: 'Male',
-          Household_ID: 'H-123'
+          Household_ID: 'H-123',
         },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await residentController.create(req, res);</span>
@@ -1770,11 +1774,11 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
       const req = <span class="cstat-no" title="statement not covered" >{</span>
         user: { role_id: 5, role: 'Admin' },
         body: { First_Name: 'Juan' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await residentController.create(req, res);</span>
@@ -1785,16 +1789,16 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  describe('READ Operations', <span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    test('✅ Get all residents', <span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >      mockDb.execute.mockResolvedValueOnce([[</span>
-        { Resident_ID: 1, First_Name: 'Juan', Last_Name: 'Dela Cruz' }
-      ]]);
+<span class="cstat-no" title="statement not covered" >      mockDb.execute.mockResolvedValueOnce([</span>
+        [{ Resident_ID: 1, First_Name: 'Juan', Last_Name: 'Dela Cruz' }],
+      ]);
 &nbsp;
       const req = <span class="cstat-no" title="statement not covered" >{</span>
         query: {},
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await residentController.getAll(req, res);</span>
@@ -1804,17 +1808,15 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
     });
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    test('✅ Get resident by ID', <span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >      mockDb.execute.mockResolvedValueOnce([[</span>
-        { Resident_ID: 1, First_Name: 'Juan' }
-      ]]);
+<span class="cstat-no" title="statement not covered" >      mockDb.execute.mockResolvedValueOnce([[{ Resident_ID: 1, First_Name: 'Juan' }]]);</span>
 &nbsp;
       const req = <span class="cstat-no" title="statement not covered" >{</span>
         params: { id: 1 },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await residentController.getById(req, res);</span>
@@ -1827,11 +1829,11 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
       const req = <span class="cstat-no" title="statement not covered" >{</span>
         params: { id: 999 },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await residentController.getById(req, res);</span>
@@ -1847,10 +1849,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
       const req = <span class="cstat-no" title="statement not covered" >{</span>
         params: { id: 1 },
         body: { First_Name: 'Updated' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await residentController.update(req, res);</span>
@@ -1867,10 +1869,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
       const req = <span class="cstat-no" title="statement not covered" >{</span>
         params: { id: 1 },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await residentController.archive(req, res);</span>
@@ -1885,17 +1887,15 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
       const req = <span class="cstat-no" title="statement not covered" >{</span>
         body: { First_Name: 'Juan', Last_Name: 'Dela Cruz', Birthdate: '1990-01-01' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = <span class="cstat-no" title="statement not covered" >{</span>
-        json: jest.fn()
+        json: jest.fn(),
       };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await residentController.checkDuplicate(req, res);</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      expect(res.json).toHaveBeenCalledWith(</span>
-        expect.objectContaining({ isDuplicate: true })
-      );
+<span class="cstat-no" title="statement not covered" >      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ isDuplicate: true }));</span>
     });
   });
 });
@@ -1906,7 +1906,7 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
     { id: 3, name: 'Clerk', canWrite: true },
     { id: 4, name: 'Tanod', canWrite: true },
     { id: 5, name: 'Captain', canWrite: false },
-    { id: 6, name: 'Admin', canWrite: true }
+    { id: 6, name: 'Admin', canWrite: true },
   ];
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  beforeEach(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
@@ -1924,13 +1924,13 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
             Complainant_Details: { name: 'Test' },
             Incident_Type: 'Test',
             Narrative: 'Test',
-            Location_Sitio: 'Test'
+            Location_Sitio: 'Test',
           },
-          app: { locals: { db: mockDb } }
+          app: { locals: { db: mockDb } },
         };
         const res = <span class="cstat-no" title="statement not covered" >{</span>
           status: jest.fn().mockReturnThis(),
-          json: jest.fn()
+          json: jest.fn(),
         };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >        await blotterController.create(req, res);</span>
@@ -1949,11 +1949,11 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
           user: { role_id: role.id, role: role.name },
           body: { Status: 'Resolved' },
           params: { caseNumber: 'BLOT-001' },
-          app: { locals: { db: mockDb } }
+          app: { locals: { db: mockDb } },
         };
         const res = <span class="cstat-no" title="statement not covered" >{</span>
           status: jest.fn().mockReturnThis(),
-          json: jest.fn()
+          json: jest.fn(),
         };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >        await blotterController.update(req, res);</span>
@@ -1971,11 +1971,11 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
         const req = <span class="cstat-no" title="statement not covered" >{</span>
           user: { role_id: role.id, role: role.name },
           params: { caseNumber: 'BLOT-001' },
-          app: { locals: { db: mockDb } }
+          app: { locals: { db: mockDb } },
         };
         const res = <span class="cstat-no" title="statement not covered" >{</span>
           status: jest.fn().mockReturnThis(),
-          json: jest.fn()
+          json: jest.fn(),
         };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >        await blotterController.delete(req, res);</span>
@@ -1992,10 +1992,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
         const req = <span class="cstat-no" title="statement not covered" >{</span>
           user: { role_id: role.id, role: role.name },
-          app: { locals: { db: mockDb } }
+          app: { locals: { db: mockDb } },
         };
         const res = <span class="cstat-no" title="statement not covered" >{</span>
-          json: jest.fn()
+          json: jest.fn(),
         };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >        await blotterController.getAll(req, res);</span>
@@ -2023,12 +2023,12 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
       body: {
         resident_id: 1,
         certificate_type_id: 1,
-        purpose: 'Employment'
-      }
+        purpose: 'Employment',
+      },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await certificateController.create(req, res);</span>
@@ -2046,12 +2046,12 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
       body: {
         resident_id: 1,
         certificate_type_id: 1,
-        purpose: 'Employment'
-      }
+        purpose: 'Employment',
+      },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await certificateController.create(req, res);</span>
@@ -2059,7 +2059,7 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 <span class="cstat-no" title="statement not covered" >    expect(res.status).toHaveBeenCalledWith(400);</span>
 <span class="cstat-no" title="statement not covered" >    expect(res.json).toHaveBeenCalledWith(</span>
       expect.objectContaining({
-        error: expect.stringContaining('BLOCK ISSUANCE')
+        error: expect.stringContaining('BLOCK ISSUANCE'),
       })
     );
   });
@@ -2069,10 +2069,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
     const req = <span class="cstat-no" title="statement not covered" >{</span>
       user: { role_id: 5 },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await certificateController.getAll(req, res);</span>
@@ -2089,7 +2089,7 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 <span class="cstat-no" title="statement not covered" >  test('✅ Get document types', <span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
     const req = <span class="cstat-no" title="statement not covered" >{};</span>
     const res = <span class="cstat-no" title="statement not covered" >{</span>
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await documentController.getDocumentTypes(req, res);</span>
@@ -2097,7 +2097,7 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 <span class="cstat-no" title="statement not covered" >    expect(res.json).toHaveBeenCalledWith(</span>
       expect.objectContaining({
         success: true,
-        data: expect.any(Array)
+        data: expect.any(Array),
       })
     );
   });
@@ -2112,12 +2112,12 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
       body: {
         resident_id: 1,
         document_type: 'barangay_clearance',
-        request_data: {}
-      }
+        request_data: {},
+      },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await documentController.createDocumentRequest(req, res);</span>
@@ -2130,12 +2130,12 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
       user: { account_status: 'Pending' },
       body: {
         resident_id: 1,
-        document_type: 'barangay_clearance'
-      }
+        document_type: 'barangay_clearance',
+      },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await documentController.createDocumentRequest(req, res);</span>
@@ -2154,10 +2154,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
     const req = <span class="cstat-no" title="statement not covered" >{</span>
       query: {},
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await householdController.getAll(req, res);</span>
@@ -2172,13 +2172,13 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
       body: {
         Household_Number: 'H-001',
         Street_Address: '123 Main St',
-        Sitio_ID: 1
+        Sitio_ID: 1,
       },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await householdController.create(req, res);</span>
@@ -2192,10 +2192,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
     const req = <span class="cstat-no" title="statement not covered" >{</span>
       params: { id: 1 },
       body: { Street_Address: 'Updated Address' },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await householdController.update(req, res);</span>
@@ -2208,10 +2208,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
     const req = <span class="cstat-no" title="statement not covered" >{</span>
       params: { id: 1 },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await householdController.delete(req, res);</span>
@@ -2230,10 +2230,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
     const req = <span class="cstat-no" title="statement not covered" >{</span>
       query: {},
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await userController.getAll(req, res);</span>
@@ -2249,13 +2249,13 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
         username: 'newuser',
         password: 'password123',
         role_id: 4,
-        full_name: 'New User'
+        full_name: 'New User',
       },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await userController.create(req, res);</span>
@@ -2269,10 +2269,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
     const req = <span class="cstat-no" title="statement not covered" >{</span>
       params: { id: 1 },
       body: { full_name: 'Updated Name' },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await userController.update(req, res);</span>
@@ -2285,10 +2285,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
     const req = <span class="cstat-no" title="statement not covered" >{</span>
       params: { id: 1 },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await userController.delete(req, res);</span>
@@ -2301,10 +2301,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
     const req = <span class="cstat-no" title="statement not covered" >{</span>
       params: { id: 1 },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await userController.toggleStatus(req, res);</span>
@@ -2318,10 +2318,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
     const req = <span class="cstat-no" title="statement not covered" >{</span>
       params: { id: 1 },
       body: { new_password: 'newpass123' },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await userController.resetPassword(req, res);</span>
@@ -2340,10 +2340,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
     const req = <span class="cstat-no" title="statement not covered" >{</span>
       query: {},
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await adminController.getUsersReport(req, res);</span>
@@ -2356,10 +2356,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
     const req = <span class="cstat-no" title="statement not covered" >{</span>
       query: {},
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await adminController.getBlotterReport(req, res);</span>
@@ -2372,10 +2372,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
     const req = <span class="cstat-no" title="statement not covered" >{</span>
       query: {},
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await adminController.getCertificatesReport(req, res);</span>
@@ -2388,10 +2388,10 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
 &nbsp;
     const req = <span class="cstat-no" title="statement not covered" >{</span>
       query: {},
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = <span class="cstat-no" title="statement not covered" >{</span>
-      json: jest.fn()
+      json: jest.fn(),
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await adminController.getResidentsReport(req, res);</span>
@@ -2422,7 +2422,7 @@ const adminController = <span class="cstat-no" title="statement not covered" >re
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:37.883Z
+                at 2026-01-22T21:30:07.139Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

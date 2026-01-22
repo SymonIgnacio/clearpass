@@ -9,7 +9,6 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const NotificationController = require('../controllers/notificationController');
 const { sendEmail } = require('../utils/emailService');
 const { createOtpChallenge, sendOtpEmail, verifyOtpChallenge } = require('../utils/mfaOtp');
-const { logAuditEvent, logAuditToDatabase, AUDIT_EVENTS } = require('../middleware/auditLogger');
 const { ROLES } = require('../config/roles');
 
 // Rate limiting for auth endpoints
@@ -31,59 +30,71 @@ const registerLimiter = rateLimit({
 
 module.exports = db => {
   // Send Email Verification (For Guests)
-  router.post('/send-verification', verifyToken, asyncHandler(async (req, res) => {
-    const user = req.user;
-    
-    // Check if already verified
-    const [rows] = await db.execute('SELECT email_verified FROM users WHERE id = ?', [user.id]);
-    if (rows.length > 0 && rows[0].email_verified) {
-      return res.status(400).json({ success: false, message: 'Email already verified' });
-    }
+  router.post(
+    '/send-verification',
+    verifyToken,
+    asyncHandler(async (req, res) => {
+      const user = req.user;
 
-    if (!user.email) {
-      return res.status(400).json({ success: false, message: 'No email associated with this account' });
-    }
+      // Check if already verified
+      const [rows] = await db.execute('SELECT email_verified FROM users WHERE id = ?', [user.id]);
+      if (rows.length > 0 && rows[0].email_verified) {
+        return res.status(400).json({ success: false, message: 'Email already verified' });
+      }
 
-    // Generate and Send OTP
-    const challenge = await createOtpChallenge({ db, userId: user.id });
-    
-    // Custom email for verification
-    await sendOtpEmail({
-      to: user.email,
-      otp: challenge.otp,
-      expiresMinutes: challenge.expiresMinutes,
-      subject: 'Verify your email - ClearPass',
-      html: `
+      if (!user.email) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'No email associated with this account' });
+      }
+
+      // Generate and Send OTP
+      const challenge = await createOtpChallenge({ db, userId: user.id });
+
+      // Custom email for verification
+      await sendOtpEmail({
+        to: user.email,
+        otp: challenge.otp,
+        expiresMinutes: challenge.expiresMinutes,
+        subject: 'Verify your email - ClearPass',
+        html: `
         <div style="font-family: Arial, sans-serif; padding: 20px;">
           <h2>Email Verification</h2>
           <p>Your verification code is:</p>
           <h1 style="color: #1a73e8; font-size: 32px; letter-spacing: 5px;">${challenge.otp}</h1>
           <p>This code expires in ${challenge.expiresMinutes} minutes.</p>
         </div>
-      `
-    });
+      `,
+      });
 
-    res.json({ success: true, message: 'Verification code sent to email' });
-  }));
+      res.json({ success: true, message: 'Verification code sent to email' });
+    })
+  );
 
   // Verify Email Endpoint
-  router.post('/verify-email', verifyToken, asyncHandler(async (req, res) => {
-    const { otp } = req.body;
-    const user = req.user;
+  router.post(
+    '/verify-email',
+    verifyToken,
+    asyncHandler(async (req, res) => {
+      const { otp } = req.body;
+      const user = req.user;
 
-    if (!otp) return res.status(400).json({ success: false, message: 'OTP is required' });
+      if (!otp) return res.status(400).json({ success: false, message: 'OTP is required' });
 
-    const result = await verifyOtpChallenge({ db, userId: user.id, otp });
-    
-    if (!result.ok) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired code' });
-    }
+      const result = await verifyOtpChallenge({ db, userId: user.id, otp });
 
-    // Mark as verified
-    await db.execute('UPDATE users SET email_verified = 1, verified_at = NOW() WHERE id = ?', [user.id]);
+      if (!result.ok) {
+        return res.status(400).json({ success: false, message: 'Invalid or expired code' });
+      }
 
-    res.json({ success: true, message: 'Email verified successfully' });
-  }));
+      // Mark as verified
+      await db.execute('UPDATE users SET email_verified = 1, verified_at = NOW() WHERE id = ?', [
+        user.id,
+      ]);
+
+      res.json({ success: true, message: 'Email verified successfully' });
+    })
+  );
 
   // Resident login endpoint
   router.post(
@@ -91,7 +102,7 @@ module.exports = db => {
     authLimiter,
     asyncHandler(async (req, res) => {
       const { email, password } = req.body;
-      
+
       if (!email || !password) {
         return res.status(400).json({
           success: false,
@@ -101,9 +112,16 @@ module.exports = db => {
 
       // Find user by email (allow login even if not yet a full resident)
       const [users] = await db.execute(
-        `SELECT u.*, r.Residency_Status, r.Resident_ID as real_resident_id, r.First_Name, r.Last_Name 
+        `SELECT u.*, 
+         CASE 
+           WHEN u.resident_id IS NOT NULL THEN r.Residency_Status
+           ELSE NULL
+         END as Residency_Status, 
+         u.resident_id as real_resident_id, 
+         COALESCE(r.First_Name, u.full_name) as First_Name, 
+         COALESCE(r.Last_Name, SUBSTRING_INDEX(u.full_name, ' ', -1)) as Last_Name 
        FROM users u 
-       LEFT JOIN residents r ON u.email = r.email 
+       LEFT JOIN residents r ON u.resident_id = r.Resident_ID 
        WHERE u.email = ?`,
         [email]
       );
@@ -160,26 +178,45 @@ module.exports = db => {
         }
       }
 
-      // Generate JWT token
+      // Determine role_name based on effectiveRole
+      let roleName = 'Guest';
+      if (effectiveRole === 1) roleName = 'IT Admin';
+      else if (effectiveRole === 2) roleName = 'Captain';
+      else if (effectiveRole === 3) roleName = 'Secretary';
+      else if (effectiveRole === 4) roleName = 'Clerk';
+      else if (effectiveRole === 6) roleName = 'Blotter Officer';
+      else if (effectiveRole === 12) roleName = 'Resident';
+      else if (effectiveRole === 13) roleName = 'Guest';
+
+      // Generate JWT token with all required fields
       const token = jwt.sign(
         {
-          id: user.id, // User ID
-          resident_id: residentId, // Might be null
+          id: user.id,
+          username: user.email,
           email: user.email,
           role: effectiveRole,
+          role_name: roleName,
+          resident_id: residentId,
+          full_name: user.full_name || user.username,
+          mfa_verified: true,
           type: 'resident',
-          email_verified: !!user.email_verified
+          email_verified: !!user.email_verified,
         },
         process.env.JWT_SECRET,
-        { expiresIn: '24h' }
+        {
+          expiresIn: '24h',
+          issuer: process.env.JWT_ISSUER || 'barangay-management-system',
+          audience: process.env.JWT_AUDIENCE || 'barangay-users',
+        }
       );
 
       // Set HTTP-only cookie (Session Cookie - clears on browser close)
       res.cookie('authToken', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        // maxAge removed to make it a session cookie
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        path: '/',
+        maxAge: 24 * 60 * 60 * 1000,
       });
 
       res.json({
@@ -192,10 +229,10 @@ module.exports = db => {
           full_name: user.full_name || user.username,
           name: user.full_name || user.username, // Keep for backward compatibility
           role: effectiveRole,
-          role_name: effectiveRole === 13 ? 'Guest' : (user.role === 12 ? 'Resident' : 'User'), // Explicit role name
+          role_name: effectiveRole === 13 ? 'Guest' : user.role === 12 ? 'Resident' : 'User', // Explicit role name
           type: 'resident',
           residency_status: residencyStatus,
-          email_verified: !!user.email_verified
+          email_verified: !!user.email_verified,
         },
       });
     })
@@ -292,6 +329,8 @@ module.exports = db => {
         const userId = userResult.insertId;
 
         // Send notifications
+        let emailSent = false;
+        let emailError = null;
         try {
           const notificationController = new NotificationController(db);
           const requirementsMsg =
@@ -311,37 +350,50 @@ module.exports = db => {
             text: `Welcome ${first_name}!\n\n${requirementsMsg}\n\nYour account is currently under review.`,
             html: `<div style="font-family: Arial, sans-serif; padding: 20px;"><h2>Welcome ${first_name}!</h2><p>${requirementsMsg}</p><p>Please log in to the portal to upload your documents.</p></div>`,
           });
+          emailSent = true;
         } catch (notifyError) {
           console.error('Failed to send registration notifications:', notifyError);
+          emailError = notifyError.message;
+          // Don't throw - continue with registration even if email fails
         }
 
         await connection.commit();
 
-        // Generate JWT token for auto-login
+        // Generate JWT token for auto-login with all required fields
         const token = jwt.sign(
           {
             id: userId,
-            resident_id: null, // Not a resident yet
+            username: email,
             email: email,
-            role: 13, // Guest role
+            role: 13,
+            role_name: 'Guest',
+            resident_id: null,
+            full_name: `${first_name} ${last_name}`,
+            mfa_verified: true,
             type: 'resident',
-            email_verified: false // New user, unverified
+            email_verified: false,
           },
           process.env.JWT_SECRET,
-          { expiresIn: '24h' }
+          {
+            expiresIn: '24h',
+            issuer: process.env.JWT_ISSUER || 'barangay-management-system',
+            audience: process.env.JWT_AUDIENCE || 'barangay-users',
+          }
         );
 
-        // Set HTTP-only cookie (Session Cookie)
         res.cookie('authToken', token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
-          // maxAge removed
+          sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+          path: '/',
+          maxAge: 24 * 60 * 60 * 1000,
         });
 
         res.status(201).json({
           success: true,
-          message: 'Registration successful. Please upload proof of residency.',
+          message: emailSent
+            ? 'Registration successful. Please upload proof of residency.'
+            : 'Registration successful. Email could not be sent, but your account has been created.',
           token,
           user: {
             id: userId,
@@ -353,8 +405,10 @@ module.exports = db => {
             role_name: 'Guest',
             type: 'resident',
             residency_status: 'Pending Verification',
-            email_verified: false
+            email_verified: false,
           },
+          email_sent: emailSent,
+          email_error: emailError,
         });
       } catch (error) {
         console.error('Registration error:', error);
@@ -377,8 +431,8 @@ module.exports = db => {
 
       // Fallback: Fetch email if missing in token
       if (!userEmail) {
-          const [u] = await db.execute('SELECT email FROM users WHERE id = ?', [req.user.id]);
-          if (u.length > 0) userEmail = u[0].email;
+        const [u] = await db.execute('SELECT email FROM users WHERE id = ?', [req.user.id]);
+        if (u.length > 0) userEmail = u[0].email;
       }
 
       if (!resident_id) {
@@ -414,15 +468,15 @@ module.exports = db => {
             Mobile_Number: app.mobile_number,
             Street_Address: app.street_address,
             Residency_Status: app.status || 'Pending Verification',
-            verification_document: verificationDoc
+            verification_document: verificationDoc,
           };
-          return res.json({ success: true, profile: normalizedApp });
+          return res.json({ success: true, data: normalizedApp });
         }
 
         // Fallback for brand new users without application
         return res.json({
           success: true,
-          profile: {
+          data: {
             First_Name: userEmail,
             Last_Name: '',
             Residency_Status: 'Guest',
@@ -448,74 +502,84 @@ module.exports = db => {
       }
 
       // Fetch latest verification document for residents too
-       let verificationDoc = null;
-       const [resDocs] = await db.execute(
-         'SELECT verification_status, verification_notes, file_path, created_at FROM resident_documents WHERE resident_id = ? ORDER BY created_at DESC LIMIT 1',
-         [req.user.resident_id]
-       );
-       
-       if (resDocs.length > 0) {
-           verificationDoc = resDocs[0];
-       } else {
-           // Fallback to application documents if no resident document found
-           const [apps] = await db.execute('SELECT application_id FROM resident_applications WHERE email = ?', [userEmail]);
-           if (apps.length > 0) {
-               const [appDocs] = await db.execute(
-                 'SELECT verification_status, verification_notes, file_path, created_at FROM application_documents WHERE application_id = ? ORDER BY created_at DESC LIMIT 1',
-                 [apps[0].application_id]
-               );
-               if (appDocs.length > 0) {
-                   verificationDoc = appDocs[0];
-               }
-           }
-       }
-      
+      let verificationDoc = null;
+      const [resDocs] = await db.execute(
+        'SELECT verification_status, verification_notes, file_path, created_at FROM resident_documents WHERE resident_id = ? ORDER BY created_at DESC LIMIT 1',
+        [req.user.resident_id]
+      );
+
+      if (resDocs.length > 0) {
+        verificationDoc = resDocs[0];
+      } else {
+        // Fallback to application documents if no resident document found
+        const [apps] = await db.execute(
+          'SELECT application_id FROM resident_applications WHERE email = ?',
+          [userEmail]
+        );
+        if (apps.length > 0) {
+          const [appDocs] = await db.execute(
+            'SELECT verification_status, verification_notes, file_path, created_at FROM application_documents WHERE application_id = ? ORDER BY created_at DESC LIMIT 1',
+            [apps[0].application_id]
+          );
+          if (appDocs.length > 0) {
+            verificationDoc = appDocs[0];
+          }
+        }
+      }
+
       const residentProfile = {
-          ...residents[0],
-          verification_document: verificationDoc
+        ...residents[0],
+        verification_document: verificationDoc,
       };
 
       res.json({
         success: true,
-        profile: residentProfile,
+        data: residentProfile,
       });
     })
   );
 
   // Upload verification document endpoint
-  const upload = require('../middleware/upload');
-  router.post('/upload-verification', 
-    verifyToken, 
-    checkRole(['resident', 'guest']), 
+  const { upload } = require('../middleware/upload');
+  router.post(
+    '/upload-verification',
+    verifyToken,
+    checkRole(['resident', 'guest']),
     asyncHandler(async (req, res, next) => {
-        // Check if user is already verified
-        // We need to check both resident_documents (if resident_id exists) and application_documents (via email)
-        
-        let isVerified = false;
-        
-        if (req.user.resident_id) {
-             const [docs] = await db.execute(
-                'SELECT verification_status FROM resident_documents WHERE resident_id = ? AND verification_status = "verified" LIMIT 1',
-                [req.user.resident_id]
-             );
-             if (docs.length > 0) isVerified = true;
-        } else {
-             // Check application documents
-             const [apps] = await db.execute('SELECT application_id FROM resident_applications WHERE email = ?', [req.user.email]);
-             if (apps.length > 0) {
-                 const [docs] = await db.execute(
-                    'SELECT verification_status FROM application_documents WHERE application_id = ? AND verification_status = "verified" LIMIT 1',
-                    [apps[0].application_id]
-                 );
-                 if (docs.length > 0) isVerified = true;
-             }
+      // Check if user is already verified
+      // We need to check both resident_documents (if resident_id exists) and application_documents (via email)
+
+      let isVerified = false;
+
+      if (req.user.resident_id) {
+        const [docs] = await db.execute(
+          'SELECT verification_status FROM resident_documents WHERE resident_id = ? AND verification_status = "verified" LIMIT 1',
+          [req.user.resident_id]
+        );
+        if (docs.length > 0) isVerified = true;
+      } else {
+        // Check application documents
+        const [apps] = await db.execute(
+          'SELECT application_id FROM resident_applications WHERE email = ?',
+          [req.user.email]
+        );
+        if (apps.length > 0) {
+          const [docs] = await db.execute(
+            'SELECT verification_status FROM application_documents WHERE application_id = ? AND verification_status = "verified" LIMIT 1',
+            [apps[0].application_id]
+          );
+          if (docs.length > 0) isVerified = true;
         }
-        
-        if (isVerified) {
-             return res.status(400).json({ success: false, message: 'You are already verified. No further uploads are required.' });
-        }
-        
-        next();
+      }
+
+      if (isVerified) {
+        return res.status(400).json({
+          success: false,
+          message: 'You are already verified. No further uploads are required.',
+        });
+      }
+
+      next();
     }),
     upload.fields([{ name: 'document', maxCount: 1 }]),
     require('../controllers/residentController').uploadVerificationDocs

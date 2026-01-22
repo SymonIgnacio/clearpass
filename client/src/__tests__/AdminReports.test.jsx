@@ -27,26 +27,27 @@ vi.mock('../contexts/NotificationContext', () => ({
 describe('AdminReports Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Mock successful report responses
-    api.get.mockImplementation((url) => {
+    api.get.mockImplementation(url => {
       if (url.includes('/admin/reports/users')) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({
-            user_statistics: {
-              total_users: 100,
-              active_users: 90,
-              it_admins: 2,
-              captains: 1,
-              secretaries: 1,
-              clerks: 5,
-              blotter_officers: 2,
-              residents: 89
-            },
-            login_statistics: { total_attempts: 500, successful_logins: 450, failed_logins: 50 },
-            recent_users: []
-          })
+          json: () =>
+            Promise.resolve({
+              user_statistics: {
+                total_users: 100,
+                active_users: 90,
+                it_admins: 2,
+                captains: 1,
+                secretaries: 1,
+                clerks: 5,
+                blotter_officers: 2,
+                residents: 89,
+              },
+              login_statistics: { total_attempts: 500, successful_logins: 450, failed_logins: 50 },
+              recent_users: [],
+            }),
         });
       }
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
@@ -90,7 +91,10 @@ describe('AdminReports Component', () => {
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith('/admin/reports/pdf/users', expect.anything());
-      expect(mockNotify).toHaveBeenCalledWith(expect.stringContaining('downloaded successfully'), 'success');
+      expect(mockNotify).toHaveBeenCalledWith(
+        expect.stringContaining('downloaded successfully'),
+        'success'
+      );
     });
   });
 
@@ -105,7 +109,7 @@ describe('AdminReports Component', () => {
     fireEvent.click(refreshBtn);
 
     expect(screen.getByText('Refreshing...')).toBeInTheDocument();
-    
+
     await waitFor(() => {
       // 7 tabs * 2 calls (initial + refresh) + 1 detailed report call on mount = 15
       expect(api.get).toHaveBeenCalledTimes(15);

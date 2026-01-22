@@ -8,7 +8,7 @@ jest.mock('../middleware/authMiddleware', () => ({
     req.user = { id: 'SEC-1', role: 3 };
     next();
   },
-  checkRole: () => (req, res, next) => next()
+  checkRole: () => (req, res, next) => next(),
 }));
 
 describe('secretary application document downloads', () => {
@@ -21,14 +21,14 @@ describe('secretary application document downloads', () => {
     await fs.writeFile(filePath, Buffer.from('%PDF-1.4\n%app\n'));
 
     const mockDb = {
-      execute: jest.fn(async (sql) => {
+      execute: jest.fn(async sql => {
         const q = String(sql).toLowerCase();
         if (q.includes('from application_documents')) {
           return [[{ file_path: filePath, file_name: 'app.pdf' }]];
         }
         return [[]];
       }),
-      getConnection: jest.fn()
+      getConnection: jest.fn(),
     };
 
     const app = express();
@@ -42,4 +42,3 @@ describe('secretary application document downloads', () => {
     await fs.unlink(filePath);
   });
 });
-

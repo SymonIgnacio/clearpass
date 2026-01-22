@@ -31,4 +31,3 @@ exports.down = async function down(knex) {
   await knex.schema.dropTableIfExists('ai_analysis_sources');
   await knex.schema.dropTableIfExists('ai_analysis_runs');
 };
-

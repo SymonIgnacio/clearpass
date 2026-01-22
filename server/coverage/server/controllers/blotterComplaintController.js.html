@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/49</span>
+                <span class='fraction'>0/58</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/26</span>
+                <span class='fraction'>0/48</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/43</span>
+                <span class='fraction'>0/52</span>
             </div>
         
             
@@ -331,7 +331,21 @@
 <a name='L266'></a><a href='#L266'>266</a>
 <a name='L267'></a><a href='#L267'>267</a>
 <a name='L268'></a><a href='#L268'>268</a>
-<a name='L269'></a><a href='#L269'>269</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L269'></a><a href='#L269'>269</a>
+<a name='L270'></a><a href='#L270'>270</a>
+<a name='L271'></a><a href='#L271'>271</a>
+<a name='L272'></a><a href='#L272'>272</a>
+<a name='L273'></a><a href='#L273'>273</a>
+<a name='L274'></a><a href='#L274'>274</a>
+<a name='L275'></a><a href='#L275'>275</a>
+<a name='L276'></a><a href='#L276'>276</a>
+<a name='L277'></a><a href='#L277'>277</a>
+<a name='L278'></a><a href='#L278'>278</a>
+<a name='L279'></a><a href='#L279'>279</a>
+<a name='L280'></a><a href='#L280'>280</a>
+<a name='L281'></a><a href='#L281'>281</a>
+<a name='L282'></a><a href='#L282'>282</a>
+<a name='L283'></a><a href='#L283'>283</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -381,6 +395,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -413,7 +438,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -637,7 +665,7 @@ class BlotterComplaintController {
 &nbsp;
 <span class="fstat-no" title="function not covered" >  as</span>ync submitComplaint(req, res) {
 <span class="cstat-no" title="statement not covered" >    try {</span>
-      const {
+      let {
         incident_type,
         narrative,
         incident_date,
@@ -648,6 +676,17 @@ class BlotterComplaintController {
         is_vulnerable,
         confidential_flag,
       } = <span class="cstat-no" title="statement not covered" >req.body;</span>
+&nbsp;
+      // Ensure no undefined values are passed to SQL
+<span class="cstat-no" title="statement not covered" >      incident_type = incident_type || null;</span>
+<span class="cstat-no" title="statement not covered" >      narrative = narrative || null;</span>
+<span class="cstat-no" title="statement not covered" >      incident_date = incident_date || null;</span>
+<span class="cstat-no" title="statement not covered" >      incident_time = incident_time || null;</span>
+<span class="cstat-no" title="statement not covered" >      location_sitio = location_sitio || null;</span>
+<span class="cstat-no" title="statement not covered" >      respondent_name = respondent_name || null;</span>
+<span class="cstat-no" title="statement not covered" >      respondent_address = respondent_address || null;</span>
+<span class="cstat-no" title="statement not covered" >      is_vulnerable = is_vulnerable || false;</span>
+<span class="cstat-no" title="statement not covered" >      confidential_flag = confidential_flag || false;</span>
 &nbsp;
       const resident_id = <span class="cstat-no" title="statement not covered" >req.user.resident_id;</span>
 &nbsp;
@@ -678,19 +717,22 @@ class BlotterComplaintController {
         ? {
             name: respondent_name,
             address: respondent_address || 'Not specified',
+            alias: respondent_alias || '',
+            contact: respondent_contact || '',
           }
         : null;
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      await this.db.execute(</span>
         `
         INSERT INTO blotter (
-          Case_Number, Complainant_Details, Respondent_Details,
+          Case_Number, Complainant_Details, complainant_resident_id, Respondent_Details,
           Incident_Type, Narrative, DateTime_Incident, Location_Sitio, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending')
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending')
       `,
         [
           case_number,
           JSON.stringify(complainant_details),
+          resident_id,
           JSON.stringify(respondent_details),
           incident_type,
           narrative,
@@ -874,7 +916,7 @@ class BlotterComplaintController {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:38.155Z
+                at 2026-01-22T21:30:07.384Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

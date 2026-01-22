@@ -2,7 +2,7 @@ const { body, validationResult } = require('express-validator');
 const xss = require('xss');
 
 // Custom sanitization middleware for XSS protection
-const sanitizeInput = (value) => {
+const sanitizeInput = value => {
   if (typeof value === 'string') {
     // Remove potential XSS attacks
     return xss(value.trim());
@@ -20,11 +20,11 @@ const handleValidationErrors = (req, res, next) => {
       errors: errors.array().map(err => ({
         field: err.param,
         message: err.msg,
-        value: err.value
+        value: err.value,
       })),
       code: 400,
       timestamp: new Date().toISOString(),
-      path: req.originalUrl
+      path: req.originalUrl,
     });
   }
   next();
@@ -44,7 +44,7 @@ const validateLogin = [
     .withMessage('Password must be at least 6 characters long')
     .customSanitizer(sanitizeInput),
 
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 const validateRegister = [
@@ -77,14 +77,16 @@ const validateRegister = [
     .isLength({ min: 8 })
     .withMessage('Password must be at least 8 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number')
+    .withMessage(
+      'Password must contain at least one lowercase letter, one uppercase letter, and one number'
+    )
     .customSanitizer(sanitizeInput),
 
   body('role')
     .isInt({ min: 1, max: 6 })
     .withMessage('Role must be a valid integer between 1 and 6'),
 
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 // Blotter validation
@@ -128,17 +130,14 @@ const validateBlotter = [
     .withMessage('Location/Sitio must not exceed 100 characters')
     .customSanitizer(sanitizeInput),
 
-  body('DateTime_Incident')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid date/time format'),
+  body('DateTime_Incident').optional().isISO8601().withMessage('Invalid date/time format'),
 
   body('respondent_id')
     .optional()
     .isInt({ min: 1 })
     .withMessage('Respondent ID must be a valid positive integer'),
 
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 // Resident validation
@@ -222,7 +221,7 @@ const validateResident = [
     .isFloat({ min: 0 })
     .withMessage('Income estimate must be a positive number'),
 
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 // Certificate validation
@@ -246,7 +245,7 @@ const validateCertificateRequest = [
     .matches(/^RES-\d{6}-[A-Z0-9]{8}$/)
     .withMessage('Invalid resident ID format'),
 
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 // Document request validation
@@ -270,7 +269,7 @@ const validateDocumentRequest = [
     .isIn(['normal', 'urgent', 'emergency'])
     .withMessage('Urgency must be normal, urgent, or emergency'),
 
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 // Community program validation
@@ -311,7 +310,7 @@ const validateCommunityProgram = [
     .isFloat({ min: 0 })
     .withMessage('Budget allocated must be a positive number'),
 
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 // Household validation
@@ -341,7 +340,7 @@ const validateHousehold = [
     .isIn(['Nuclear', 'Extended', 'Single-Parent', 'Multi-Generational'])
     .withMessage('Household type must be a valid option'),
 
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 // AI Chatbot validation
@@ -359,12 +358,9 @@ const validateChatbotMessage = [
     .withMessage('Session ID must not exceed 100 characters')
     .customSanitizer(sanitizeInput),
 
-  body('context')
-    .optional()
-    .isObject()
-    .withMessage('Context must be a valid object'),
+  body('context').optional().isObject().withMessage('Context must be a valid object'),
 
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
 module.exports = {
@@ -378,5 +374,5 @@ module.exports = {
   validateHousehold,
   validateChatbotMessage,
   handleValidationErrors,
-  sanitizeInput
+  sanitizeInput,
 };

@@ -155,7 +155,7 @@ module.exports = db => {
       ]
     );
 
-    // 4. Create User Account or Update Existing
+    // 4. Create User Account or Update Existing (Unify Flow)
     if (userIdToUpdate) {
       await connection.execute(
         `UPDATE users 
@@ -376,21 +376,41 @@ module.exports = db => {
         );
         const docTypes = docs.map(d => d.document_type);
 
-        const updates = [];
-        if (docTypes.includes('4Ps Proof')) updates.push('Is_4Ps = 1');
-        if (docTypes.includes('PWD ID')) updates.push('Is_PWD = 1');
-        if (docTypes.includes('Solo Parent ID')) updates.push('Is_Solo_Parent = 1');
-        if (docTypes.includes('OSY Certification')) updates.push('Is_Out_of_School_Youth = 1');
-        if (docTypes.includes('Senior ID')) updates.push('Is_Senior = 1');
+        const updateFields = [];
+        const updateValues = [];
 
-        updates.push("validation_status = 'approved'");
-        updates.push('validation_notes = ?');
-        updates.push('validated_by = ?');
-        updates.push('validated_at = NOW()');
-        updates.push('updated_at = NOW()');
+        if (docTypes.includes('4Ps Proof')) {
+          updateFields.push('Is_4Ps = ?');
+          updateValues.push(1);
+        }
+        if (docTypes.includes('PWD ID')) {
+          updateFields.push('Is_PWD = ?');
+          updateValues.push(1);
+        }
+        if (docTypes.includes('Solo Parent ID')) {
+          updateFields.push('Is_Solo_Parent = ?');
+          updateValues.push(1);
+        }
+        if (docTypes.includes('OSY Certification')) {
+          updateFields.push('Is_Out_of_School_Youth = ?');
+          updateValues.push(1);
+        }
+        if (docTypes.includes('Senior ID')) {
+          updateFields.push('Is_Senior = ?');
+          updateValues.push(1);
+        }
 
-        const query = `UPDATE vulnerabilities SET ${updates.join(', ')} WHERE Resident_ID = ?`;
-        await db.execute(query, [finalNotes || null, req.user.id, id]);
+        updateFields.push('validation_status = ?');
+        updateValues.push('approved');
+        updateFields.push('validation_notes = ?');
+        updateFields.push('validated_by = ?');
+        updateFields.push('validated_at = NOW()');
+        updateFields.push('updated_at = NOW()');
+
+        updateValues.push(finalNotes || null, req.user.id, id);
+
+        const query = `UPDATE vulnerabilities SET ${updateFields.join(', ')} WHERE Resident_ID = ?`;
+        await db.execute(query, updateValues);
 
         // Sync resident_documents status
         await db.execute(
@@ -589,29 +609,31 @@ module.exports = db => {
       const validStatuses = ['pending', 'verified', 'rejected'];
       const queryStatus = validStatuses.includes(status) ? status : 'pending';
 
-      const [documents] = await db.execute(
-        `
-      SELECT d.id, d.document_type, d.file_name, d.verification_status, d.created_at,
-             CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name,
-             'resident' as source_type
-      FROM resident_documents d
-      JOIN residents r ON d.resident_id = r.Resident_ID
-      WHERE d.verification_status = ?
-      AND d.document_type NOT IN ('4Ps Proof', 'PWD ID', 'Senior ID', 'Solo Parent ID', 'OSY Certification')
-      
-      UNION ALL
-      
-      SELECT d.id, d.document_type, d.file_name, d.verification_status, d.created_at,
-             CONCAT(a.first_name, ' ', a.last_name) as resident_name,
-             'application' as source_type
-      FROM application_documents d
-      JOIN resident_applications a ON d.application_id = a.application_id
-      WHERE d.verification_status = ?
-      
-      ORDER BY created_at ASC
-    `,
-        [queryStatus, queryStatus]
-      );
+      const { BENEFICIARY_DOC_TYPES } = require('../config/documentTypes');
+      const placeholders = BENEFICIARY_DOC_TYPES.map(() => '?').join(', ');
+
+      const sql = `
+        SELECT d.id, d.document_type, d.file_name, d.verification_status, d.created_at,
+               CONCAT(r.First_Name, ' ', r.Last_Name) as resident_name,
+               'resident' as source_type
+        FROM resident_documents d
+        JOIN residents r ON d.resident_id = r.Resident_ID
+        WHERE d.verification_status = ?
+        AND d.document_type NOT IN (${placeholders})
+        
+        UNION ALL
+        
+        SELECT d.id, d.document_type, d.file_name, d.verification_status, d.created_at,
+               CONCAT(a.first_name, ' ', a.last_name) as resident_name,
+               'application' as source_type
+        FROM application_documents d
+        JOIN resident_applications a ON d.application_id = a.application_id
+        WHERE d.verification_status = ?
+        
+        ORDER BY created_at ASC
+      `;
+      const params = [queryStatus, ...BENEFICIARY_DOC_TYPES, queryStatus];
+      const [documents] = await db.execute(sql, params);
       res.json(documents);
     })
   );
@@ -709,13 +731,19 @@ module.exports = db => {
       }
 
       // Determine target table based on source_type
+      // Accept both short format ('application', 'resident') and full table names
       // Default to resident_documents for backward compatibility if not provided
-      const targetTable =
-        source_type === 'application' ? 'application_documents' : 'resident_documents';
+      let targetTable = 'resident_documents';
+
+      if (source_type === 'application_documents' || source_type === 'application') {
+        targetTable = 'application_documents';
+      } else if (source_type === 'resident_documents' || source_type === 'resident') {
+        targetTable = 'resident_documents';
+      }
 
       const [result] = await db.execute(
         `
-      UPDATE ${targetTable} 
+      UPDATE ${targetTable}
       SET verification_status = ?, verification_notes = ?, verified_by = ?, verified_at = NOW()
       WHERE id = ?
     `,

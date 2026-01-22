@@ -11,18 +11,18 @@ const auditLogger = winston.createLogger({
   ),
   defaultMeta: { service: 'clearpass-audit' },
   transports: [
-    new winston.transports.File({ 
+    new winston.transports.File({
       filename: path.join(__dirname, '../logs/audit.log'),
       maxsize: 5242880, // 5MB
-      maxFiles: 10
+      maxFiles: 10,
     }),
-    new winston.transports.File({ 
+    new winston.transports.File({
       filename: path.join(__dirname, '../logs/security.log'),
       level: 'warn',
       maxsize: 5242880,
-      maxFiles: 10
-    })
-  ]
+      maxFiles: 10,
+    }),
+  ],
 });
 
 // Audit event types
@@ -32,18 +32,18 @@ const AUDIT_EVENTS = {
   LOGIN_FAILED: 'LOGIN_FAILED',
   LOGOUT: 'LOGOUT',
   TOKEN_EXPIRED: 'TOKEN_EXPIRED',
-  
+
   // User Management
   USER_CREATED: 'USER_CREATED',
   USER_UPDATED: 'USER_UPDATED',
   USER_DELETED: 'USER_DELETED',
   ROLE_CHANGED: 'ROLE_CHANGED',
-  
+
   // Resident Management
   RESIDENT_REGISTERED: 'RESIDENT_REGISTERED',
   RESIDENT_VERIFIED: 'RESIDENT_VERIFIED',
   RESIDENT_UPDATED: 'RESIDENT_UPDATED',
-  
+
   // Certificate Operations
   CERTIFICATE_REQUESTED: 'CERTIFICATE_REQUESTED',
   CERTIFICATE_ISSUED: 'CERTIFICATE_ISSUED',
@@ -56,18 +56,18 @@ const AUDIT_EVENTS = {
   RESIDENT_DOCUMENT_DOWNLOADED: 'RESIDENT_DOCUMENT_DOWNLOADED',
   APPLICATION_DOCUMENTS_VIEWED: 'APPLICATION_DOCUMENTS_VIEWED',
   APPLICATION_DOCUMENT_DOWNLOADED: 'APPLICATION_DOCUMENT_DOWNLOADED',
-  
+
   // Blotter Operations
   BLOTTER_CREATED: 'BLOTTER_CREATED',
   BLOTTER_UPDATED: 'BLOTTER_UPDATED',
   BLOTTER_RESOLVED: 'BLOTTER_RESOLVED',
   VULNERABLE_CASE_FILED: 'VULNERABLE_CASE_FILED',
-  
+
   // System Operations
   BACKUP_CREATED: 'BACKUP_CREATED',
   BACKUP_RESTORED: 'BACKUP_RESTORED',
   SYSTEM_CONFIG_CHANGED: 'SYSTEM_CONFIG_CHANGED',
-  
+
   // Security Events
   UNAUTHORIZED_ACCESS: 'UNAUTHORIZED_ACCESS',
   SUSPICIOUS_ACTIVITY: 'SUSPICIOUS_ACTIVITY',
@@ -75,7 +75,7 @@ const AUDIT_EVENTS = {
   ADMIN_ACTION: 'ADMIN_ACTION',
   MFA_OTP_SENT: 'MFA_OTP_SENT',
   MFA_OTP_VERIFIED: 'MFA_OTP_VERIFIED',
-  MFA_OTP_FAILED: 'MFA_OTP_FAILED'
+  MFA_OTP_FAILED: 'MFA_OTP_FAILED',
 };
 
 // Audit logging function
@@ -91,7 +91,7 @@ const logAuditEvent = (eventType, details = {}) => {
     action: details.action || null,
     result: details.result || 'SUCCESS',
     details: details.additional_details || {},
-    session_id: details.session_id || null
+    session_id: details.session_id || null,
   };
 
   // Log to audit file
@@ -106,7 +106,7 @@ const logAuditEvent = (eventType, details = {}) => {
 };
 
 // Check if event is security-related
-const isSecurityEvent = (eventType) => {
+const isSecurityEvent = eventType => {
   const securityEvents = [
     AUDIT_EVENTS.LOGIN_FAILED,
     AUDIT_EVENTS.UNAUTHORIZED_ACCESS,
@@ -118,7 +118,7 @@ const isSecurityEvent = (eventType) => {
     AUDIT_EVENTS.SYSTEM_CONFIG_CHANGED,
     AUDIT_EVENTS.MFA_OTP_SENT,
     AUDIT_EVENTS.MFA_OTP_VERIFIED,
-    AUDIT_EVENTS.MFA_OTP_FAILED
+    AUDIT_EVENTS.MFA_OTP_FAILED,
   ];
   return securityEvents.includes(eventType);
 };
@@ -127,13 +127,13 @@ const isSecurityEvent = (eventType) => {
 const auditMiddleware = (options = {}) => {
   return (req, res, next) => {
     const startTime = Date.now();
-    
+
     // Store original res.json to intercept responses
     const originalJson = res.json;
-    
-    res.json = function(data) {
+
+    res.json = function (data) {
       const duration = Date.now() - startTime;
-      
+
       // Determine if this should be audited
       if (shouldAuditRequest(req, options)) {
         const auditDetails = {
@@ -149,9 +149,9 @@ const auditMiddleware = (options = {}) => {
             url: req.originalUrl,
             status_code: res.statusCode,
             duration_ms: duration,
-            body_size: JSON.stringify(data).length
+            body_size: JSON.stringify(data).length,
           },
-          session_id: req.sessionID
+          session_id: req.sessionID,
         };
 
         // Log appropriate event type based on the request
@@ -162,10 +162,10 @@ const auditMiddleware = (options = {}) => {
           logAuditToDatabase(db, eventType, auditDetails);
         }
       }
-      
+
       return originalJson.call(this, data);
     };
-    
+
     next();
   };
 };
@@ -174,19 +174,26 @@ const auditMiddleware = (options = {}) => {
 const shouldAuditRequest = (req, options) => {
   // Always audit authentication endpoints
   if (req.originalUrl.includes('/auth/')) return true;
-  
+
   // Always audit admin endpoints
   if (req.originalUrl.includes('/admin/')) return true;
-  
+
   // Always audit data modification operations
   if (['POST', 'PUT', 'DELETE'].includes(req.method)) return true;
-  
+
   // Audit sensitive GET operations
-  const sensitiveEndpoints = ['/users', '/residents', '/blotter', '/certificates', '/documents/requests', '/secretary'];
+  const sensitiveEndpoints = [
+    '/users',
+    '/residents',
+    '/blotter',
+    '/certificates',
+    '/documents/requests',
+    '/secretary',
+  ];
   if (sensitiveEndpoints.some(endpoint => req.originalUrl.includes(endpoint))) {
     return true;
   }
-  
+
   return options.auditAll || false;
 };
 
@@ -196,17 +203,19 @@ const determineEventType = (req, statusCode) => {
   const method = req.method;
 
   if (url.includes('/secretary/applications/') && url.includes('/documents')) {
-    if (method === 'GET' && url.includes('/download')) return AUDIT_EVENTS.APPLICATION_DOCUMENT_DOWNLOADED;
+    if (method === 'GET' && url.includes('/download'))
+      return AUDIT_EVENTS.APPLICATION_DOCUMENT_DOWNLOADED;
     if (method === 'GET') return AUDIT_EVENTS.APPLICATION_DOCUMENTS_VIEWED;
   }
   if (url.includes('/secretary/documents/') && url.includes('/download') && method === 'GET') {
     return AUDIT_EVENTS.RESIDENT_DOCUMENT_DOWNLOADED;
   }
   if (url.includes('/residents/') && url.includes('/documents')) {
-    if (method === 'GET' && url.includes('/download')) return AUDIT_EVENTS.RESIDENT_DOCUMENT_DOWNLOADED;
+    if (method === 'GET' && url.includes('/download'))
+      return AUDIT_EVENTS.RESIDENT_DOCUMENT_DOWNLOADED;
     if (method === 'GET') return AUDIT_EVENTS.RESIDENT_DOCUMENTS_VIEWED;
   }
-  
+
   // Authentication events
   if (url.includes('/auth/login')) {
     return statusCode < 400 ? AUDIT_EVENTS.LOGIN_SUCCESS : AUDIT_EVENTS.LOGIN_FAILED;
@@ -218,20 +227,20 @@ const determineEventType = (req, statusCode) => {
   if (url.includes('/auth/mfa/verify')) {
     return statusCode < 400 ? AUDIT_EVENTS.MFA_OTP_VERIFIED : AUDIT_EVENTS.MFA_OTP_FAILED;
   }
-  
+
   // User management events
   if (url.includes('/users')) {
     if (method === 'POST') return AUDIT_EVENTS.USER_CREATED;
     if (method === 'PUT') return AUDIT_EVENTS.USER_UPDATED;
     if (method === 'DELETE') return AUDIT_EVENTS.USER_DELETED;
   }
-  
+
   // Resident events
   if (url.includes('/resident')) {
     if (method === 'POST' && url.includes('/register')) return AUDIT_EVENTS.RESIDENT_REGISTERED;
     if (method === 'PUT') return AUDIT_EVENTS.RESIDENT_UPDATED;
   }
-  
+
   // Certificate events
   if (url.includes('/certificate')) {
     if (method === 'POST') return AUDIT_EVENTS.CERTIFICATE_REQUESTED;
@@ -244,23 +253,23 @@ const determineEventType = (req, statusCode) => {
     if (method === 'POST') return AUDIT_EVENTS.DOCUMENT_REQUEST_CREATED;
     if (method === 'PUT') return AUDIT_EVENTS.DOCUMENT_REQUEST_UPDATED;
   }
-  
+
   // Blotter events
   if (url.includes('/blotter')) {
     if (method === 'POST') return AUDIT_EVENTS.BLOTTER_CREATED;
     if (method === 'PUT') return AUDIT_EVENTS.BLOTTER_UPDATED;
   }
-  
+
   // Admin events
   if (url.includes('/admin/')) {
     return AUDIT_EVENTS.ADMIN_ACTION;
   }
-  
+
   // Unauthorized access
   if (statusCode === 401 || statusCode === 403) {
     return AUDIT_EVENTS.UNAUTHORIZED_ACCESS;
   }
-  
+
   // Default for other operations
   return 'API_REQUEST';
 };
@@ -279,7 +288,7 @@ const logAuditToDatabase = async (db, eventType, details = {}) => {
       result: details.result || 'SUCCESS',
       details: JSON.stringify(details.additional_details || {}),
       session_id: details.session_id ?? null,
-      created_at: new Date()
+      created_at: new Date(),
     };
 
     await db.execute(
@@ -298,7 +307,7 @@ const logAuditToDatabase = async (db, eventType, details = {}) => {
         auditEntry.result,
         auditEntry.details,
         auditEntry.session_id,
-        auditEntry.created_at
+        auditEntry.created_at,
       ]
     );
 
@@ -315,5 +324,5 @@ module.exports = {
   logAuditEvent,
   logAuditToDatabase,
   AUDIT_EVENTS,
-  auditLogger
+  auditLogger,
 };

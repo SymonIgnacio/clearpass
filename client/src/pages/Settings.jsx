@@ -19,7 +19,7 @@ import {
   DialogContentText,
   DialogTitle,
   FormControlLabel,
-  Switch
+  Switch,
 } from '@mui/material';
 import {
   Person,
@@ -39,7 +39,7 @@ import {
   Description,
   CheckCircle,
   Pending,
-  Error
+  Error,
 } from '@mui/icons-material';
 import { apiRequest } from '../utils/api';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -52,14 +52,14 @@ const Settings = ({ user }) => {
   const [profile, setProfile] = useState({
     full_name: user?.full_name || '',
     email: user?.email || '',
-    contact_number: user?.contact_number || ''
+    contact_number: user?.contact_number || '',
   });
 
   const [preferences, setPreferences] = useState({
     emailNotifications: true,
     smsNotifications: false,
     darkMode: false,
-    language: 'en'
+    language: 'en',
   });
 
   const [errors, setErrors] = useState({});
@@ -73,7 +73,7 @@ const Settings = ({ user }) => {
     proof_type: '',
     notes: '',
     selectedFile: null,
-    submitting: false
+    submitting: false,
   });
   const [residencyStatus, setResidencyStatus] = useState(null);
 
@@ -93,10 +93,10 @@ const Settings = ({ user }) => {
     }
   }, []);
 
-  const handleProfileChange = (field) => (event) => {
+  const handleProfileChange = field => event => {
     setProfile(prev => ({
       ...prev,
-      [field]: event.target.value
+      [field]: event.target.value,
     }));
     // Clear error when user starts typing
     if (errors[field]) {
@@ -104,12 +104,12 @@ const Settings = ({ user }) => {
     }
   };
 
-  const handlePreferenceChange = (field) => (event) => {
+  const handlePreferenceChange = field => event => {
     const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
 
     setPreferences(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
 
     // Save to localStorage immediately
@@ -149,7 +149,7 @@ const Settings = ({ user }) => {
     try {
       const response = await apiRequest('/auth/profile', {
         method: 'PUT',
-        body: profile
+        body: profile,
       });
 
       if (response.ok) {
@@ -160,7 +160,7 @@ const Settings = ({ user }) => {
         addNotification({
           type: 'success',
           title: 'Profile Updated',
-          message: 'Your profile has been updated successfully!'
+          message: 'Your profile has been updated successfully!',
         });
         setSuccessMessage('Your profile has been updated successfully.');
         setTimeout(() => setSuccessMessage(''), 5000);
@@ -174,7 +174,7 @@ const Settings = ({ user }) => {
         addNotification({
           type: 'error',
           title: 'Update Failed',
-          message: error.message || 'Failed to update profile'
+          message: error.message || 'Failed to update profile',
         });
       }
     } catch (error) {
@@ -182,7 +182,7 @@ const Settings = ({ user }) => {
       addNotification({
         type: 'error',
         title: 'Network Error',
-        message: 'Network error. Please try again.'
+        message: 'Network error. Please try again.',
       });
     } finally {
       setLoading(false);
@@ -194,7 +194,7 @@ const Settings = ({ user }) => {
       addNotification({
         type: 'error',
         title: 'Password Error',
-        message: 'Passwords do not match'
+        message: 'Passwords do not match',
       });
       return;
     }
@@ -203,7 +203,7 @@ const Settings = ({ user }) => {
       addNotification({
         type: 'error',
         title: 'Password Error',
-        message: 'Password must be at least 6 characters long'
+        message: 'Password must be at least 6 characters long',
       });
       return;
     }
@@ -214,15 +214,15 @@ const Settings = ({ user }) => {
         method: 'POST',
         body: {
           current_password: '',
-          new_password: newPassword
-        }
+          new_password: newPassword,
+        },
       });
 
       if (response.ok) {
         addNotification({
           type: 'success',
           title: 'Password Changed',
-          message: 'Password changed successfully!'
+          message: 'Password changed successfully!',
         });
         setConfirmPasswordDialog(false);
         setNewPassword('');
@@ -232,7 +232,7 @@ const Settings = ({ user }) => {
         addNotification({
           type: 'error',
           title: 'Password Change Failed',
-          message: error.message || 'Failed to change password'
+          message: error.message || 'Failed to change password',
         });
       }
     } catch (error) {
@@ -240,14 +240,14 @@ const Settings = ({ user }) => {
       addNotification({
         type: 'error',
         title: 'Network Error',
-        message: 'Network error. Please try again.'
+        message: 'Network error. Please try again.',
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const getInitials = (name) => {
+  const getInitials = name => {
     return name
       .split(' ')
       .map(word => word.charAt(0))
@@ -257,14 +257,14 @@ const Settings = ({ user }) => {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
+    <Container maxWidth='md' sx={{ py: 4 }}>
+      <Typography variant='h4' gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
         Account Settings
       </Typography>
 
       {/* Success Message */}
       {successMessage && (
-        <Alert severity="success" sx={{ mb: 3 }}>
+        <Alert severity='success' sx={{ mb: 3 }}>
           {successMessage}
         </Alert>
       )}
@@ -276,24 +276,24 @@ const Settings = ({ user }) => {
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <Person sx={{ mr: 2, color: 'primary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                <Typography variant='h6' sx={{ fontWeight: 600 }}>
                   Profile Information
                 </Typography>
               </Box>
 
               <Divider sx={{ mb: 3 }} />
 
-                <Grid container spacing={3}>
+              <Grid container spacing={3}>
                 <Grid xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Full Name"
+                    label='Full Name'
                     value={profile.full_name}
                     onChange={handleProfileChange('full_name')}
                     error={errors.full_name ? true : false}
                     helperText={errors.full_name}
                     InputProps={{
-                      startAdornment: <Person sx={{ mr: 1, color: 'action.active' }} />
+                      startAdornment: <Person sx={{ mr: 1, color: 'action.active' }} />,
                     }}
                   />
                 </Grid>
@@ -301,12 +301,12 @@ const Settings = ({ user }) => {
                 <Grid xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Username"
+                    label='Username'
                     value={user?.username || ''}
                     disabled
-                    helperText="Username cannot be changed"
+                    helperText='Username cannot be changed'
                     InputProps={{
-                      startAdornment: <AccountCircle sx={{ mr: 1, color: 'action.active' }} />
+                      startAdornment: <AccountCircle sx={{ mr: 1, color: 'action.active' }} />,
                     }}
                   />
                 </Grid>
@@ -314,14 +314,14 @@ const Settings = ({ user }) => {
                 <Grid xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Email Address"
-                    type="email"
+                    label='Email Address'
+                    type='email'
                     value={profile.email}
                     onChange={handleProfileChange('email')}
                     error={!!errors.email}
                     helperText={errors.email || 'Optional - Used for notifications'}
                     InputProps={{
-                      startAdornment: <Email sx={{ mr: 1, color: 'action.active' }} />
+                      startAdornment: <Email sx={{ mr: 1, color: 'action.active' }} />,
                     }}
                   />
                 </Grid>
@@ -329,13 +329,13 @@ const Settings = ({ user }) => {
                 <Grid xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Contact Number"
+                    label='Contact Number'
                     value={profile.contact_number}
                     onChange={handleProfileChange('contact_number')}
                     error={errors.contact_number ? true : false}
                     helperText={errors.contact_number || 'Optional - For emergency contact'}
                     InputProps={{
-                      startAdornment: <Phone sx={{ mr: 1, color: 'action.active' }} />
+                      startAdornment: <Phone sx={{ mr: 1, color: 'action.active' }} />,
                     }}
                   />
                 </Grid>
@@ -343,7 +343,7 @@ const Settings = ({ user }) => {
 
               <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
                 <Button
-                  variant="contained"
+                  variant='contained'
                   onClick={handleSaveProfile}
                   disabled={loading}
                   startIcon={<Save />}
@@ -360,7 +360,7 @@ const Settings = ({ user }) => {
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <Security sx={{ mr: 2, color: 'primary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                <Typography variant='h6' sx={{ fontWeight: 600 }}>
                   Security Settings
                 </Typography>
               </Box>
@@ -368,14 +368,14 @@ const Settings = ({ user }) => {
               <Divider sx={{ mb: 3 }} />
 
               <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 500, mb: 2 }}>
+                <Typography variant='subtitle1' sx={{ fontWeight: 500, mb: 2 }}>
                   Password
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
                   Keep your account secure by regularly updating your password.
                 </Typography>
                 <Button
-                  variant="outlined"
+                  variant='outlined'
                   onClick={() => setConfirmPasswordDialog(true)}
                   startIcon={<Lock />}
                 >
@@ -387,303 +387,346 @@ const Settings = ({ user }) => {
 
           {/* Residency Verification Section - Only for residents */}
           {user?.role === 'resident' && (
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <VerifiedUser sx={{ mr: 2, color: user?.residency_status === 'verified' ? 'success.main' : 'warning.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Residency Verification
-                </Typography>
-                {user?.residency_status === 'verified' && (
-                  <CheckCircle sx={{ ml: 1, color: 'success.main' }} />
-                )}
-              </Box>
-
-              <Divider sx={{ mb: 3 }} />
-
-              {user?.residency_status === 'verified' ? (
-                <Alert severity="success">
-                  <Typography variant="body2">
-                    ✅ Your residency has been verified! You can now request documents and certificates.
-                  </Typography>
-                </Alert>
-              ) : (
-                <>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Submit proof of residency to access document and certificate requests. Officers will review your submission.
-                  </Typography>
-
-                  <Alert severity="info" sx={{ mb: 3 }}>
-                    <Typography variant="body2">
-                      <strong>Accepted proof documents:</strong> Electric bills, water bills, barangay IDs, cedulas, property tax receipts, or other documents showing your barangay address.
-                    </Typography>
-                  </Alert>
-
-                  <Grid container spacing={3}>
-                    <Grid xs={12} sm={6}>
-                      <TextField
-                        select
-                        fullWidth
-                        label="Proof Type"
-                        value={residencyVerification.proof_type}
-                        onChange={(e) => setResidencyVerification(prev => ({ ...prev, proof_type: e.target.value }))}
-                        SelectProps={{ native: true }}
-                        helperText="Select the type of document you're uploading"
-                      >
-                        <option value="">Select proof type</option>
-                        <option value="electric_bill">Electric Bill</option>
-                        <option value="water_bill">Water Bill</option>
-                        <option value="cedula">Cedula</option>
-                        <option value="barangay_id">Barangay ID</option>
-                        <option value="property_tax">Property Tax Receipt</option>
-                        <option value="other">Other Document</option>
-                      </TextField>
-                    </Grid>
-
-                    <Grid xs={12} sm={6}>
-                      <Button
-                        variant="outlined"
-                        component="label"
-                        fullWidth
-                        startIcon={<CloudUpload />}
-                        sx={{ height: 56 }}
-                      >
-                        {residencyVerification.selectedFile ? residencyVerification.selectedFile.name : 'Upload Document'}
-                        <input
-                          type="file"
-                          hidden
-                          accept="image/*,.pdf"
-                          onChange={(e) => {
-                            const file = e.target.files[0];
-                            if (file) {
-                              setResidencyVerification(prev => ({ ...prev, selectedFile: file }));
-                            }
-                          }}
-                        />
-                      </Button>
-                      {residencyVerification.selectedFile && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                          File: {residencyVerification.selectedFile.name} ({(residencyVerification.selectedFile.size / 1024 / 1024).toFixed(1)} MB)
-                        </Typography>
-                      )}
-                    </Grid>
-
-                    <Grid xs={12}>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
-                        label="Additional Notes (Optional)"
-                        value={residencyVerification.notes}
-                        onChange={(e) => setResidencyVerification(prev => ({ ...prev, notes: e.target.value }))}
-                        placeholder="Any additional information about your residency or document"
-                        helperText="Optional: Provide any additional context"
-                      />
-                    </Grid>
-                  </Grid>
-
-                  <Box sx={{ mt: 3 }}>
-                    <Button
-                      variant="contained"
-                      onClick={async () => {
-                        if (!residencyVerification.proof_type || !residencyVerification.selectedFile) {
-                          addNotification({
-                            type: 'error',
-                            title: 'Validation Error',
-                            message: 'Please select proof type and upload a document'
-                          });
-                          return;
-                        }
-
-                        setResidencyVerification(prev => ({ ...prev, submitting: true }));
-
-                        try {
-                          const formData = new FormData();
-                          // Backend expects file field name as document_{type}
-                          formData.append(`document_${residencyVerification.proof_type}`, residencyVerification.selectedFile);
-                          if (residencyVerification.notes) {
-                            formData.append('notes', residencyVerification.notes);
-                          }
-
-                          const response = await apiRequest('/residents/verification/upload', {
-                            method: 'POST',
-                            body: formData
-                          });
-
-                          const data = await response.json();
-
-                          if (response.ok) {
-                            setResidencyVerification({
-                              proof_type: '',
-                              notes: '',
-                              selectedFile: null,
-                              submitting: false
-                            });
-
-                            addNotification({
-                              type: 'success',
-                              title: 'Verification Submitted',
-                              message: 'Your residency verification request has been submitted. You will be notified once reviewed.'
-                            });
-                          } else {
-                            addNotification({
-                              type: 'error',
-                              title: 'Submission Failed',
-                              message: data.error || 'Failed to submit verification request'
-                            });
-                          }
-                        } catch (error) {
-                          console.error('Residency verification error:', error);
-                          addNotification({
-                            type: 'error',
-                            title: 'Network Error',
-                            message: 'Failed to submit verification request'
-                          });
-                        } finally {
-                          setResidencyVerification(prev => ({ ...prev, submitting: false }));
-                        }
-                      }}
-                      disabled={residencyVerification.submitting || !residencyVerification.proof_type || !residencyVerification.selectedFile}
-                      startIcon={residencyVerification.submitting ? null : <Description />}
-                      size="large"
-                    >
-                      {residencyVerification.submitting ? 'Submitting...' : 'Submit Verification'}
-                    </Button>
-
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                      * Your request will be reviewed by barangay officers. Processing typically takes 2-3 business days.
-                    </Typography>
-                  </Box>
-                </>
-              )}
-            </CardContent>
-          </Card>
-          )}
-
-          {/* Become a Registered Resident Section - Only show for non-staff users who want to become residents */}
-          {user?.role !== 'resident' && !['admin', 'captain', 'secretary', 'clerk'].includes(user?.role) && (
             <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                  <VerifiedUser sx={{ mr: 2, color: 'primary.main' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Become a Registered Resident
+                  <VerifiedUser
+                    sx={{
+                      mr: 2,
+                      color:
+                        user?.residency_status === 'verified' ? 'success.main' : 'warning.main',
+                    }}
+                  />
+                  <Typography variant='h6' sx={{ fontWeight: 600 }}>
+                    Residency Verification
                   </Typography>
+                  {user?.residency_status === 'verified' && (
+                    <CheckCircle sx={{ ml: 1, color: 'success.main' }} />
+                  )}
                 </Box>
 
                 <Divider sx={{ mb: 3 }} />
 
-                {verificationStatus?.action === 'promoted' ? (
-                  <Alert severity="success" sx={{ mb: 3 }}>
-                    <Typography variant="body2">
-                      🎉 Congratulations! You are now a registered resident.
-                      <br />
-                      You can now access all resident features and apply for full residency verification.
-                    </Typography>
-                  </Alert>
-                ) : verificationStatus?.action === 'email_sent' ? (
-                  <Alert severity="info" sx={{ mb: 3 }}>
-                    <Typography variant="body2">
-                      📧 Verification email sent! Please check your email inbox and spam folder, then click the verification link.
-                      <br />
-                      After verification, return here to complete your resident registration.
+                {user?.residency_status === 'verified' ? (
+                  <Alert severity='success'>
+                    <Typography variant='body2'>
+                      ✅ Your residency has been verified! You can now request documents and
+                      certificates.
                     </Typography>
                   </Alert>
                 ) : (
                   <>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                      Verify your email to become a registered resident in our system. This unlocks additional features and allows you to apply for full residency verification through our officers.
+                    <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
+                      Submit proof of residency to access document and certificate requests.
+                      Officers will review your submission.
                     </Typography>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <VerifiedUser sx={{ mr: 1, color: 'success.main' }} />
-                      <Typography variant="body2">
-                        <strong>What you'll get as a registered resident:</strong>
+                    <Alert severity='info' sx={{ mb: 3 }}>
+                      <Typography variant='body2'>
+                        <strong>Accepted proof documents:</strong> Electric bills, water bills,
+                        barangay IDs, cedulas, property tax receipts, or other documents showing
+                        your barangay address.
                       </Typography>
-                    </Box>
+                    </Alert>
 
-                    <Box component="ul" sx={{ pl: 3, mb: 3, '& li': { mb: 1 } }}>
-                      <Typography component="li" variant="body2" color="text.secondary">
-                        Access to all resident-only features
-                      </Typography>
-                      <Typography component="li" variant="body2" color="text.secondary">
-                        Eligible for document requests and certificates
-                      </Typography>
-                      <Typography component="li" variant="body2" color="text.secondary">
-                        Ability to apply for officer-reviewed residency verification
-                      </Typography>
-                      <Typography component="li" variant="body2" color="text.secondary">
-                        Dedicated support and notifications
-                      </Typography>
-                    </Box>
+                    <Grid container spacing={3}>
+                      <Grid xs={12} sm={6}>
+                        <TextField
+                          select
+                          fullWidth
+                          label='Proof Type'
+                          value={residencyVerification.proof_type}
+                          onChange={e =>
+                            setResidencyVerification(prev => ({
+                              ...prev,
+                              proof_type: e.target.value,
+                            }))
+                          }
+                          SelectProps={{ native: true }}
+                          helperText="Select the type of document you're uploading"
+                        >
+                          <option value=''>Select proof type</option>
+                          <option value='electric_bill'>Electric Bill</option>
+                          <option value='water_bill'>Water Bill</option>
+                          <option value='cedula'>Cedula</option>
+                          <option value='barangay_id'>Barangay ID</option>
+                          <option value='property_tax'>Property Tax Receipt</option>
+                          <option value='other'>Other Document</option>
+                        </TextField>
+                      </Grid>
 
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={async () => {
-                        setVerificationLoading(true);
-                  try {
-                    const response = await apiRequest('/auth/verify-email-for-residency', {
-                      method: 'POST'
-                    });
+                      <Grid xs={12} sm={6}>
+                        <Button
+                          variant='outlined'
+                          component='label'
+                          fullWidth
+                          startIcon={<CloudUpload />}
+                          sx={{ height: 56 }}
+                        >
+                          {residencyVerification.selectedFile
+                            ? residencyVerification.selectedFile.name
+                            : 'Upload Document'}
+                          <input
+                            type='file'
+                            hidden
+                            accept='image/*,.pdf'
+                            onChange={e => {
+                              const file = e.target.files[0];
+                              if (file) {
+                                setResidencyVerification(prev => ({ ...prev, selectedFile: file }));
+                              }
+                            }}
+                          />
+                        </Button>
+                        {residencyVerification.selectedFile && (
+                          <Typography
+                            variant='caption'
+                            color='text.secondary'
+                            sx={{ display: 'block', mt: 1 }}
+                          >
+                            File: {residencyVerification.selectedFile.name} (
+                            {(residencyVerification.selectedFile.size / 1024 / 1024).toFixed(1)} MB)
+                          </Typography>
+                        )}
+                      </Grid>
 
-                    if (response.ok) {
-                      const data = await response.json();
-                      setVerificationStatus(data);
+                      <Grid xs={12}>
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={3}
+                          label='Additional Notes (Optional)'
+                          value={residencyVerification.notes}
+                          onChange={e =>
+                            setResidencyVerification(prev => ({ ...prev, notes: e.target.value }))
+                          }
+                          placeholder='Any additional information about your residency or document'
+                          helperText='Optional: Provide any additional context'
+                        />
+                      </Grid>
+                    </Grid>
 
-                            if (data.action === 'promoted') {
-                              // Update user in localStorage
-                              const updatedUser = { ...user, resident_id: data.user.resident_id };
-                              localStorage.setItem('user', JSON.stringify(updatedUser));
+                    <Box sx={{ mt: 3 }}>
+                      <Button
+                        variant='contained'
+                        onClick={async () => {
+                          if (
+                            !residencyVerification.proof_type ||
+                            !residencyVerification.selectedFile
+                          ) {
+                            addNotification({
+                              type: 'error',
+                              title: 'Validation Error',
+                              message: 'Please select proof type and upload a document',
+                            });
+                            return;
+                          }
+
+                          setResidencyVerification(prev => ({ ...prev, submitting: true }));
+
+                          try {
+                            const formData = new FormData();
+                            // Backend expects file field name as document_{type}
+                            formData.append(
+                              `document_${residencyVerification.proof_type}`,
+                              residencyVerification.selectedFile
+                            );
+                            if (residencyVerification.notes) {
+                              formData.append('notes', residencyVerification.notes);
+                            }
+
+                            const response = await apiRequest('/residents/verification/upload', {
+                              method: 'POST',
+                              body: formData,
+                            });
+
+                            const data = await response.json();
+
+                            if (response.ok) {
+                              setResidencyVerification({
+                                proof_type: '',
+                                notes: '',
+                                selectedFile: null,
+                                submitting: false,
+                              });
 
                               addNotification({
                                 type: 'success',
-                                title: 'Welcome, Resident!',
-                                message: 'Your account has been upgraded to resident status.'
+                                title: 'Verification Submitted',
+                                message:
+                                  'Your residency verification request has been submitted. You will be notified once reviewed.',
                               });
                             } else {
                               addNotification({
-                                type: 'info',
-                                title: 'Email Sent',
-                                message: 'Verification email sent. Please check your email.'
+                                type: 'error',
+                                title: 'Submission Failed',
+                                message: data.error || 'Failed to submit verification request',
                               });
                             }
-                          } else {
+                          } catch (error) {
+                            console.error('Residency verification error:', error);
                             addNotification({
                               type: 'error',
-                              title: 'Verification Failed',
-                              message: data.error || 'Failed to initiate email verification'
+                              title: 'Network Error',
+                              message: 'Failed to submit verification request',
                             });
+                          } finally {
+                            setResidencyVerification(prev => ({ ...prev, submitting: false }));
                           }
-                        } catch (error) {
-                          console.error('Email verification error:', error);
-                          addNotification({
-                            type: 'error',
-                            title: 'Network Error',
-                            message: 'Failed to send verification email. Please try again.'
-                          });
-                        } finally {
-                          setVerificationLoading(false);
+                        }}
+                        disabled={
+                          residencyVerification.submitting ||
+                          !residencyVerification.proof_type ||
+                          !residencyVerification.selectedFile
                         }
-                      }}
-                      disabled={verificationLoading}
-                      startIcon={verificationLoading ? null : <Send />}
-                      size="large"
-                      sx={{ minWidth: 200 }}
-                    >
-                      {verificationLoading ? 'Processing...' :
-                       verificationStatus?.action === 'email_sent' ? 'Resend Verification' :
-                       'Verify Email & Become Resident'}
-                    </Button>
+                        startIcon={residencyVerification.submitting ? null : <Description />}
+                        size='large'
+                      >
+                        {residencyVerification.submitting ? 'Submitting...' : 'Submit Verification'}
+                      </Button>
 
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                      This process is completely optional and can be completed at any time.
-                    </Typography>
+                      <Typography variant='body2' color='text.secondary' sx={{ mt: 2 }}>
+                        * Your request will be reviewed by barangay officers. Processing typically
+                        takes 2-3 business days.
+                      </Typography>
+                    </Box>
                   </>
                 )}
               </CardContent>
             </Card>
           )}
+
+          {/* Become a Registered Resident Section - Only show for non-staff users who want to become residents */}
+          {user?.role !== 'resident' &&
+            !['admin', 'captain', 'secretary', 'clerk'].includes(user?.role) && (
+              <Card sx={{ mb: 3 }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                    <VerifiedUser sx={{ mr: 2, color: 'primary.main' }} />
+                    <Typography variant='h6' sx={{ fontWeight: 600 }}>
+                      Become a Registered Resident
+                    </Typography>
+                  </Box>
+
+                  <Divider sx={{ mb: 3 }} />
+
+                  {verificationStatus?.action === 'promoted' ? (
+                    <Alert severity='success' sx={{ mb: 3 }}>
+                      <Typography variant='body2'>
+                        🎉 Congratulations! You are now a registered resident.
+                        <br />
+                        You can now access all resident features and apply for full residency
+                        verification.
+                      </Typography>
+                    </Alert>
+                  ) : verificationStatus?.action === 'email_sent' ? (
+                    <Alert severity='info' sx={{ mb: 3 }}>
+                      <Typography variant='body2'>
+                        📧 Verification email sent! Please check your email inbox and spam folder,
+                        then click the verification link.
+                        <br />
+                        After verification, return here to complete your resident registration.
+                      </Typography>
+                    </Alert>
+                  ) : (
+                    <>
+                      <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
+                        Verify your email to become a registered resident in our system. This
+                        unlocks additional features and allows you to apply for full residency
+                        verification through our officers.
+                      </Typography>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <VerifiedUser sx={{ mr: 1, color: 'success.main' }} />
+                        <Typography variant='body2'>
+                          <strong>What you'll get as a registered resident:</strong>
+                        </Typography>
+                      </Box>
+
+                      <Box component='ul' sx={{ pl: 3, mb: 3, '& li': { mb: 1 } }}>
+                        <Typography component='li' variant='body2' color='text.secondary'>
+                          Access to all resident-only features
+                        </Typography>
+                        <Typography component='li' variant='body2' color='text.secondary'>
+                          Eligible for document requests and certificates
+                        </Typography>
+                        <Typography component='li' variant='body2' color='text.secondary'>
+                          Ability to apply for officer-reviewed residency verification
+                        </Typography>
+                        <Typography component='li' variant='body2' color='text.secondary'>
+                          Dedicated support and notifications
+                        </Typography>
+                      </Box>
+
+                      <Button
+                        variant='contained'
+                        color='primary'
+                        onClick={async () => {
+                          setVerificationLoading(true);
+                          try {
+                            const response = await apiRequest('/auth/verify-email-for-residency', {
+                              method: 'POST',
+                            });
+
+                            if (response.ok) {
+                              const data = await response.json();
+                              setVerificationStatus(data);
+
+                              if (data.action === 'promoted') {
+                                const updatedUser = { ...user, resident_id: data.user.resident_id };
+                                localStorage.setItem('user', JSON.stringify(updatedUser));
+
+                                addNotification({
+                                  type: 'success',
+                                  title: 'Welcome, Resident!',
+                                  message: 'Your account has been upgraded to resident status.',
+                                });
+                              } else {
+                                addNotification({
+                                  type: 'info',
+                                  title: 'Email Sent',
+                                  message: 'Verification email sent. Please check your email.',
+                                });
+                              }
+                            } else {
+                              const errorData = await response.json().catch(() => ({}));
+                              addNotification({
+                                type: 'error',
+                                title: 'Verification Failed',
+                                message: errorData.error || 'Failed to initiate email verification',
+                              });
+                            }
+                          } catch (error) {
+                            console.error('Email verification error:', error);
+                            addNotification({
+                              type: 'error',
+                              title: 'Network Error',
+                              message: 'Failed to send verification email. Please try again.',
+                            });
+                          } finally {
+                            setVerificationLoading(false);
+                          }
+                        }}
+                        disabled={verificationLoading}
+                        startIcon={verificationLoading ? null : <Send />}
+                        size='large'
+                        sx={{ minWidth: 200 }}
+                      >
+                        {verificationLoading
+                          ? 'Processing...'
+                          : verificationStatus?.action === 'email_sent'
+                            ? 'Resend Verification'
+                            : 'Verify Email & Become Resident'}
+                      </Button>
+
+                      <Typography variant='body2' color='text.secondary' sx={{ mt: 2 }}>
+                        This process is completely optional and can be completed at any time.
+                      </Typography>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
         </Grid>
 
         {/* Profile Summary Sidebar */}
@@ -696,42 +739,39 @@ const Settings = ({ user }) => {
                   height: 80,
                   mx: 'auto',
                   mb: 2,
-                  bgcolor: user?.role_name === 'Super Admin' ? 'error.main' :
-                           'primary.main',
-                  fontSize: '2rem'
+                  bgcolor: user?.role_name === 'Super Admin' ? 'error.main' : 'primary.main',
+                  fontSize: '2rem',
                 }}
               >
                 {getInitials(profile.full_name || user?.username || 'U')}
               </Avatar>
 
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+              <Typography variant='h6' sx={{ fontWeight: 600, mb: 1 }}>
                 {profile.full_name || user?.username}
               </Typography>
 
               {user?.role === 1 && (
-                <Chip 
-                  label="Administrative Access" 
-                  color="error" 
-                  size="small" 
-                  icon={<Security />} 
-                  sx={{ mb: 2 }} 
+                <Chip
+                  label='Administrative Access'
+                  color='error'
+                  size='small'
+                  icon={<Security />}
+                  sx={{ mb: 2 }}
                 />
               )}
 
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
                 {user?.role_name}
               </Typography>
 
               {profile.email && (
-                <Typography variant="body2" sx={{ mb: 1 }}>
+                <Typography variant='body2' sx={{ mb: 1 }}>
                   📧 {profile.email}
                 </Typography>
               )}
 
               {profile.contact_number && (
-                <Typography variant="body2">
-                  📱 {profile.contact_number}
-                </Typography>
+                <Typography variant='body2'>📱 {profile.contact_number}</Typography>
               )}
             </CardContent>
           </Card>
@@ -741,7 +781,7 @@ const Settings = ({ user }) => {
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <Notifications sx={{ mr: 2, color: 'primary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                <Typography variant='h6' sx={{ fontWeight: 600 }}>
                   Preferences
                 </Typography>
               </Box>
@@ -756,7 +796,7 @@ const Settings = ({ user }) => {
                       onChange={handlePreferenceChange('emailNotifications')}
                     />
                   }
-                  label="Email notifications"
+                  label='Email notifications'
                 />
 
                 <FormControlLabel
@@ -766,7 +806,7 @@ const Settings = ({ user }) => {
                       onChange={handlePreferenceChange('smsNotifications')}
                     />
                   }
-                  label="SMS notifications"
+                  label='SMS notifications'
                 />
 
                 <FormControlLabel
@@ -776,7 +816,7 @@ const Settings = ({ user }) => {
                       onChange={handlePreferenceChange('darkMode')}
                     />
                   }
-                  label="Dark mode"
+                  label='Dark mode'
                 />
               </Box>
             </CardContent>
@@ -794,24 +834,24 @@ const Settings = ({ user }) => {
 
           <TextField
             autoFocus
-            margin="dense"
-            label="New Password"
-            type="password"
+            margin='dense'
+            label='New Password'
+            type='password'
             fullWidth
-            variant="outlined"
+            variant='outlined'
             value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
+            onChange={e => setNewPassword(e.target.value)}
             sx={{ mb: 2 }}
           />
 
           <TextField
-            margin="dense"
-            label="Confirm New Password"
-            type="password"
+            margin='dense'
+            label='Confirm New Password'
+            type='password'
             fullWidth
-            variant="outlined"
+            variant='outlined'
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={e => setConfirmPassword(e.target.value)}
             error={newPassword && confirmPassword && newPassword !== confirmPassword}
             helperText={
               newPassword && confirmPassword && newPassword !== confirmPassword
@@ -824,8 +864,10 @@ const Settings = ({ user }) => {
           <Button onClick={() => setConfirmPasswordDialog(false)}>Cancel</Button>
           <Button
             onClick={handleChangePassword}
-            disabled={loading || !newPassword || !confirmPassword || newPassword !== confirmPassword}
-            variant="contained"
+            disabled={
+              loading || !newPassword || !confirmPassword || newPassword !== confirmPassword
+            }
+            variant='contained'
           >
             {loading ? 'Changing...' : 'Change Password'}
           </Button>

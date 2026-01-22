@@ -1,7 +1,7 @@
 // const db = require('../database');
 const { ROLES } = require('../config/roles');
 const { allocateBlotterCaseNumber } = require('../utils/blotterCaseNumber');
-const notificationController = require('./notificationController');
+const NotificationController = require('./notificationController');
 
 exports.getAll = async (req, res) => {
   const db = req.app.locals.db;
@@ -87,12 +87,12 @@ exports.create = async (req, res) => {
     // SECURITY: Enforce identity for non-admin/officer users
     // If user is NOT an Admin (1), Captain (5), Secretary (6), or Blotter Officer (3),
     // they MUST file as themselves.
-    const privilegedRoles = [1, 3, 5, 6]; 
+    const privilegedRoles = [1, 3, 5, 6];
     let finalComplainantId = complainant_resident_id;
 
     if (req.user && !privilegedRoles.includes(req.user.role)) {
-        // Force the complainant ID to match the authenticated user
-        finalComplainantId = req.user.resident_id;
+      // Force the complainant ID to match the authenticated user
+      finalComplainantId = req.user.resident_id;
     }
 
     if (!Complainant_Details || !Incident_Type || !Narrative || !Location_Sitio) {
@@ -244,74 +244,86 @@ exports.update = async (req, res) => {
     // CLEARPASS: Summon Notification Logic
     // If Hearing_Schedule is updated or status is 'Scheduled for Mediation', notify residents
     if (Hearing_Schedule || Status === 'Scheduled for Mediation') {
-      const [caseDetails] = await db.execute(
-        'SELECT * FROM blotter WHERE Case_Number = ?',
-        [req.params.caseNumber]
-      );
+      const [caseDetails] = await db.execute('SELECT * FROM blotter WHERE Case_Number = ?', [
+        req.params.caseNumber,
+      ]);
 
       if (caseDetails.length > 0) {
         const c = caseDetails[0];
-        const schedule = c.Hearing_Schedule 
-          ? new Date(c.Hearing_Schedule).toLocaleString() 
+        const schedule = c.Hearing_Schedule
+          ? new Date(c.Hearing_Schedule).toLocaleString()
           : 'a later date';
-        
+
         const message = `You have been summoned for a hearing regarding Case #${c.Case_Number} on ${schedule}. Please attend.`;
+
+        // Instantiate NotificationController
+        const notificationController = new NotificationController(db);
 
         // Notify Complainant
         if (c.complainant_resident_id) {
-           // Find user_id linked to resident_id
-           let [u] = await db.execute('SELECT id FROM users WHERE resident_id = ?', [c.complainant_resident_id]);
-           
-           // If not found by resident_id, try finding by email from Complainant_Details
-           if (u.length === 0 && c.Complainant_Details) {
-               try {
-                   const details = typeof c.Complainant_Details === 'string' ? JSON.parse(c.Complainant_Details) : c.Complainant_Details;
-                   if (details.email) {
-                       [u] = await db.execute('SELECT id FROM users WHERE email = ?', [details.email]);
-                   }
-               } catch (e) {
-                   console.warn('Failed to parse Complainant_Details for notification', e);
-               }
-           }
+          // Find user_id linked to resident_id
+          let [u] = await db.execute('SELECT id FROM users WHERE resident_id = ?', [
+            c.complainant_resident_id,
+          ]);
 
-           if (u.length > 0) {
-             await notificationController.createNotification({
-                user_id: u[0].id,
-                title: 'Blotter Hearing Summon',
-                message: message,
-                type: 'warning',
-                priority: 'high',
-                link: `/resident/blotter-report` // Or a detail view if available
-             }, db); // Pass db instance if needed by implementation
-           }
+          // If not found by resident_id, try finding by email from Complainant_Details
+          if (u.length === 0 && c.Complainant_Details) {
+            try {
+              const details =
+                typeof c.Complainant_Details === 'string'
+                  ? JSON.parse(c.Complainant_Details)
+                  : c.Complainant_Details;
+              if (details.email) {
+                [u] = await db.execute('SELECT id FROM users WHERE email = ?', [details.email]);
+              }
+            } catch (e) {
+              console.warn('Failed to parse Complainant_Details for notification', e);
+            }
+          }
+
+          if (u.length > 0) {
+            await notificationController.createNotification(
+              u[0].id,
+              'Blotter Hearing Summon',
+              message,
+              'warning',
+              'high',
+              { link: `/resident/blotter-report` }
+            );
+          }
         }
 
         // Notify Respondent
         if (c.respondent_resident_id) {
-           let [u] = await db.execute('SELECT id FROM users WHERE resident_id = ?', [c.respondent_resident_id]);
-           
-           // If not found by resident_id, try finding by email from Respondent_Details
-           if (u.length === 0 && c.Respondent_Details) {
-               try {
-                   const details = typeof c.Respondent_Details === 'string' ? JSON.parse(c.Respondent_Details) : c.Respondent_Details;
-                   if (details.email) {
-                       [u] = await db.execute('SELECT id FROM users WHERE email = ?', [details.email]);
-                   }
-               } catch (e) {
-                   console.warn('Failed to parse Respondent_Details for notification', e);
-               }
-           }
+          let [u] = await db.execute('SELECT id FROM users WHERE resident_id = ?', [
+            c.respondent_resident_id,
+          ]);
 
-           if (u.length > 0) {
-             await notificationController.createNotification({
-                user_id: u[0].id,
-                title: 'Blotter Hearing Summon',
-                message: message,
-                type: 'warning',
-                priority: 'high',
-                link: `/resident/blotter-report`
-             }, db);
-           }
+          // If not found by resident_id, try finding by email from Respondent_Details
+          if (u.length === 0 && c.Respondent_Details) {
+            try {
+              const details =
+                typeof c.Respondent_Details === 'string'
+                  ? JSON.parse(c.Respondent_Details)
+                  : c.Respondent_Details;
+              if (details.email) {
+                [u] = await db.execute('SELECT id FROM users WHERE email = ?', [details.email]);
+              }
+            } catch (e) {
+              console.warn('Failed to parse Respondent_Details for notification', e);
+            }
+          }
+
+          if (u.length > 0) {
+            await notificationController.createNotification(
+              u[0].id,
+              'Blotter Hearing Summon',
+              message,
+              'warning',
+              'high',
+              { link: `/resident/blotter-report` }
+            );
+          }
         }
       }
     }

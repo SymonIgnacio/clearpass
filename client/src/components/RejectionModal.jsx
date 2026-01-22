@@ -18,10 +18,10 @@ const RejectionModal = ({
       title={title}
       message={message}
       confirmText={confirmText}
-      type="error"
+      type='error'
       showInput={true}
       inputLabel={inputLabel}
-      inputPlaceholder="Enter reason..."
+      inputPlaceholder='Enter reason...'
       inputRequired={true}
     />
   );

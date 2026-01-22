@@ -23,7 +23,7 @@ async function testConnection() {
     // Check if database exists
     const [databases] = await connection.execute('SHOW DATABASES');
     const dbExists = databases.some(db => db.Database === process.env.DB_NAME);
-    
+
     if (dbExists) {
       console.log('✅ Database exists:', process.env.DB_NAME);
     } else {
@@ -34,7 +34,7 @@ async function testConnection() {
     }
 
     await connection.end();
-    
+
     // Now test connection to the specific database
     const dbConnection = await mysql.createConnection({
       host: process.env.DB_HOST || 'localhost',
@@ -46,10 +46,9 @@ async function testConnection() {
 
     console.log('✅ Connected to database successfully!');
     await dbConnection.end();
-
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
-    
+
     if (error.code === 'ER_ACCESS_DENIED_ERROR') {
       console.log('\n🔧 Possible solutions:');
       console.log('1. Set a password for MySQL root user in XAMPP');

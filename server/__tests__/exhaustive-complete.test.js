@@ -10,7 +10,7 @@ const bcrypt = require('bcrypt');
 // Mock setup
 const mockDb = {
   execute: jest.fn(),
-  getConnection: jest.fn()
+  getConnection: jest.fn(),
 };
 
 const mockConnection = {
@@ -18,7 +18,7 @@ const mockConnection = {
   beginTransaction: jest.fn(),
   commit: jest.fn(),
   rollback: jest.fn(),
-  release: jest.fn()
+  release: jest.fn(),
 };
 
 const JWT_SECRET = 'test_secret';
@@ -42,21 +42,25 @@ describe('🔐 AUTHENTICATION CONTROLLER - COMPLETE TESTS', () => {
   describe('Login Functionality', () => {
     test('✅ Admin login successful', async () => {
       const hashedPassword = await bcrypt.hash('admin123', 10);
-      mockDb.execute.mockResolvedValueOnce([[{
-        id: 1,
-        username: 'admin',
-        password_hash: hashedPassword,
-        role_id: 5,
-        role: 'Admin'
-      }]]);
+      mockDb.execute.mockResolvedValueOnce([
+        [
+          {
+            id: 1,
+            username: 'admin',
+            password_hash: hashedPassword,
+            role_id: 5,
+            role: 'Admin',
+          },
+        ],
+      ]);
 
       const req = {
         body: { username: 'admin', password: 'admin123' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 
       await authController.login(req, res);
@@ -64,7 +68,7 @@ describe('🔐 AUTHENTICATION CONTROLLER - COMPLETE TESTS', () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           token: expect.any(String),
-          user: expect.objectContaining({ username: 'admin' })
+          user: expect.objectContaining({ username: 'admin' }),
         })
       );
     });
@@ -74,11 +78,11 @@ describe('🔐 AUTHENTICATION CONTROLLER - COMPLETE TESTS', () => {
 
       const req = {
         body: { username: 'invalid', password: 'wrong' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 
       await authController.login(req, res);
@@ -89,11 +93,11 @@ describe('🔐 AUTHENTICATION CONTROLLER - COMPLETE TESTS', () => {
     test('❌ Login fails with missing credentials', async () => {
       const req = {
         body: {},
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 
       await authController.login(req, res);
@@ -119,13 +123,13 @@ describe('👥 RESIDENT CONTROLLER - COMPLETE CRUD TESTS', () => {
           Last_Name: 'Dela Cruz',
           Birthdate: '1990-01-01',
           Gender: 'Male',
-          Household_ID: 'H-123'
+          Household_ID: 'H-123',
         },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await residentController.create(req, res);
@@ -137,11 +141,11 @@ describe('👥 RESIDENT CONTROLLER - COMPLETE CRUD TESTS', () => {
       const req = {
         user: { role_id: 5, role: 'Admin' },
         body: { First_Name: 'Juan' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await residentController.create(req, res);
@@ -152,16 +156,16 @@ describe('👥 RESIDENT CONTROLLER - COMPLETE CRUD TESTS', () => {
 
   describe('READ Operations', () => {
     test('✅ Get all residents', async () => {
-      mockDb.execute.mockResolvedValueOnce([[
-        { Resident_ID: 1, First_Name: 'Juan', Last_Name: 'Dela Cruz' }
-      ]]);
+      mockDb.execute.mockResolvedValueOnce([
+        [{ Resident_ID: 1, First_Name: 'Juan', Last_Name: 'Dela Cruz' }],
+      ]);
 
       const req = {
         query: {},
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await residentController.getAll(req, res);
@@ -171,17 +175,15 @@ describe('👥 RESIDENT CONTROLLER - COMPLETE CRUD TESTS', () => {
     });
 
     test('✅ Get resident by ID', async () => {
-      mockDb.execute.mockResolvedValueOnce([[
-        { Resident_ID: 1, First_Name: 'Juan' }
-      ]]);
+      mockDb.execute.mockResolvedValueOnce([[{ Resident_ID: 1, First_Name: 'Juan' }]]);
 
       const req = {
         params: { id: 1 },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 
       await residentController.getById(req, res);
@@ -194,11 +196,11 @@ describe('👥 RESIDENT CONTROLLER - COMPLETE CRUD TESTS', () => {
 
       const req = {
         params: { id: 999 },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 
       await residentController.getById(req, res);
@@ -214,10 +216,10 @@ describe('👥 RESIDENT CONTROLLER - COMPLETE CRUD TESTS', () => {
       const req = {
         params: { id: 1 },
         body: { First_Name: 'Updated' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await residentController.update(req, res);
@@ -234,10 +236,10 @@ describe('👥 RESIDENT CONTROLLER - COMPLETE CRUD TESTS', () => {
 
       const req = {
         params: { id: 1 },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await residentController.archive(req, res);
@@ -252,17 +254,15 @@ describe('👥 RESIDENT CONTROLLER - COMPLETE CRUD TESTS', () => {
 
       const req = {
         body: { First_Name: 'Juan', Last_Name: 'Dela Cruz', Birthdate: '1990-01-01' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await residentController.checkDuplicate(req, res);
 
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ isDuplicate: true })
-      );
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ isDuplicate: true }));
     });
   });
 });
@@ -273,7 +273,7 @@ describe('📋 BLOTTER CONTROLLER - ALL ROLES COMPLETE TESTS', () => {
     { id: 3, name: 'Clerk', canWrite: true },
     { id: 4, name: 'Tanod', canWrite: true },
     { id: 5, name: 'Captain', canWrite: false },
-    { id: 6, name: 'Admin', canWrite: true }
+    { id: 6, name: 'Admin', canWrite: true },
   ];
 
   beforeEach(() => {
@@ -291,13 +291,13 @@ describe('📋 BLOTTER CONTROLLER - ALL ROLES COMPLETE TESTS', () => {
             Complainant_Details: { name: 'Test' },
             Incident_Type: 'Test',
             Narrative: 'Test',
-            Location_Sitio: 'Test'
+            Location_Sitio: 'Test',
           },
-          app: { locals: { db: mockDb } }
+          app: { locals: { db: mockDb } },
         };
         const res = {
           status: jest.fn().mockReturnThis(),
-          json: jest.fn()
+          json: jest.fn(),
         };
 
         await blotterController.create(req, res);
@@ -316,11 +316,11 @@ describe('📋 BLOTTER CONTROLLER - ALL ROLES COMPLETE TESTS', () => {
           user: { role_id: role.id, role: role.name },
           body: { Status: 'Resolved' },
           params: { caseNumber: 'BLOT-001' },
-          app: { locals: { db: mockDb } }
+          app: { locals: { db: mockDb } },
         };
         const res = {
           status: jest.fn().mockReturnThis(),
-          json: jest.fn()
+          json: jest.fn(),
         };
 
         await blotterController.update(req, res);
@@ -338,11 +338,11 @@ describe('📋 BLOTTER CONTROLLER - ALL ROLES COMPLETE TESTS', () => {
         const req = {
           user: { role_id: role.id, role: role.name },
           params: { caseNumber: 'BLOT-001' },
-          app: { locals: { db: mockDb } }
+          app: { locals: { db: mockDb } },
         };
         const res = {
           status: jest.fn().mockReturnThis(),
-          json: jest.fn()
+          json: jest.fn(),
         };
 
         await blotterController.delete(req, res);
@@ -359,10 +359,10 @@ describe('📋 BLOTTER CONTROLLER - ALL ROLES COMPLETE TESTS', () => {
 
         const req = {
           user: { role_id: role.id, role: role.name },
-          app: { locals: { db: mockDb } }
+          app: { locals: { db: mockDb } },
         };
         const res = {
-          json: jest.fn()
+          json: jest.fn(),
         };
 
         await blotterController.getAll(req, res);
@@ -390,12 +390,12 @@ describe('📜 CERTIFICATE CONTROLLER - COMPLETE TESTS', () => {
       body: {
         resident_id: 1,
         certificate_type_id: 1,
-        purpose: 'Employment'
-      }
+        purpose: 'Employment',
+      },
     };
     const res = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await certificateController.create(req, res);
@@ -413,12 +413,12 @@ describe('📜 CERTIFICATE CONTROLLER - COMPLETE TESTS', () => {
       body: {
         resident_id: 1,
         certificate_type_id: 1,
-        purpose: 'Employment'
-      }
+        purpose: 'Employment',
+      },
     };
     const res = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await certificateController.create(req, res);
@@ -426,7 +426,7 @@ describe('📜 CERTIFICATE CONTROLLER - COMPLETE TESTS', () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        error: expect.stringContaining('BLOCK ISSUANCE')
+        error: expect.stringContaining('BLOCK ISSUANCE'),
       })
     );
   });
@@ -436,10 +436,10 @@ describe('📜 CERTIFICATE CONTROLLER - COMPLETE TESTS', () => {
 
     const req = {
       user: { role_id: 5 },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await certificateController.getAll(req, res);
@@ -456,7 +456,7 @@ describe('📄 DOCUMENT CONTROLLER - COMPLETE TESTS', () => {
   test('✅ Get document types', async () => {
     const req = {};
     const res = {
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await documentController.getDocumentTypes(req, res);
@@ -464,7 +464,7 @@ describe('📄 DOCUMENT CONTROLLER - COMPLETE TESTS', () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         success: true,
-        data: expect.any(Array)
+        data: expect.any(Array),
       })
     );
   });
@@ -479,12 +479,12 @@ describe('📄 DOCUMENT CONTROLLER - COMPLETE TESTS', () => {
       body: {
         resident_id: 1,
         document_type: 'barangay_clearance',
-        request_data: {}
-      }
+        request_data: {},
+      },
     };
     const res = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await documentController.createDocumentRequest(req, res);
@@ -497,12 +497,12 @@ describe('📄 DOCUMENT CONTROLLER - COMPLETE TESTS', () => {
       user: { account_status: 'Pending' },
       body: {
         resident_id: 1,
-        document_type: 'barangay_clearance'
-      }
+        document_type: 'barangay_clearance',
+      },
     };
     const res = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await documentController.createDocumentRequest(req, res);
@@ -521,10 +521,10 @@ describe('🏠 HOUSEHOLD CONTROLLER - COMPLETE TESTS', () => {
 
     const req = {
       query: {},
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await householdController.getAll(req, res);
@@ -539,13 +539,13 @@ describe('🏠 HOUSEHOLD CONTROLLER - COMPLETE TESTS', () => {
       body: {
         Household_Number: 'H-001',
         Street_Address: '123 Main St',
-        Sitio_ID: 1
+        Sitio_ID: 1,
       },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await householdController.create(req, res);
@@ -559,10 +559,10 @@ describe('🏠 HOUSEHOLD CONTROLLER - COMPLETE TESTS', () => {
     const req = {
       params: { id: 1 },
       body: { Street_Address: 'Updated Address' },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await householdController.update(req, res);
@@ -575,10 +575,10 @@ describe('🏠 HOUSEHOLD CONTROLLER - COMPLETE TESTS', () => {
 
     const req = {
       params: { id: 1 },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await householdController.delete(req, res);
@@ -597,10 +597,10 @@ describe('👤 USER CONTROLLER - COMPLETE TESTS', () => {
 
     const req = {
       query: {},
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await userController.getAll(req, res);
@@ -616,13 +616,13 @@ describe('👤 USER CONTROLLER - COMPLETE TESTS', () => {
         username: 'newuser',
         password: 'password123',
         role_id: 4,
-        full_name: 'New User'
+        full_name: 'New User',
       },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await userController.create(req, res);
@@ -636,10 +636,10 @@ describe('👤 USER CONTROLLER - COMPLETE TESTS', () => {
     const req = {
       params: { id: 1 },
       body: { full_name: 'Updated Name' },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await userController.update(req, res);
@@ -652,10 +652,10 @@ describe('👤 USER CONTROLLER - COMPLETE TESTS', () => {
 
     const req = {
       params: { id: 1 },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await userController.delete(req, res);
@@ -668,10 +668,10 @@ describe('👤 USER CONTROLLER - COMPLETE TESTS', () => {
 
     const req = {
       params: { id: 1 },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await userController.toggleStatus(req, res);
@@ -685,10 +685,10 @@ describe('👤 USER CONTROLLER - COMPLETE TESTS', () => {
     const req = {
       params: { id: 1 },
       body: { new_password: 'newpass123' },
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await userController.resetPassword(req, res);
@@ -707,10 +707,10 @@ describe('⚙️ ADMIN CONTROLLER - COMPLETE TESTS', () => {
 
     const req = {
       query: {},
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await adminController.getUsersReport(req, res);
@@ -723,10 +723,10 @@ describe('⚙️ ADMIN CONTROLLER - COMPLETE TESTS', () => {
 
     const req = {
       query: {},
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await adminController.getBlotterReport(req, res);
@@ -739,10 +739,10 @@ describe('⚙️ ADMIN CONTROLLER - COMPLETE TESTS', () => {
 
     const req = {
       query: {},
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await adminController.getCertificatesReport(req, res);
@@ -755,10 +755,10 @@ describe('⚙️ ADMIN CONTROLLER - COMPLETE TESTS', () => {
 
     const req = {
       query: {},
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
     const res = {
-      json: jest.fn()
+      json: jest.fn(),
     };
 
     await adminController.getResidentsReport(req, res);

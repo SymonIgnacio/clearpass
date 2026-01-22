@@ -2,8 +2,8 @@
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
-exports.up = function(knex) {
-  return knex.schema.createTable('audit_logs', function(table) {
+exports.up = function (knex) {
+  return knex.schema.createTable('audit_logs', function (table) {
     table.increments('id').primary();
     table.string('event_type', 50).notNullable().index();
     table.string('user_id', 50).nullable().index();
@@ -16,7 +16,7 @@ exports.up = function(knex) {
     table.json('details').nullable();
     table.string('session_id', 128).nullable().index();
     table.timestamp('created_at').defaultTo(knex.fn.now()).index();
-    
+
     // Indexes for common queries
     table.index(['event_type', 'created_at']);
     table.index(['user_id', 'created_at']);
@@ -28,6 +28,6 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTable('audit_logs');
 };

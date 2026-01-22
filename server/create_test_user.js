@@ -26,7 +26,7 @@ async function createTestUser() {
       contact_number: '09625460372',
       is_active: true,
       created_at: new Date(),
-      updated_at: new Date()
+      updated_at: new Date(),
     });
 
     console.log('🏠 Creating resident record...');
@@ -50,14 +50,13 @@ async function createTestUser() {
       Date_Arrival: '2025-12-19',
       Residency_Status: 'Active',
       created_at: new Date(),
-      updated_at: new Date()
+      updated_at: new Date(),
     });
 
     console.log('✅ Test user and resident created successfully!');
     console.log('📧 Email: Symonignacio1@gmail.com');
     console.log('🔑 Password: 123456');
     console.log('🆔 Resident ID: RES-HARDCODED-001');
-
   } catch (error) {
     console.error('❌ Error creating test user:', error);
   } finally {

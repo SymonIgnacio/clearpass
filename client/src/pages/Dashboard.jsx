@@ -100,17 +100,13 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (user && (userRole || user?.username === 'superadmin')) {
-      console.log('🎯 Dashboard: Starting data fetch for user role:', userRole, 'User:', user)
       fetchRoleSpecificData()
     } else if (user === null) {
       // User is explicitly null (not authenticated)
-      console.log('🎯 Dashboard: User not authenticated, redirecting...')
       setLoading(false)
     } else {
-      console.log('🎯 Dashboard: Waiting for user authentication...', { user: !!user, userRole, userObject: user })
       // Set a timeout to prevent infinite loading if auth fails
       const timeout = setTimeout(() => {
-        console.warn('🎯 Dashboard: Auth timeout, loading empty data')
         setStats({ overall: { total_residents: 0, total_seniors: 0, total_pwd: 0, total_single_parents: 0 } })
         setCertificates([])
         setBlotterCases([])
@@ -124,14 +120,11 @@ const Dashboard = () => {
   const fetchRoleSpecificData = async () => {
     try {
       setLoading(true)
-      console.log('📊 Dashboard: Fetching dashboard data for user role:', userRole, 'User type:', user?.username)
       
       const response = await apiRequest('dashboard')
       
       if (response.ok) {
         const dashboardData = await response.json()
-        console.log('📊 Dashboard: Raw API Response:', dashboardData)
-        console.log('📊 Dashboard: Response structure check:', {
           hasOverall: !!dashboardData.overall,
           overallKeys: dashboardData.overall ? Object.keys(dashboardData.overall) : 'none',
           residents: dashboardData.residents,
@@ -141,9 +134,7 @@ const Dashboard = () => {
         })
         setStats(dashboardData)
       } else {
-        console.error('📊 Dashboard: API response not ok:', response.status, response.statusText)
         const errorText = await response.text()
-        console.error('📊 Dashboard: Error response:', errorText)
         throw new Error(`Dashboard API failed: ${response.status}`)
       }
       
@@ -154,7 +145,6 @@ const Dashboard = () => {
       await fetchBlotterCases()
       
     } catch (error) {
-      console.error('❌ Dashboard: Error fetching data:', error)
       setStats({ overall: { total_residents: 0, total_seniors: 0, total_pwd: 0, total_single_parents: 0 } })
       setCertificates([])
       setBlotterCases([])
@@ -191,7 +181,6 @@ const Dashboard = () => {
       const data = await response.json()
       setStats(data)
     } catch (error) {
-      console.error('Error fetching stats:', error)
       setStats({ overall: { total_residents: 0, total_seniors: 0, total_pwd: 0, total_single_parents: 0 } })
     } finally {
       setLoading(false)
@@ -203,14 +192,11 @@ const Dashboard = () => {
       const response = await apiRequest('certificates')
       if (response.ok) {
         const data = await response.json()
-        console.log('📊 Dashboard: Certificates data:', data)
         setCertificates(data || [])
       } else {
-        console.warn('Certificates API failed:', response.status)
         setCertificates([])
       }
     } catch (error) {
-      console.error('Error fetching certificates:', error)
       setCertificates([])
     }
   }
@@ -220,14 +206,11 @@ const Dashboard = () => {
       const response = await apiRequest('blotter')
       if (response.ok) {
         const data = await response.json()
-        console.log('📊 Dashboard: Blotter data:', data)
         setBlotterCases(Array.isArray(data) ? data : [])
       } else {
-        console.warn('Blotter API failed:', response.status)
         setBlotterCases([])
       }
     } catch (error) {
-      console.error('Error fetching blotter cases:', error)
       setBlotterCases([])
     }
   }
@@ -239,7 +222,6 @@ const Dashboard = () => {
       const data = await response.json()
       setPatrolSuggestions(data)
     } catch (error) {
-      console.error('Error fetching patrol suggestions:', error)
       setPatrolSuggestions(null)
     } finally {
       setPatrolLoading(false)
@@ -344,7 +326,6 @@ const Dashboard = () => {
           const data = await response.json() // ✅ Parse JSON from Response
           return { key: reportKey, data: data }
         } catch (error) {
-          console.error(`Failed to load ${reportKey} report:`, error)
           return { key: reportKey, data: null }
         }
       })
@@ -445,7 +426,7 @@ const Dashboard = () => {
           `${item.First_Name || ''} ${item.Last_Name || ''}`.trim() || 'N/A',
           item.Gender || 'N/A',
           age,
-          item.Mobile_Number || 'N/A',
+          item.Email || 'N/A',
           item.Residency_Status || 'N/A',
           item.Household_ID || 'N/A',
           'N/A' // Sitio not available in simplified query
@@ -528,7 +509,6 @@ const Dashboard = () => {
 
       setDetailedReport(transformedData)
     } catch (error) {
-      console.error(`Failed to load detailed ${type} report:`, error)
       setDetailedReport(null)
     }
   }
@@ -556,7 +536,6 @@ const Dashboard = () => {
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
     } catch (error) {
-      console.error('Failed to generate PDF:', error)
     }
   }
 
@@ -832,7 +811,6 @@ const Dashboard = () => {
   }
 
   // Debug logging
-  console.log('🎯 Dashboard render:', { 
     user, 
     isITAdmin, 
     activeTab, 

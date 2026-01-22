@@ -6,7 +6,7 @@ async function createTables() {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'barangay_management'
+    database: process.env.DB_NAME || 'barangay_management',
   });
 
   try {
@@ -53,7 +53,6 @@ async function createTables() {
       console.log('🎉 SUCCESS: WebSocket notifications should now work!');
       console.log('🚀 Please restart your server to enable notifications');
     }
-
   } catch (error) {
     console.error('❌ Error:', error.message);
   } finally {

@@ -29,7 +29,7 @@ describe('API Integration Tests', () => {
       const res = await request(app)
         .post('/api/auth/login')
         .send({ username: 'admin', password: 'test' });
-      
+
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('token');
       expect(res.body.user.username).toBe('admin');
@@ -39,7 +39,7 @@ describe('API Integration Tests', () => {
       const res = await request(app)
         .post('/api/auth/login')
         .send({ username: 'admin', password: 'wrong' });
-      
+
       expect(res.status).toBe(401);
       expect(res.body).toHaveProperty('error');
     });
@@ -48,7 +48,7 @@ describe('API Integration Tests', () => {
   describe('Residents API', () => {
     test('GET /api/residents - returns list', async () => {
       const res = await request(app).get('/api/residents');
-      
+
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
       expect(res.body[0]).toHaveProperty('Resident_ID');
@@ -58,7 +58,7 @@ describe('API Integration Tests', () => {
   describe('Certificates API', () => {
     test('GET /api/certificates - returns list', async () => {
       const res = await request(app).get('/api/certificates');
-      
+
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
     });

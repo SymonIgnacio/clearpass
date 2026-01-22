@@ -7,7 +7,8 @@ const path = require('path');
 const fs = require('fs');
 // const db = require('../database');
 const { ROLES } = require('../config/roles');
-const uploadMiddleware = require('../middleware/upload').any();
+const { upload } = require('../middleware/upload');
+const uploadMiddleware = upload.any();
 const {
   isEncryptionEnabled,
   encryptFileToEncryptedPath,
@@ -49,7 +50,7 @@ exports.getAll = async (req, res) => {
 
     if (search && search.trim()) {
       whereConditions.push(
-        '(CONCAT(r.First_Name, " ", r.Last_Name) LIKE ? OR CONCAT(r.First_Name, " ", r.Middle_Name, " ", r.Last_Name) LIKE ? OR r.Mobile_Number LIKE ?)'
+        '(CONCAT_WS(" ", r.First_Name, r.Last_Name) LIKE ? OR CONCAT_WS(" ", r.First_Name, r.Middle_Name, r.Last_Name) LIKE ? OR r.Mobile_Number LIKE ?)'
       );
       const searchTerm = `%${search.trim()}%`;
       values.push(searchTerm, searchTerm, searchTerm);
@@ -953,11 +954,13 @@ exports.uploadVerificationDocs = async (req, res) => {
 
     // If no resident_id, check for application
     if (!targetId) {
-      console.log(`[Upload] User ${req.user.id} (${req.user.email}) has no resident_id. Searching for application...`);
-      
+      console.log(
+        `[Upload] User ${req.user.id} (${req.user.email}) has no resident_id. Searching for application...`
+      );
+
       // Try exact email first, then case-insensitive, then try matching username
       const searchEmails = [req.user.email, req.user.username].filter(Boolean);
-      
+
       // Use a more robust query
       const [apps] = await connection.execute(
         `SELECT application_id FROM resident_applications 
@@ -971,57 +974,76 @@ exports.uploadVerificationDocs = async (req, res) => {
         targetTable = 'application_documents';
         targetIdColumn = 'application_id';
         targetId = apps[0].application_id;
-        console.log(`[Upload] Found application ${targetId}. Switching target table to ${targetTable}.`);
+        console.log(
+          `[Upload] Found application ${targetId}. Switching target table to ${targetTable}.`
+        );
       } else {
         // Last resort: Try to find by name if available in user object
         // Note: req.user might not have full name populated depending on auth middleware, but we can try fetching it
-        const [userDetails] = await connection.execute('SELECT full_name FROM users WHERE id = ?', [req.user.id]);
-        
+        const [userDetails] = await connection.execute('SELECT full_name FROM users WHERE id = ?', [
+          req.user.id,
+        ]);
+
         if (userDetails.length > 0 && userDetails[0].full_name) {
-             const fullName = userDetails[0].full_name;
-             console.log(`[Upload] Trying lookup by full name: ${fullName}`);
-             // This is a fuzzy match, use with caution. Assuming format "First Last"
-             const [appsByName] = await connection.execute(
-                 `SELECT application_id FROM resident_applications 
+          const fullName = userDetails[0].full_name;
+          console.log(`[Upload] Trying lookup by full name: ${fullName}`);
+          // This is a fuzzy match, use with caution. Assuming format "First Last"
+          const [appsByName] = await connection.execute(
+            `SELECT application_id FROM resident_applications 
                   WHERE CONCAT(first_name, ' ', last_name) = ? 
                   OR CONCAT(first_name, ' ', middle_name, ' ', last_name) = ?
                   ORDER BY created_at DESC LIMIT 1`,
-                 [fullName, fullName]
-             );
-             
-             if (appsByName.length > 0) {
-                 targetTable = 'application_documents';
-                 targetIdColumn = 'application_id';
-                 targetId = appsByName[0].application_id;
-                 console.log(`[Upload] Found application ${targetId} by name match.`);
-             }
+            [fullName, fullName]
+          );
+
+          if (appsByName.length > 0) {
+            targetTable = 'application_documents';
+            targetIdColumn = 'application_id';
+            targetId = appsByName[0].application_id;
+            console.log(`[Upload] Found application ${targetId} by name match.`);
+          }
         }
       }
 
       if (!targetId) {
         console.warn(`[Upload] No application found for ${req.user.email}. Upload failed.`);
-        return res
-          .status(400)
-          .json({ error: 'No active resident profile or pending application found. Please contact support.' });
+        return res.status(400).json({
+          error: 'No active resident profile or pending application found. Please contact support.',
+        });
       }
     }
 
-    if (!req.files || req.files.length === 0) {
+    // Handle multer fields() format: req.files is an object like { document: [file1, file2] }
+    // Convert to array for consistent processing
+    let filesArray = [];
+    if (req.files) {
+      if (Array.isArray(req.files)) {
+        // Direct array (from upload.array())
+        filesArray = req.files;
+      } else if (typeof req.files === 'object') {
+        // Object from upload.fields() - flatten all field arrays
+        filesArray = Object.values(req.files).flat();
+      }
+    }
+
+    if (!filesArray || filesArray.length === 0) {
       console.warn('[Upload] No files received in request.');
       return res.status(400).json({ error: 'No files uploaded' });
     }
 
-    console.log(`[Upload] Processing ${req.files.length} files for target ${targetId} in ${targetTable}.`);
+    console.log(
+      `[Upload] Processing ${filesArray.length} files for target ${targetId} in ${targetTable}.`
+    );
 
-    for (const file of req.files) {
+    for (const file of filesArray) {
       // Use document_type from body if available, otherwise derive from fieldname
       const docType = req.body.document_type || file.fieldname.replace('document_', '');
-      
+
       // In MemoryStorage, file.buffer contains the data.
       // We will generate a virtual path for compatibility with existing schema/logic, but store the buffer.
       // Or we just store 'blob' in file_path to indicate it's in DB.
       const virtualFileName = Date.now() + '-' + file.originalname;
-      const virtualPath = 'DB:' + virtualFileName; 
+      const virtualPath = 'DB:' + virtualFileName;
 
       let fileBuffer = file.buffer;
       let encryptionMeta = {
@@ -1037,7 +1059,7 @@ exports.uploadVerificationDocs = async (req, res) => {
         // Critical: The current encryption utils likely expect file paths.
         // Let's modify logic: If memory storage, we encrypt buffer directly.
         // Assuming encryptBuffer exists or we implement a simple one here.
-        // Since I can't easily refactor the encryption utils blindly, I will disable encryption for BLOB storage 
+        // Since I can't easily refactor the encryption utils blindly, I will disable encryption for BLOB storage
         // OR implement a basic buffer encryption here if needed.
         // For this task, let's proceed with storing the raw buffer first as requested.
         // If encryption is strictly required, I would need to read utils/documentStorage.js.
@@ -1188,31 +1210,31 @@ exports.downloadDocument = async (req, res) => {
 
     // Handle Database BLOB Storage
     if (rows[0].file_data) {
-        const fileBuffer = rows[0].file_data;
-        const fileName = rows[0].file_name;
-        
-        // Log Audit
-        const auditDetails = {
-          user_id: req.user?.id || null,
-          user_role: req.user?.role || null,
-          action: req.method,
-          result: 'SUCCESS',
-          additional_details: { resident_id: residentId, document_id: docId, storage: 'database' }
-        };
-        const eventType = AUDIT_EVENTS.RESIDENT_DOCUMENT_DOWNLOADED;
-        if (typeof logAuditEvent === 'function') logAuditEvent(eventType, auditDetails);
+      const fileBuffer = rows[0].file_data;
+      const fileName = rows[0].file_name;
 
-        // Send Buffer
-        // Determine mime type from extension roughly
-        const ext = fileName.split('.').pop().toLowerCase();
-        let mimeType = 'application/octet-stream';
-        if (ext === 'pdf') mimeType = 'application/pdf';
-        else if (['jpg', 'jpeg'].includes(ext)) mimeType = 'image/jpeg';
-        else if (ext === 'png') mimeType = 'image/png';
+      // Log Audit
+      const auditDetails = {
+        user_id: req.user?.id || null,
+        user_role: req.user?.role || null,
+        action: req.method,
+        result: 'SUCCESS',
+        additional_details: { resident_id: residentId, document_id: docId, storage: 'database' },
+      };
+      const eventType = AUDIT_EVENTS.RESIDENT_DOCUMENT_DOWNLOADED;
+      if (typeof logAuditEvent === 'function') logAuditEvent(eventType, auditDetails);
 
-        res.setHeader('Content-Type', mimeType);
-        res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
-        return res.send(fileBuffer);
+      // Send Buffer
+      // Determine mime type from extension roughly
+      const ext = fileName.split('.').pop().toLowerCase();
+      let mimeType = 'application/octet-stream';
+      if (ext === 'pdf') mimeType = 'application/pdf';
+      else if (['jpg', 'jpeg'].includes(ext)) mimeType = 'image/jpeg';
+      else if (ext === 'png') mimeType = 'image/png';
+
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+      return res.send(fileBuffer);
     }
 
     const absolutePath = resolveAndValidateUploadedDocumentPath(rows[0].file_path);
@@ -1480,3 +1502,43 @@ exports.importResidents = async (req, res) => {
 
 // Export upload middleware
 exports.uploadMiddleware = uploadMiddleware;
+
+exports.getPublicList = async (req, res) => {
+  const db = req.app.locals.db;
+  if (!db) {
+    return res.status(500).json({ error: 'Database connection not available' });
+  }
+
+  try {
+    const { search, limit = 20 } = req.query;
+    let query = `
+      SELECT Resident_ID, First_Name, Last_Name, Middle_Name, Suffix
+      FROM residents 
+      WHERE Residency_Status = 'Active'
+    `;
+
+    const params = [];
+
+    if (search && search.trim()) {
+      query += ` AND (CONCAT_WS(' ', First_Name, Last_Name) LIKE ? OR CONCAT_WS(' ', First_Name, Middle_Name, Last_Name) LIKE ?)`;
+      const searchTerm = `%${search.trim()}%`;
+      params.push(searchTerm, searchTerm);
+    }
+
+    query += ` ORDER BY Last_Name, First_Name LIMIT ?`;
+    params.push(parseInt(limit));
+
+    const [rows] = await db.execute(query, params);
+
+    // Format for frontend
+    const residents = rows.map(r => ({
+      Resident_ID: r.Resident_ID,
+      full_name: `${r.First_Name} ${r.Middle_Name ? r.Middle_Name + ' ' : ''}${r.Last_Name}${r.Suffix ? ' ' + r.Suffix : ''}`.trim()
+    }));
+
+    res.json(residents);
+  } catch (error) {
+    console.error('Error fetching public resident list:', error);
+    res.status(500).json({ error: 'Failed to fetch resident list' });
+  }
+};

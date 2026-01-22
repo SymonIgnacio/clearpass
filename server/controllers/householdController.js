@@ -12,7 +12,8 @@ exports.getAll = async (req, res) => {
       values.push(sitio_id);
     }
 
-    const [rows] = await db.execute(`
+    const [rows] = await db.execute(
+      `
       SELECT h.*, s.name as sitio_name, COUNT(r.Resident_ID) as member_count
       FROM households h
       LEFT JOIN sitios s ON h.Sitio_ID = s.id
@@ -21,11 +22,16 @@ exports.getAll = async (req, res) => {
       GROUP BY h.Household_ID
       ORDER BY h.Household_Number
       LIMIT ? OFFSET ?
-    `, [...values, parseInt(limit), parseInt(offset)]);
+    `,
+      [...values, parseInt(limit), parseInt(offset)]
+    );
 
-    const [totalRows] = await db.execute(`
+    const [totalRows] = await db.execute(
+      `
       SELECT COUNT(DISTINCT h.Household_ID) as total FROM households h ${whereClause}
-    `, values);
+    `,
+      values
+    );
 
     res.json({
       data: rows,
@@ -33,8 +39,8 @@ exports.getAll = async (req, res) => {
         page: parseInt(page),
         limit: parseInt(limit),
         total: totalRows[0].total,
-        pages: Math.ceil(totalRows[0].total / limit)
-      }
+        pages: Math.ceil(totalRows[0].total / limit),
+      },
     });
   } catch (error) {
     console.error('Error fetching households:', error);
@@ -45,12 +51,15 @@ exports.getAll = async (req, res) => {
 exports.getById = async (req, res) => {
   const db = req.app.locals.db;
   try {
-    const [rows] = await db.execute(`
+    const [rows] = await db.execute(
+      `
       SELECT h.*, s.name as sitio_name
       FROM households h
       LEFT JOIN sitios s ON h.Sitio_ID = s.id
       WHERE h.Household_ID = ?
-    `, [req.params.id]);
+    `,
+      [req.params.id]
+    );
 
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Household not found' });
@@ -70,16 +79,19 @@ exports.create = async (req, res) => {
 
     const householdId = `HH-${Date.now()}-${require('crypto').randomBytes(4).toString('hex').toUpperCase()}`;
 
-    await db.execute(`
+    await db.execute(
+      `
       INSERT INTO households (Household_ID, Household_Number, Sitio_ID, Street_Address, Household_Type, Total_Members)
       VALUES (?, ?, ?, ?, ?, 0)
-    `, [
-      householdId,
-      household_number || null,
-      sitio_id || null,
-      street_address || null,
-      household_type || 'Nuclear'
-    ]);
+    `,
+      [
+        householdId,
+        household_number || null,
+        sitio_id || null,
+        street_address || null,
+        household_type || 'Nuclear',
+      ]
+    );
 
     res.status(201).json({ household_id: householdId, message: 'Household created successfully' });
   } catch (error) {
@@ -96,10 +108,22 @@ exports.update = async (req, res) => {
     const updates = [];
     const values = [];
 
-    if (household_number !== undefined) { updates.push('Household_Number = ?'); values.push(household_number); }
-    if (sitio_id !== undefined) { updates.push('Sitio_ID = ?'); values.push(sitio_id); }
-    if (street_address !== undefined) { updates.push('Street_Address = ?'); values.push(street_address); }
-    if (household_type !== undefined) { updates.push('Household_Type = ?'); values.push(household_type); }
+    if (household_number !== undefined) {
+      updates.push('Household_Number = ?');
+      values.push(household_number);
+    }
+    if (sitio_id !== undefined) {
+      updates.push('Sitio_ID = ?');
+      values.push(sitio_id);
+    }
+    if (street_address !== undefined) {
+      updates.push('Street_Address = ?');
+      values.push(street_address);
+    }
+    if (household_type !== undefined) {
+      updates.push('Household_Type = ?');
+      values.push(household_type);
+    }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
@@ -118,7 +142,10 @@ exports.update = async (req, res) => {
 exports.delete = async (req, res) => {
   const db = req.app.locals.db;
   try {
-    const [members] = await db.execute('SELECT COUNT(*) as count FROM residents WHERE Household_ID = ?', [req.params.id]);
+    const [members] = await db.execute(
+      'SELECT COUNT(*) as count FROM residents WHERE Household_ID = ?',
+      [req.params.id]
+    );
 
     if (members[0].count > 0) {
       return res.status(400).json({ error: 'Cannot delete household with members' });

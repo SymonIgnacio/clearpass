@@ -5,7 +5,7 @@ const fs = require('fs').promises;
 
 const mockDb = {
   execute: jest.fn(),
-  getConnection: jest.fn()
+  getConnection: jest.fn(),
 };
 
 jest.mock('../database', () => mockDb);
@@ -16,7 +16,7 @@ jest.mock('../middleware/authMiddleware', () => ({
     next();
   },
   checkRole: () => (req, res, next) => next(),
-  enforceReadOnly: (req, res, next) => next()
+  enforceReadOnly: (req, res, next) => next(),
 }));
 
 describe('resident document downloads', () => {
@@ -45,7 +45,9 @@ describe('resident document downloads', () => {
     const filePath = path.join(documentsRoot, `test-${Date.now()}.pdf`);
     await fs.writeFile(filePath, Buffer.from('%PDF-1.4\n%test\n'));
 
-    mockDb.execute.mockResolvedValueOnce([[{ resident_id: 'RES-A', file_path: filePath, file_name: 'test.pdf' }]]);
+    mockDb.execute.mockResolvedValueOnce([
+      [{ resident_id: 'RES-A', file_path: filePath, file_name: 'test.pdf' }],
+    ]);
 
     const res = await request(app).get('/api/residents/RES-A/documents/1/download');
     expect(res.status).toBe(200);
@@ -54,4 +56,3 @@ describe('resident document downloads', () => {
     await fs.unlink(filePath);
   });
 });
-

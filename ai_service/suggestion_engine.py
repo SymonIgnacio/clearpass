@@ -14,6 +14,25 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 swagger = Swagger(app)
 
+# Authentication Middleware
+@app.before_request
+def check_auth():
+    # Skip auth for health check and swagger docs
+    if request.path == '/health' or request.path.startswith('/apidocs') or request.path.startswith('/flasgger_static'):
+        return
+        
+    # Get secret from env or use default for dev
+    secret = os.environ.get('AI_SERVICE_SECRET', 'clearpass-ai-secret-dev')
+    auth_header = request.headers.get('X-Service-Key')
+    
+    if auth_header != secret:
+        return jsonify({"error": "Unauthorized access to AI Service"}), 401
+
+# Ensure the chatbot model is trained with latest data at service start
+try:
+    chatbot.force_retrain()
+except Exception:
+    pass
 # Mock data for patrol suggestions when AI service is not available
 MOCK_PATROL_DATA = {
     "overall_risk_level": "MEDIUM",
@@ -251,6 +270,10 @@ def chatbot_message():
             "actions": response_info.get("actions", []),
             "appointment_booked": False,
             "requires_followup": response_info.get("requires_followup", False),
+            "type": response_info.get("type", "text"),
+            "steps": response_info.get("steps", []),
+            "resources": response_info.get("resources", []),
+            "disclaimers": response_info.get("disclaimers", []),
             "timestamp": datetime.now().isoformat()
         }
 

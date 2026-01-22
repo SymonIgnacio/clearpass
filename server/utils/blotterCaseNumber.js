@@ -42,26 +42,30 @@ async function allocateBlotterCaseNumber(db, { incidentDate } = {}) {
     await connection.beginTransaction();
     const { year, month, monthPadded } = getYearMonth(incidentDate);
 
-    const [rows] = await connection.execute(
-      'SELECT next_seq FROM blotter_case_sequences WHERE year = ? AND month = ? FOR UPDATE',
-      [year, month]
-    );
-
     let nextSeq;
-    if (!rows.length) {
-      const maxExisting = await getMaxExistingSequence(connection, year, monthPadded);
-      nextSeq = maxExisting + 1;
-      await connection.execute(
-        'INSERT INTO blotter_case_sequences (year, month, next_seq) VALUES (?, ?, ?)',
-        [year, month, nextSeq]
+    try {
+      const [rows] = await connection.execute(
+        'SELECT next_seq FROM blotter_case_sequences WHERE year = ? AND month = ? FOR UPDATE',
+        [year, month]
       );
-    } else {
-      const current = Number(rows[0].next_seq);
-      nextSeq = (Number.isFinite(current) ? current : 0) + 1;
-      await connection.execute(
-        'UPDATE blotter_case_sequences SET next_seq = ? WHERE year = ? AND month = ?',
-        [nextSeq, year, month]
-      );
+      if (!rows.length) {
+        const maxExisting = await getMaxExistingSequence(connection, year, monthPadded);
+        nextSeq = maxExisting + 1;
+        await connection.execute(
+          'INSERT INTO blotter_case_sequences (year, month, next_seq) VALUES (?, ?, ?)',
+          [year, month, nextSeq]
+        );
+      } else {
+        const current = Number(rows[0].next_seq);
+        nextSeq = (Number.isFinite(current) ? current : 0) + 1;
+        await connection.execute(
+          'UPDATE blotter_case_sequences SET next_seq = ? WHERE year = ? AND month = ?',
+          [nextSeq, year, month]
+        );
+      }
+    } catch (seqErr) {
+      const fallbackMax = await getMaxExistingSequence(connection, year, monthPadded);
+      nextSeq = fallbackMax + 1;
     }
 
     const caseNumber = formatCaseNumber(year, monthPadded, nextSeq);

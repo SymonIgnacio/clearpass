@@ -212,9 +212,11 @@
 <a name='L147'></a><a href='#L147'>147</a>
 <a name='L148'></a><a href='#L148'>148</a>
 <a name='L149'></a><a href='#L149'>149</a>
-<a name='L150'></a><a href='#L150'>150</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L150'></a><a href='#L150'>150</a>
+<a name='L151'></a><a href='#L151'>151</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -369,21 +371,22 @@ const options = <span class="cstat-no" title="statement not covered" >{</span>
     info: {
       title: 'ClearPass Barangay Management System API',
       version: '1.0.0',
-      description: 'Comprehensive API documentation for ClearPass - A digital management system for Philippine barangays',
+      description:
+        'Comprehensive API documentation for ClearPass - A digital management system for Philippine barangays',
       contact: {
         name: 'ClearPass Development Team',
-        email: 'support@clearpass.local'
-      }
+        email: 'support@clearpass.local',
+      },
     },
     servers: [
       {
         url: 'http://localhost:3001/api',
-        description: 'Development server'
+        description: 'Development server',
       },
       {
         url: 'https://clearpass.local/api',
-        description: 'Production server'
-      }
+        description: 'Production server',
+      },
     ],
     components: {
       securitySchemes: {
@@ -391,8 +394,8 @@ const options = <span class="cstat-no" title="statement not covered" >{</span>
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'JWT token obtained from /api/auth/login'
-        }
+          description: 'JWT token obtained from /api/auth/login',
+        },
       },
       schemas: {
         Error: {
@@ -400,111 +403,111 @@ const options = <span class="cstat-no" title="statement not covered" >{</span>
           properties: {
             success: {
               type: 'boolean',
-              example: false
+              example: false,
             },
             error: {
               type: 'object',
               properties: {
                 code: {
                   type: 'string',
-                  example: 'VALIDATION_ERROR'
+                  example: 'VALIDATION_ERROR',
                 },
                 message: {
                   type: 'string',
-                  example: 'Validation failed'
-                }
-              }
+                  example: 'Validation failed',
+                },
+              },
             },
             timestamp: {
               type: 'string',
-              format: 'date-time'
-            }
-          }
+              format: 'date-time',
+            },
+          },
         },
         Resident: {
           type: 'object',
           properties: {
             Resident_ID: {
               type: 'string',
-              example: 'RES-1234567890-A1B2'
+              example: 'RES-1234567890-A1B2',
             },
             First_Name: {
               type: 'string',
-              example: 'Juan'
+              example: 'Juan',
             },
             Last_Name: {
               type: 'string',
-              example: 'Dela Cruz'
+              example: 'Dela Cruz',
             },
             Mobile_Number: {
               type: 'string',
-              example: '09171234567'
+              example: '09171234567',
             },
             Residency_Status: {
               type: 'string',
-              enum: ['Active', 'Inactive', 'Temporary']
-            }
-          }
+              enum: ['Active', 'Inactive', 'Temporary'],
+            },
+          },
         },
         Certificate: {
           type: 'object',
           properties: {
             control_no: {
               type: 'string',
-              example: 'CLR-1234567890-A1B2C3D4'
+              example: 'CLR-1234567890-A1B2C3D4',
             },
             resident_id: {
-              type: 'string'
+              type: 'string',
             },
             certificate_type: {
               type: 'string',
-              example: 'Barangay Clearance'
+              example: 'Barangay Clearance',
             },
             purpose: {
               type: 'string',
-              example: 'Employment'
+              example: 'Employment',
             },
             status: {
               type: 'string',
-              enum: ['Pending', 'Approved', 'Released', 'Rejected']
-            }
-          }
-        }
-      }
+              enum: ['Pending', 'Approved', 'Released', 'Rejected'],
+            },
+          },
+        },
+      },
     },
     security: [
       {
-        bearerAuth: []
-      }
+        bearerAuth: [],
+      },
     ],
     tags: [
       {
         name: 'Authentication',
-        description: 'User authentication and authorization'
+        description: 'User authentication and authorization',
       },
       {
         name: 'Residents',
-        description: 'Resident management operations'
+        description: 'Resident management operations',
       },
       {
         name: 'Certificates',
-        description: 'Certificate issuance and management'
+        description: 'Certificate issuance and management',
       },
       {
         name: 'Blotter',
-        description: 'Incident reporting and case management'
+        description: 'Incident reporting and case management',
       },
       {
         name: 'Census',
-        description: 'Population statistics and analytics'
+        description: 'Population statistics and analytics',
       },
       {
         name: 'Admin',
-        description: 'Administrative operations and reports'
-      }
-    ]
+        description: 'Administrative operations and reports',
+      },
+    ],
   },
-  apis: ['./routes/*.js', './controllers/*.js']
+  apis: ['./routes/*.js', './controllers/*.js'],
 };
 &nbsp;
 const swaggerSpec = <span class="cstat-no" title="statement not covered" >swaggerJsdoc(options);</span>
@@ -517,7 +520,7 @@ const swaggerSpec = <span class="cstat-no" title="statement not covered" >swagge
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:37.883Z
+                at 2026-01-22T21:30:07.139Z
             </div>
         <script src="../prettify.js"></script>
         <script>

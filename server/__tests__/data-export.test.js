@@ -51,11 +51,11 @@ describe('Data Export Verification Suite', () => {
 
       expect(response.headers['content-type']).toContain('application/json');
       expect(response.headers['content-disposition']).toContain('residents_export.json');
-      
+
       const data = response.body;
       expect(Array.isArray(data)).toBe(true);
       expect(data.length).toBeGreaterThanOrEqual(2);
-      
+
       const exportedUser = data.find(u => u.First_Name === 'Export');
       expect(exportedUser).toBeDefined();
       expect(exportedUser).toHaveProperty('Sitio');
@@ -72,7 +72,7 @@ describe('Data Export Verification Suite', () => {
 
       expect(response.headers['content-type']).toContain('text/csv');
       expect(response.headers['content-disposition']).toContain('residents_export.csv');
-      
+
       const csvContent = response.text;
       expect(csvContent).toContain('Resident_ID,First_Name,Last_Name');
       expect(csvContent).toContain('CSV,Test');
@@ -86,16 +86,18 @@ describe('Data Export Verification Suite', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.headers['content-type']).toContain('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      expect(response.headers['content-type']).toContain(
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
       expect(response.headers['content-disposition']).toContain('residents_export.xlsx');
-      
+
       // Verify buffer content by reading it back with xlsx
       const workbook = xlsx.read(response.body, { type: 'buffer' });
       // The sheet name might be default 'Sheet1' if not explicitly set in controller
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
       const data = xlsx.utils.sheet_to_json(sheet);
-      
+
       const exportedUser = data.find(u => u.First_Name === 'Excel');
       expect(exportedUser).toBeDefined();
     });
@@ -156,13 +158,16 @@ describe('Data Export Verification Suite', () => {
   async function createTestResident(firstName, lastName, sitioName) {
     const sitioId = sitioName === 'Batia Proper' ? 1 : 2;
     const residentId = `RES-EXP-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-    
-    await testDb.execute(`
+
+    await testDb.execute(
+      `
       INSERT INTO residents (
         Resident_ID, Household_ID, First_Name, Last_Name, Gender, 
         Residency_Status, Birthdate, created_at, updated_at
       ) VALUES (?, 'HH-EXPORT', ?, ?, 'Male', 'Active', '1990-01-01', NOW(), NOW())
-    `, [residentId, firstName, lastName]);
+    `,
+      [residentId, firstName, lastName]
+    );
   }
 
   async function cleanupTestData() {

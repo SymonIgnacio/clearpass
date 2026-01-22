@@ -11,23 +11,22 @@ describe('auditMiddleware DB logging', () => {
       ip: '127.0.0.1',
       connection: { remoteAddress: '127.0.0.1' },
       user: { id: 123, role: 12 },
-      app: { locals: { db: { execute } } }
+      app: { locals: { db: { execute } } },
     };
 
     const res = {
       statusCode: 201,
-      json: (payload) => payload
+      json: payload => payload,
     };
 
     const next = jest.fn();
     auditMiddleware({ auditAll: true })(req, res, next);
     res.json({ ok: true });
 
-    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise(resolve => setImmediate(resolve));
 
     expect(next).toHaveBeenCalledTimes(1);
     expect(execute).toHaveBeenCalledTimes(1);
     expect(execute.mock.calls[0][1][0]).toBe('DOCUMENT_REQUEST_CREATED');
   });
 });
-

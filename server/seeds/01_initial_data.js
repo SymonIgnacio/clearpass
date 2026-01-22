@@ -20,10 +20,13 @@ exports.seed = async function (knex) {
 
   // Sitios Data
   await knex('sitios').insert([
-    { name: 'Batia Proper', description: 'Main residential and commercial area, population ~2,500' },
+    {
+      name: 'Batia Proper',
+      description: 'Main residential and commercial area, population ~2,500',
+    },
     { name: 'Northville 5', description: 'Northern residential district with growing community' },
     { name: 'St. Martha', description: 'Eastern residential area with mixed housing types' },
-    { name: 'AFP/PNP', description: 'Military and police housing compound' }
+    { name: 'AFP/PNP', description: 'Military and police housing compound' },
   ]);
 
   // Hash passwords for users
@@ -39,22 +42,22 @@ exports.seed = async function (knex) {
       password_hash: captainHash,
       role: 2,
       email: 'captain@barangay-batia.gov.ph',
-      full_name: 'Juan Dela Cruz'
+      full_name: 'Juan Dela Cruz',
     },
     {
       username: 'secretary',
       password_hash: secretaryHash,
       role: 3,
       email: 'secretary@barangay-batia.gov.ph',
-      full_name: 'Maria Santos'
+      full_name: 'Maria Santos',
     },
     {
       username: 'clerk',
       password_hash: clerkHash,
       role: 4,
       email: 'clerk@barangay-batia.gov.ph',
-      full_name: 'Pedro Reyes'
-    }
+      full_name: 'Pedro Reyes',
+    },
   ]);
 
   // Households Data
@@ -65,7 +68,7 @@ exports.seed = async function (knex) {
       Sitio_ID: 1,
       Street_Address: 'Block 1, Lot 1, Batia Proper',
       Total_Members: 4,
-      Household_Type: 'Nuclear'
+      Household_Type: 'Nuclear',
     },
     {
       Household_ID: 'H-2025-002',
@@ -73,7 +76,7 @@ exports.seed = async function (knex) {
       Sitio_ID: 1,
       Street_Address: 'Block 1, Lot 2, Batia Proper',
       Total_Members: 3,
-      Household_Type: 'Nuclear'
+      Household_Type: 'Nuclear',
     },
     {
       Household_ID: 'H-2025-003',
@@ -81,7 +84,7 @@ exports.seed = async function (knex) {
       Sitio_ID: 1,
       Street_Address: 'Block 1, Lot 3, Batia Proper',
       Total_Members: 2,
-      Household_Type: 'Nuclear'
+      Household_Type: 'Nuclear',
     },
     {
       Household_ID: 'H-2025-004',
@@ -89,7 +92,7 @@ exports.seed = async function (knex) {
       Sitio_ID: 1,
       Street_Address: 'Block 2, Lot 1, Batia Proper',
       Total_Members: 5,
-      Household_Type: 'Extended'
+      Household_Type: 'Extended',
     },
     {
       Household_ID: 'H-2025-005',
@@ -97,8 +100,8 @@ exports.seed = async function (knex) {
       Sitio_ID: 1,
       Street_Address: 'Block 2, Lot 2, Batia Proper',
       Total_Members: 1,
-      Household_Type: 'Single'
-    }
+      Household_Type: 'Single',
+    },
   ]);
 
   // Hash password for hardcoded resident user
@@ -115,7 +118,7 @@ exports.seed = async function (knex) {
       contact_number: '09625460372',
       is_active: true,
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now()
+      updated_at: knex.fn.now(),
     },
     // ... existing users
   ]);
@@ -134,14 +137,14 @@ exports.seed = async function (knex) {
       Gender: 'Male',
       Civil_Status: 'Single',
       Occupation: 'Student',
-      Income_Estimate: 0.00,
+      Income_Estimate: 0.0,
       Email: 'Symonignacio1@gmail.com',
       Mobile_Number: '09625460372',
       Voter_Status: 'Non-Registered',
       Date_Arrival: '2025-12-19',
       Residency_Status: 'Active',
       Profile_Photo_URL: 'https://i.pravatar.cc/150?img=10',
-      QR_Hash_String: 'QR-RES-HARDCODED-001'
+      QR_Hash_String: 'QR-RES-HARDCODED-001',
     },
     {
       Resident_ID: 'RES-2025-001',
@@ -155,13 +158,13 @@ exports.seed = async function (knex) {
       Gender: 'Male',
       Civil_Status: 'Married',
       Occupation: 'Construction Worker',
-      Income_Estimate: 15000.00,
+      Income_Estimate: 15000.0,
       Mobile_Number: '09171234567',
       Voter_Status: 'Registered',
       Date_Arrival: '2010-01-15',
       Residency_Status: 'Active',
       Profile_Photo_URL: 'https://i.pravatar.cc/150?img=1',
-      QR_Hash_String: 'QR-RES-2025-001'
+      QR_Hash_String: 'QR-RES-2025-001',
     },
     {
       Resident_ID: 'RES-2025-002',
@@ -175,13 +178,13 @@ exports.seed = async function (knex) {
       Gender: 'Female',
       Civil_Status: 'Married',
       Occupation: 'Teacher',
-      Income_Estimate: 25000.00,
+      Income_Estimate: 25000.0,
       Mobile_Number: '09171234568',
       Voter_Status: 'Registered',
       Date_Arrival: '2010-01-15',
       Residency_Status: 'Active',
       Profile_Photo_URL: 'https://i.pravatar.cc/150?img=2',
-      QR_Hash_String: 'QR-RES-2025-002'
+      QR_Hash_String: 'QR-RES-2025-002',
     },
     {
       Resident_ID: 'RES-2025-003',
@@ -194,12 +197,12 @@ exports.seed = async function (knex) {
       Gender: 'Male',
       Civil_Status: 'Single',
       Occupation: 'Student',
-      Income_Estimate: 0.00,
+      Income_Estimate: 0.0,
       Voter_Status: 'Non-Registered',
       Date_Arrival: '2010-05-10',
       Residency_Status: 'Active',
       Profile_Photo_URL: 'https://i.pravatar.cc/150?img=3',
-      QR_Hash_String: 'QR-RES-2025-003'
+      QR_Hash_String: 'QR-RES-2025-003',
     },
     {
       Resident_ID: 'RES-2025-004',
@@ -212,12 +215,12 @@ exports.seed = async function (knex) {
       Gender: 'Female',
       Civil_Status: 'Single',
       Occupation: 'Student',
-      Income_Estimate: 0.00,
+      Income_Estimate: 0.0,
       Voter_Status: 'Non-Registered',
       Date_Arrival: '2012-12-03',
       Residency_Status: 'Active',
       Profile_Photo_URL: 'https://i.pravatar.cc/150?img=4',
-      QR_Hash_String: 'QR-RES-2025-004'
+      QR_Hash_String: 'QR-RES-2025-004',
     },
     {
       Resident_ID: 'RES-2025-005',
@@ -231,32 +234,36 @@ exports.seed = async function (knex) {
       Gender: 'Male',
       Civil_Status: 'Single',
       Occupation: 'Electrician',
-      Income_Estimate: 18000.00,
+      Income_Estimate: 18000.0,
       Mobile_Number: '09171234569',
       Voter_Status: 'Registered',
       Date_Arrival: '2015-03-20',
       Residency_Status: 'Active',
       Profile_Photo_URL: 'https://i.pravatar.cc/150?img=5',
-      QR_Hash_String: 'QR-RES-2025-005'
-    }
+      QR_Hash_String: 'QR-RES-2025-005',
+    },
   ]);
 
   // Update household head references
-  await knex('households').where('Household_ID', 'H-2025-001').update({ Head_Resident_ID: 'RES-2025-001' });
-  await knex('households').where('Household_ID', 'H-2025-002').update({ Head_Resident_ID: 'RES-2025-005' });
+  await knex('households')
+    .where('Household_ID', 'H-2025-001')
+    .update({ Head_Resident_ID: 'RES-2025-001' });
+  await knex('households')
+    .where('Household_ID', 'H-2025-002')
+    .update({ Head_Resident_ID: 'RES-2025-005' });
 
   // Vulnerabilities Data
   await knex('vulnerabilities').insert([
     { Resident_ID: 'RES-2025-001', Is_4Ps: true },
     { Resident_ID: 'RES-2025-002', Is_4Ps: false },
-    { Resident_ID: 'RES-2025-005', Is_4Ps: false }
+    { Resident_ID: 'RES-2025-005', Is_4Ps: false },
   ]);
 
   // Certificate Types
   await knex('certificate_types').insert([
     {
       name: 'Barangay Clearance',
-      fee: 50.00,
+      fee: 50.0,
       validity_days: 365,
       description: 'Proves you have no issue or file complaint',
       purpose: 'Certify a person is law-abiding resident',
@@ -268,14 +275,14 @@ exports.seed = async function (knex) {
         'Purpose',
         'Payment',
         'Personal Information (Name, Date of Birth, Address, Contact Number, Length of stay in barangay)',
-        'Signature of Barangay Captain and Secretary'
-      ])
+        'Signature of Barangay Captain and Secretary',
+      ]),
     },
     {
       name: 'Barangay Residency',
-      fee: 30.00,
+      fee: 30.0,
       validity_days: 180,
-      description: 'Certifies an individual\'s residence within the barangay',
+      description: "Certifies an individual's residence within the barangay",
       purpose: 'Confirms that an individual is a resident of the barangay.',
       when_needed: 'Applying for government ID, Business permit, License',
       required_data: JSON.stringify([
@@ -284,9 +291,9 @@ exports.seed = async function (knex) {
         'Period of residency (start date and up to present).',
         'Purpose for which the certificate is issued.',
         'Date of issuance and signature of the Barangay Captain and Secretary',
-        'Barangay seal and control number.'
-      ])
-    }
+        'Barangay seal and control number.',
+      ]),
+    },
   ]);
 
   // Sample Certificates
@@ -301,8 +308,8 @@ exports.seed = async function (knex) {
       signatory_secretary: 'Secretary Maria Santos',
       qr_validation_string: 'QR-CERT-2024-001-ABC123',
       status: 'Released',
-      fee_amount: 50.00
-    }
+      fee_amount: 50.0,
+    },
   ]);
 
   console.log('✅ Initial seed data inserted successfully');

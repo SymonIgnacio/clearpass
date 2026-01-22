@@ -8,7 +8,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-const parseTemplateContent = (value) => {
+const parseTemplateContent = value => {
   if (value == null) return null;
   if (typeof value !== 'string') return value;
   try {
@@ -18,7 +18,7 @@ const parseTemplateContent = (value) => {
   }
 };
 
-const serializeTemplateContent = (value) => {
+const serializeTemplateContent = value => {
   if (value == null) return null;
   if (typeof value === 'string') return value;
   return JSON.stringify(value);
@@ -28,7 +28,7 @@ const PizZip = require('pizzip');
 const Docxtemplater = require('docxtemplater');
 
 // Helper to extract placeholders from DOCX buffer
-const extractPlaceholders = (buffer) => {
+const extractPlaceholders = buffer => {
   try {
     const zip = new PizZip(buffer);
     const contentXml = zip.files['word/document.xml'].asText();
@@ -43,7 +43,7 @@ const extractPlaceholders = (buffer) => {
   }
 };
 
-const mapTemplateRow = (row) => ({
+const mapTemplateRow = row => ({
   id: row.id,
   template_name: row.template_name,
   document_type: row.document_type,
@@ -61,7 +61,7 @@ const mapTemplateRow = (row) => ({
   is_custom: !!row.is_custom,
 });
 
-module.exports = (db) => {
+module.exports = db => {
   const router = express.Router();
 
   router.get(
@@ -127,13 +127,18 @@ module.exports = (db) => {
 
       // Only analyze DOCX files
       if (
-        req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        req.file.mimetype ===
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
         req.file.originalname.endsWith('.docx')
       ) {
         const placeholders = extractPlaceholders(req.file.buffer);
         res.json({ success: true, placeholders });
       } else {
-        res.json({ success: true, placeholders: [], message: 'Not a DOCX file, manual configuration required.' });
+        res.json({
+          success: true,
+          placeholders: [],
+          message: 'Not a DOCX file, manual configuration required.',
+        });
       }
     })
   );
@@ -153,7 +158,7 @@ module.exports = (db) => {
         `
       );
       console.log('Template stats totals:', totals);
-      
+
       const [byType] = await db.execute(
         `
           SELECT document_type, COUNT(*) as total
@@ -178,10 +183,13 @@ module.exports = (db) => {
     verifyToken,
     checkRole(['admin']),
     asyncHandler(async (req, res) => {
-      const { template_name, document_type, certificate_type_id, template_content, is_active } = req.body || {};
+      const { template_name, document_type, certificate_type_id, template_content, is_active } =
+        req.body || {};
 
       if (!template_name || !document_type) {
-        return res.status(400).json({ success: false, message: 'template_name and document_type are required' });
+        return res
+          .status(400)
+          .json({ success: false, message: 'template_name and document_type are required' });
       }
 
       await db.execute(
@@ -219,10 +227,13 @@ module.exports = (db) => {
     checkRole(['admin']),
     asyncHandler(async (req, res) => {
       const { id } = req.params;
-      const { template_name, document_type, certificate_type_id, template_content, is_active } = req.body || {};
+      const { template_name, document_type, certificate_type_id, template_content, is_active } =
+        req.body || {};
 
       if (!template_name || !document_type) {
-        return res.status(400).json({ success: false, message: 'template_name and document_type are required' });
+        return res
+          .status(400)
+          .json({ success: false, message: 'template_name and document_type are required' });
       }
 
       await db.execute(
@@ -334,16 +345,23 @@ module.exports = (db) => {
     upload.single('template_file'),
     asyncHandler(async (req, res) => {
       try {
-        const { template_name, document_type, certificate_type_id, required_fields, display_name, is_custom } = req.body || {};
-        
+        const {
+          template_name,
+          document_type,
+          certificate_type_id,
+          required_fields,
+          display_name,
+          is_custom,
+        } = req.body || {};
+
         console.log('Starting template upload:', {
-            template_name,
-            document_type,
-            certificate_type_id,
-            file_present: !!req.file,
-            file_size: req.file?.size,
-            mimetype: req.file?.mimetype,
-            required_fields_count: required_fields ? JSON.parse(required_fields).length : 0
+          template_name,
+          document_type,
+          certificate_type_id,
+          file_present: !!req.file,
+          file_size: req.file?.size,
+          mimetype: req.file?.mimetype,
+          required_fields_count: required_fields ? JSON.parse(required_fields).length : 0,
         });
 
         if (!req.file) {
@@ -351,7 +369,9 @@ module.exports = (db) => {
         }
 
         if (!template_name || !document_type) {
-          return res.status(400).json({ success: false, message: 'template_name and document_type are required' });
+          return res
+            .status(400)
+            .json({ success: false, message: 'template_name and document_type are required' });
         }
 
         await db.execute(
@@ -384,7 +404,7 @@ module.exports = (db) => {
             req.file.mimetype || null,
             required_fields || null, // Expecting JSON string from frontend
             display_name || template_name,
-            is_custom === 'true' || is_custom === true ? 1 : 0
+            is_custom === 'true' || is_custom === true ? 1 : 0,
           ]
         );
 
@@ -392,15 +412,15 @@ module.exports = (db) => {
       } catch (error) {
         console.error('TEMPLATE UPLOAD ERROR:', error);
         if (error.code === 'ER_DUP_ENTRY') {
-          return res.status(409).json({ 
-            success: false, 
-            message: 'A template with this name already exists. Please use a different name.' 
+          return res.status(409).json({
+            success: false,
+            message: 'A template with this name already exists. Please use a different name.',
           });
         }
-        res.status(500).json({ 
-            success: false, 
-            message: 'Internal server error during template upload',
-            error: error.message 
+        res.status(500).json({
+          success: false,
+          message: 'Internal server error during template upload',
+          error: error.message,
         });
       }
     })
@@ -427,7 +447,9 @@ module.exports = (db) => {
 
       const row = rows[0];
       if (!row.file_data) {
-        return res.status(404).json({ success: false, message: 'No file attached to this template' });
+        return res
+          .status(404)
+          .json({ success: false, message: 'No file attached to this template' });
       }
 
       const mime = row.file_encoding || 'application/octet-stream';
@@ -439,4 +461,3 @@ module.exports = (db) => {
 
   return router;
 };
-

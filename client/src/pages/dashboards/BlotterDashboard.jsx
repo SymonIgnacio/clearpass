@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Grid,
   Card,
@@ -13,8 +13,8 @@ import {
   IconButton,
   Tooltip,
   Paper,
-  Alert
-} from '@mui/material'
+  Alert,
+} from '@mui/material';
 import {
   Gavel,
   Refresh,
@@ -24,93 +24,94 @@ import {
   Warning,
   CheckCircle,
   Error,
-  Add
-} from '@mui/icons-material'
-import { useTheme, alpha } from '@mui/material/styles'
-import { apiRequest } from '../../utils/api'
-import { useAuth } from '../../contexts/useAuth'
+  Add,
+} from '@mui/icons-material';
+import { useTheme, alpha } from '@mui/material/styles';
+import { apiRequest } from '../../utils/api';
+import { useAuth } from '../../contexts/useAuth';
 
 const BlotterDashboard = () => {
-  const navigate = useNavigate()
-  const theme = useTheme()
-  const isDarkMode = theme.palette.mode === 'dark'
-  const { user } = useAuth()
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
+  const { user } = useAuth();
 
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     active_blotter: 0,
-    resolved_cases: 0
-  })
-  const [blotterCases, setBlotterCases] = useState([])
-  const [patrolSuggestions, setPatrolSuggestions] = useState(null)
-  const [patrolLoading, setPatrolLoading] = useState(false)
+    resolved_cases: 0,
+  });
+  const [blotterCases, setBlotterCases] = useState([]);
+  const [patrolSuggestions, setPatrolSuggestions] = useState(null);
+  const [patrolLoading, setPatrolLoading] = useState(false);
 
   useEffect(() => {
-    fetchDashboardData()
-  }, [])
+    fetchDashboardData();
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
-      setLoading(true)
-      
-      const response = await apiRequest('dashboard')
+      setLoading(true);
+
+      const response = await apiRequest('dashboard');
       if (response.ok) {
-        const data = await response.json()
-        setStats(data)
+        const data = await response.json();
+        setStats(data);
       }
 
-      const caseResponse = await apiRequest('blotter')
+      const caseResponse = await apiRequest('blotter');
       if (caseResponse.ok) {
-        const caseData = await caseResponse.json()
-        setBlotterCases(Array.isArray(caseData) ? caseData : [])
+        const caseData = await caseResponse.json();
+        setBlotterCases(Array.isArray(caseData) ? caseData : []);
       }
-
     } catch (error) {
-      console.error('Error fetching blotter dashboard data:', error)
+      console.error('Error fetching blotter dashboard data:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const fetchPatrolSuggestions = async () => {
-    setPatrolLoading(true)
+    setPatrolLoading(true);
     try {
-      const response = await apiRequest('ai/patrol-suggestions')
-      const data = await response.json()
-      setPatrolSuggestions(data)
+      const response = await apiRequest('ai/patrol-suggestions');
+      const data = await response.json();
+      setPatrolSuggestions(data);
     } catch (error) {
-      console.error('Error fetching patrol suggestions:', error)
+      console.error('Error fetching patrol suggestions:', error);
     } finally {
-      setPatrolLoading(false)
+      setPatrolLoading(false);
     }
-  }
+  };
 
-  const handleQuickAction = (action) => {
+  const handleQuickAction = action => {
     switch (action) {
       case 'Report Incident':
-        navigate('/officer/new-case')
-        break
+        navigate('/officer/new-case');
+        break;
       case 'View Cases':
-        navigate('/blotter')
-        break
+        navigate('/blotter');
+        break;
       case 'AI Analysis':
-        navigate('/ai-patrol')
-        break
+        navigate('/ai-patrol');
+        break;
       default:
-        break
+        break;
     }
-  }
+  };
 
   const statCards = [
     {
       title: 'Active Cases',
-      value: stats.active_blotter || blotterCases.filter(c => c.Status === 'Pending' || c.Status === 'Active').length,
+      value:
+        stats.active_blotter ||
+        blotterCases.filter(c => c.Status === 'Pending' || c.Status === 'Active').length,
       subtitle: 'Ongoing Investigations',
       icon: <Gavel sx={{ fontSize: 32 }} />,
       color: '#ea4335',
       bgColor: 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)',
       status: 'Pending',
-      statusLabel: 'Status'
+      statusLabel: 'Status',
     },
     {
       title: 'Crime Analytics',
@@ -120,42 +121,46 @@ const BlotterDashboard = () => {
       color: '#fbbc04',
       bgColor: 'linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%)',
       status: 'Online',
-      statusLabel: 'System'
-    }
-  ]
+      statusLabel: 'System',
+    },
+  ];
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+      <Box
+        sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}
+      >
         <CircularProgress />
       </Box>
-    )
+    );
   }
 
   return (
     <Box>
       {/* Header Section */}
-      <Box sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        mb: 4
-      }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 4,
+        }}
+      >
         <Box>
           <Typography
-            variant="h4"
+            variant='h4'
             sx={{
               fontWeight: 400,
               mb: 1,
               background: 'linear-gradient(45deg, #ea4335, #fbbc04)',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
+              WebkitTextFillColor: 'transparent',
             }}
           >
             Blotter Command Center
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant='body1' color='text.secondary'>
             Case Management and Peace & Order Control
           </Typography>
         </Box>
@@ -163,18 +168,18 @@ const BlotterDashboard = () => {
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Chip
             icon={<Security />}
-            label="Officer Access"
-            color="error"
-            variant="outlined"
+            label='Officer Access'
+            color='error'
+            variant='outlined'
             sx={{ borderRadius: 2 }}
           />
-          <Tooltip title="Refresh Data">
+          <Tooltip title='Refresh Data'>
             <IconButton
               onClick={fetchDashboardData}
               sx={{
                 borderRadius: 2,
                 border: '1px solid',
-                borderColor: 'divider'
+                borderColor: 'divider',
               }}
             >
               <Refresh />
@@ -198,25 +203,23 @@ const BlotterDashboard = () => {
                 transition: 'all 0.3s ease',
                 '&:hover': {
                   transform: 'translateY(-4px)',
-                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
-                }
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
               }}
             >
               <CardContent sx={{ p: 3 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                  <Avatar sx={{ bgcolor: card.color, width: 56, height: 56 }}>
-                    {card.icon}
-                  </Avatar>
+                  <Avatar sx={{ bgcolor: card.color, width: 56, height: 56 }}>{card.icon}</Avatar>
                   <Box sx={{ textAlign: 'right' }}>
-                    <Typography variant="body2" sx={{ color: card.color, fontWeight: 600 }}>
+                    <Typography variant='body2' sx={{ color: card.color, fontWeight: 600 }}>
                       {card.status}
                     </Typography>
                   </Box>
                 </Box>
-                <Typography variant="h3" sx={{ fontWeight: 600, mb: 1 }}>
+                <Typography variant='h3' sx={{ fontWeight: 600, mb: 1 }}>
                   {card.value}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant='body2' color='text.secondary'>
                   {card.subtitle}
                 </Typography>
               </CardContent>
@@ -231,11 +234,13 @@ const BlotterDashboard = () => {
         <Grid item xs={12} md={4}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
-              <Typography variant="h6" sx={{ mb: 3 }}>Quick Actions</Typography>
+              <Typography variant='h6' sx={{ mb: 3 }}>
+                Quick Actions
+              </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <Button
-                  variant="contained"
-                  color="error"
+                  variant='contained'
+                  color='error'
                   startIcon={<Add />}
                   onClick={() => handleQuickAction('Report Incident')}
                   fullWidth
@@ -244,7 +249,7 @@ const BlotterDashboard = () => {
                   New Case Report
                 </Button>
                 <Button
-                  variant="outlined"
+                  variant='outlined'
                   startIcon={<Gavel />}
                   onClick={() => handleQuickAction('View Cases')}
                   fullWidth
@@ -253,7 +258,7 @@ const BlotterDashboard = () => {
                   View All Cases
                 </Button>
                 <Button
-                  variant="outlined"
+                  variant='outlined'
                   startIcon={<Analytics />}
                   onClick={() => handleQuickAction('AI Analysis')}
                   fullWidth
@@ -275,15 +280,15 @@ const BlotterDashboard = () => {
                   <SmartToy />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">AI Patrol Intelligence</Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant='h6'>AI Patrol Intelligence</Typography>
+                  <Typography variant='body2' color='text.secondary'>
                     Real-time crime risk assessment
                   </Typography>
                 </Box>
               </Box>
 
               <Button
-                variant="outlined"
+                variant='outlined'
                 startIcon={patrolLoading ? <CircularProgress size={20} /> : <Analytics />}
                 onClick={fetchPatrolSuggestions}
                 disabled={patrolLoading}
@@ -296,37 +301,44 @@ const BlotterDashboard = () => {
                 <Box>
                   <Alert
                     severity={
-                      patrolSuggestions.overall_risk_level === 'CRITICAL' ? 'error' :
-                      patrolSuggestions.overall_risk_level === 'HIGH' ? 'error' :
-                      patrolSuggestions.overall_risk_level === 'MEDIUM' ? 'warning' :
-                      'success'
+                      patrolSuggestions.overall_risk_level === 'CRITICAL'
+                        ? 'error'
+                        : patrolSuggestions.overall_risk_level === 'HIGH'
+                          ? 'error'
+                          : patrolSuggestions.overall_risk_level === 'MEDIUM'
+                            ? 'warning'
+                            : 'success'
                     }
                     sx={{ mb: 3 }}
                   >
-                    <Typography variant="subtitle1" fontWeight="bold">
+                    <Typography variant='subtitle1' fontWeight='bold'>
                       {patrolSuggestions.overall_risk_level} RISK LEVEL
                     </Typography>
-                    <Typography variant="body2">
+                    <Typography variant='body2'>
                       Focus Area: {patrolSuggestions.risk_assessment?.peak_hours || 'N/A'}
                     </Typography>
                   </Alert>
-                  
+
                   <Grid container spacing={2}>
                     {patrolSuggestions.patrol_suggestions?.slice(0, 2).map((rec, i) => (
                       <Grid item xs={12} key={i}>
-                        <Paper variant="outlined" sx={{ p: 2 }}>
-                          <Typography variant="body2" fontWeight="bold">Suggestion {i+1}</Typography>
-                          <Typography variant="body2" color="text.secondary">{rec}</Typography>
+                        <Paper variant='outlined' sx={{ p: 2 }}>
+                          <Typography variant='body2' fontWeight='bold'>
+                            Suggestion {i + 1}
+                          </Typography>
+                          <Typography variant='body2' color='text.secondary'>
+                            {rec}
+                          </Typography>
                         </Paper>
                       </Grid>
                     ))}
                   </Grid>
                 </Box>
               )}
-              
+
               {!patrolSuggestions && !patrolLoading && (
                 <Box sx={{ textAlign: 'center', py: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant='body2' color='text.secondary'>
                     Click "Generate Patrol Plan" to view AI recommendations
                   </Typography>
                 </Box>
@@ -336,7 +348,7 @@ const BlotterDashboard = () => {
         </Grid>
       </Grid>
     </Box>
-  )
-}
+  );
+};
 
-export default BlotterDashboard
+export default BlotterDashboard;

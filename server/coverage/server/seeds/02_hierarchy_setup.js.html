@@ -125,15 +125,7 @@
 <a name='L60'></a><a href='#L60'>60</a>
 <a name='L61'></a><a href='#L61'>61</a>
 <a name='L62'></a><a href='#L62'>62</a>
-<a name='L63'></a><a href='#L63'>63</a>
-<a name='L64'></a><a href='#L64'>64</a>
-<a name='L65'></a><a href='#L65'>65</a>
-<a name='L66'></a><a href='#L66'>66</a>
-<a name='L67'></a><a href='#L67'>67</a>
-<a name='L68'></a><a href='#L68'>68</a>
-<a name='L69'></a><a href='#L69'>69</a>
-<a name='L70'></a><a href='#L70'>70</a>
-<a name='L71'></a><a href='#L71'>71</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L63'></a><a href='#L63'>63</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -167,14 +159,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -186,11 +174,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -227,44 +211,36 @@
       role: 'admin',
       full_name: 'Super Administrator',
       email: 'superadmin@barangay.gov.ph',
-      is_active: true
+      is_active: true,
     });
 <span class="cstat-no" title="statement not covered" >    console.log('✅ Created superadmin user');</span>
   } else {
-<span class="cstat-no" title="statement not covered" >    await knex('users')</span>
-      .where('username', 'superadmin')
-      .update({
-        password_hash: superAdminHash,
-        full_name: 'Super Administrator',
-        email: 'superadmin@barangay.gov.ph',
-        is_active: true
-      });
+<span class="cstat-no" title="statement not covered" >    await knex('users').where('username', 'superadmin').update({</span>
+      password_hash: superAdminHash,
+      full_name: 'Super Administrator',
+      email: 'superadmin@barangay.gov.ph',
+      is_active: true,
+    });
 <span class="cstat-no" title="statement not covered" >    console.log('✅ Updated superadmin user');</span>
   }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  await knex('users')</span>
-    .where('username', 'captain')
-    .update({
-      password_hash: captainHash,
-      full_name: 'Barangay Captain',
-      email: 'captain@barangay.gov.ph'
-    });
+<span class="cstat-no" title="statement not covered" >  await knex('users').where('username', 'captain').update({</span>
+    password_hash: captainHash,
+    full_name: 'Barangay Captain',
+    email: 'captain@barangay.gov.ph',
+  });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  await knex('users')</span>
-    .where('username', 'secretary')
-    .update({
-      password_hash: secretaryHash,
-      full_name: 'Barangay Secretary',
-      email: 'secretary@barangay.gov.ph'
-    });
+<span class="cstat-no" title="statement not covered" >  await knex('users').where('username', 'secretary').update({</span>
+    password_hash: secretaryHash,
+    full_name: 'Barangay Secretary',
+    email: 'secretary@barangay.gov.ph',
+  });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  await knex('users')</span>
-    .where('username', 'clerk')
-    .update({
-      password_hash: clerkHash,
-      full_name: 'Barangay Clerk',
-      email: 'clerk@barangay.gov.ph'
-    });
+<span class="cstat-no" title="statement not covered" >  await knex('users').where('username', 'clerk').update({</span>
+    password_hash: clerkHash,
+    full_name: 'Barangay Clerk',
+    email: 'clerk@barangay.gov.ph',
+  });
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  console.log('✅ User passwords updated with proper bcrypt hashing');</span>
 <span class="cstat-no" title="statement not covered" >  console.log('👥 Available login credentials:');</span>
@@ -280,7 +256,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:38.155Z
+                at 2026-01-22T21:30:07.384Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

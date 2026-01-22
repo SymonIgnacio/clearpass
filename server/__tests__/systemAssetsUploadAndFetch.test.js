@@ -8,7 +8,7 @@ jest.mock('../middleware/authMiddleware', () => ({
     req.user = { id: 'ADMIN-1', role: 1 };
     next();
   },
-  checkRole: () => (req, res, next) => next()
+  checkRole: () => (req, res, next) => next(),
 }));
 
 describe('system assets upload and fetch', () => {
@@ -21,13 +21,21 @@ describe('system assets upload and fetch', () => {
           return [{ insertId: 123 }];
         }
         if (q.includes('select file_path')) {
-          return [[{ file_path: uploaded[0].file_path, mime_type: 'image/png', original_name: 'seal.png' }]];
+          return [
+            [
+              {
+                file_path: uploaded[0].file_path,
+                mime_type: 'image/png',
+                original_name: 'seal.png',
+              },
+            ],
+          ];
         }
         if (q.includes('select asset_type')) {
           return [[{ asset_type: 'seal', id: 123 }]];
         }
         return [[]];
-      })
+      }),
     };
 
     const systemAdminRoutes = require('../routes/systemAdminRoutes');
@@ -49,7 +57,9 @@ describe('system assets upload and fetch', () => {
     expect(uploadRes.body.success).toBe(true);
     expect(uploadRes.body.file_path).toBe('/api/system-admin/assets/seal/latest');
 
-    const insertCall = mockDb.execute.mock.calls.find(c => String(c[0]).toLowerCase().includes('insert into system_assets'));
+    const insertCall = mockDb.execute.mock.calls.find(c =>
+      String(c[0]).toLowerCase().includes('insert into system_assets')
+    );
     const storedFilePath = insertCall[1][1];
     uploaded.push({ file_path: storedFilePath });
 
@@ -60,4 +70,3 @@ describe('system assets upload and fetch', () => {
     await fs.unlink(tmpFile);
   });
 });
-

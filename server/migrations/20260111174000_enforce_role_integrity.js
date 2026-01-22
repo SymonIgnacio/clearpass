@@ -38,4 +38,3 @@ exports.down = async function (knex) {
     await knex.raw('DROP INDEX idx_users_role ON users');
   } catch {}
 };
-

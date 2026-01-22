@@ -21,12 +21,12 @@ jest.mock('crypto');
 jest.mock('../middleware/auditLogger', () => ({
   logAuditEvent: jest.fn(),
   logAuditToDatabase: jest.fn(),
-  AUDIT_EVENTS: {}
+  AUDIT_EVENTS: {},
 }));
 jest.mock('../utils/documentStorage', () => ({
   isEncryptionEnabled: jest.fn().mockReturnValue(false),
   resolveAndValidateUploadedDocumentPath: jest.fn().mockImplementation(path => path),
-  sendStoredDocument: jest.fn()
+  sendStoredDocument: jest.fn(),
 }));
 
 const db = require('../database');
@@ -37,7 +37,7 @@ describe('Resident Controller Unit Tests', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    
+
     // Create a connection mock that has all required methods
     mockConnection = {
       beginTransaction: jest.fn(),
@@ -50,7 +50,7 @@ describe('Resident Controller Unit Tests', () => {
     // The db object in locals needs a getConnection method that returns our mock connection
     const mockDb = {
       getConnection: jest.fn().mockResolvedValue(mockConnection),
-      execute: jest.fn()
+      execute: jest.fn(),
     };
 
     req = {
@@ -59,7 +59,7 @@ describe('Resident Controller Unit Tests', () => {
       query: {},
       user: { id: 'admin1', role: 'admin' },
       files: [],
-      app: { locals: { db: mockDb } }
+      app: { locals: { db: mockDb } },
     };
 
     res = {
@@ -77,13 +77,19 @@ describe('Resident Controller Unit Tests', () => {
       req.body = { first_name: 'John' }; // Missing fields
       await residentController.create(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: expect.stringContaining('Required fields') }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: expect.stringContaining('Required fields') })
+      );
     });
 
     test('should create resident and commit transaction', async () => {
       req.body = {
-        first_name: 'John', last_name: 'Doe', birthdate: '1990-01-01',
-        household_id: 'HH-1', email: 'john@example.com', gender: 'Male'
+        first_name: 'John',
+        last_name: 'Doe',
+        birthdate: '1990-01-01',
+        household_id: 'HH-1',
+        email: 'john@example.com',
+        gender: 'Male',
       };
 
       mockConnection.execute
@@ -99,13 +105,19 @@ describe('Resident Controller Unit Tests', () => {
       expect(mockConnection.beginTransaction).toHaveBeenCalled();
       expect(mockConnection.commit).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(201);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Resident created successfully' }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Resident created successfully' })
+      );
     });
 
     test('should rollback on error', async () => {
       req.body = {
-        first_name: 'John', last_name: 'Doe', birthdate: '1990-01-01',
-        household_id: 'HH-1', email: 'john@example.com', gender: 'Male'
+        first_name: 'John',
+        last_name: 'Doe',
+        birthdate: '1990-01-01',
+        household_id: 'HH-1',
+        email: 'john@example.com',
+        gender: 'Male',
       };
 
       mockConnection.execute
@@ -123,7 +135,7 @@ describe('Resident Controller Unit Tests', () => {
   describe('checkDuplicate', () => {
     test('should detect duplicates', async () => {
       req.body = { first_name: 'John', last_name: 'Doe', birthdate: '1990-01-01' };
-      
+
       // checkDuplicate uses db.execute directly (via locals.db), not via getConnection
       req.app.locals.db.execute.mockResolvedValueOnce([[{ Resident_ID: 'RES-1' }]]);
 
@@ -136,8 +148,12 @@ describe('Resident Controller Unit Tests', () => {
   describe('openRegister', () => {
     test('should process open registration', async () => {
       req.body = {
-        first_name: 'John', last_name: 'Doe', birthdate: '1990-01-01',
-        email: 'john@example.com', street_address: 'Street', sitio: 'Sitio'
+        first_name: 'John',
+        last_name: 'Doe',
+        birthdate: '1990-01-01',
+        email: 'john@example.com',
+        street_address: 'Street',
+        sitio: 'Sitio',
       };
 
       mockConnection.execute
@@ -152,8 +168,12 @@ describe('Resident Controller Unit Tests', () => {
 
     test('should reject existing email', async () => {
       req.body = {
-        first_name: 'John', last_name: 'Doe', birthdate: '1990-01-01',
-        email: 'john@example.com', street_address: 'Street', sitio: 'Sitio'
+        first_name: 'John',
+        last_name: 'Doe',
+        birthdate: '1990-01-01',
+        email: 'john@example.com',
+        street_address: 'Street',
+        sitio: 'Sitio',
       };
 
       mockConnection.execute.mockResolvedValueOnce([[{ email: 'john@example.com' }]]);
@@ -161,7 +181,9 @@ describe('Resident Controller Unit Tests', () => {
       await residentController.openRegister(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: expect.stringContaining('already registered') }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: expect.stringContaining('already registered') })
+      );
     });
   });
 
@@ -176,7 +198,9 @@ describe('Resident Controller Unit Tests', () => {
       await residentController.archive(req, res);
 
       expect(mockConnection.commit).toHaveBeenCalled();
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Resident archived successfully' }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Resident archived successfully' })
+      );
     });
   });
 });

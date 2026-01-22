@@ -10,7 +10,7 @@ export const safeJsonParse = async (response, context = 'API response') => {
   try {
     // Check if it's a Response object with .json method
     if (response && typeof response.json === 'function') {
-      return await response.json().catch((err) => {
+      return await response.json().catch(err => {
         console.error(`Failed to parse ${context} JSON:`, err);
         return {};
       });
@@ -52,7 +52,7 @@ export const safeApiRequest = async (endpoint, options = {}, fallbacks = {}) => 
   const { onError = {}, onSuccess = {} } = fallbacks;
 
   try {
-    const response = await apiRequest(endpoint, options).catch((err) => {
+    const response = await apiRequest(endpoint, options).catch(err => {
       console.error(`API request failed for ${endpoint}:`, err);
       return onError.response || {};
     });

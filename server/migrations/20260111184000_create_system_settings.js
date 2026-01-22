@@ -4,7 +4,7 @@ exports.up = async function (knex) {
   const has = await knex.schema.hasTable('system_settings');
   if (has) return;
 
-  await knex.schema.createTable('system_settings', (table) => {
+  await knex.schema.createTable('system_settings', table => {
     table.increments('id').primary();
     table.string('barangay_name', 200).nullable();
     table.string('captain_name', 200).nullable();
@@ -23,4 +23,3 @@ exports.down = async function (knex) {
   if (!has) return;
   await knex.schema.dropTable('system_settings');
 };
-

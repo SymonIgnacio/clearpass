@@ -22,7 +22,7 @@ import {
   TextField,
   Card,
   CardContent,
-  Alert
+  Alert,
 } from '@mui/material';
 import {
   Description,
@@ -30,7 +30,7 @@ import {
   CheckCircle,
   Cancel,
   Assignment,
-  Download
+  Download,
 } from '@mui/icons-material';
 import { apiRequest } from '../../utils/api';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -40,7 +40,7 @@ const ResidencyVerification = () => {
   const [filterStatus, setFilterStatus] = useState('pending');
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Modal States
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(null);
@@ -75,8 +75,8 @@ const ResidencyVerification = () => {
         body: {
           status,
           notes,
-          source_type: selectedDoc?.source_type
-        }
+          source_type: selectedDoc?.source_type,
+        },
       });
 
       if (response.ok) {
@@ -101,7 +101,9 @@ const ResidencyVerification = () => {
       const doc = documents.find(d => d.id === docId) || selectedDoc;
       const sourceType = doc?.source_type || 'resident';
 
-      const response = await apiRequest(`secretary/documents/${docId}/download?source_type=${sourceType}`);
+      const response = await apiRequest(
+        `secretary/documents/${docId}/download?source_type=${sourceType}`
+      );
       if (!response.ok) {
         notify('Failed to download document', 'error');
         return;
@@ -116,38 +118,42 @@ const ResidencyVerification = () => {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = status => {
     switch (status) {
-      case 'pending': return 'warning';
-      case 'verified': return 'success';
-      case 'rejected': return 'error';
-      default: return 'default';
+      case 'pending':
+        return 'warning';
+      case 'verified':
+        return 'success';
+      case 'rejected':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
   return (
     <Box>
-      <Typography variant="h4" sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
+      <Typography variant='h4' sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
         <Description sx={{ mr: 1 }} />
         Residency Verification
       </Typography>
-      <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 3 }}>
+      <Typography variant='subtitle1' color='textSecondary' sx={{ mb: 3 }}>
         Review and verify uploaded proof of residency documents.
       </Typography>
 
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6">Uploaded Documents</Typography>
+        <Typography variant='h6'>Uploaded Documents</Typography>
         <ToggleButtonGroup
           value={filterStatus}
           exclusive
           onChange={(e, newStatus) => {
             if (newStatus !== null) setFilterStatus(newStatus);
           }}
-          size="small"
+          size='small'
         >
-          <ToggleButton value="pending">Pending</ToggleButton>
-          <ToggleButton value="verified">Verified</ToggleButton>
-          <ToggleButton value="rejected">Rejected</ToggleButton>
+          <ToggleButton value='pending'>Pending</ToggleButton>
+          <ToggleButton value='verified'>Verified</ToggleButton>
+          <ToggleButton value='rejected'>Rejected</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
@@ -160,39 +166,39 @@ const ResidencyVerification = () => {
               <TableCell>File Name</TableCell>
               <TableCell>Date Uploaded</TableCell>
               <TableCell>Status</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableCell align='right'>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {documents.length > 0 ? (
-              documents.map((doc) => (
+              documents.map(doc => (
                 <TableRow key={doc.id}>
                   <TableCell>{doc.resident_name || 'Unknown'}</TableCell>
                   <TableCell>{doc.document_type}</TableCell>
                   <TableCell>{doc.file_name}</TableCell>
                   <TableCell>{new Date(doc.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>
-                    <Chip 
-                      label={doc.verification_status} 
-                      color={getStatusColor(doc.verification_status)} 
-                      size="small" 
+                    <Chip
+                      label={doc.verification_status}
+                      color={getStatusColor(doc.verification_status)}
+                      size='small'
                     />
                   </TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="View Document">
-                      <IconButton onClick={() => openFile(doc.id, doc.file_name)} size="small">
+                  <TableCell align='right'>
+                    <Tooltip title='View Document'>
+                      <IconButton onClick={() => openFile(doc.id, doc.file_name)} size='small'>
                         <Visibility />
                       </IconButton>
                     </Tooltip>
                     {filterStatus === 'pending' && (
-                      <Tooltip title="Verify/Reject">
-                        <IconButton 
-                          color="primary"
+                      <Tooltip title='Verify/Reject'>
+                        <IconButton
+                          color='primary'
                           onClick={() => {
                             setSelectedDoc(doc);
                             setVerificationModalOpen(true);
                           }}
-                          size="small"
+                          size='small'
                         >
                           <Assignment />
                         </IconButton>
@@ -203,7 +209,7 @@ const ResidencyVerification = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                <TableCell colSpan={6} align='center' sx={{ py: 3 }}>
                   No documents found with status "{filterStatus}".
                 </TableCell>
               </TableRow>
@@ -213,23 +219,23 @@ const ResidencyVerification = () => {
       </TableContainer>
 
       {/* Verification Dialog */}
-      <Dialog 
-        open={verificationModalOpen} 
+      <Dialog
+        open={verificationModalOpen}
         onClose={() => setVerificationModalOpen(false)}
-        maxWidth="sm"
+        maxWidth='sm'
         fullWidth
       >
         <DialogTitle>Verify Document</DialogTitle>
         <DialogContent>
           {selectedDoc && (
             <Box sx={{ pt: 1 }}>
-              <Alert severity="info" sx={{ mb: 2 }}>
+              <Alert severity='info' sx={{ mb: 2 }}>
                 Reviewing: <strong>{selectedDoc.file_name}</strong> by {selectedDoc.resident_name}
               </Alert>
-              
-              <Button 
-                variant="outlined" 
-                startIcon={<Download />} 
+
+              <Button
+                variant='outlined'
+                startIcon={<Download />}
                 onClick={() => openFile(selectedDoc.id, selectedDoc.file_name)}
                 sx={{ mb: 2 }}
                 fullWidth
@@ -238,30 +244,30 @@ const ResidencyVerification = () => {
               </Button>
 
               <TextField
-                label="Rejection Notes (if rejecting)"
+                label='Rejection Notes (if rejecting)'
                 multiline
                 rows={3}
                 fullWidth
                 value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Reason for rejection..."
+                onChange={e => setRejectReason(e.target.value)}
+                placeholder='Reason for rejection...'
               />
             </Box>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setVerificationModalOpen(false)}>Cancel</Button>
-          <Button 
-            color="error" 
+          <Button
+            color='error'
             onClick={() => handleVerify(selectedDoc.id, 'rejected', rejectReason)}
             disabled={actionLoading || !rejectReason}
             startIcon={<Cancel />}
           >
             Reject
           </Button>
-          <Button 
-            variant="contained" 
-            color="success" 
+          <Button
+            variant='contained'
+            color='success'
             onClick={() => handleVerify(selectedDoc.id, 'verified')}
             disabled={actionLoading}
             startIcon={<CheckCircle />}

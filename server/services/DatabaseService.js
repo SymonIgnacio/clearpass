@@ -28,7 +28,7 @@ class DatabaseService {
 
   // Execute multiple queries in transaction
   async batchExecute(queries) {
-    return await this.transaction(async (connection) => {
+    return await this.transaction(async connection => {
       const results = [];
       for (const { sql, params } of queries) {
         const [result] = await connection.execute(sql, params);
@@ -55,7 +55,7 @@ class DatabaseService {
     const fields = Object.keys(data);
     const values = Object.values(data);
     const placeholders = fields.map(() => '?').join(', ');
-    
+
     const sql = `INSERT INTO ${table} (${fields.join(', ')}) VALUES (${placeholders})`;
     const [result] = await this.execute(sql, values);
     return result.insertId;
@@ -66,7 +66,7 @@ class DatabaseService {
     const fields = Object.keys(data);
     const values = Object.values(data);
     const setClause = fields.map(field => `${field} = ?`).join(', ');
-    
+
     const sql = `UPDATE ${table} SET ${setClause} WHERE ${where}`;
     const [result] = await this.execute(sql, [...values, ...whereParams]);
     return result.affectedRows;

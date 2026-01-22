@@ -22,44 +22,36 @@ exports.seed = async function (knex) {
       role: 'admin',
       full_name: 'Super Administrator',
       email: 'superadmin@barangay.gov.ph',
-      is_active: true
+      is_active: true,
     });
     console.log('✅ Created superadmin user');
   } else {
-    await knex('users')
-      .where('username', 'superadmin')
-      .update({
-        password_hash: superAdminHash,
-        full_name: 'Super Administrator',
-        email: 'superadmin@barangay.gov.ph',
-        is_active: true
-      });
+    await knex('users').where('username', 'superadmin').update({
+      password_hash: superAdminHash,
+      full_name: 'Super Administrator',
+      email: 'superadmin@barangay.gov.ph',
+      is_active: true,
+    });
     console.log('✅ Updated superadmin user');
   }
 
-  await knex('users')
-    .where('username', 'captain')
-    .update({
-      password_hash: captainHash,
-      full_name: 'Barangay Captain',
-      email: 'captain@barangay.gov.ph'
-    });
+  await knex('users').where('username', 'captain').update({
+    password_hash: captainHash,
+    full_name: 'Barangay Captain',
+    email: 'captain@barangay.gov.ph',
+  });
 
-  await knex('users')
-    .where('username', 'secretary')
-    .update({
-      password_hash: secretaryHash,
-      full_name: 'Barangay Secretary',
-      email: 'secretary@barangay.gov.ph'
-    });
+  await knex('users').where('username', 'secretary').update({
+    password_hash: secretaryHash,
+    full_name: 'Barangay Secretary',
+    email: 'secretary@barangay.gov.ph',
+  });
 
-  await knex('users')
-    .where('username', 'clerk')
-    .update({
-      password_hash: clerkHash,
-      full_name: 'Barangay Clerk',
-      email: 'clerk@barangay.gov.ph'
-    });
+  await knex('users').where('username', 'clerk').update({
+    password_hash: clerkHash,
+    full_name: 'Barangay Clerk',
+    email: 'clerk@barangay.gov.ph',
+  });
 
   console.log('✅ User passwords updated with proper bcrypt hashing');
   console.log('👥 Available login credentials:');

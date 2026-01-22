@@ -2,7 +2,7 @@ exports.up = async function (knex) {
   const exists = await knex.schema.hasTable('mfa_otp_challenges');
   if (exists) return;
 
-  await knex.schema.createTable('mfa_otp_challenges', (table) => {
+  await knex.schema.createTable('mfa_otp_challenges', table => {
     table.increments('id').primary();
     table.string('user_id', 50).notNullable();
     table.string('otp_hash', 255).notNullable();

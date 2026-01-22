@@ -24,14 +24,14 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
 } from '@mui/material';
 import {
   Gavel as GavelIcon,
   Person as PersonIcon,
   Schedule as ScheduleIcon,
   QrCode as QrCodeIcon,
-  Save as SaveIcon
+  Save as SaveIcon,
 } from '@mui/icons-material';
 import { apiRequest } from '../utils/api';
 
@@ -44,7 +44,7 @@ const CaseDetail = () => {
   const [statusUpdate, setStatusUpdate] = useState({
     status: '',
     hearing_schedule: '',
-    notes: ''
+    notes: '',
   });
 
   useEffect(() => {
@@ -59,9 +59,10 @@ const CaseDetail = () => {
         setCaseData(data.data);
         setStatusUpdate({
           status: data.data.Status,
-          hearing_schedule: data.data.Hearing_Schedule ? 
-            new Date(data.data.Hearing_Schedule).toISOString().slice(0, 16) : '',
-          notes: ''
+          hearing_schedule: data.data.Hearing_Schedule
+            ? new Date(data.data.Hearing_Schedule).toISOString().slice(0, 16)
+            : '',
+          notes: '',
         });
       }
     } catch (error) {
@@ -76,7 +77,7 @@ const CaseDetail = () => {
     try {
       const response = await apiRequest(`/case-management/case/${caseId}/status`, {
         method: 'PUT',
-        body: statusUpdate
+        body: statusUpdate,
       });
       const data = await response.json();
       if (data.success) {
@@ -95,8 +96,8 @@ const CaseDetail = () => {
       const response = await apiRequest(`/case-management/case/${caseId}/qr`, {
         method: 'POST',
         body: {
-          hearing_date: statusUpdate.hearing_schedule
-        }
+          hearing_date: statusUpdate.hearing_schedule,
+        },
       });
       const data = await response.json();
       if (data.success) {
@@ -107,25 +108,32 @@ const CaseDetail = () => {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = status => {
     switch (status) {
-      case 'Pending': return 'warning';
-      case 'Scheduled for Mediation': return 'info';
-      case 'Amicably Settled': return 'success';
-      case 'Certificate to File Action Issued': return 'error';
-      case 'Dismissed': return 'default';
-      case 'Ongoing': return 'primary';
-      default: return 'default';
+      case 'Pending':
+        return 'warning';
+      case 'Scheduled for Mediation':
+        return 'info';
+      case 'Amicably Settled':
+        return 'success';
+      case 'Certificate to File Action Issued':
+        return 'error';
+      case 'Dismissed':
+        return 'default';
+      case 'Ongoing':
+        return 'primary';
+      default:
+        return 'default';
     }
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = dateString => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -140,19 +148,23 @@ const CaseDetail = () => {
   if (!caseData) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="error">Case not found</Alert>
+        <Alert severity='error'>Case not found</Alert>
       </Box>
     );
   }
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant='h4' gutterBottom>
         Case Details: {caseData.Case_Number}
       </Typography>
 
       {message.text && (
-        <Alert severity={message.type} sx={{ mb: 3 }} onClose={() => setMessage({ type: '', text: '' })}>
+        <Alert
+          severity={message.type}
+          sx={{ mb: 3 }}
+          onClose={() => setMessage({ type: '', text: '' })}
+        >
           {message.text}
         </Alert>
       )}
@@ -164,33 +176,46 @@ const CaseDetail = () => {
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <GavelIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6">Case Information</Typography>
+                <Typography variant='h6'>Case Information</Typography>
               </Box>
 
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Incident Type</Typography>
-                  <Typography variant="body1">{caseData.Incident_Type}</Typography>
+                  <Typography variant='subtitle2' color='text.secondary'>
+                    Incident Type
+                  </Typography>
+                  <Typography variant='body1'>{caseData.Incident_Type}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-                  <Chip 
-                    label={caseData.Status} 
-                    color={getStatusColor(caseData.Status)} 
+                  <Typography variant='subtitle2' color='text.secondary'>
+                    Status
+                  </Typography>
+                  <Chip
+                    label={caseData.Status}
+                    color={getStatusColor(caseData.Status)}
                     sx={{ mt: 0.5 }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Incident Date</Typography>
-                  <Typography variant="body1">{formatDate(caseData.DateTime_Incident)}</Typography>
+                  <Typography variant='subtitle2' color='text.secondary'>
+                    Incident Date
+                  </Typography>
+                  <Typography variant='body1'>{formatDate(caseData.DateTime_Incident)}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Location</Typography>
-                  <Typography variant="body1">{caseData.Location_Sitio}</Typography>
+                  <Typography variant='subtitle2' color='text.secondary'>
+                    Location
+                  </Typography>
+                  <Typography variant='body1'>{caseData.Location_Sitio}</Typography>
                 </Grid>
                 <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="text.secondary">Narrative</Typography>
-                  <Typography variant="body1" sx={{ mt: 1, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Typography variant='subtitle2' color='text.secondary'>
+                    Narrative
+                  </Typography>
+                  <Typography
+                    variant='body1'
+                    sx={{ mt: 1, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}
+                  >
                     {caseData.Narrative}
                   </Typography>
                 </Grid>
@@ -203,7 +228,7 @@ const CaseDetail = () => {
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <PersonIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6">Participants</Typography>
+                <Typography variant='h6'>Participants</Typography>
               </Box>
 
               <TableContainer>
@@ -217,23 +242,27 @@ const CaseDetail = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {caseData.participants?.map((participant) => (
+                    {caseData.participants?.map(participant => (
                       <TableRow key={participant.id}>
                         <TableCell>
                           {participant.First_Name} {participant.Last_Name}
                         </TableCell>
                         <TableCell>
-                          <Chip 
-                            label={participant.participation_type} 
-                            size="small"
-                            color={participant.participation_type === 'Complainant' ? 'primary' : 'default'}
+                          <Chip
+                            label={participant.participation_type}
+                            size='small'
+                            color={
+                              participant.participation_type === 'Complainant'
+                                ? 'primary'
+                                : 'default'
+                            }
                           />
                         </TableCell>
-                        <TableCell>{participant.Mobile_Number}</TableCell>
+                        <TableCell>{participant.Email || 'N/A'}</TableCell>
                         <TableCell>
-                          <Chip 
-                            label={participant.status} 
-                            size="small"
+                          <Chip
+                            label={participant.status}
+                            size='small'
                             color={participant.status === 'Active' ? 'success' : 'default'}
                           />
                         </TableCell>
@@ -252,7 +281,7 @@ const CaseDetail = () => {
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <ScheduleIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6">Case Management</Typography>
+                <Typography variant='h6'>Case Management</Typography>
               </Box>
 
               <Grid container spacing={2}>
@@ -261,14 +290,16 @@ const CaseDetail = () => {
                     <InputLabel>Status</InputLabel>
                     <Select
                       value={statusUpdate.status}
-                      onChange={(e) => setStatusUpdate(prev => ({ ...prev, status: e.target.value }))}
+                      onChange={e => setStatusUpdate(prev => ({ ...prev, status: e.target.value }))}
                     >
-                      <MenuItem value="Pending">Pending</MenuItem>
-                      <MenuItem value="Scheduled for Mediation">Scheduled for Mediation</MenuItem>
-                      <MenuItem value="Ongoing">Ongoing</MenuItem>
-                      <MenuItem value="Amicably Settled">Amicably Settled</MenuItem>
-                      <MenuItem value="Certificate to File Action Issued">Certificate to File Action</MenuItem>
-                      <MenuItem value="Dismissed">Dismissed</MenuItem>
+                      <MenuItem value='Pending'>Pending</MenuItem>
+                      <MenuItem value='Scheduled for Mediation'>Scheduled for Mediation</MenuItem>
+                      <MenuItem value='Ongoing'>Ongoing</MenuItem>
+                      <MenuItem value='Amicably Settled'>Amicably Settled</MenuItem>
+                      <MenuItem value='Certificate to File Action Issued'>
+                        Certificate to File Action
+                      </MenuItem>
+                      <MenuItem value='Dismissed'>Dismissed</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
@@ -276,10 +307,12 @@ const CaseDetail = () => {
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    type="datetime-local"
-                    label="Hearing Schedule"
+                    type='datetime-local'
+                    label='Hearing Schedule'
                     value={statusUpdate.hearing_schedule}
-                    onChange={(e) => setStatusUpdate(prev => ({ ...prev, hearing_schedule: e.target.value }))}
+                    onChange={e =>
+                      setStatusUpdate(prev => ({ ...prev, hearing_schedule: e.target.value }))
+                    }
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
@@ -289,17 +322,17 @@ const CaseDetail = () => {
                     fullWidth
                     multiline
                     rows={3}
-                    label="Notes"
+                    label='Notes'
                     value={statusUpdate.notes}
-                    onChange={(e) => setStatusUpdate(prev => ({ ...prev, notes: e.target.value }))}
-                    placeholder="Add case notes..."
+                    onChange={e => setStatusUpdate(prev => ({ ...prev, notes: e.target.value }))}
+                    placeholder='Add case notes...'
                   />
                 </Grid>
 
                 <Grid item xs={12}>
                   <Button
                     fullWidth
-                    variant="contained"
+                    variant='contained'
                     startIcon={updating ? <CircularProgress size={20} /> : <SaveIcon />}
                     onClick={handleStatusUpdate}
                     disabled={updating}
@@ -313,7 +346,7 @@ const CaseDetail = () => {
                   <Grid item xs={12}>
                     <Button
                       fullWidth
-                      variant="outlined"
+                      variant='outlined'
                       startIcon={<QrCodeIcon />}
                       onClick={generateQRCode}
                     >
@@ -328,31 +361,27 @@ const CaseDetail = () => {
           {/* Case Timeline */}
           <Card sx={{ mt: 3 }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>Case Timeline</Typography>
+              <Typography variant='h6' gutterBottom>
+                Case Timeline
+              </Typography>
               <List dense>
                 <ListItem>
-                  <ListItemText
-                    primary="Case Filed"
-                    secondary={formatDate(caseData.created_at)}
-                  />
+                  <ListItemText primary='Case Filed' secondary={formatDate(caseData.created_at)} />
                 </ListItem>
                 {caseData.Hearing_Schedule && (
                   <ListItem>
                     <ListItemText
-                      primary="Hearing Scheduled"
+                      primary='Hearing Scheduled'
                       secondary={formatDate(caseData.Hearing_Schedule)}
                     />
                   </ListItem>
                 )}
                 <ListItem>
-                  <ListItemText
-                    primary="Current Status"
-                    secondary={caseData.Status}
-                  />
+                  <ListItemText primary='Current Status' secondary={caseData.Status} />
                   <Chip
                     label={caseData.Status}
                     color={getStatusColor(caseData.Status)}
-                    size="small"
+                    size='small'
                     sx={{ ml: 2 }}
                   />
                 </ListItem>

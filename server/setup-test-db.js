@@ -3,13 +3,13 @@ require('dotenv').config();
 
 async function createTestDatabase() {
   let connection;
-  
+
   try {
     connection = await mysql.createConnection({
       host: process.env.DB_HOST || 'localhost',
       user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || '',
-      port: process.env.DB_PORT || 3306
+      port: process.env.DB_PORT || 3306,
     });
 
     // Create test database
@@ -18,13 +18,13 @@ async function createTestDatabase() {
 
     // Close and reconnect to the test database
     await connection.end();
-    
+
     connection = await mysql.createConnection({
       host: process.env.DB_HOST || 'localhost',
       user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || '',
       database: 'barangay_management_test',
-      port: process.env.DB_PORT || 3306
+      port: process.env.DB_PORT || 3306,
     });
 
     // Create basic tables for testing
@@ -77,11 +77,14 @@ async function createTestDatabase() {
     // Insert test user
     const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash('admin123', 10);
-    
-    await connection.query(`
+
+    await connection.query(
+      `
       INSERT IGNORE INTO users (username, password_hash, role_id, full_name) 
       VALUES ('admin', ?, 5, 'Test Admin')
-    `, [hashedPassword]);
+    `,
+      [hashedPassword]
+    );
 
     console.log('Test database setup completed');
   } catch (error) {

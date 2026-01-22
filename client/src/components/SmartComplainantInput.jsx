@@ -1,16 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  TextField,
-  Autocomplete,
-  Box,
-  Typography,
-  Chip,
-  Paper
-} from '@mui/material';
+import { TextField, Autocomplete, Box, Typography, Chip, Paper } from '@mui/material';
 import { Person, PersonAdd } from '@mui/icons-material';
 import { apiRequest } from '../utils/api';
 
-const SmartComplainantInput = ({ value, onChange, label = "Complainant Name" }) => {
+const SmartComplainantInput = ({ value, onChange, label = 'Complainant Name' }) => {
   const [residents, setResidents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -20,19 +13,27 @@ const SmartComplainantInput = ({ value, onChange, label = "Complainant Name" }) 
       setLoading(true);
       const params = {};
       if (search) params.search = search;
-      
+
       const response = await apiRequest('residents', { params });
       const responseData = await response.json();
       // Handle { data: [], pagination: {} } format or direct array
-      const residentsList = Array.isArray(responseData) ? responseData : (responseData.data || []);
-      
-      setResidents(residentsList.map(resident => ({
-        id: resident.Resident_ID,
-        name: `${resident.First_Name} ${resident.Middle_Name || ''} ${resident.Last_Name}`.trim(),
-        address: `Household ${resident.Household_ID}`,
-        mobile: resident.Mobile_Number,
-        isResident: true
-      })));
+      const residentsList = Array.isArray(responseData) ? responseData : responseData.data || [];
+
+      const mappedResidents = residentsList
+        .filter(r => r && r.First_Name && r.Last_Name) // Filter out invalid records
+        .map(resident => ({
+          id: resident.Resident_ID,
+          name: `${resident.First_Name} ${resident.Middle_Name || ''} ${resident.Last_Name}`.trim(),
+          address: resident.sitio_name
+            ? `${resident.sitio_name}, Household ${resident.Household_ID}`
+            : `Household ${resident.Household_ID}`,
+          email: resident.Email,
+          mobile: resident.Mobile_Number,
+          original: resident,
+          isResident: true,
+        }));
+
+      setResidents(mappedResidents);
     } catch (error) {
       console.error('Error fetching residents:', error);
       setResidents([]);
@@ -52,14 +53,13 @@ const SmartComplainantInput = ({ value, onChange, label = "Complainant Name" }) 
     return () => clearTimeout(delayDebounceFn);
   }, [inputValue, fetchResidents]);
 
-
   const handleChange = (event, newValue) => {
     if (typeof newValue === 'string') {
       // Manual entry
       onChange({
         name: newValue,
         isResident: false,
-        residentId: null
+        residentId: null,
       });
     } else if (newValue && newValue.isResident) {
       // Selected resident
@@ -68,7 +68,7 @@ const SmartComplainantInput = ({ value, onChange, label = "Complainant Name" }) 
         address: newValue.address,
         mobile: newValue.mobile,
         isResident: true,
-        residentId: newValue.id
+        residentId: newValue.id,
       });
     } else {
       onChange(null);
@@ -82,7 +82,7 @@ const SmartComplainantInput = ({ value, onChange, label = "Complainant Name" }) 
       onChange({
         name: newInputValue,
         isResident: false,
-        residentId: null
+        residentId: null,
       });
     }
   };
@@ -91,7 +91,7 @@ const SmartComplainantInput = ({ value, onChange, label = "Complainant Name" }) 
     <Autocomplete
       freeSolo
       options={residents}
-      getOptionLabel={(option) => {
+      getOptionLabel={option => {
         if (typeof option === 'string') return option;
         return option.name || '';
       }}
@@ -100,50 +100,42 @@ const SmartComplainantInput = ({ value, onChange, label = "Complainant Name" }) 
       inputValue={inputValue || value?.name || ''}
       onInputChange={handleInputChange}
       loading={loading}
-      renderInput={(params) => (
+      renderInput={params => (
         <TextField
           {...params}
           label={label}
-          variant="outlined"
+          variant='outlined'
           fullWidth
-          helperText={value?.isResident ? 
-            `✓ Linked to resident: ${value.name}` : 
-            "Type to search residents or enter a new name"
+          helperText={
+            value?.isResident
+              ? `✓ Linked to resident: ${value.name}`
+              : 'Type to search residents or enter a new name'
           }
         />
       )}
       renderOption={(props, option) => (
-        <Box component="li" {...props}>
+        <Box component='li' {...props} key={option.id || Math.random()}>
           <Person sx={{ mr: 1, color: 'primary.main' }} />
           <Box>
-            <Typography variant="body2">{option.name}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Resident • {option.address}
+            <Typography variant='body2'>{option.name || 'Unknown Name'}</Typography>
+            <Typography variant='caption' color='text.secondary'>
+              Resident • {option.address || 'No Address'}
             </Typography>
           </Box>
         </Box>
       )}
-      renderTags={(value, getTagProps) =>
-        value.map((option, index) => (
-          <Chip
-            variant="outlined"
-            label={option.name}
-            icon={option.isResident ? <Person /> : <PersonAdd />}
-            {...getTagProps({ index })}
-          />
-        ))
-      }
       PaperComponent={({ children, ...other }) => (
         <Paper {...other}>
           {children}
-          {inputValue && !residents.some(r => r.name.toLowerCase().includes(inputValue.toLowerCase())) && (
-            <Box sx={{ p: 1, borderTop: 1, borderColor: 'divider' }}>
-              <Typography variant="caption" color="text.secondary">
-                <PersonAdd sx={{ fontSize: 14, mr: 0.5 }} />
-                Press Enter to add "{inputValue}" as non-resident
-              </Typography>
-            </Box>
-          )}
+          {inputValue &&
+            !residents.some(r => r.name.toLowerCase().includes(inputValue.toLowerCase())) && (
+              <Box sx={{ p: 1, borderTop: 1, borderColor: 'divider' }}>
+                <Typography variant='caption' color='text.secondary'>
+                  <PersonAdd sx={{ fontSize: 14, mr: 0.5 }} />
+                  Press Enter to add "{inputValue}" as non-resident
+                </Typography>
+              </Box>
+            )}
         </Paper>
       )}
     />

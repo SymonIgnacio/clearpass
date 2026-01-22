@@ -16,7 +16,7 @@ describe('CertificateRequestController', () => {
       body: {},
       params: {},
       query: {},
-      files: {}
+      files: {},
     };
 
     res = {
@@ -36,13 +36,15 @@ describe('CertificateRequestController', () => {
       req.files = {};
       await controller.submitRequest(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, message: expect.stringContaining('required') }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, message: expect.stringContaining('required') })
+      );
     });
 
     test('should return 404 if resident not found', async () => {
       req.files = {
         front_id: [{ buffer: Buffer.from('front'), mimetype: 'image/jpeg' }],
-        back_id: [{ buffer: Buffer.from('back'), mimetype: 'image/jpeg' }]
+        back_id: [{ buffer: Buffer.from('back'), mimetype: 'image/jpeg' }],
       };
       req.body = { document_type: 'Clearance', purpose: 'Job', additional_data: '{}' };
 
@@ -55,7 +57,7 @@ describe('CertificateRequestController', () => {
     test('should submit request successfully', async () => {
       req.files = {
         front_id: [{ buffer: Buffer.from('front'), mimetype: 'image/jpeg' }],
-        back_id: [{ buffer: Buffer.from('back'), mimetype: 'image/jpeg' }]
+        back_id: [{ buffer: Buffer.from('back'), mimetype: 'image/jpeg' }],
       };
       req.body = { document_type: 'Clearance', purpose: 'Job', additional_data: '{}' };
 
@@ -67,7 +69,12 @@ describe('CertificateRequestController', () => {
       await controller.submitRequest(req, res);
 
       expect(res.status).toHaveBeenCalledWith(201);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, data: expect.objectContaining({ request_id: expect.stringMatching(/^REQ-/) }) }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: expect.objectContaining({ request_id: expect.stringMatching(/^REQ-/) }),
+        })
+      );
       expect(global.createBulkNotification).toHaveBeenCalled();
     });
   });
@@ -122,7 +129,9 @@ describe('CertificateRequestController', () => {
         .mockResolvedValueOnce([[{ total: 1 }]]); // Count
 
       await controller.getAllRequests(req, res);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, data: expect.any(Array) }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: true, data: expect.any(Array) })
+      );
     });
   });
 });

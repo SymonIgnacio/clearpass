@@ -61,7 +61,7 @@ exports.up = async function up(knex) {
     table.primary(['year', 'month']);
   });
 
-  await knex.transaction(async (trx) => {
+  await knex.transaction(async trx => {
     const invalidRows = await trx('blotter')
       .select(['Case_Number', 'DateTime_Incident'])
       .whereRaw(
@@ -78,13 +78,14 @@ exports.up = async function up(knex) {
       const seq = await allocateSeq(trx, { year, month, monthPadded });
       const newCaseNumber = formatCaseNumber(year, monthPadded, seq);
 
-      await trx('blotter').where('Case_Number', oldCaseNumber).update({ Case_Number: newCaseNumber });
+      await trx('blotter')
+        .where('Case_Number', oldCaseNumber)
+        .update({ Case_Number: newCaseNumber });
       try {
         await trx('blotter_participants')
           .where('blotter_id', oldCaseNumber)
           .update({ blotter_id: newCaseNumber });
-      } catch (_) {
-      }
+      } catch (_) {}
     }
   });
 
@@ -92,14 +93,12 @@ exports.up = async function up(knex) {
     await knex.raw(
       "ALTER TABLE blotter ADD CONSTRAINT chk_blot_case_number CHECK (Case_Number REGEXP '^BLOT-[0-9]{4}-[0-9]{2}-[0-9]{4}$')"
     );
-  } catch (_) {
-  }
+  } catch (_) {}
 };
 
 exports.down = async function down(knex) {
   try {
     await knex.raw('ALTER TABLE blotter DROP CHECK chk_blot_case_number');
-  } catch (_) {
-  }
+  } catch (_) {}
   await knex.schema.dropTableIfExists('blotter_case_sequences');
 };

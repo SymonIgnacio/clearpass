@@ -1,7 +1,7 @@
-exports.up = function(knex) {
+exports.up = function (knex) {
   return Promise.resolve();
 };
 
-exports.down = function(knex) {
+exports.down = function (knex) {
   return Promise.resolve();
 };

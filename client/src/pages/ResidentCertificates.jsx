@@ -22,7 +22,7 @@ import {
   MenuItem,
   Alert,
   Tooltip,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
 import { Add, Description, Info } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -40,14 +40,14 @@ const ResidentCertificates = () => {
   const [formData, setFormData] = useState({
     certificate_type_id: '',
     certificate_type: '',
-    purpose: ''
+    purpose: '',
   });
 
   const isGuest = user?.role === 13;
 
   useEffect(() => {
     if (!isGuest) {
-        fetchCertificates();
+      fetchCertificates();
     }
     fetchCertificateTypes();
   }, [isGuest]);
@@ -55,13 +55,12 @@ const ResidentCertificates = () => {
   const fetchCertificates = async () => {
     try {
       setLoading(true);
-      const response = await apiRequest('/certificates');
+      const response = await apiRequest('/certificate-requests/my-requests');
       if (response.ok) {
         const data = await response.json();
-        setCertificates(data);
+        setCertificates(data.data || data);
       }
     } catch (error) {
-      console.error('Error fetching certificates:', error);
       setError('Failed to load certificates');
     } finally {
       setLoading(false);
@@ -70,24 +69,24 @@ const ResidentCertificates = () => {
 
   const fetchCertificateTypes = async () => {
     try {
-      const response = await apiRequest('/certificate-types');
+      const response = await apiRequest('/certificate-requests/types');
       if (response.ok) {
         const data = await response.json();
-        setCertificateTypes(data);
+        setCertificateTypes(data.data || data);
       }
     } catch (error) {
-      console.error('Error fetching certificate types:', error);
+      setError('Failed to load certificate types');
     }
   };
 
   const handleSave = async () => {
     try {
-      const response = await apiRequest('/certificates', {
+      const response = await apiRequest('/certificate-requests/submit', {
         method: 'POST',
         body: {
-            ...formData,
-            resident_id: user.resident_id
-        }
+          ...formData,
+          resident_id: user.resident_id,
+        },
       });
 
       const data = await response.json();
@@ -97,69 +96,78 @@ const ResidentCertificates = () => {
         setOpen(false);
         setError('');
         setFormData({
-            certificate_type_id: '',
-            certificate_type: '',
-            purpose: ''
+          certificate_type_id: '',
+          certificate_type: '',
+          purpose: '',
         });
       } else {
-        setError(data.error || 'Failed to request certificate');
+        setError(data.message || data.error || 'Failed to request certificate');
       }
     } catch (error) {
-      console.error('Error requesting certificate:', error);
-      setError('Network error');
+      setError('Network error. Please try again later.');
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = status => {
     switch (status) {
-      case 'Paid': return 'success';
-      case 'Released': return 'info';
-      case 'Pending': return 'warning';
-      case 'Revoked': return 'error';
-      default: return 'default';
+      case 'Paid':
+        return 'success';
+      case 'Released':
+        return 'info';
+      case 'Pending':
+        return 'warning';
+      case 'Revoked':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
   if (loading) {
     return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <CircularProgress />
-        </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+        <CircularProgress />
+      </Box>
     );
   }
 
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" sx={{ display: 'flex', alignItems: 'center' }}>
+        <Typography variant='h4' sx={{ display: 'flex', alignItems: 'center' }}>
           <Description sx={{ mr: 1 }} />
           My Certificates
         </Typography>
-        
+
         {isGuest ? (
-            <Tooltip title="Complete your residency verification to request certificates">
-                <span>
-                    <Button variant="contained" startIcon={<Add />} disabled>
-                        Request Certificate
-                    </Button>
-                </span>
-            </Tooltip>
-        ) : (
-            <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/resident/create-request')}>
+          <Tooltip title='Complete your residency verification to request certificates'>
+            <span>
+              <Button variant='contained' startIcon={<Add />} disabled>
                 Request Certificate
-            </Button>
+              </Button>
+            </span>
+          </Tooltip>
+        ) : (
+          <Button
+            variant='contained'
+            startIcon={<Add />}
+            onClick={() => navigate('/resident/create-request')}
+          >
+            Request Certificate
+          </Button>
         )}
       </Box>
 
       {isGuest && (
-          <Alert severity="info" sx={{ mb: 3 }} icon={<Info />}>
-              You are currently logged in as a Guest. You can view this page, but you need to complete your residency verification before you can request certificates.
-          </Alert>
+        <Alert severity='info' sx={{ mb: 3 }} icon={<Info />}>
+          You are currently logged in as a Guest. You can view this page, but you need to complete
+          your residency verification before you can request certificates.
+        </Alert>
       )}
 
       <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}>
         <Table>
-          <TableHead sx={{ bgcolor: 'grey.100' }}>
+          <TableHead sx={{ bgcolor: 'action.hover' }}>
             <TableRow>
               <TableCell>Control #</TableCell>
               <TableCell>Type</TableCell>
@@ -170,40 +178,42 @@ const ResidentCertificates = () => {
           </TableHead>
           <TableBody>
             {certificates.length > 0 ? (
-                certificates.map((cert) => (
+              certificates.map(cert => (
                 <TableRow key={cert.control_no || cert.id} hover>
-                    <TableCell>{cert.control_no}</TableCell>
-                    <TableCell>{cert.certificate_type}</TableCell>
-                    <TableCell>{cert.purpose}</TableCell>
-                    <TableCell>{new Date(cert.created_at || cert.date_issued).toLocaleDateString()}</TableCell>
-                    <TableCell>
+                  <TableCell>{cert.control_no}</TableCell>
+                  <TableCell>{cert.certificate_type}</TableCell>
+                  <TableCell>{cert.purpose}</TableCell>
+                  <TableCell>
+                    {new Date(cert.created_at || cert.date_issued).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
                     <Chip
-                        label={cert.status}
-                        color={getStatusColor(cert.status)}
-                        size="small"
-                        variant="outlined"
+                      label={cert.status}
+                      color={getStatusColor(cert.status)}
+                      size='small'
+                      variant='outlined'
                     />
-                    </TableCell>
+                  </TableCell>
                 </TableRow>
-                ))
+              ))
             ) : (
-                <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                        <Typography variant="body1" color="text.secondary">
-                            No certificates found.
-                        </Typography>
-                    </TableCell>
-                </TableRow>
+              <TableRow>
+                <TableCell colSpan={5} align='center' sx={{ py: 4 }}>
+                  <Typography variant='body1' color='text.secondary'>
+                    No certificates found.
+                  </Typography>
+                </TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={open} onClose={() => setOpen(false)} maxWidth='sm' fullWidth>
         <DialogTitle>Request New Certificate</DialogTitle>
         <DialogContent sx={{ overflow: 'visible', pt: 2 }}>
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity='error' sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
@@ -213,19 +223,19 @@ const ResidentCertificates = () => {
               <InputLabel>Certificate Type</InputLabel>
               <Select
                 value={formData.certificate_type_id}
-                onChange={(e) => {
+                onChange={e => {
                   const selectedType = certificateTypes.find(type => type.id === e.target.value);
                   setFormData({
                     ...formData,
                     certificate_type_id: e.target.value,
-                    certificate_type: selectedType ? selectedType.name : ''
+                    certificate_type: selectedType ? selectedType.name : '',
                   });
                 }}
-                label="Certificate Type"
+                label='Certificate Type'
               >
-                {certificateTypes.map((type) => (
+                {certificateTypes.map(type => (
                   <MenuItem key={type.id} value={type.id}>
-                    {type.name} - ₱{type.fee}
+                    {type.name}
                   </MenuItem>
                 ))}
               </Select>
@@ -235,16 +245,20 @@ const ResidentCertificates = () => {
               fullWidth
               multiline
               rows={3}
-              label="Purpose"
+              label='Purpose'
               value={formData.purpose}
-              onChange={(e) => setFormData({...formData, purpose: e.target.value})}
-              placeholder="E.g., For Employment, School Requirement"
+              onChange={e => setFormData({ ...formData, purpose: e.target.value })}
+              placeholder='E.g., For Employment, School Requirement'
             />
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained" disabled={!formData.certificate_type_id || !formData.purpose}>
+          <Button
+            onClick={handleSave}
+            variant='contained'
+            disabled={!formData.certificate_type_id || !formData.purpose}
+          >
             Submit Request
           </Button>
         </DialogActions>

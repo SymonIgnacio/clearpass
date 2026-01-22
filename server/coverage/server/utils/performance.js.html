@@ -175,19 +175,10 @@
 <a name='L110'></a><a href='#L110'>110</a>
 <a name='L111'></a><a href='#L111'>111</a>
 <a name='L112'></a><a href='#L112'>112</a>
-<a name='L113'></a><a href='#L113'>113</a>
-<a name='L114'></a><a href='#L114'>114</a>
-<a name='L115'></a><a href='#L115'>115</a>
-<a name='L116'></a><a href='#L116'>116</a>
-<a name='L117'></a><a href='#L117'>117</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L113'></a><a href='#L113'>113</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -244,6 +235,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -300,13 +292,8 @@
 // Performance logger
 const perfLogger = <span class="cstat-no" title="statement not covered" >winston.createLogger({</span>
   level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
-  transports: [
-    new winston.transports.File({ filename: 'logs/performance.log' })
-  ]
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+  transports: [new winston.transports.File({ filename: 'logs/performance.log' })],
 });
 &nbsp;
 // Query performance wrapper
@@ -315,17 +302,17 @@ const monitorQuery = <span class="cstat-no" title="statement not covered" ><span
 <span class="cstat-no" title="statement not covered" >  try {</span>
     const result = <span class="cstat-no" title="statement not covered" >await db.execute(query, params);</span>
     const duration = <span class="cstat-no" title="statement not covered" >Date.now() - start;</span>
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    if (duration &gt; 1000) {</span>
 <span class="cstat-no" title="statement not covered" >      perfLogger.warn({</span>
         type: 'SLOW_QUERY',
         label,
         duration,
         query: query.substring(0, 200),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    return result;</span>
   } catch (error) {
     const duration = <span class="cstat-no" title="statement not covered" >Date.now() - start;</span>
@@ -334,7 +321,7 @@ const monitorQuery = <span class="cstat-no" title="statement not covered" ><span
       label,
       duration,
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 <span class="cstat-no" title="statement not covered" >    throw error;</span>
   }
@@ -343,10 +330,10 @@ const monitorQuery = <span class="cstat-no" title="statement not covered" ><span
 // Request performance middleware
 const requestPerformance = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(r</span>eq, res, next) =&gt; {</span>
   const start = <span class="cstat-no" title="statement not covered" >Date.now();</span>
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  res.on('finish', <span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
     const duration = <span class="cstat-no" title="statement not covered" >Date.now() - start;</span>
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    if (duration &gt; 3000) {</span>
 <span class="cstat-no" title="statement not covered" >      perfLogger.warn({</span>
         type: 'SLOW_REQUEST',
@@ -354,44 +341,45 @@ const requestPerformance = <span class="cstat-no" title="statement not covered" 
         url: req.originalUrl,
         duration,
         statusCode: res.statusCode,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   });
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  next();</span>
 };
 &nbsp;
 // Cache utility (simple in-memory cache)
 class SimpleCache {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor(ttl = <span class="branch-0 cbranch-no" title="branch not covered" >300000)</span> { // 5 minutes default
+<span class="fstat-no" title="function not covered" >  co</span>nstructor(ttl = <span class="branch-0 cbranch-no" title="branch not covered" >300000)</span> {
+    // 5 minutes default
 <span class="cstat-no" title="statement not covered" >    this.cache = new Map();</span>
 <span class="cstat-no" title="statement not covered" >    this.ttl = ttl;</span>
   }
-  
+&nbsp;
 <span class="fstat-no" title="function not covered" >  ge</span>t(key) {
     const item = <span class="cstat-no" title="statement not covered" >this.cache.get(key);</span>
 <span class="cstat-no" title="statement not covered" >    if (!item) <span class="cstat-no" title="statement not covered" >return null;</span></span>
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    if (Date.now() &gt; item.expiry) {</span>
 <span class="cstat-no" title="statement not covered" >      this.cache.delete(key);</span>
 <span class="cstat-no" title="statement not covered" >      return null;</span>
     }
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    return item.value;</span>
   }
-  
+&nbsp;
 <span class="fstat-no" title="function not covered" >  se</span>t(key, value) {
 <span class="cstat-no" title="statement not covered" >    this.cache.set(key, {</span>
       value,
-      expiry: Date.now() + this.ttl
+      expiry: Date.now() + this.ttl,
     });
   }
-  
+&nbsp;
 <span class="fstat-no" title="function not covered" >  cl</span>ear() {
 <span class="cstat-no" title="statement not covered" >    this.cache.clear();</span>
   }
-  
+&nbsp;
 <span class="fstat-no" title="function not covered" >  de</span>lete(key) {
 <span class="cstat-no" title="statement not covered" >    this.cache.delete(key);</span>
   }
@@ -409,7 +397,7 @@ const residentCache = <span class="cstat-no" title="statement not covered" >new 
   SimpleCache,
   censusCache,
   residentCache,
-  perfLogger
+  perfLogger,
 };
 &nbsp;</pre></td></tr></table></pre>
 
@@ -418,7 +406,7 @@ const residentCache = <span class="cstat-no" title="statement not covered" >new 
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:38.155Z
+                at 2026-01-22T21:30:07.384Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

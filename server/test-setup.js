@@ -11,9 +11,11 @@ const originalConsoleWarn = console.warn;
 console.error = (...args) => {
   // Filter out common warnings that aren't test-related
   if (args[0] && typeof args[0] === 'string') {
-    if (args[0].includes('Warning: ReactDOM.render is no longer supported') ||
-        args[0].includes('Warning: ReactDOMTestUtils') ||
-        args[0].includes('Warning: useLayoutEffect')) {
+    if (
+      args[0].includes('Warning: ReactDOM.render is no longer supported') ||
+      args[0].includes('Warning: ReactDOMTestUtils') ||
+      args[0].includes('Warning: useLayoutEffect')
+    ) {
       return;
     }
   }
@@ -23,9 +25,11 @@ console.error = (...args) => {
 console.warn = (...args) => {
   // Filter out common warnings that aren't test-related
   if (args[0] && typeof args[0] === 'string') {
-    if (args[0].includes('Warning: ReactDOM.render is no longer supported') ||
-        args[0].includes('Warning: ReactDOMTestUtils') ||
-        args[0].includes('Warning: useLayoutEffect')) {
+    if (
+      args[0].includes('Warning: ReactDOM.render is no longer supported') ||
+      args[0].includes('Warning: ReactDOMTestUtils') ||
+      args[0].includes('Warning: useLayoutEffect')
+    ) {
       return;
     }
   }
@@ -47,11 +51,11 @@ afterEach(() => {
 // Global test utilities
 global.testUtils = {
   // Add any common test utilities here
-  wait: (ms) => new Promise(resolve => setTimeout(resolve, ms)),
+  wait: ms => new Promise(resolve => setTimeout(resolve, ms)),
   createMockResponse: (data = {}, status = 200) => ({
     ok: status >= 200 && status < 300,
     status,
     json: () => Promise.resolve(data),
-    text: () => Promise.resolve(JSON.stringify(data))
-  })
+    text: () => Promise.resolve(JSON.stringify(data)),
+  }),
 };

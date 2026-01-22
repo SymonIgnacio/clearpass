@@ -1,7 +1,7 @@
-exports.up = async function(knex) {
+exports.up = async function (knex) {
   const hasTable = await knex.schema.hasTable('announcements');
   if (!hasTable) {
-    await knex.schema.createTable('announcements', function(table) {
+    await knex.schema.createTable('announcements', function (table) {
       table.increments('id').primary();
       table.string('title', 255).notNullable();
       table.text('content').notNullable();
@@ -12,7 +12,7 @@ exports.up = async function(knex) {
       table.integer('created_by').unsigned().nullable();
       table.timestamp('created_at').defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.fn.now());
-      
+
       table.foreign('created_by').references('id').inTable('users').onDelete('SET NULL');
       table.index(['is_active', 'expires_at']);
       table.index('created_at');
@@ -20,6 +20,6 @@ exports.up = async function(knex) {
   }
 };
 
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTableIfExists('announcements');
 };

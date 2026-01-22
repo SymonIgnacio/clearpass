@@ -36,7 +36,7 @@ class BlotterComplaintController {
 
   async submitComplaint(req, res) {
     try {
-      const {
+      let {
         incident_type,
         narrative,
         incident_date,
@@ -47,6 +47,17 @@ class BlotterComplaintController {
         is_vulnerable,
         confidential_flag,
       } = req.body;
+
+      // Ensure no undefined values are passed to SQL
+      incident_type = incident_type || null;
+      narrative = narrative || null;
+      incident_date = incident_date || null;
+      incident_time = incident_time || null;
+      location_sitio = location_sitio || null;
+      respondent_name = respondent_name || null;
+      respondent_address = respondent_address || null;
+      is_vulnerable = is_vulnerable || false;
+      confidential_flag = confidential_flag || false;
 
       const resident_id = req.user.resident_id;
 
@@ -77,19 +88,22 @@ class BlotterComplaintController {
         ? {
             name: respondent_name,
             address: respondent_address || 'Not specified',
+            alias: respondent_alias || '',
+            contact: respondent_contact || '',
           }
         : null;
 
       await this.db.execute(
         `
         INSERT INTO blotter (
-          Case_Number, Complainant_Details, Respondent_Details,
+          Case_Number, Complainant_Details, complainant_resident_id, Respondent_Details,
           Incident_Type, Narrative, DateTime_Incident, Location_Sitio, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending')
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending')
       `,
         [
           case_number,
           JSON.stringify(complainant_details),
+          resident_id,
           JSON.stringify(respondent_details),
           incident_type,
           narrative,

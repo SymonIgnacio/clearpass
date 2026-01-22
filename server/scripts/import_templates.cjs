@@ -9,19 +9,19 @@ const TEMPLATE_DIR = path.join(__dirname, '../../Certificate Templates');
 
 // Map filenames (lowercase partials) to document types
 const TYPE_MAPPING = {
-  'clearance': 'barangay_clearance',
-  'bonafide': 'bonafide_certificate',
-  'building': 'building_permit',
+  clearance: 'barangay_clearance',
+  bonafide: 'bonafide_certificate',
+  building: 'building_permit',
   'closed biz': 'business_closure',
-  'cohabitation': 'cohabitation_certificate',
-  'excavation': 'excavation_permit',
-  'fencing': 'fencing_permit',
+  cohabitation: 'cohabitation_certificate',
+  excavation: 'excavation_permit',
+  fencing: 'fencing_permit',
   'good moral': 'good_moral_certificate',
-  'indigency': 'indigency_certificate',
+  indigency: 'indigency_certificate',
   'late registration': 'late_registration',
-  'ojt': 'ojt_certification',
-  'housing': 'low_income_housing',
-  'medico': 'medico_legal'
+  ojt: 'ojt_certification',
+  housing: 'low_income_housing',
+  medico: 'medico_legal',
 };
 
 async function checkDocxPlaceholders(buffer) {
@@ -49,7 +49,7 @@ async function checkPdfFields(buffer) {
 
 async function main() {
   console.log('Starting template import analysis...');
-  
+
   if (!fs.existsSync(TEMPLATE_DIR)) {
     console.error(`Directory not found: ${TEMPLATE_DIR}`);
     process.exit(1);
@@ -65,7 +65,7 @@ async function main() {
 
     const ext = path.extname(file).toLowerCase();
     const nameLower = path.basename(file, ext).toLowerCase();
-    
+
     // Determine document type
     let docType = null;
     for (const [key, type] of Object.entries(TYPE_MAPPING)) {
@@ -113,41 +113,39 @@ async function main() {
       docType,
       status,
       details,
-      placeholders
+      placeholders,
     });
 
     // Import to DB if recognized type and supported format
     if (docType && (ext === '.docx' || ext === '.pdf')) {
       try {
         // Check if exists
-        const existing = await db('document_templates')
-          .where('document_type', docType)
-          .first();
+        const existing = await db('document_templates').where('document_type', docType).first();
 
         const templateData = {
           template_name: `Imported: ${file}`,
           document_type: docType,
           template_content: JSON.stringify({ imported: true, original_file: file }),
           file_data: fileBuffer,
-          file_encoding: ext === '.pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          file_encoding:
+            ext === '.pdf'
+              ? 'application/pdf'
+              : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           original_filename: file,
           file_type: ext.substring(1),
           file_size: stats.size,
           is_active: true,
-          updated_at: new Date()
+          updated_at: new Date(),
         };
 
         if (existing) {
-            // Update existing
-            await db('document_templates')
-              .where('id', existing.id)
-              .update(templateData);
-            console.log(`UPDATED: ${docType} from ${file}`);
+          // Update existing
+          await db('document_templates').where('id', existing.id).update(templateData);
+          console.log(`UPDATED: ${docType} from ${file}`);
         } else {
-            // Insert new
-            await db('document_templates')
-              .insert(templateData);
-            console.log(`INSERTED: ${docType} from ${file}`);
+          // Insert new
+          await db('document_templates').insert(templateData);
+          console.log(`INSERTED: ${docType} from ${file}`);
         }
       } catch (err) {
         console.error(`Failed to import ${file}:`, err.message);
@@ -156,12 +154,14 @@ async function main() {
   }
 
   console.log('\n--- ANALYSIS REPORT ---');
-  console.table(results.map(r => ({
-    File: r.file,
-    Type: r.docType || 'UNKNOWN',
-    Status: r.status,
-    Details: r.details
-  })));
+  console.table(
+    results.map(r => ({
+      File: r.file,
+      Type: r.docType || 'UNKNOWN',
+      Status: r.status,
+      Details: r.details,
+    }))
+  );
 
   await db.destroy();
 }

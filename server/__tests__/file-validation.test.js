@@ -11,16 +11,16 @@ describe('📤 FILE UPLOAD TESTS', () => {
       const mockFile = {
         buffer: Buffer.from('mock excel data'),
         originalname: 'residents.xlsx',
-        mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       };
 
       const req = {
         file: mockFile,
-        app: { locals: { db: {} } }
+        app: { locals: { db: {} } },
       };
       const res = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       // Test file validation
@@ -31,12 +31,12 @@ describe('📤 FILE UPLOAD TESTS', () => {
     test('❌ Reject invalid file type', () => {
       const mockFile = {
         originalname: 'test.txt',
-        mimetype: 'text/plain'
+        mimetype: 'text/plain',
       };
 
       const allowedTypes = [
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-excel'
+        'application/vnd.ms-excel',
       ];
 
       expect(allowedTypes.includes(mockFile.mimetype)).toBe(false);
@@ -55,7 +55,7 @@ describe('📤 FILE UPLOAD TESTS', () => {
       const mockFile = {
         buffer: Buffer.from('mock pdf'),
         originalname: 'document.pdf',
-        mimetype: 'application/pdf'
+        mimetype: 'application/pdf',
       };
 
       const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
@@ -66,7 +66,7 @@ describe('📤 FILE UPLOAD TESTS', () => {
       const mockFile = {
         buffer: Buffer.from('mock image'),
         originalname: 'id.jpg',
-        mimetype: 'image/jpeg'
+        mimetype: 'image/jpeg',
       };
 
       const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
@@ -76,7 +76,7 @@ describe('📤 FILE UPLOAD TESTS', () => {
     test('❌ Reject executable files', () => {
       const mockFile = {
         originalname: 'virus.exe',
-        mimetype: 'application/x-msdownload'
+        mimetype: 'application/x-msdownload',
       };
 
       const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
@@ -87,7 +87,7 @@ describe('📤 FILE UPLOAD TESTS', () => {
   describe('BLOB Storage', () => {
     test('✅ Store file in memory buffer', () => {
       const fileData = Buffer.from('test file content');
-      
+
       expect(fileData).toBeInstanceOf(Buffer);
       expect(fileData.length).toBeGreaterThan(0);
     });
@@ -95,7 +95,7 @@ describe('📤 FILE UPLOAD TESTS', () => {
     test('✅ Convert buffer to base64', () => {
       const fileData = Buffer.from('test');
       const base64 = fileData.toString('base64');
-      
+
       expect(base64).toBe('dGVzdA==');
     });
   });
@@ -108,7 +108,7 @@ describe('✅ INPUT VALIDATION TESTS', () => {
         First_Name: 'Juan',
         Last_Name: 'Dela Cruz',
         Birthdate: '1990-01-01',
-        Gender: 'Male'
+        Gender: 'Male',
       };
 
       expect(data.First_Name).toBeTruthy();
@@ -119,7 +119,7 @@ describe('✅ INPUT VALIDATION TESTS', () => {
 
     test('❌ Missing required fields fails', () => {
       const data = {
-        First_Name: 'Juan'
+        First_Name: 'Juan',
         // Missing Last_Name, Birthdate, Gender
       };
 
@@ -153,7 +153,7 @@ describe('✅ INPUT VALIDATION TESTS', () => {
         Complainant_Details: { name: 'John Doe' },
         Incident_Type: 'Theft',
         Narrative: 'Description of incident',
-        Location_Sitio: 'Batia'
+        Location_Sitio: 'Batia',
       };
 
       expect(data.Complainant_Details).toBeTruthy();
@@ -167,7 +167,7 @@ describe('✅ INPUT VALIDATION TESTS', () => {
         Complainant_Details: { name: 'John' },
         Incident_Type: 'Theft',
         Narrative: '',
-        Location_Sitio: 'Batia'
+        Location_Sitio: 'Batia',
       };
 
       expect(data.Narrative.trim().length).toBe(0);
@@ -179,7 +179,7 @@ describe('✅ INPUT VALIDATION TESTS', () => {
       const data = {
         resident_id: 1,
         certificate_type_id: 1,
-        purpose: 'Employment purposes'
+        purpose: 'Employment purposes',
       };
 
       expect(data.resident_id).toBeGreaterThan(0);
@@ -226,7 +226,7 @@ describe('✅ INPUT VALIDATION TESTS', () => {
 
     test('✅ Strong password validation', () => {
       const strongPasswords = ['Pass123!', 'Admin@2024', 'Secure#Pass1'];
-      
+
       strongPasswords.forEach(password => {
         expect(password.length).toBeGreaterThanOrEqual(8);
         expect(/[A-Z]/.test(password)).toBe(true);
@@ -237,13 +237,13 @@ describe('✅ INPUT VALIDATION TESTS', () => {
 
     test('❌ Weak password validation', () => {
       const weakPasswords = ['pass', '12345678', 'password'];
-      
+
       weakPasswords.forEach(password => {
         const hasUpper = /[A-Z]/.test(password);
         const hasLower = /[a-z]/.test(password);
         const hasNumber = /[0-9]/.test(password);
         const isStrong = hasUpper && hasLower && hasNumber && password.length >= 8;
-        
+
         expect(isStrong).toBe(false);
       });
     });
@@ -251,11 +251,7 @@ describe('✅ INPUT VALIDATION TESTS', () => {
 
   describe('Email Validation', () => {
     test('✅ Valid email formats', () => {
-      const validEmails = [
-        'user@example.com',
-        'john.doe@company.co.uk',
-        'admin+test@domain.org'
-      ];
+      const validEmails = ['user@example.com', 'john.doe@company.co.uk', 'admin+test@domain.org'];
       const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
       validEmails.forEach(email => {
@@ -264,12 +260,7 @@ describe('✅ INPUT VALIDATION TESTS', () => {
     });
 
     test('❌ Invalid email formats', () => {
-      const invalidEmails = [
-        'notanemail',
-        '@example.com',
-        'user@',
-        'user @example.com'
-      ];
+      const invalidEmails = ['notanemail', '@example.com', 'user@', 'user @example.com'];
       const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
       invalidEmails.forEach(email => {
@@ -280,11 +271,7 @@ describe('✅ INPUT VALIDATION TESTS', () => {
 
   describe('Phone Number Validation', () => {
     test('✅ Valid Philippine mobile numbers', () => {
-      const validNumbers = [
-        '09171234567',
-        '+639171234567',
-        '639171234567'
-      ];
+      const validNumbers = ['09171234567', '+639171234567', '639171234567'];
       const pattern = /^(\+63|63|0)[0-9]{10}$/;
 
       validNumbers.forEach(number => {
@@ -293,12 +280,7 @@ describe('✅ INPUT VALIDATION TESTS', () => {
     });
 
     test('❌ Invalid phone numbers', () => {
-      const invalidNumbers = [
-        '12345',
-        '09171234',
-        'abcdefghijk',
-        '091712345678'
-      ];
+      const invalidNumbers = ['12345', '09171234', 'abcdefghijk', '091712345678'];
       const pattern = /^(\+63|63|0)[0-9]{10}$/;
 
       invalidNumbers.forEach(number => {
@@ -330,18 +312,18 @@ describe('🔒 XSS & INJECTION PREVENTION TESTS', () => {
 
   describe('SQL Injection Prevention', () => {
     test('✅ Parameterized queries prevent injection', () => {
-      const userInput = "1 OR 1=1";
-      const query = "SELECT * FROM users WHERE id = ?";
-      
+      const userInput = '1 OR 1=1';
+      const query = 'SELECT * FROM users WHERE id = ?';
+
       // Parameterized queries treat input as data, not code
       expect(query).toContain('?');
       expect(query).not.toContain(userInput);
     });
 
     test('❌ String concatenation is vulnerable', () => {
-      const userInput = "1 OR 1=1";
+      const userInput = '1 OR 1=1';
       const vulnerableQuery = `SELECT * FROM users WHERE id = ${userInput}`;
-      
+
       expect(vulnerableQuery).toContain('OR 1=1');
     });
   });
@@ -352,7 +334,7 @@ describe('📊 DATA INTEGRITY TESTS', () => {
     test('✅ Serialize complex objects', () => {
       const data = {
         name: 'John Doe',
-        details: { age: 30, address: '123 Main St' }
+        details: { age: 30, address: '123 Main St' },
       };
       const serialized = JSON.stringify(data);
       const deserialized = JSON.parse(serialized);

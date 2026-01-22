@@ -17,14 +17,19 @@ const mockStaff = [
 
 const mockRoles = [
   { id: 1, role_name: 'Admin', description: 'Administrator', permissions: { users: ['read'] } },
-  { id: 2, role_name: 'Clerk', description: 'Clerk', permissions: { residents: ['read', 'create'] } },
+  {
+    id: 2,
+    role_name: 'Clerk',
+    description: 'Clerk',
+    permissions: { residents: ['read', 'create'] },
+  },
 ];
 
 describe('StaffManagement Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    apiModule.apiRequest.mockImplementation((url) => {
+    apiModule.apiRequest.mockImplementation(url => {
       console.log('Mock apiRequest called with:', url);
       if (url.includes('admin/staff')) {
         return Promise.resolve({
@@ -51,7 +56,7 @@ describe('StaffManagement Page', () => {
     render(<StaffManagement />);
 
     expect(screen.getByText('Staff Directory')).toBeInTheDocument();
-    
+
     await waitFor(() => {
       expect(screen.getByText('staff1')).toBeInTheDocument();
       expect(screen.getByText('staff2')).toBeInTheDocument();
@@ -72,7 +77,7 @@ describe('StaffManagement Page', () => {
     render(<StaffManagement />);
 
     await user.click(screen.getByRole('button', { name: /add staff/i }));
-    
+
     // In Wizard, first step is Account Details. Click Next without filling.
     const nextButton = screen.getByRole('button', { name: /next/i });
     await user.click(nextButton);
@@ -98,10 +103,10 @@ describe('StaffManagement Page', () => {
 
     // Switch to Role Management
     await user.click(screen.getByRole('tab', { name: /role management/i }));
-    
+
     // Wait for tab switch
     await waitFor(() => {
-        expect(screen.getByTestId('role-grid')).toBeInTheDocument();
+      expect(screen.getByTestId('role-grid')).toBeInTheDocument();
     });
 
     // Click Add Role button
@@ -109,21 +114,23 @@ describe('StaffManagement Page', () => {
 
     // Wait for dialog
     await waitFor(() => {
-        expect(screen.getByRole('heading', { name: /create new role/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /create new role/i })).toBeInTheDocument();
     });
-    
+
     // Check if permission modules are visible
     expect(screen.getByText('Residents Management')).toBeInTheDocument();
-    
+
     // Open an accordion
-    const residentsAccordion = screen.getByText('Residents Management').closest('.MuiAccordion-root');
+    const residentsAccordion = screen
+      .getByText('Residents Management')
+      .closest('.MuiAccordion-root');
     const summary = within(residentsAccordion).getByRole('button');
     await user.click(summary);
-    
+
     // Check for permission checkboxes within this accordion
     await waitFor(() => {
-        expect(within(residentsAccordion).getByLabelText('View')).toBeInTheDocument();
-        expect(within(residentsAccordion).getByLabelText('Create')).toBeInTheDocument();
+      expect(within(residentsAccordion).getByLabelText('View')).toBeInTheDocument();
+      expect(within(residentsAccordion).getByLabelText('Create')).toBeInTheDocument();
     });
   });
 });

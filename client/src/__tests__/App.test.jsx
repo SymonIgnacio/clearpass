@@ -10,26 +10,34 @@ vi.mock('../utils/api', () => ({
   apiRequest: vi.fn(),
 }));
 
-vi.mock('../components/Sidebar', () => ({ default: () => <div data-testid="sidebar" /> }));
-vi.mock('../components/Header', () => ({ default: () => <div data-testid="header" /> }));
+vi.mock('../components/Sidebar', () => ({ default: () => <div data-testid='sidebar' /> }));
+vi.mock('../components/Header', () => ({ default: () => <div data-testid='header' /> }));
 vi.mock('../components/AppShell', () => ({
   default: ({ children }) => (
-    <div data-testid="app-shell">
-      <div data-testid="sidebar" />
-      <div data-testid="header" />
+    <div data-testid='app-shell'>
+      <div data-testid='sidebar' />
+      <div data-testid='header' />
       {children}
     </div>
   ),
 }));
 
-vi.mock('../pages/Login', () => ({ default: () => <div data-testid="login-page" /> }));
-vi.mock('../pages/ResidentLogin', () => ({ default: () => <div data-testid="resident-login-page" /> }));
-vi.mock('../pages/ResidentRegister', () => ({ default: () => <div data-testid="resident-register-page" /> }));
-vi.mock('../pages/OfficerLogin', () => ({ default: () => <div data-testid="officer-login-page" /> }));
-vi.mock('../pages/Unauthorized', () => ({ default: () => <div data-testid="unauthorized-page" /> }));
-vi.mock('../pages/MfaOtp', () => ({ default: () => <div data-testid="mfa-otp-page" /> }));
+vi.mock('../pages/Login', () => ({ default: () => <div data-testid='login-page' /> }));
+vi.mock('../pages/ResidentLogin', () => ({
+  default: () => <div data-testid='resident-login-page' />,
+}));
+vi.mock('../pages/ResidentRegister', () => ({
+  default: () => <div data-testid='resident-register-page' />,
+}));
+vi.mock('../pages/OfficerLogin', () => ({
+  default: () => <div data-testid='officer-login-page' />,
+}));
+vi.mock('../pages/Unauthorized', () => ({
+  default: () => <div data-testid='unauthorized-page' />,
+}));
+vi.mock('../pages/MfaOtp', () => ({ default: () => <div data-testid='mfa-otp-page' /> }));
 
-vi.mock('../pages/Dashboard', () => ({ default: () => <div data-testid="dashboard-page" /> }));
+vi.mock('../pages/Dashboard', () => ({ default: () => <div data-testid='dashboard-page' /> }));
 
 import { api } from '../utils/api';
 import { ThemeModeProvider } from '../contexts/ThemeModeContext.jsx';

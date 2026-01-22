@@ -1,9 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -87,15 +84,22 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['"Google Sans"', 'Roboto', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        sans: [
+          '"Google Sans"',
+          'Roboto',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'sans-serif',
+        ],
       },
       borderRadius: {
         '4xl': '2rem',
       },
       boxShadow: {
-        'soft': '0 2px 15px rgba(0, 0, 0, 0.08)',
-        'medium': '0 4px 25px rgba(0, 0, 0, 0.12)',
-        'large': '0 8px 40px rgba(0, 0, 0, 0.16)',
+        soft: '0 2px 15px rgba(0, 0, 0, 0.08)',
+        medium: '0 4px 25px rgba(0, 0, 0, 0.12)',
+        large: '0 8px 40px rgba(0, 0, 0, 0.16)',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
@@ -118,13 +122,13 @@ export default {
       },
     },
     screens: {
-      'xs': '475px',
-      'sm': '640px',
-      'md': '768px',
-      'lg': '1024px',
-      'xl': '1280px',
+      xs: '475px',
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
       '2xl': '1536px',
     },
   },
   plugins: [],
-}
+};

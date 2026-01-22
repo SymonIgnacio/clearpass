@@ -106,24 +106,13 @@
 <a name='L41'></a><a href='#L41'>41</a>
 <a name='L42'></a><a href='#L42'>42</a>
 <a name='L43'></a><a href='#L43'>43</a>
-<a name='L44'></a><a href='#L44'>44</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -134,6 +123,21 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -150,34 +154,36 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >exports.up = <span class="fstat-no" title="function not covered" >fu</span>nction (knex) {</span>
-<span class="cstat-no" title="statement not covered" >  return knex.schema</span>
-    // ==========================================
-    // ACCOUNT HIERARCHY SYSTEM
-    // ==========================================
+<span class="cstat-no" title="statement not covered" >  return (</span>
+    knex.schema
+      // ==========================================
+      // ACCOUNT HIERARCHY SYSTEM
+      // ==========================================
 &nbsp;
-    // Create roles table
-    .createTable('roles', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {
-<span class="cstat-no" title="statement not covered" >      table.increments('id').primary();</span>
-<span class="cstat-no" title="statement not covered" >      table.string('role_name', 100).notNullable().unique();</span>
-<span class="cstat-no" title="statement not covered" >      table.text('description');</span>
-<span class="cstat-no" title="statement not covered" >      table.integer('hierarchy_level').notNullable().defaultTo(0); </span>// Higher number = higher authority
-<span class="cstat-no" title="statement not covered" >      table.json('permissions').nullable(); </span>// JSON array of permissions
-<span class="cstat-no" title="statement not covered" >      table.boolean('is_active').defaultTo(true);</span>
-<span class="cstat-no" title="statement not covered" >      table.timestamp('created_at').defaultTo(knex.fn.now());</span>
-<span class="cstat-no" title="statement not covered" >      table.timestamp('updated_at').defaultTo(knex.fn.now());</span>
-<span class="cstat-no" title="statement not covered" >      table.index('role_name');</span>
-<span class="cstat-no" title="statement not covered" >      table.index('hierarchy_level');</span>
-    })
+      // Create roles table
+      .createTable('roles', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {
+<span class="cstat-no" title="statement not covered" >        table.increments('id').primary();</span>
+<span class="cstat-no" title="statement not covered" >        table.string('role_name', 100).notNullable().unique();</span>
+<span class="cstat-no" title="statement not covered" >        table.text('description');</span>
+<span class="cstat-no" title="statement not covered" >        table.integer('hierarchy_level').notNullable().defaultTo(0); </span>// Higher number = higher authority
+<span class="cstat-no" title="statement not covered" >        table.json('permissions').nullable(); </span>// JSON array of permissions
+<span class="cstat-no" title="statement not covered" >        table.boolean('is_active').defaultTo(true);</span>
+<span class="cstat-no" title="statement not covered" >        table.timestamp('created_at').defaultTo(knex.fn.now());</span>
+<span class="cstat-no" title="statement not covered" >        table.timestamp('updated_at').defaultTo(knex.fn.now());</span>
+<span class="cstat-no" title="statement not covered" >        table.index('role_name');</span>
+<span class="cstat-no" title="statement not covered" >        table.index('hierarchy_level');</span>
+      })
 &nbsp;
-    // Modify users table to add hierarchy
-    .alterTable('users', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {
-<span class="cstat-no" title="statement not covered" >      table.integer('parent_user_id').nullable().unsigned();</span>
-<span class="cstat-no" title="statement not covered" >      table.integer('role_id').nullable().unsigned();</span>
-<span class="cstat-no" title="statement not covered" >      table.foreign('parent_user_id').references('id').inTable('users');</span>
-<span class="cstat-no" title="statement not covered" >      table.foreign('role_id').references('id').inTable('roles');</span>
-<span class="cstat-no" title="statement not covered" >      table.index('parent_user_id');</span>
-<span class="cstat-no" title="statement not covered" >      table.index('role_id');</span>
-    });
+      // Modify users table to add hierarchy
+      .alterTable('users', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {
+<span class="cstat-no" title="statement not covered" >        table.integer('parent_user_id').nullable().unsigned();</span>
+<span class="cstat-no" title="statement not covered" >        table.integer('role_id').nullable().unsigned();</span>
+<span class="cstat-no" title="statement not covered" >        table.foreign('parent_user_id').references('id').inTable('users');</span>
+<span class="cstat-no" title="statement not covered" >        table.foreign('role_id').references('id').inTable('roles');</span>
+<span class="cstat-no" title="statement not covered" >        table.index('parent_user_id');</span>
+<span class="cstat-no" title="statement not covered" >        table.index('role_id');</span>
+      })
+  );
 };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >exports.down = <span class="fstat-no" title="function not covered" >fu</span>nction (knex) {</span>
@@ -199,7 +205,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:38.155Z
+                at 2026-01-22T21:30:07.384Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

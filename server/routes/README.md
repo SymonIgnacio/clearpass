@@ -5,6 +5,7 @@ This directory contains modular route definitions following Express Router patte
 ## Route Files
 
 ### adminRoutes.js
+
 - **Base Path**: `/api/admin`
 - **Controller**: adminController
 - **Authentication**: Required (Admin, Captain roles)
@@ -18,6 +19,7 @@ This directory contains modular route definitions following Express Router patte
   - `GET /security` - Security audit logs
 
 ### residentRoutes.js
+
 - **Base Path**: `/api/residents`
 - **Controller**: residentController
 - **Authentication**: Required (Admin, Captain, Clerk roles)
@@ -33,6 +35,7 @@ This directory contains modular route definitions following Express Router patte
   - `GET /household/:id/members` - Get household members
 
 ### certificateRoutes.js
+
 - **Base Path**: `/api/certificates`
 - **Controller**: certificateController
 - **Authentication**: Required
@@ -40,6 +43,7 @@ This directory contains modular route definitions following Express Router patte
   - `GET /` - List certificates (role-based filtering)
 
 ### blotterRoutes.js
+
 - **Base Path**: `/api/blotter`
 - **Controller**: blotterController
 - **Authentication**: Required (Admin, Captain, Clerk roles)
@@ -50,6 +54,7 @@ This directory contains modular route definitions following Express Router patte
   - `DELETE /:id` - Delete case
 
 ### censusRoutes.js
+
 - **Base Path**: `/api/census`
 - **Authentication**: Required
 - **Endpoints**:
@@ -58,6 +63,7 @@ This directory contains modular route definitions following Express Router patte
   - `GET /vulnerable-groups` - Vulnerable population data
 
 ### userRoutes.js
+
 - **Base Path**: `/api/users`
 - **Controller**: userController
 - **Authentication**: Required (Admin role)
@@ -80,17 +86,9 @@ const router = express.Router();
 const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const controller = require('../controllers/controllerName');
 
-router.get('/',
-  verifyToken,
-  checkRole(['admin', 'captain', 'clerk']),
-  controller.getAll
-);
+router.get('/', verifyToken, checkRole(['admin', 'captain', 'clerk']), controller.getAll);
 
-router.post('/',
-  verifyToken,
-  checkRole(['admin', 'clerk']),
-  controller.create
-);
+router.post('/', verifyToken, checkRole(['admin', 'clerk']), controller.create);
 
 module.exports = router;
 ```
@@ -98,6 +96,7 @@ module.exports = router;
 ## Middleware Stack
 
 Routes use these middleware layers:
+
 1. **verifyToken**: JWT authentication
 2. **checkRole**: Role-based authorization
 3. **validation**: Input validation (where applicable)
@@ -105,12 +104,12 @@ Routes use these middleware layers:
 
 ## Role-Based Access
 
-| Role | Permissions |
-|------|-------------|
-| **Admin** | Full system access |
-| **Captain** | View all data, approve operations |
-| **Clerk** | Manage residents, issue certificates |
-| **Resident** | View own data only |
+| Role         | Permissions                          |
+| ------------ | ------------------------------------ |
+| **Admin**    | Full system access                   |
+| **Captain**  | View all data, approve operations    |
+| **Clerk**    | Manage residents, issue certificates |
+| **Resident** | View own data only                   |
 
 ## Mounting in index.js
 
@@ -128,6 +127,7 @@ app.use('/api/users', userRoutes);
 ## API Documentation
 
 Full API documentation available at:
+
 - Swagger UI: `/api-docs`
 - Markdown: `docs/API_DOCUMENTATION.md`
 

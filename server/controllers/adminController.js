@@ -17,7 +17,7 @@ exports.getAllUsers = async (req, res) => {
         'u.role',
         'u.is_active',
         'u.created_at',
-        knex.raw("COALESCE(r.role_name, CONCAT('Role ', u.role)) as role_name")
+        knex.raw("COALESCE(r.role_name, CONCAT('Role ', u.role)) as role_name"),
       ])
       .leftJoin('roles as r', 'u.role', 'r.id')
       .orderBy(['u.role', 'u.username']);
@@ -47,7 +47,7 @@ exports.createUser = async (req, res) => {
 
     const normalizedRole = role ?? role_id;
     const roleNum = Number.parseInt(normalizedRole, 10);
-    
+
     if (!Number.isFinite(roleNum)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
@@ -59,7 +59,7 @@ exports.createUser = async (req, res) => {
       password_hash: hashedPassword,
       role: roleNum,
       is_active,
-      created_at: knex.fn.now()
+      created_at: knex.fn.now(),
     });
 
     res.status(201).json({ message: 'User created successfully', id: insertId });
@@ -77,13 +77,13 @@ exports.updateUser = async (req, res) => {
     const full_name = `${first_name || ''} ${last_name || ''}`.trim();
     const normalizedRole = role ?? role_id;
     const roleNum = Number.parseInt(normalizedRole, 10);
-    
+
     if (!Number.isFinite(roleNum)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
 
     const updateObj = {
-      updated_at: knex.fn.now()
+      updated_at: knex.fn.now(),
     };
 
     if (username !== undefined) updateObj.username = username;
@@ -122,7 +122,7 @@ exports.deleteUser = async (req, res) => {
         .status(403)
         .json({ error: 'Access denied. You cannot delete a user with higher authority.' });
     }
-    // Prevent self-deletion if needed, though typically handled by UI. 
+    // Prevent self-deletion if needed, though typically handled by UI.
     // Ideally, peers can delete peers (level === level), but subordinates cannot delete superiors.
 
     await knex('users').where('id', id).del();
@@ -145,7 +145,7 @@ exports.getAllStaff = async (req, res) => {
         'u.role',
         'u.is_active',
         'u.created_at',
-        knex.raw("COALESCE(r.role_name, CONCAT('Role ', u.role)) as role_name")
+        knex.raw("COALESCE(r.role_name, CONCAT('Role ', u.role)) as role_name"),
       ])
       .leftJoin('roles as r', 'u.role', 'r.id')
       .whereNot('u.role', ROLES.RESIDENT)
@@ -159,7 +159,7 @@ exports.getAllStaff = async (req, res) => {
 };
 
 // Helper to get hierarchy level
-const getRoleLevel = async (roleId) => {
+const getRoleLevel = async roleId => {
   const rows = await knex('roles').select('hierarchy_level').where('id', roleId);
   return rows.length > 0 ? rows[0].hierarchy_level : 999; // Default to lowest priority if not found
 };
@@ -213,7 +213,7 @@ exports.createStaff = async (req, res) => {
       password_hash: hashedPassword,
       role: roleNum,
       is_active,
-      created_at: knex.fn.now()
+      created_at: knex.fn.now(),
     });
 
     res.status(201).json({ message: 'Staff created successfully' });
@@ -267,7 +267,7 @@ exports.updateStaff = async (req, res) => {
       full_name,
       role: roleNum,
       is_active,
-      updated_at: knex.fn.now()
+      updated_at: knex.fn.now(),
     };
 
     if (password) {
@@ -301,10 +301,7 @@ exports.deleteStaff = async (req, res) => {
         .json({ error: 'Access denied. You cannot delete a user with higher authority.' });
     }
 
-    await knex('users')
-      .where('id', id)
-      .whereNot('role', ROLES.RESIDENT)
-      .del();
+    await knex('users').where('id', id).whereNot('role', ROLES.RESIDENT).del();
     res.json({ message: 'Staff deleted successfully' });
   } catch (error) {
     console.error('Error deleting staff:', error);
@@ -324,7 +321,7 @@ exports.getResidentsForVerification = async (req, res) => {
         'v.Is_PWD',
         'v.Is_Senior',
         'v.Is_Solo_Parent',
-        'v.Vulnerability_Score'
+        'v.Vulnerability_Score',
       ])
       .leftJoin('households as h', 'r.Household_ID', 'h.Household_ID')
       .leftJoin('sitios as s', 'h.Sitio_ID', 's.id')
@@ -347,27 +344,23 @@ exports.verifyResident = async (req, res) => {
   try {
     if (verification_type === 'residency') {
       // 1. Update Resident Status
-      await trx('residents')
-        .where('Resident_ID', id)
-        .update({
-          Residency_Status: 'Active',
-          updated_at: knex.fn.now()
-        });
-      
+      await trx('residents').where('Resident_ID', id).update({
+        Residency_Status: 'Active',
+        updated_at: knex.fn.now(),
+      });
+
       // 2. Promote User Role (Guest -> Resident)
-      await trx('users')
-        .where('resident_id', id)
-        .update({ role: ROLES.RESIDENT });
+      await trx('users').where('resident_id', id).update({ role: ROLES.RESIDENT });
 
       // 3. Update Related Documents (Fix for "Approved but Pending" issue)
       // Update resident_documents
       await trx('resident_documents')
         .where('resident_id', id)
         .andWhere('verification_status', 'Pending')
-        .update({ 
-            verification_status: 'Approved',
-            reviewed_by: req.user.id,
-            reviewed_at: knex.fn.now()
+        .update({
+          verification_status: 'Approved',
+          reviewed_by: req.user.id,
+          reviewed_at: knex.fn.now(),
         });
 
       // Update application_documents (if linked via application)
@@ -376,21 +369,21 @@ exports.verifyResident = async (req, res) => {
         .where('resident_id', id)
         .orderBy('created_at', 'desc')
         .first();
-        
+
       if (application) {
-          await trx('application_documents')
-            .where('application_id', application.application_id)
-            .andWhere('verification_status', 'Pending')
-            .update({
-                verification_status: 'Approved',
-                reviewed_by: req.user.id,
-                reviewed_at: knex.fn.now()
-            });
-            
-          // Also mark application as Approved
-          await trx('resident_applications')
-            .where('application_id', application.application_id)
-            .update({ status: 'Approved' });
+        await trx('application_documents')
+          .where('application_id', application.application_id)
+          .andWhere('verification_status', 'Pending')
+          .update({
+            verification_status: 'Approved',
+            reviewed_by: req.user.id,
+            reviewed_at: knex.fn.now(),
+          });
+
+        // Also mark application as Approved
+        await trx('resident_applications')
+          .where('application_id', application.application_id)
+          .update({ status: 'Approved' });
       }
 
       // 4. Send Notification
@@ -410,14 +403,11 @@ exports.verifyResident = async (req, res) => {
       } catch (notifError) {
         console.error('Failed to send verification notification:', notifError);
       }
-        
     } else if (verification_type === 'vulnerability') {
-      await trx('vulnerabilities')
-        .where('Resident_ID', id)
-        .update({
-          verified_at: knex.fn.now(),
-          verified_by: req.user.id
-        });
+      await trx('vulnerabilities').where('Resident_ID', id).update({
+        verified_at: knex.fn.now(),
+        verified_by: req.user.id,
+      });
     }
 
     await trx.commit();
@@ -446,7 +436,7 @@ exports.createRole = async (req, res) => {
       role_name,
       description,
       hierarchy_level,
-      permissions: JSON.stringify(permissions)
+      permissions: JSON.stringify(permissions),
     });
     res.status(201).json({ message: 'Role created successfully' });
   } catch (error) {
@@ -465,7 +455,7 @@ exports.updateRole = async (req, res) => {
         role_name,
         description,
         hierarchy_level,
-        permissions: JSON.stringify(permissions)
+        permissions: JSON.stringify(permissions),
       });
     res.json({ message: 'Role updated successfully' });
   } catch (error) {
@@ -633,9 +623,13 @@ exports.getCertificatesReport = async (req, res) => {
     const [certStats] = await knex.raw(`
       SELECT COUNT(*) as total_certificates, COUNT(DISTINCT certificate_type) as unique_types,
         SUM(CASE WHEN status = 'Released' THEN 1 ELSE 0 END) as released_certificates,
-        SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending_certificates,
         AVG(DATEDIFF(CURDATE(), DATE(date_issued))) as avg_certificate_age_days
       FROM certificates_log WHERE date_issued IS NOT NULL
+    `);
+
+    // Fetch pending requests from document_requests table
+    const [pendingReqs] = await knex.raw(`
+        SELECT COUNT(*) as count FROM document_requests WHERE status = 'pending'
     `);
 
     const [certTypes] = await knex.raw(`
@@ -654,8 +648,22 @@ exports.getCertificatesReport = async (req, res) => {
       ORDER BY year DESC, month DESC
     `);
 
-    // Column issued_by does not exist in certificates_log
-    const topIssuers = [];
+    // Top Issuers from Audit Logs
+    let topIssuers = [];
+    try {
+      const [issuers] = await knex.raw(`
+            SELECT u.full_name, u.username, COUNT(*) as issued_count
+            FROM audit_logs a
+            JOIN users u ON a.user_id = u.id
+            WHERE a.entity_type = 'certificate' AND a.action LIKE '%Issued%'
+            GROUP BY u.id, u.full_name, u.username
+            ORDER BY issued_count DESC
+            LIMIT 5
+        `);
+      topIssuers = issuers;
+    } catch (e) {
+      console.warn('Failed to fetch top issuers from audit logs:', e);
+    }
 
     const stats = certStats[0];
     res.json({
@@ -663,7 +671,7 @@ exports.getCertificatesReport = async (req, res) => {
         total_certificates: stats.total_certificates || 0,
         unique_types: stats.unique_types || 0,
         released_certificates: stats.released_certificates || 0,
-        pending_certificates: stats.pending_certificates || 0,
+        pending_certificates: pendingReqs[0].count || 0,
         recent_certificates: recentCerts[0].recent_certificates || 0,
         avg_certificate_age_days: Math.round(stats.avg_certificate_age_days || 0),
       },
@@ -1445,30 +1453,104 @@ exports.generatePDFReport = async (req, res) => {
         doc.text(`[${new Date(l.created_at).toLocaleString()}] ${l.event_type} - ${l.ip_address}`);
       });
     } else if (type === 'ai') {
-      drawHeader('AI Insights Report');
+      const reportType = req.query.report_type || 'incident_analysis';
+      drawHeader(`AI Analytics: ${reportType.replace(/_/g, ' ').toUpperCase()}`);
 
-      let aiData = {};
-      try {
-        const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:5001';
-        const response = await axios.get(`${aiUrl}/analytics/general`);
-        aiData = response.data;
-      } catch (e) {
-        console.error('Failed to fetch AI data for PDF', e.message);
-        aiData = { error: 'AI Service Unavailable' };
+      // 1. Dashboard Summary Data
+      const [activeCases] = await knex.raw(`
+        SELECT COUNT(*) as count 
+        FROM blotter 
+        WHERE Status IN ('Pending', 'Active', 'Under Investigation', 'Hearing Scheduled')
+      `);
+
+      const [incidents30d] = await knex.raw(`
+        SELECT COUNT(*) as count 
+        FROM blotter 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      `);
+
+      const [highRiskAreas] = await knex.raw(`
+        SELECT Location_Sitio, COUNT(*) as count 
+        FROM blotter 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        GROUP BY Location_Sitio 
+        ORDER BY count DESC 
+        LIMIT 5
+      `);
+
+      doc.fontSize(12).text('Dashboard Overview', { underline: true });
+      doc.moveDown(0.5);
+      doc.text(`Active Cases: ${activeCases[0].count}`);
+      doc.text(`Total Incidents (30d): ${incidents30d[0].count}`);
+      doc.moveDown();
+
+      // 2. High Risk Areas
+      if (highRiskAreas.length > 0) {
+        doc.text('High Risk Areas (Top 5):');
+        highRiskAreas.forEach((area, i) => {
+          doc.text(`${i + 1}. ${area.Location_Sitio} - ${area.count} incidents`);
+        });
+        doc.moveDown();
       }
 
-      if (aiData.error) {
-        doc.fillColor('red').text(`Status: ${aiData.error}`);
-        doc.fillColor('black');
-      } else {
-        doc.text(`Model Accuracy: ${aiData.model_accuracy || 'N/A'}`);
-        doc.text(`Predictions Count: ${aiData.predictions_count || 'N/A'}`);
+      // 3. Report Specific Data
+      if (reportType === 'incident_analysis' || reportType === 'trend_analysis') {
+        doc.text('Incident Trends (Last 30 Days)', { underline: true });
         doc.moveDown();
 
-        if (aiData.recent_alerts) {
-          doc.text('Recent Alerts:', { underline: true });
-          aiData.recent_alerts.forEach(alert => doc.text(`- ${alert}`));
+        const [dailyTrends] = await knex.raw(`
+          SELECT DATE(created_at) as date, COUNT(*) as count 
+          FROM blotter 
+          WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+          GROUP BY DATE(created_at) 
+          ORDER BY date DESC
+        `);
+
+        dailyTrends.forEach(d => {
+          doc.text(`${new Date(d.date).toLocaleDateString()}: ${d.count} incidents`);
+        });
+      } else if (reportType === 'predictive_forecast') {
+        doc.text('Predictive Forecast & Patterns', { underline: true });
+        doc.moveDown();
+        doc.text('Based on historical data analysis (Last 90 Days):');
+        doc.moveDown();
+
+        // Hourly Patterns
+        const [peakHours] = await knex.raw(`
+          SELECT HOUR(DateTime_Incident) as hour, COUNT(*) as count 
+          FROM blotter 
+          WHERE created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)
+          AND DateTime_Incident IS NOT NULL
+          GROUP BY hour 
+          ORDER BY count DESC 
+          LIMIT 3
+        `);
+
+        if (peakHours.length > 0) {
+          doc.text(
+            `Peak Incident Hours: ${peakHours.map(h => `${h.hour}:00 (${h.count})`).join(', ')}`
+          );
+        } else {
+          doc.text('Not enough data for peak hour analysis.');
         }
+        doc.moveDown();
+
+        doc.text(
+          'Forecast: Expect continued activity in high-risk areas during peak hours. Recommended increased visibility.'
+        );
+      } else if (reportType === 'resource_allocation') {
+        doc.text('Resource Allocation Recommendations', { underline: true });
+        doc.moveDown();
+
+        doc.text('Suggested Deployment:');
+        highRiskAreas.forEach(area => {
+          const count = area.count;
+          let suggestion = 'Standard Patrol';
+          if (count >= 5) suggestion = 'Permanent Outpost / High Frequency Patrol';
+          else if (count >= 2) suggestion = 'Regular Roving Patrol';
+
+          doc.text(`- ${area.Location_Sitio}: ${suggestion}`);
+        });
       }
     } else {
       doc.text('Unknown Report Type');

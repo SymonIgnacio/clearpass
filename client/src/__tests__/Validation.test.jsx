@@ -19,16 +19,16 @@ vi.mock('../utils/api', () => ({
     get: vi.fn(),
     post: vi.fn(),
     put: vi.fn(),
-    delete: vi.fn()
-  }
+    delete: vi.fn(),
+  },
 }));
 
 // Mock notification context
 const mockNotify = vi.fn();
 vi.mock('../contexts/NotificationContext', () => ({
   useNotifications: () => ({
-    notify: mockNotify
-  })
+    notify: mockNotify,
+  }),
 }));
 
 // Mock smart components
@@ -37,17 +37,19 @@ vi.mock('../components/SmartComplainantInput', () => ({
     <div>
       <label>{label}</label>
       <input
-        type="text"
+        type='text'
         value={value?.name || ''}
-        onChange={(e) => onChange(e.target.value ? { name: e.target.value, isResident: false } : null)}
-        placeholder="Enter name"
+        onChange={e =>
+          onChange(e.target.value ? { name: e.target.value, isResident: false } : null)
+        }
+        placeholder='Enter name'
       />
     </div>
-  )
+  ),
 }));
 
 vi.mock('../components/WriteProtected', () => ({
-  default: ({ children }) => <div>{children}</div>
+  default: ({ children }) => <div>{children}</div>,
 }));
 
 // Test theme
@@ -57,9 +59,7 @@ const theme = createTheme();
 const TestWrapper = ({ children }) => (
   <ThemeProvider theme={theme}>
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <BrowserRouter>
-        {children}
-      </BrowserRouter>
+      <BrowserRouter>{children}</BrowserRouter>
     </LocalizationProvider>
   </ThemeProvider>
 );
@@ -71,7 +71,7 @@ describe('Frontend Validation Suite', () => {
     mockApi = await import('../utils/api');
     mockApi.apiRequest.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve([])
+      json: () => Promise.resolve([]),
     });
     mockApi.api.get.mockResolvedValue({ ok: true, json: () => Promise.resolve([]) });
     mockApi.api.post.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
@@ -107,7 +107,10 @@ describe('Frontend Validation Suite', () => {
 
       // Should show validation errors
       await waitFor(() => {
-        expect(mockNotify).toHaveBeenCalledWith(expect.stringMatching(/complainant name/i), 'warning');
+        expect(mockNotify).toHaveBeenCalledWith(
+          expect.stringMatching(/complainant name/i),
+          'warning'
+        );
       });
     });
 
@@ -188,17 +191,18 @@ describe('Frontend Validation Suite', () => {
     test('blotter table has proper ARIA labels and structure', async () => {
       mockApi.api.get.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve([
-          {
-            Case_Number: 'BLOT-2024-01-001',
-            Incident_Type: 'Physical Injury',
-            Complainant_Details: '{"name": "John Doe"}',
-            Respondent_Details: '{"name": "Jane Smith"}',
-            Location_Sitio: 'Batia Proper',
-            Status: 'Pending',
-            DateTime_Incident: '2024-01-01T10:00:00'
-          }
-        ])
+        json: () =>
+          Promise.resolve([
+            {
+              Case_Number: 'BLOT-2024-01-001',
+              Incident_Type: 'Physical Injury',
+              Complainant_Details: '{"name": "John Doe"}',
+              Respondent_Details: '{"name": "Jane Smith"}',
+              Location_Sitio: 'Batia Proper',
+              Status: 'Pending',
+              DateTime_Incident: '2024-01-01T10:00:00',
+            },
+          ]),
       });
 
       render(
@@ -320,13 +324,13 @@ describe('Frontend Validation Suite', () => {
       // Complainant
       const contactInput = screen.getAllByLabelText(/contact number/i)[0];
       await user.type(contactInput, '09123456789');
-      
+
       const addressInput = screen.getAllByLabelText(/address/i)[0];
       await user.type(addressInput, 'Test Address');
-      
+
       const idProofInput = screen.getByLabelText(/id proof/i);
       await user.type(idProofInput, 'Test ID');
-      
+
       // We need to fill name via SmartComplainantInput which mocks input
       const nameInput = screen.getAllByPlaceholderText(/enter name/i)[0];
       await user.type(nameInput, 'Test Complainant');
@@ -409,7 +413,9 @@ describe('Frontend Validation Suite', () => {
 
       // Should close dialog
       await waitFor(() => {
-        expect(screen.queryByRole('heading', { name: /file a complaint/i })).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole('heading', { name: /file a complaint/i })
+        ).not.toBeInTheDocument();
       });
     });
   });
@@ -420,26 +426,27 @@ describe('Frontend Validation Suite', () => {
 
   describe('Responsive Design & Layout', () => {
     test('table layout adapts to content', async () => {
-      mockApi.apiRequest.mockImplementation((endpoint) => {
+      mockApi.apiRequest.mockImplementation(endpoint => {
         if (endpoint === 'blotter') {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve([
-              {
-                Case_Number: 'BLOT-2024-01-001',
-                Incident_Type: 'Physical Injury',
-                Complainant_Details: '{"name": "John Doe"}',
-                Respondent_Details: '{"name": "Jane Smith"}',
-                Location_Sitio: 'Batia Proper',
-                Status: 'Pending',
-                DateTime_Incident: '2024-01-01T10:00:00'
-              }
-            ])
+            json: () =>
+              Promise.resolve([
+                {
+                  Case_Number: 'BLOT-2024-01-001',
+                  Incident_Type: 'Physical Injury',
+                  Complainant_Details: '{"name": "John Doe"}',
+                  Respondent_Details: '{"name": "Jane Smith"}',
+                  Location_Sitio: 'Batia Proper',
+                  Status: 'Pending',
+                  DateTime_Incident: '2024-01-01T10:00:00',
+                },
+              ]),
           });
         }
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve([])
+          json: () => Promise.resolve([]),
         });
       });
 
@@ -502,17 +509,18 @@ describe('Frontend Validation Suite', () => {
     test('action buttons are contextually appropriate', async () => {
       mockApi.apiRequest.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve([
-          {
-            Case_Number: 'BLOT-2024-01-001',
-            Incident_Type: 'Physical Injury',
-            Complainant_Details: '{"name": "John Doe"}',
-            Respondent_Details: '{"name": "Jane Smith"}',
-            Location_Sitio: 'Batia Proper',
-            Status: 'Pending',
-            DateTime_Incident: '2024-01-01T10:00:00'
-          }
-        ])
+        json: () =>
+          Promise.resolve([
+            {
+              Case_Number: 'BLOT-2024-01-001',
+              Incident_Type: 'Physical Injury',
+              Complainant_Details: '{"name": "John Doe"}',
+              Respondent_Details: '{"name": "Jane Smith"}',
+              Location_Sitio: 'Batia Proper',
+              Status: 'Pending',
+              DateTime_Incident: '2024-01-01T10:00:00',
+            },
+          ]),
       });
 
       render(
@@ -629,7 +637,7 @@ describe('Frontend Validation Suite', () => {
           Respondent_Details: '{"name": "Jane Respondent", "contact": "09876543210"}',
           Location_Sitio: 'Batia Proper',
           Status: 'Pending',
-          DateTime_Incident: '2024-01-01T10:00:00.000Z'
+          DateTime_Incident: '2024-01-01T10:00:00.000Z',
         },
         {
           Case_Number: 'BLOT-2024-01-002',
@@ -638,13 +646,13 @@ describe('Frontend Validation Suite', () => {
           Respondent_Details: null,
           Location_Sitio: 'Northville 5',
           Status: 'Ongoing',
-          DateTime_Incident: '2024-01-02T14:30:00.000Z'
-        }
+          DateTime_Incident: '2024-01-02T14:30:00.000Z',
+        },
       ];
 
       mockApi.apiRequest.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve(mockBlotterData)
+        json: () => Promise.resolve(mockBlotterData),
       });
 
       render(
@@ -675,7 +683,7 @@ describe('Frontend Validation Suite', () => {
           Respondent_Details: '{"name": "Jane Smith"}',
           Location_Sitio: 'Batia Proper',
           Status: 'Pending',
-          DateTime_Incident: '2024-01-01T10:00:00.000Z'
+          DateTime_Incident: '2024-01-01T10:00:00.000Z',
         },
         {
           Case_Number: 'BLOT-2024-01-002',
@@ -684,13 +692,13 @@ describe('Frontend Validation Suite', () => {
           Respondent_Details: null,
           Location_Sitio: 'Northville 5',
           Status: 'Ongoing',
-          DateTime_Incident: '2024-01-02T14:30:00.000Z'
-        }
+          DateTime_Incident: '2024-01-02T14:30:00.000Z',
+        },
       ];
 
       mockApi.apiRequest.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve(mockBlotterData)
+        json: () => Promise.resolve(mockBlotterData),
       });
 
       const user = userEvent.setup();

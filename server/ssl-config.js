@@ -36,12 +36,12 @@ class SSLConfig {
         modulusLength: 2048,
         publicKeyEncoding: {
           type: 'spki',
-          format: 'pem'
+          format: 'pem',
         },
         privateKeyEncoding: {
           type: 'pkcs8',
-          format: 'pem'
-        }
+          format: 'pem',
+        },
       });
 
       // Create self-signed certificate (Basic implementation)
@@ -54,18 +54,18 @@ class SSLConfig {
           stateOrProvinceName: 'Bulacan',
           localityName: 'Bocaue',
           organizationName: 'Barangay Management System',
-          commonName: 'localhost'
+          commonName: 'localhost',
         },
         issuer: {
           countryName: 'PH',
           stateOrProvinceName: 'Bulacan',
           localityName: 'Bocaue',
           organizationName: 'Barangay Management System',
-          commonName: 'localhost'
+          commonName: 'localhost',
         },
         validity: {
           notBefore: new Date(),
-          notAfter: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+          notAfter: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
         },
         publicKey: publicKey,
         extensions: [
@@ -74,10 +74,10 @@ class SSLConfig {
             altNames: [
               { type: 2, value: 'localhost' },
               { type: 2, value: '127.0.0.1' },
-              { type: 7, ip: '127.0.0.1' }
-            ]
-          }
-        ]
+              { type: 7, ip: '127.0.0.1' },
+            ],
+          },
+        ],
       };
 
       // Write private key
@@ -85,11 +85,13 @@ class SSLConfig {
       fs.writeFileSync(this.certPath, publicKey); // Using public key as basic cert
 
       console.log('✅ Self-signed SSL certificate generated');
-      console.log('⚠️  WARNING: This is for development only. Use proper SSL certificates in production.');
+      console.log(
+        '⚠️  WARNING: This is for development only. Use proper SSL certificates in production.'
+      );
 
       return {
         key: privateKey,
-        cert: publicKey
+        cert: publicKey,
       };
     } catch (error) {
       console.error('❌ Failed to generate self-signed certificate:', error.message);
@@ -144,10 +146,10 @@ class SSLConfig {
         'ECDHE-RSA-AES128-GCM-SHA256',
         'ECDHE-RSA-AES256-GCM-SHA384',
         'ECDHE-RSA-AES128-SHA256',
-        'ECDHE-RSA-AES256-SHA384'
+        'ECDHE-RSA-AES256-SHA384',
       ].join(':'),
       honorCipherOrder: true,
-      secureProtocol: 'TLSv1_2_method'
+      secureProtocol: 'TLSv1_2_method',
     };
   }
 

@@ -13,11 +13,11 @@ exports.up = async function (knex) {
         permissions: JSON.stringify({
           blotter: { read: true, write: true },
           residents: { read: true },
-          documents: { read: true }
+          documents: { read: true },
         }),
         is_active: 1,
         created_at: knex.fn.now(),
-        updated_at: knex.fn.now()
+        updated_at: knex.fn.now(),
       });
     }
   }
@@ -29,7 +29,10 @@ exports.up = async function (knex) {
       table.string('request_id', 50).primary();
       table.string('resident_id', 50).notNullable();
       table.string('document_type', 100).notNullable();
-      table.enu('status', ['pending', 'approved', 'rejected', 'completed']).notNullable().defaultTo('pending');
+      table
+        .enu('status', ['pending', 'approved', 'rejected', 'completed'])
+        .notNullable()
+        .defaultTo('pending');
       table.json('request_data').notNullable();
       table.json('resident_data').notNullable();
       table.json('approval_data');

@@ -95,7 +95,9 @@
 <a name='L30'></a><a href='#L30'>30</a>
 <a name='L31'></a><a href='#L31'>31</a>
 <a name='L32'></a><a href='#L32'>32</a>
-<a name='L33'></a><a href='#L33'>33</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -112,28 +114,30 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >exports.up = <span class="fstat-no" title="function not covered" >as</span>ync function(knex) {</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >exports.up = <span class="fstat-no" title="function not covered" >as</span>ync function (knex) {</span>
   const hasUsername = <span class="cstat-no" title="statement not covered" >await knex.schema.hasColumn('residents', 'username');</span>
   const hasPassword = <span class="cstat-no" title="statement not covered" >await knex.schema.hasColumn('residents', 'password_hash');</span>
   const hasStatus = <span class="cstat-no" title="statement not covered" >await knex.schema.hasColumn('residents', 'account_status');</span>
   const hasVerification = <span class="cstat-no" title="statement not covered" >await knex.schema.hasColumn('residents', 'verification_file');</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  await knex.schema.alterTable('residents', <span class="fstat-no" title="function not covered" >fu</span>nction(table) {</span>
+<span class="cstat-no" title="statement not covered" >  await knex.schema.alterTable('residents', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {</span>
     // Ensure all required authentication columns exist
 <span class="cstat-no" title="statement not covered" >    if (!hasUsername) {</span>
 <span class="cstat-no" title="statement not covered" >      table.string('username', 255).unique().nullable();</span>
@@ -142,7 +146,9 @@
 <span class="cstat-no" title="statement not covered" >      table.string('password_hash', 255).nullable();</span>
     }
 <span class="cstat-no" title="statement not covered" >    if (!hasStatus) {</span>
-<span class="cstat-no" title="statement not covered" >      table.enu('account_status', ['Unregistered', 'Unverified', 'Verified']).defaultTo('Unregistered');</span>
+<span class="cstat-no" title="statement not covered" >      table</span>
+        .enu('account_status', ['Unregistered', 'Unverified', 'Verified'])
+        .defaultTo('Unregistered');
     }
 <span class="cstat-no" title="statement not covered" >    if (!hasVerification) {</span>
 <span class="cstat-no" title="statement not covered" >      table.text('verification_file').nullable();</span>
@@ -150,8 +156,8 @@
   });
 };
 &nbsp;
-<span class="cstat-no" title="statement not covered" >exports.down = <span class="fstat-no" title="function not covered" >fu</span>nction(knex) {</span>
-<span class="cstat-no" title="statement not covered" >  return knex.schema.alterTable('residents', <span class="fstat-no" title="function not covered" >fu</span>nction(table) {</span>
+<span class="cstat-no" title="statement not covered" >exports.down = <span class="fstat-no" title="function not covered" >fu</span>nction (knex) {</span>
+<span class="cstat-no" title="statement not covered" >  return knex.schema.alterTable('residents', <span class="fstat-no" title="function not covered" >fu</span>nction (table) {</span>
     // Remove authentication columns if rolling back
 <span class="cstat-no" title="statement not covered" >    table.dropColumn('username');</span>
 <span class="cstat-no" title="statement not covered" >    table.dropColumn('password_hash');</span>
@@ -166,7 +172,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:38.155Z
+                at 2026-01-22T21:30:07.384Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

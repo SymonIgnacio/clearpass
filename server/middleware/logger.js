@@ -23,43 +23,42 @@ const logger = winston.createLogger({
   defaultMeta: { service: 'barangay-api' },
   transports: [
     // Error logs
-    new winston.transports.File({ 
-      filename: path.join(logsDir, 'error.log'), 
+    new winston.transports.File({
+      filename: path.join(logsDir, 'error.log'),
       level: 'error',
       maxsize: 5242880, // 5MB
-      maxFiles: 5
+      maxFiles: 5,
     }),
     // Combined logs
-    new winston.transports.File({ 
+    new winston.transports.File({
       filename: path.join(logsDir, 'combined.log'),
       maxsize: 5242880,
-      maxFiles: 5
+      maxFiles: 5,
     }),
     // Audit logs (for CRUD operations)
-    new winston.transports.File({ 
+    new winston.transports.File({
       filename: path.join(logsDir, 'audit.log'),
       level: 'info',
       maxsize: 5242880,
-      maxFiles: 10
-    })
-  ]
+      maxFiles: 10,
+    }),
+  ],
 });
 
 // Console logging in development
 if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    )
-  }));
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
+    })
+  );
 }
 
 // Audit logging middleware
 const auditLog = (action, resource) => (req, res, next) => {
   const originalSend = res.send;
-  
-  res.send = function(data) {
+
+  res.send = function (data) {
     logger.info('Audit Log', {
       action,
       resource,
@@ -71,12 +70,12 @@ const auditLog = (action, resource) => (req, res, next) => {
       ip: req.ip,
       timestamp: new Date().toISOString(),
       statusCode: res.statusCode,
-      body: req.method !== 'GET' ? req.body : undefined
+      body: req.method !== 'GET' ? req.body : undefined,
     });
-    
+
     originalSend.call(this, data);
   };
-  
+
   next();
 };
 

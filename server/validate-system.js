@@ -2,10 +2,21 @@ const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 const REQUIRED_TABLES = [
-  'users', 'roles', 'residents', 'households', 'sitios',
-  'blotter', 'certificates_log', 'clearance_requests', 'document_requests',
-  'notifications', 'user_notifications', 'announcements',
-  'login_attempts', 'audit_logs', 'system_assets'
+  'users',
+  'roles',
+  'residents',
+  'households',
+  'sitios',
+  'blotter',
+  'certificates_log',
+  'clearance_requests',
+  'document_requests',
+  'notifications',
+  'user_notifications',
+  'announcements',
+  'login_attempts',
+  'audit_logs',
+  'system_assets',
 ];
 
 const REQUIRED_ROLES = [
@@ -14,17 +25,17 @@ const REQUIRED_ROLES = [
   { id: 3, name: 'Secretary' },
   { id: 4, name: 'Clerk' },
   { id: 6, name: 'Blotter Officer' },
-  { id: 12, name: 'Resident' }
+  { id: 12, name: 'Resident' },
 ];
 
 async function validateSystem() {
   console.log('🔍 Starting ClearPass System Validation...\n');
-  
+
   const config = {
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
+    database: process.env.DB_NAME,
   };
 
   let connection;
@@ -41,7 +52,7 @@ async function validateSystem() {
     console.log('📋 Checking required tables...');
     const [tables] = await connection.execute('SHOW TABLES');
     const existingTables = tables.map(t => Object.values(t)[0]);
-    
+
     for (const table of REQUIRED_TABLES) {
       if (existingTables.includes(table)) {
         console.log(`  ✅ ${table}`);
@@ -55,7 +66,7 @@ async function validateSystem() {
     // Check roles
     console.log('👥 Checking required roles...');
     const [roles] = await connection.execute('SELECT id, role_name FROM roles');
-    
+
     for (const reqRole of REQUIRED_ROLES) {
       const exists = roles.find(r => r.id === reqRole.id);
       if (exists) {
@@ -110,7 +121,6 @@ async function validateSystem() {
     console.log('═══════════════════════════════════════════════════════\n');
 
     process.exit(errors.length > 0 ? 1 : 0);
-
   } catch (error) {
     console.error('❌ Validation failed:', error.message);
     process.exit(1);

@@ -2,7 +2,7 @@ const express = require('express');
 const request = require('supertest');
 
 const mockDb = {
-  execute: jest.fn()
+  execute: jest.fn(),
 };
 
 jest.mock('../middleware/authMiddleware', () => ({
@@ -10,7 +10,7 @@ jest.mock('../middleware/authMiddleware', () => ({
     req.user = { id: 'RES-A', resident_id: 'RES-A', role: 12 };
     next();
   },
-  checkRole: () => (req, res, next) => next()
+  checkRole: () => (req, res, next) => next(),
 }));
 
 describe('document requests IDOR protections', () => {
@@ -55,4 +55,3 @@ describe('document requests IDOR protections', () => {
     expect(mockDb.execute.mock.calls[0][1]).toEqual(['RES-A']);
   });
 });
-

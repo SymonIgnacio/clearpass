@@ -4,7 +4,7 @@ const request = require('supertest');
 const bcrypt = require('bcryptjs');
 
 const mockDb = {
-  execute: jest.fn()
+  execute: jest.fn(),
 };
 
 jest.mock('../database', () => mockDb);
@@ -14,7 +14,7 @@ jest.mock('../utils/mfaOtp', () => ({
   verifyOtpChallenge: jest.fn(async ({ otp }) =>
     otp === '123456' ? { ok: true, challengeId: 1 } : { ok: false, reason: 'invalid' }
   ),
-  sendOtpEmail: jest.fn(async () => {})
+  sendOtpEmail: jest.fn(async () => {}),
 }));
 
 describe('OTP MFA flow', () => {
@@ -48,9 +48,9 @@ describe('OTP MFA flow', () => {
               role_name: 'Resident',
               email: 'res@example.com',
               full_name: 'Res User',
-              is_active: 1
-            }
-          ]
+              is_active: 1,
+            },
+          ],
         ];
       }
       if (q.includes('from users u') && q.includes('where u.id')) {
@@ -63,9 +63,9 @@ describe('OTP MFA flow', () => {
               role_name: 'Resident',
               email: 'res@example.com',
               full_name: 'Res User',
-              is_active: 1
-            }
-          ]
+              is_active: 1,
+            },
+          ],
         ];
       }
       return [[]];
@@ -80,7 +80,9 @@ describe('OTP MFA flow', () => {
 
     const agent = request.agent(app);
 
-    const loginRes = await agent.post('/api/auth/login').send({ username: 'resident', password: 'pass' });
+    const loginRes = await agent
+      .post('/api/auth/login')
+      .send({ username: 'resident', password: 'pass' });
     expect(loginRes.status).toBe(200);
     expect(loginRes.body.mfa_required).toBe(true);
     expect(loginRes.body.user.mfa_verified).toBe(false);
@@ -94,4 +96,3 @@ describe('OTP MFA flow', () => {
     expect(meRes.body.user.mfa_verified).toBe(true);
   });
 });
-

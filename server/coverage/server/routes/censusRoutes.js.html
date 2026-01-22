@@ -109,7 +109,12 @@
 <a name='L44'></a><a href='#L44'>44</a>
 <a name='L45'></a><a href='#L45'>45</a>
 <a name='L46'></a><a href='#L46'>46</a>
-<a name='L47'></a><a href='#L47'>47</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -117,14 +122,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -142,12 +139,25 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -161,10 +171,14 @@ const { verifyToken, checkRole } = <span class="cstat-no" title="statement not c
 const { asyncHandler } = <span class="cstat-no" title="statement not covered" >require('../middleware/errorHandler');</span>
 const { ROLES } = <span class="cstat-no" title="statement not covered" >require('../config/roles');</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >module.exports = <span class="fstat-no" title="function not covered" >(d</span>b) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >  router.get('/', verifyToken, checkRole([ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.CLERK, ROLES.ADMIN]), asyncHandler(<span class="fstat-no" title="function not covered" >as</span>ync (req, res) =&gt; {</span>
-    // Get overall statistics with vulnerability data from joined tables
-    const [overallStats] = <span class="cstat-no" title="statement not covered" >await db.execute(`</span>
+<span class="cstat-no" title="statement not covered" >module.exports = <span class="fstat-no" title="function not covered" >db</span> =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  router.get(</span>
+    '/',
+    verifyToken,
+    checkRole([ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.CLERK, ROLES.ADMIN]),
+    asyncHandler(<span class="fstat-no" title="function not covered" >as</span>ync (req, res) =&gt; {
+      // Get overall statistics with vulnerability data from joined tables
+      const [overallStats] = <span class="cstat-no" title="statement not covered" >await db.execute(`</span>
       SELECT 
         COUNT(r.Resident_ID) as total_residents,
         SUM(CASE WHEN v.Is_Senior = 1 THEN 1 ELSE 0 END) as total_seniors,
@@ -175,8 +189,8 @@ const { ROLES } = <span class="cstat-no" title="statement not covered" >require(
       WHERE r.Residency_Status = 'Active'
     `);
 &nbsp;
-    // Get statistics by sitio with vulnerability data
-    const [sitioStats] = <span class="cstat-no" title="statement not covered" >await db.execute(`</span>
+      // Get statistics by sitio with vulnerability data
+      const [sitioStats] = <span class="cstat-no" title="statement not covered" >await db.execute(`</span>
       SELECT 
         h.Sitio_ID,
         s.name as sitio_name,
@@ -193,11 +207,12 @@ const { ROLES } = <span class="cstat-no" title="statement not covered" >require(
       ORDER BY s.name
     `);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    res.json({</span>
-      overall: overallStats[0],
-      bySitio: sitioStats
-    });
-  }));
+<span class="cstat-no" title="statement not covered" >      res.json({</span>
+        overall: overallStats[0],
+        bySitio: sitioStats,
+      });
+    })
+  );
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  return router;</span>
 };
@@ -208,7 +223,7 @@ const { ROLES } = <span class="cstat-no" title="statement not covered" >require(
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:38.155Z
+                at 2026-01-22T21:30:07.384Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

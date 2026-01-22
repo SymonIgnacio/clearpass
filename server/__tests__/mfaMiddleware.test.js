@@ -61,4 +61,3 @@ describe('MFA middleware', () => {
     expect(res.body.ok).toBe(true);
   });
 });
-

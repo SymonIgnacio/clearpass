@@ -6,10 +6,7 @@ exports.up = async function (knex) {
 
   await knex.schema.createTable('system_assets', function (table) {
     table.increments('id').primary();
-    table
-      .enu('asset_type', ['seal', 'letterhead'])
-      .notNullable()
-      .index();
+    table.enu('asset_type', ['seal', 'letterhead']).notNullable().index();
     table.string('file_path', 512).notNullable();
     table.string('mime_type', 128).notNullable();
     table.string('original_name', 255).notNullable();
@@ -23,4 +20,3 @@ exports.down = async function (knex) {
   if (!exists) return;
   await knex.schema.dropTable('system_assets');
 };
-

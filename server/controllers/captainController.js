@@ -12,16 +12,21 @@ async function getExecutiveDashboard(req, res) {
   try {
     const knex = getKnex();
     // Population statistics
-    const [populationStats] = await knex('residents')
-      .select(
-        knex.raw('COUNT(*) as total_residents'),
-        knex.raw('SUM(CASE WHEN DATE_FORMAT(NOW(), "%Y") - DATE_FORMAT(Birthdate, "%Y") < 18 THEN 1 ELSE 0 END) as minors'),
-        knex.raw('SUM(CASE WHEN DATE_FORMAT(NOW(), "%Y") - DATE_FORMAT(Birthdate, "%Y") BETWEEN 18 AND 59 THEN 1 ELSE 0 END) as adults'),
-        knex.raw('SUM(CASE WHEN DATE_FORMAT(NOW(), "%Y") - DATE_FORMAT(Birthdate, "%Y") >= 60 THEN 1 ELSE 0 END) as seniors'),
-        knex.raw('SUM(CASE WHEN Gender = "Male" THEN 1 ELSE 0 END) as males'),
-        knex.raw('SUM(CASE WHEN Gender = "Female" THEN 1 ELSE 0 END) as females'),
-        knex.raw('COUNT(DISTINCT Household_ID) as total_households')
-      );
+    const [populationStats] = await knex('residents').select(
+      knex.raw('COUNT(*) as total_residents'),
+      knex.raw(
+        'SUM(CASE WHEN DATE_FORMAT(NOW(), "%Y") - DATE_FORMAT(Birthdate, "%Y") < 18 THEN 1 ELSE 0 END) as minors'
+      ),
+      knex.raw(
+        'SUM(CASE WHEN DATE_FORMAT(NOW(), "%Y") - DATE_FORMAT(Birthdate, "%Y") BETWEEN 18 AND 59 THEN 1 ELSE 0 END) as adults'
+      ),
+      knex.raw(
+        'SUM(CASE WHEN DATE_FORMAT(NOW(), "%Y") - DATE_FORMAT(Birthdate, "%Y") >= 60 THEN 1 ELSE 0 END) as seniors'
+      ),
+      knex.raw('SUM(CASE WHEN Gender = "Male" THEN 1 ELSE 0 END) as males'),
+      knex.raw('SUM(CASE WHEN Gender = "Female" THEN 1 ELSE 0 END) as females'),
+      knex.raw('COUNT(DISTINCT Household_ID) as total_households')
+    );
 
     // Monthly population growth trend (last 12 months)
     const populationGrowth = await knex('residents')
@@ -44,10 +49,14 @@ async function getExecutiveDashboard(req, res) {
     // Household size distribution
     const householdSizes = await knex('households')
       .select(
-        knex.raw('CASE WHEN resident_count <= 3 THEN "Small (1-3)" WHEN resident_count <= 5 THEN "Medium (4-5)" ELSE "Large (6+)" END as size_category'),
+        knex.raw(
+          'CASE WHEN resident_count <= 3 THEN "Small (1-3)" WHEN resident_count <= 5 THEN "Medium (4-5)" ELSE "Large (6+)" END as size_category'
+        ),
         knex.raw('COUNT(*) as household_count')
       )
-      .groupByRaw('CASE WHEN resident_count <= 3 THEN "Small (1-3)" WHEN resident_count <= 5 THEN "Medium (4-5)" ELSE "Large (6+)" END');
+      .groupByRaw(
+        'CASE WHEN resident_count <= 3 THEN "Small (1-3)" WHEN resident_count <= 5 THEN "Medium (4-5)" ELSE "Large (6+)" END'
+      );
 
     // Certificate issuance trends
     const certificateTrends = await knex('certificates_log')
@@ -96,13 +105,13 @@ async function getExecutiveDashboard(req, res) {
           demographics: {
             minors: populationStats[0]?.minors || 0,
             adults: populationStats[0]?.adults || 0,
-            seniors: populationStats[0]?.seniors || 0
+            seniors: populationStats[0]?.seniors || 0,
           },
           gender_distribution: {
             males: populationStats[0]?.males || 0,
-            females: populationStats[0]?.females || 0
+            females: populationStats[0]?.females || 0,
           },
-          households: populationStats[0]?.total_households || 0
+          households: populationStats[0]?.total_households || 0,
         },
         population_growth: populationGrowth,
         residency_distribution: residencyStatus,
@@ -112,18 +121,21 @@ async function getExecutiveDashboard(req, res) {
         vulnerable_groups: {
           seniors: vulnerableGroups?.seniors_count || 0,
           pwd: vulnerableGroups?.pwd_count || 0,
-          solo_parents: vulnerableGroups?.solo_parent_count || 0
+          solo_parents: vulnerableGroups?.solo_parent_count || 0,
         },
         community_programs: {
           total_programs: programStats?.total_programs || 0,
-          completion_rate: programStats?.total_programs ?
-            ((programStats.completed_programs || 0) / programStats.total_programs * 100).toFixed(1) : 0,
-          average_beneficiaries: Math.round(programStats?.avg_beneficiaries || 0)
-        }
+          completion_rate: programStats?.total_programs
+            ? (
+                ((programStats.completed_programs || 0) / programStats.total_programs) *
+                100
+              ).toFixed(1)
+            : 0,
+          average_beneficiaries: Math.round(programStats?.avg_beneficiaries || 0),
+        },
       },
-      generated_at: new Date().toISOString()
+      generated_at: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error('Captain dashboard error:', error);
     res.status(500).json({ error: 'Failed to load executive dashboard' });
@@ -131,5 +143,5 @@ async function getExecutiveDashboard(req, res) {
 }
 
 module.exports = {
-  getExecutiveDashboard
+  getExecutiveDashboard,
 };

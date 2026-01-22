@@ -11,7 +11,7 @@ export const PERMISSIONS = {
     VIEW_ALL_RESIDENTS: true,
     VIEW_ALL_BLOTTER: true,
     VIEW_ALL_CERTIFICATES: true,
-    VIEW_ALL_DOCUMENTS: true
+    VIEW_ALL_DOCUMENTS: true,
   },
 
   // Captain (Role 2) - Executive Read-Only
@@ -24,7 +24,7 @@ export const PERMISSIONS = {
     AI_EXECUTIVE_INSIGHTS: true,
     READ_RESIDENTS: true,
     READ_BLOTTER: true,
-    READ_CERTIFICATES: true
+    READ_CERTIFICATES: true,
   },
 
   // Secretary (Role 3) - Administrative Authority
@@ -40,7 +40,7 @@ export const PERMISSIONS = {
     ADMIN_SETTINGS: true,
     MANAGE_RESIDENTS: true,
     APPROVE_REGISTRATIONS: true,
-    VERIFY_DOCUMENTS: true
+    VERIFY_DOCUMENTS: true,
   },
 
   // Clerk (Role 4) - Certificate Processing
@@ -52,7 +52,7 @@ export const PERMISSIONS = {
     NOTIFICATIONS: true,
     AI_WORKLOAD_INSIGHTS: true,
     VIEW_RESIDENTS: true,
-    PROCESS_CERTIFICATES: true
+    PROCESS_CERTIFICATES: true,
   },
 
   // Blotter Officer (Role 6) - Case Management Authority
@@ -64,7 +64,7 @@ export const PERMISSIONS = {
     HEARING_ATTENDANCE: true,
     BLOTTER_REPORTS: true,
     AI_CRIME_ANALYTICS: true,
-    FULL_BLOTTER_CRUD: true
+    FULL_BLOTTER_CRUD: true,
   },
 
   // Resident (Role 12) - Self-Service
@@ -79,8 +79,8 @@ export const PERMISSIONS = {
     ANNOUNCEMENTS: true,
     OWN_PROFILE: true,
     REQUEST_CLEARANCE: true,
-    VIEW_OWN_CERTIFICATES: true
-  }
+    VIEW_OWN_CERTIFICATES: true,
+  },
 };
 
 /**
@@ -152,17 +152,24 @@ export const canViewSection = (section, user) => {
  * @param {object} user - User object
  * @returns {string} - Role name
  */
-export const getRoleName = (user) => {
+export const getRoleName = user => {
   const roleId = typeof user?.role === 'string' ? parseInt(user.role) : user?.role;
 
   switch (roleId) {
-    case 1: return 'IT Admin';
-    case 2: return 'Captain';
-    case 3: return 'Secretary';
-    case 4: return 'Clerk';
-    case 6: return 'Blotter Officer';
-    case 12: return 'Resident';
-    default: return 'Unknown';
+    case 1:
+      return 'IT Admin';
+    case 2:
+      return 'Captain';
+    case 3:
+      return 'Secretary';
+    case 4:
+      return 'Clerk';
+    case 6:
+      return 'Blotter Officer';
+    case 12:
+      return 'Resident';
+    default:
+      return 'Unknown';
   }
 };
 
@@ -171,7 +178,7 @@ export const getRoleName = (user) => {
  * @param {object} user - User object
  * @returns {boolean}
  */
-export const isStaff = (user) => {
+export const isStaff = user => {
   const roleId = typeof user?.role === 'string' ? parseInt(user.role) : user?.role;
   return [1, 2, 3, 4, 6].includes(roleId); // Staff roles: IT Admin, Captain, Secretary, Clerk, Blotter Officer
 };
@@ -181,7 +188,7 @@ export const isStaff = (user) => {
  * @param {object} user - User object
  * @returns {Array} - Array of navigation items
  */
-export const getNavigationItems = (user) => {
+export const getNavigationItems = user => {
   const roleId = typeof user?.role === 'string' ? parseInt(user.role) : user?.role;
   const items = [];
 
@@ -189,7 +196,7 @@ export const getNavigationItems = (user) => {
   items.push({ path: '/', label: 'Dashboard' });
 
   switch (roleId) {
-    case 5: // IT Admin
+    case 1: // IT Admin
       items.push(
         { path: '/users', label: 'User Provisioning' },
         { path: '/bulk-import', label: 'Bulk Import' },

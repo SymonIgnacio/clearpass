@@ -3,13 +3,8 @@ const winston = require('winston');
 // Performance logger
 const perfLogger = winston.createLogger({
   level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
-  transports: [
-    new winston.transports.File({ filename: 'logs/performance.log' })
-  ]
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+  transports: [new winston.transports.File({ filename: 'logs/performance.log' })],
 });
 
 // Query performance wrapper
@@ -18,17 +13,17 @@ const monitorQuery = async (db, query, params, label = 'Query') => {
   try {
     const result = await db.execute(query, params);
     const duration = Date.now() - start;
-    
+
     if (duration > 1000) {
       perfLogger.warn({
         type: 'SLOW_QUERY',
         label,
         duration,
         query: query.substring(0, 200),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
-    
+
     return result;
   } catch (error) {
     const duration = Date.now() - start;
@@ -37,7 +32,7 @@ const monitorQuery = async (db, query, params, label = 'Query') => {
       label,
       duration,
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
     throw error;
   }
@@ -46,10 +41,10 @@ const monitorQuery = async (db, query, params, label = 'Query') => {
 // Request performance middleware
 const requestPerformance = (req, res, next) => {
   const start = Date.now();
-  
+
   res.on('finish', () => {
     const duration = Date.now() - start;
-    
+
     if (duration > 3000) {
       perfLogger.warn({
         type: 'SLOW_REQUEST',
@@ -57,44 +52,45 @@ const requestPerformance = (req, res, next) => {
         url: req.originalUrl,
         duration,
         statusCode: res.statusCode,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   });
-  
+
   next();
 };
 
 // Cache utility (simple in-memory cache)
 class SimpleCache {
-  constructor(ttl = 300000) { // 5 minutes default
+  constructor(ttl = 300000) {
+    // 5 minutes default
     this.cache = new Map();
     this.ttl = ttl;
   }
-  
+
   get(key) {
     const item = this.cache.get(key);
     if (!item) return null;
-    
+
     if (Date.now() > item.expiry) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return item.value;
   }
-  
+
   set(key, value) {
     this.cache.set(key, {
       value,
-      expiry: Date.now() + this.ttl
+      expiry: Date.now() + this.ttl,
     });
   }
-  
+
   clear() {
     this.cache.clear();
   }
-  
+
   delete(key) {
     this.cache.delete(key);
   }
@@ -112,5 +108,5 @@ module.exports = {
   SimpleCache,
   censusCache,
   residentCache,
-  perfLogger
+  perfLogger,
 };

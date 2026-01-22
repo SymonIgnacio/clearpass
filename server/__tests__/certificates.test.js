@@ -9,8 +9,8 @@ jest.mock('../database', () => ({
     execute: jest.fn(),
     commit: jest.fn(),
     rollback: jest.fn(),
-    release: jest.fn()
-  }))
+    release: jest.fn(),
+  })),
 }));
 
 const db = require('../database');
@@ -26,21 +26,21 @@ app.get('/api/certificate-types', async (req, res) => {
       {
         id: 1,
         name: 'Barangay Clearance',
-        fee: 50.00,
+        fee: 50.0,
         validity_days: 365,
         description: 'Certificate proving clean record',
         purpose: 'For employment, business, etc.',
-        required_data: JSON.stringify(['name', 'address', 'purpose'])
+        required_data: JSON.stringify(['name', 'address', 'purpose']),
       },
       {
         id: 2,
         name: 'Barangay Residency',
-        fee: 30.00,
+        fee: 30.0,
         validity_days: 180,
         description: 'Certificate of residency',
         purpose: 'Proof of residence',
-        required_data: JSON.stringify(['name', 'address', 'length_of_residency'])
-      }
+        required_data: JSON.stringify(['name', 'address', 'length_of_residency']),
+      },
     ];
 
     res.json(mockTypes);
@@ -71,14 +71,18 @@ app.post('/api/certificates', async (req, res) => {
       return res.status(400).json({ error: 'Resident not found' });
     }
 
-    const certificate_type = certificate_type_id === 1 ? 'Barangay Clearance' : 'Barangay Residency';
+    const certificate_type =
+      certificate_type_id === 1 ? 'Barangay Clearance' : 'Barangay Residency';
 
     // CRITICAL BUSINESS RULE: Check blotter before issuing clearance
     if (certificate_type === 'Barangay Clearance') {
-      const [blotterCheck] = await connection.execute(`
+      const [blotterCheck] = await connection.execute(
+        `
         SELECT COUNT(*) as active_cases FROM blotter
         WHERE respondent_id = ? AND status = 'Pending'
-      `, [resident_id]);
+      `,
+        [resident_id]
+      );
 
       if (blotterCheck[0].active_cases > 0) {
         await connection.rollback();
@@ -86,8 +90,8 @@ app.post('/api/certificates', async (req, res) => {
           error: 'BLOCK ISSUANCE: Active blotter case found',
           details: {
             caseCount: blotterCheck[0].active_cases,
-            message: 'Cannot issue clearance certificate while resident has pending blotter cases'
-          }
+            message: 'Cannot issue clearance certificate while resident has pending blotter cases',
+          },
         });
       }
     }
@@ -95,19 +99,22 @@ app.post('/api/certificates', async (req, res) => {
     // Mock successful issuance
     const controlNo = `CERT-2024-${Date.now().toString().slice(-6)}`;
 
-    const [result] = await connection.execute(`
+    const [result] = await connection.execute(
+      `
       INSERT INTO certificates_log (
         control_no, resident_id, certificate_type, purpose,
         date_issued, status, fee_amount
       ) VALUES (?, ?, ?, ?, CURDATE(), 'Released', 50.00)
-    `, [controlNo, resident_id, certificate_type, purpose]);
+    `,
+      [controlNo, resident_id, certificate_type, purpose]
+    );
 
     await connection.commit();
 
     res.status(201).json({
       id: result.insertId,
       control_no: controlNo,
-      message: 'Certificate issued successfully'
+      message: 'Certificate issued successfully',
     });
   } catch (error) {
     await connection.rollback();
@@ -124,8 +131,7 @@ describe('Certificate Issuance Tests', () => {
 
   describe('GET /api/certificate-types', () => {
     test('should return all certificate types', async () => {
-      const response = await request(app)
-        .get('/api/certificate-types');
+      const response = await request(app).get('/api/certificate-types');
 
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);
@@ -136,8 +142,7 @@ describe('Certificate Issuance Tests', () => {
     });
 
     test('should return parsed required_data as array', async () => {
-      const response = await request(app)
-        .get('/api/certificate-types');
+      const response = await request(app).get('/api/certificate-types');
 
       expect(response.status).toBe(200);
       const clearanceType = response.body.find(type => type.name === 'Barangay Clearance');
@@ -154,7 +159,7 @@ describe('Certificate Issuance Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         commit: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
@@ -169,13 +174,11 @@ describe('Certificate Issuance Tests', () => {
         purpose: 'Employment at ABC Corporation',
         data: {
           employer: 'ABC Corporation',
-          position: 'Software Developer'
-        }
+          position: 'Software Developer',
+        },
       };
 
-      const response = await request(app)
-        .post('/api/certificates')
-        .send(certificateData);
+      const response = await request(app).post('/api/certificates').send(certificateData);
 
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('control_no');
@@ -189,7 +192,7 @@ describe('Certificate Issuance Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         commit: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
@@ -203,13 +206,11 @@ describe('Certificate Issuance Tests', () => {
         purpose: 'School enrollment',
         data: {
           school: 'Local Elementary School',
-          grade: 'Grade 1'
-        }
+          grade: 'Grade 1',
+        },
       };
 
-      const response = await request(app)
-        .post('/api/certificates')
-        .send(certificateData);
+      const response = await request(app).post('/api/certificates').send(certificateData);
 
       expect(response.status).toBe(201);
       expect(response.body.control_no).toMatch(/^CERT-2024-/);
@@ -221,7 +222,7 @@ describe('Certificate Issuance Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         rollback: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
@@ -232,12 +233,10 @@ describe('Certificate Issuance Tests', () => {
       const certificateData = {
         resident_id: 'RES-2025-003',
         certificate_type_id: 1, // Barangay Clearance
-        purpose: 'Job application'
+        purpose: 'Job application',
       };
 
-      const response = await request(app)
-        .post('/api/certificates')
-        .send(certificateData);
+      const response = await request(app).post('/api/certificates').send(certificateData);
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error', 'BLOCK ISSUANCE: Active blotter case found');
@@ -252,7 +251,7 @@ describe('Certificate Issuance Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         commit: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
@@ -264,12 +263,10 @@ describe('Certificate Issuance Tests', () => {
       const certificateData = {
         resident_id: 'RES-2025-004',
         certificate_type_id: 2, // Barangay Residency (not clearance)
-        purpose: 'School enrollment'
+        purpose: 'School enrollment',
       };
 
-      const response = await request(app)
-        .post('/api/certificates')
-        .send(certificateData);
+      const response = await request(app).post('/api/certificates').send(certificateData);
 
       expect(response.status).toBe(201);
       expect(response.body.control_no).toMatch(/^CERT-2024-/);
@@ -281,7 +278,7 @@ describe('Certificate Issuance Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         rollback: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
@@ -290,12 +287,10 @@ describe('Certificate Issuance Tests', () => {
       const certificateData = {
         resident_id: 'RES-NONEXISTENT',
         certificate_type_id: 1,
-        purpose: 'Test purpose'
+        purpose: 'Test purpose',
       };
 
-      const response = await request(app)
-        .post('/api/certificates')
-        .send(certificateData);
+      const response = await request(app).post('/api/certificates').send(certificateData);
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error', 'Resident not found');
@@ -303,12 +298,10 @@ describe('Certificate Issuance Tests', () => {
     });
 
     test('should validate required fields', async () => {
-      const response = await request(app)
-        .post('/api/certificates')
-        .send({
-          resident_id: 'RES-2025-001'
-          // Missing certificate_type_id and purpose
-        });
+      const response = await request(app).post('/api/certificates').send({
+        resident_id: 'RES-2025-001',
+        // Missing certificate_type_id and purpose
+      });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error', 'Required fields missing');
@@ -319,7 +312,7 @@ describe('Certificate Issuance Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         rollback: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
@@ -331,12 +324,10 @@ describe('Certificate Issuance Tests', () => {
       const certificateData = {
         resident_id: 'RES-2025-005',
         certificate_type_id: 1,
-        purpose: 'Employment'
+        purpose: 'Employment',
       };
 
-      const response = await request(app)
-        .post('/api/certificates')
-        .send(certificateData);
+      const response = await request(app).post('/api/certificates').send(certificateData);
 
       expect(response.status).toBe(500);
       expect(response.body).toHaveProperty('error', 'Failed to issue certificate');
@@ -347,26 +338,22 @@ describe('Certificate Issuance Tests', () => {
 
   describe('Certificate Business Rules Validation', () => {
     test('should enforce purpose requirement for all certificates', async () => {
-      const response = await request(app)
-        .post('/api/certificates')
-        .send({
-          resident_id: 'RES-2025-001',
-          certificate_type_id: 1,
-          purpose: '' // Empty purpose
-        });
+      const response = await request(app).post('/api/certificates').send({
+        resident_id: 'RES-2025-001',
+        certificate_type_id: 1,
+        purpose: '', // Empty purpose
+      });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error', 'Required fields missing');
     });
 
     test('should validate certificate_type_id format', async () => {
-      const response = await request(app)
-        .post('/api/certificates')
-        .send({
-          resident_id: 'RES-2025-001',
-          certificate_type_id: 'invalid', // Should be number
-          purpose: 'Test purpose'
-        });
+      const response = await request(app).post('/api/certificates').send({
+        resident_id: 'RES-2025-001',
+        certificate_type_id: 'invalid', // Should be number
+        purpose: 'Test purpose',
+      });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error', 'Required fields missing');
@@ -377,7 +364,7 @@ describe('Certificate Issuance Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         commit: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
@@ -389,12 +376,10 @@ describe('Certificate Issuance Tests', () => {
       const certificateData = {
         resident_id: 'RES-2025-006',
         certificate_type_id: 1,
-        purpose: 'Employment'
+        purpose: 'Employment',
       };
 
-      const response1 = await request(app)
-        .post('/api/certificates')
-        .send(certificateData);
+      const response1 = await request(app).post('/api/certificates').send(certificateData);
 
       const response2 = await request(app)
         .post('/api/certificates')
@@ -414,7 +399,7 @@ describe('Certificate Issuance Tests', () => {
         beginTransaction: jest.fn(),
         execute: jest.fn(),
         commit: jest.fn(),
-        release: jest.fn()
+        release: jest.fn(),
       };
 
       db.getConnection.mockResolvedValue(mockConnection);
@@ -430,13 +415,11 @@ describe('Certificate Issuance Tests', () => {
         data: {
           business_name: 'ABC Store',
           business_type: 'Retail',
-          location: 'Batia Proper'
-        }
+          location: 'Batia Proper',
+        },
       };
 
-      const response = await request(app)
-        .post('/api/certificates')
-        .send(certificateData);
+      const response = await request(app).post('/api/certificates').send(certificateData);
 
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('id', 127);
@@ -449,7 +432,7 @@ describe('Certificate Issuance Tests', () => {
           expect.stringMatching(/^CERT-2024-/),
           'RES-2025-008',
           'Barangay Clearance',
-          'Business Registration'
+          'Business Registration',
         ])
       );
     });

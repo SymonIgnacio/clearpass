@@ -10,17 +10,17 @@ jest.mock('../middleware/authMiddleware', () => ({
     req.user = { id, resident_id: id, role };
     next();
   },
-  checkRole: (allowedRoles) => (req, res, next) => {
+  checkRole: allowedRoles => (req, res, next) => {
     const { ROLES: ROLE_CONST } = require('../config/roles');
     if (!req.user) return res.status(401).json({ error: 'Authentication required' });
     const userRole = req.user.role;
-    const normalized = allowedRoles.map((r) => (typeof r === 'string' ? r.toLowerCase() : r));
+    const normalized = allowedRoles.map(r => (typeof r === 'string' ? r.toLowerCase() : r));
     if (normalized.includes(userRole) || normalized.includes(String(userRole))) return next();
     if (normalized.includes('admin') && userRole === ROLE_CONST.ADMIN) return next();
     if (normalized.includes('secretary') && userRole === ROLE_CONST.SECRETARY) return next();
     if (normalized.includes('clerk') && userRole === ROLE_CONST.CLERK) return next();
     return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
-  }
+  },
 }));
 
 describe('document requests lifecycle', () => {
@@ -45,7 +45,7 @@ describe('document requests lifecycle', () => {
           return [{ affectedRows: 1 }];
         }
         return [[]];
-      })
+      }),
     };
 
     const app = express();
@@ -65,7 +65,7 @@ describe('document requests lifecycle', () => {
       .set('x-test-user', 'RES-A');
     expect(listRes.status).toBe(200);
 
-    const listCall = calls.find((c) => c.sql.toLowerCase().includes('from document_requests dr'));
+    const listCall = calls.find(c => c.sql.toLowerCase().includes('from document_requests dr'));
     expect(listCall.params).toEqual(['RES-A']);
 
     const updateRes = await request(app)
@@ -91,7 +91,7 @@ describe('document requests lifecycle', () => {
           return [{ affectedRows: 1 }];
         }
         return [[]];
-      })
+      }),
     };
 
     const app = express();

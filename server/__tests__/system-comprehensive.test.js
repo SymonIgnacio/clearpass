@@ -14,7 +14,7 @@ app.use(express.json());
 // Mock database
 const mockDb = {
   execute: jest.fn(),
-  getConnection: jest.fn()
+  getConnection: jest.fn(),
 };
 
 // Mock controllers
@@ -49,13 +49,13 @@ describe('🔒 SECURITY TEST SUITE - Captain Read-Only Enforcement', () => {
           Complainant_Details: { name: 'John Doe' },
           Incident_Type: 'Theft',
           Narrative: 'Test incident',
-          Location_Sitio: 'Batia'
+          Location_Sitio: 'Batia',
         },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await blotterController.create(req, res);
@@ -63,7 +63,7 @@ describe('🔒 SECURITY TEST SUITE - Captain Read-Only Enforcement', () => {
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Security Alert: Captains are Read-Only.'
+        message: 'Security Alert: Captains are Read-Only.',
       });
     });
 
@@ -72,11 +72,11 @@ describe('🔒 SECURITY TEST SUITE - Captain Read-Only Enforcement', () => {
         user: { role_id: 5, role: 'Captain' },
         body: { Status: 'Resolved' },
         params: { caseNumber: 'BLOT-2025-01-0001' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await blotterController.update(req, res);
@@ -84,7 +84,7 @@ describe('🔒 SECURITY TEST SUITE - Captain Read-Only Enforcement', () => {
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Security Alert: Captains are Read-Only.'
+        message: 'Security Alert: Captains are Read-Only.',
       });
     });
 
@@ -92,11 +92,11 @@ describe('🔒 SECURITY TEST SUITE - Captain Read-Only Enforcement', () => {
       const req = {
         user: { role_id: 5, role: 'Captain' },
         params: { caseNumber: 'BLOT-2025-01-0001' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await blotterController.delete(req, res);
@@ -104,22 +104,22 @@ describe('🔒 SECURITY TEST SUITE - Captain Read-Only Enforcement', () => {
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Security Alert: Captains are Read-Only.'
+        message: 'Security Alert: Captains are Read-Only.',
       });
     });
 
     test('✅ Captain CAN read blotter records', async () => {
-      mockDb.execute.mockResolvedValue([[
-        { Case_Number: 'BLOT-2025-01-0001', Incident_Type: 'Theft' }
-      ]]);
+      mockDb.execute.mockResolvedValue([
+        [{ Case_Number: 'BLOT-2025-01-0001', Incident_Type: 'Theft' }],
+      ]);
 
       const req = {
         user: { role_id: 5, role: 'Captain' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 
       await blotterController.getAll(req, res);
@@ -129,7 +129,8 @@ describe('🔒 SECURITY TEST SUITE - Captain Read-Only Enforcement', () => {
     });
 
     test('✅ Admin CAN create blotter record', async () => {
-      mockDb.execute.mockResolvedValueOnce([[]]) // resident check
+      mockDb.execute
+        .mockResolvedValueOnce([[]]) // resident check
         .mockResolvedValueOnce([{ insertId: 1 }]); // insert
 
       const req = {
@@ -138,13 +139,13 @@ describe('🔒 SECURITY TEST SUITE - Captain Read-Only Enforcement', () => {
           Complainant_Details: { name: 'John Doe' },
           Incident_Type: 'Theft',
           Narrative: 'Test incident',
-          Location_Sitio: 'Batia'
+          Location_Sitio: 'Batia',
         },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await blotterController.create(req, res);
@@ -152,13 +153,14 @@ describe('🔒 SECURITY TEST SUITE - Captain Read-Only Enforcement', () => {
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: 'Blotter record created successfully'
+          message: 'Blotter record created successfully',
         })
       );
     });
 
     test('✅ Clerk CAN create blotter record', async () => {
-      mockDb.execute.mockResolvedValueOnce([[]]) // resident check
+      mockDb.execute
+        .mockResolvedValueOnce([[]]) // resident check
         .mockResolvedValueOnce([{ insertId: 1 }]); // insert
 
       const req = {
@@ -167,13 +169,13 @@ describe('🔒 SECURITY TEST SUITE - Captain Read-Only Enforcement', () => {
           Complainant_Details: { name: 'Jane Doe' },
           Incident_Type: 'Noise',
           Narrative: 'Loud music',
-          Location_Sitio: 'Northville'
+          Location_Sitio: 'Northville',
         },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await blotterController.create(req, res);
@@ -193,21 +195,21 @@ describe('🧪 FUNCTIONAL TEST SUITE - Core Features', () => {
       const req = {
         user: { role_id: 2, role: 'Admin' },
         body: {
-          Complainant_Details: { name: 'John Doe' }
+          Complainant_Details: { name: 'John Doe' },
           // Missing: Incident_Type, Narrative, Location_Sitio
         },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await blotterController.create(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
-        error: 'Required fields missing'
+        error: 'Required fields missing',
       });
     });
 
@@ -221,20 +223,20 @@ describe('🧪 FUNCTIONAL TEST SUITE - Core Features', () => {
           Incident_Type: 'Theft',
           Narrative: 'Test',
           Location_Sitio: 'Batia',
-          respondent_id: 999
+          respondent_id: 999,
         },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await blotterController.create(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
-        error: 'Invalid respondent_id - resident not found'
+        error: 'Invalid respondent_id - resident not found',
       });
     });
 
@@ -247,13 +249,13 @@ describe('🧪 FUNCTIONAL TEST SUITE - Core Features', () => {
           Complainant_Details: { name: 'John Doe' },
           Incident_Type: 'Theft',
           Narrative: 'Test',
-          Location_Sitio: 'Batia'
+          Location_Sitio: 'Batia',
         },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await blotterController.create(req, res);
@@ -261,7 +263,7 @@ describe('🧪 FUNCTIONAL TEST SUITE - Core Features', () => {
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          Case_Number: expect.stringMatching(/^BLOT-\d{4}-\d{2}-\d{4}$/)
+          Case_Number: expect.stringMatching(/^BLOT-\d{4}-\d{2}-\d{4}$/),
         })
       );
     });
@@ -275,20 +277,20 @@ describe('🧪 FUNCTIONAL TEST SUITE - Core Features', () => {
         user: { role_id: 2, role: 'Admin' },
         body: {
           Status: 'Resolved',
-          Narrative: 'Updated narrative'
+          Narrative: 'Updated narrative',
         },
         params: { caseNumber: 'BLOT-2025-01-0001' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 
       await blotterController.update(req, res);
 
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Blotter record updated successfully'
+        message: 'Blotter record updated successfully',
       });
     });
 
@@ -297,18 +299,18 @@ describe('🧪 FUNCTIONAL TEST SUITE - Core Features', () => {
         user: { role_id: 2, role: 'Admin' },
         body: {},
         params: { caseNumber: 'BLOT-2025-01-0001' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       await blotterController.update(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
-        error: 'No fields to update'
+        error: 'No fields to update',
       });
     });
   });
@@ -320,17 +322,17 @@ describe('🧪 FUNCTIONAL TEST SUITE - Core Features', () => {
       const req = {
         user: { role_id: 2, role: 'Admin' },
         params: { caseNumber: 'BLOT-2025-01-0001' },
-        app: { locals: { db: mockDb } }
+        app: { locals: { db: mockDb } },
       };
       const res = {
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
 
       await blotterController.delete(req, res);
 
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Blotter record deleted successfully'
+        message: 'Blotter record deleted successfully',
       });
     });
   });
@@ -342,7 +344,7 @@ describe('🎯 INTEGRATION TEST SUITE - Role-Based Access', () => {
     { id: 3, name: 'Secretary', canWrite: true },
     { id: 4, name: 'Clerk', canWrite: true },
     { id: 5, name: 'Captain', canWrite: false },
-    { id: 6, name: 'Tanod', canWrite: true }
+    { id: 6, name: 'Tanod', canWrite: true },
   ];
 
   roles.forEach(role => {
@@ -356,13 +358,13 @@ describe('🎯 INTEGRATION TEST SUITE - Role-Based Access', () => {
             Complainant_Details: { name: 'Test' },
             Incident_Type: 'Test',
             Narrative: 'Test',
-            Location_Sitio: 'Test'
+            Location_Sitio: 'Test',
           },
-          app: { locals: { db: mockDb } }
+          app: { locals: { db: mockDb } },
         };
         const res = {
           status: jest.fn().mockReturnThis(),
-          json: jest.fn()
+          json: jest.fn(),
         };
 
         await blotterController.create(req, res);
@@ -398,7 +400,7 @@ describe('🛡️ ERROR HANDLING TEST SUITE', () => {
     // Verify error handling structure exists
     const createSource = blotterController.create.toString();
     const getAllSource = blotterController.getAll.toString();
-    
+
     expect(createSource).toContain('try');
     expect(createSource).toContain('catch');
     expect(getAllSource).toContain('try');

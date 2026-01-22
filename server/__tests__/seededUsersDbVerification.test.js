@@ -38,7 +38,7 @@ describe('DB verification: roles + seeded users', () => {
 
   test('roles table contains expected IDs', async () => {
     const [rows] = await conn.execute('SELECT id, role_name FROM roles ORDER BY id');
-    const map = new Map(rows.map((r) => [Number(r.id), String(r.role_name)]));
+    const map = new Map(rows.map(r => [Number(r.id), String(r.role_name)]));
 
     expect(map.get(1)).toMatch(/IT Admin/i);
     expect(map.get(2)).toMatch(/Captain/i);
@@ -64,7 +64,9 @@ describe('DB verification: roles + seeded users', () => {
       usernames
     );
 
-    const found = new Map(rows.map((r) => [String(r.username), { role: Number(r.role), password_hash: r.password_hash }]));
+    const found = new Map(
+      rows.map(r => [String(r.username), { role: Number(r.role), password_hash: r.password_hash }])
+    );
     for (const u of usernames) {
       expect(found.has(u)).toBe(true);
       expect(found.get(u).role).toBe(expected.get(u));
@@ -77,7 +79,7 @@ describe('DB verification: roles + seeded users', () => {
       `SELECT username, password_hash FROM users WHERE username IN (${usernames.map(() => '?').join(',')})`,
       usernames
     );
-    const byUser = new Map(rows.map((r) => [String(r.username), r.password_hash]));
+    const byUser = new Map(rows.map(r => [String(r.username), r.password_hash]));
     for (const u of usernames) {
       expect(byUser.has(u)).toBe(true);
       const hash = byUser.get(u);

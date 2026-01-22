@@ -38,15 +38,19 @@ export function ThemeModeProvider({ children }) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
-      const next = { ...(parsed && typeof parsed === 'object' ? parsed : {}), darkMode: mode === 'dark' };
+      const next = {
+        ...(parsed && typeof parsed === 'object' ? parsed : {}),
+        darkMode: mode === 'dark',
+      };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
+    } catch (error) {
+      console.warn('Failed to save theme mode:', error);
     }
   }, [mode]);
 
   const value = useMemo(() => {
-    const setDarkMode = (enabled) => setMode(enabled ? 'dark' : 'light');
-    const toggleDarkMode = () => setMode((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    const setDarkMode = enabled => setMode(enabled ? 'dark' : 'light');
+    const toggleDarkMode = () => setMode(prev => (prev === 'dark' ? 'light' : 'dark'));
     return { mode, setMode, setDarkMode, toggleDarkMode };
   }, [mode]);
 

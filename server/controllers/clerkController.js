@@ -21,23 +21,29 @@ async function checkClearPassEligibility(residentId) {
       .select('id', 'case_number', 'status', 'incident_type', 'hearing_count', 'missed_hearings')
       .orderBy('created_at', 'desc');
 
-    console.log(`🔍 CLEARPASS: Found ${blotterRecords.length} blotter records for resident ${residentId}`);
+    console.log(
+      `🔍 CLEARPASS: Found ${blotterRecords.length} blotter records for resident ${residentId}`
+    );
 
     // Step B: Check for "Active" cases or "3+ Missed Hearings"
-    const activeCases = blotterRecords.filter(record =>
-      record.status === 'Active' ||
-      record.status === 'Pending' ||
-      (record.missed_hearings && record.missed_hearings >= 3)
+    const activeCases = blotterRecords.filter(
+      record =>
+        record.status === 'Active' ||
+        record.status === 'Pending' ||
+        (record.missed_hearings && record.missed_hearings >= 3)
     );
 
     if (activeCases.length > 0) {
       console.log(`🚫 CLEARPASS DENIED: ${activeCases.length} active cases found`);
-      console.log(`🚫 Case details:`, activeCases.map(c => ({
-        case_number: c.case_number,
-        status: c.status,
-        missed_hearings: c.missed_hearings,
-        incident_type: c.incident_type
-      })));
+      console.log(
+        `🚫 Case details:`,
+        activeCases.map(c => ({
+          case_number: c.case_number,
+          status: c.status,
+          missed_hearings: c.missed_hearings,
+          incident_type: c.incident_type,
+        }))
+      );
 
       // Step C: HARD BLOCK - Throw error
       throw new Error('CLEARPASS DENIED: Resident has active accountabilities.');
@@ -49,9 +55,8 @@ async function checkClearPassEligibility(residentId) {
       eligible: true,
       blotter_records_checked: blotterRecords.length,
       active_cases: 0,
-      message: 'Resident passed ClearPass validation'
+      message: 'Resident passed ClearPass validation',
     };
-
   } catch (error) {
     if (error.message.includes('CLEARPASS DENIED')) {
       throw error; // Re-throw ClearPass denial
@@ -70,12 +75,7 @@ async function generateClearanceCertificate(residentId, purpose, issuedBy) {
 
     // Get resident details
     const [residents] = await knex('residents')
-      .select(
-        'r.*',
-        'h.Household_Number',
-        'h.Street_Address',
-        's.name as sitio_name'
-      )
+      .select('r.*', 'h.Household_Number', 'h.Street_Address', 's.name as sitio_name')
       .from('residents as r')
       .leftJoin('households as h', 'r.Household_ID', 'h.Household_ID')
       .leftJoin('sitios as s', 'h.Sitio_ID', 's.id')
@@ -89,14 +89,15 @@ async function generateClearanceCertificate(residentId, purpose, issuedBy) {
     const currentDate = new Date().toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
 
     // Generate control number
     const controlNo = `CLR-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
     // Generate QR validation hash
-    const qrHash = crypto.createHash('sha256')
+    const qrHash = crypto
+      .createHash('sha256')
       .update(`${controlNo}-${residentId}-${Date.now()}`)
       .digest('hex')
       .substring(0, 32)
@@ -117,7 +118,7 @@ async function generateClearanceCertificate(residentId, purpose, issuedBy) {
       signatory_secretary: process.env.CERTIFICATE_SIGNATORY_SECRETARY || 'Secretary Maria Santos',
       qr_validation_string: qrHash,
       location: process.env.CERTIFICATE_LOCATION || 'Barangay Batia, Bocaue, Bulacan',
-      is_manual: false
+      is_manual: false,
     });
 
     console.log(`✅ Clearance certificate generated: ${controlNo}`);
@@ -130,13 +131,12 @@ async function generateClearanceCertificate(residentId, purpose, issuedBy) {
         id: resident.Resident_ID,
         name: `${resident.First_Name} ${resident.Last_Name}`,
         address: `${resident.Street_Address}, ${resident.sitio_name}`,
-        sitio: resident.sitio_name
+        sitio: resident.sitio_name,
       },
       issued_date: currentDate,
       purpose: purpose || 'General Clearance',
-      verification_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/verify-qr/${qrHash}`
+      verification_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/verify-qr/${qrHash}`,
     };
-
   } catch (error) {
     console.error('❌ Certificate generation error:', error);
     throw new Error('Failed to generate clearance certificate');
@@ -173,11 +173,7 @@ async function getClerkDashboard(req, res) {
 
     // Get pending clearance requests (if there's a request system)
     const pendingRequests = await knex('clearance_requests')
-      .select(
-        'clearance_requests.*',
-        'residents.First_Name',
-        'residents.Last_Name'
-      )
+      .select('clearance_requests.*', 'residents.First_Name', 'residents.Last_Name')
       .join('residents', 'clearance_requests.resident_id', 'residents.Resident_ID')
       .where('clearance_requests.status', 'pending')
       .orderBy('clearance_requests.created_at', 'asc')
@@ -188,12 +184,11 @@ async function getClerkDashboard(req, res) {
       dashboard: {
         recent_clearances: recentClearances,
         today_stats: {
-          clearances_issued: todayStats[0]?.today_clearances || 0
+          clearances_issued: todayStats[0]?.today_clearances || 0,
         },
-        pending_requests: pendingRequests
-      }
+        pending_requests: pendingRequests,
+      },
     });
-
   } catch (error) {
     console.error('Clerk dashboard error:', error);
     res.status(500).json({ error: 'Failed to load clerk dashboard' });
@@ -209,12 +204,14 @@ async function issueClearance(req, res) {
     const { resident_id, purpose } = req.body;
     const clerkId = req.user.id;
 
-    console.log(`🎫 CLERK ACTION: Issuing clearance for resident ${resident_id} by clerk ${clerkId}`);
+    console.log(
+      `🎫 CLERK ACTION: Issuing clearance for resident ${resident_id} by clerk ${clerkId}`
+    );
 
     // Validate input
     if (!resident_id) {
       return res.status(400).json({
-        error: 'Resident ID is required'
+        error: 'Resident ID is required',
       });
     }
 
@@ -226,7 +223,7 @@ async function issueClearance(req, res) {
       await connection.rollback();
       return res.status(403).json({
         error: 'CLEARPASS DENIED: Resident has active accountabilities.',
-        clearpass_result: clearPassResult
+        clearpass_result: clearPassResult,
       });
     }
 
@@ -240,23 +237,22 @@ async function issueClearance(req, res) {
       success: true,
       message: 'Clearance certificate issued successfully',
       certificate: certificate,
-      clearpass_validation: clearPassResult
+      clearpass_validation: clearPassResult,
     });
-
   } catch (error) {
     await connection.rollback();
 
     if (error.message.includes('CLEARPASS DENIED')) {
       return res.status(403).json({
         error: error.message,
-        clearpass_denied: true
+        clearpass_denied: true,
       });
     }
 
     console.error('Clearance issuance error:', error);
     res.status(500).json({
       error: 'Failed to issue clearance certificate',
-      details: error.message
+      details: error.message,
     });
   }
 }
@@ -268,11 +264,7 @@ async function getClearanceHistory(req, res) {
     const { residentId } = req.params;
 
     const clearances = await knex('certificates_log')
-      .select(
-        'certificates_log.*',
-        'residents.First_Name',
-        'residents.Last_Name'
-      )
+      .select('certificates_log.*', 'residents.First_Name', 'residents.Last_Name')
       .join('residents', 'certificates_log.resident_id', 'residents.Resident_ID')
       .where('certificates_log.resident_id', residentId)
       .where('certificates_log.certificate_type', 'Barangay Clearance')
@@ -280,9 +272,8 @@ async function getClearanceHistory(req, res) {
 
     res.json({
       success: true,
-      clearances: clearances
+      clearances: clearances,
     });
-
   } catch (error) {
     console.error('Clearance history error:', error);
     res.status(500).json({ error: 'Failed to fetch clearance history' });
@@ -297,7 +288,7 @@ async function validateForClearance(req, res) {
 
     if (!resident_id) {
       return res.status(400).json({
-        error: 'Resident ID is required'
+        error: 'Resident ID is required',
       });
     }
 
@@ -314,9 +305,8 @@ async function validateForClearance(req, res) {
       success: true,
       resident: residents[0] || null,
       clearpass_eligible: clearPassResult.eligible,
-      validation_result: clearPassResult
+      validation_result: clearPassResult,
     });
-
   } catch (error) {
     if (error.message.includes('CLEARPASS DENIED')) {
       return res.json({
@@ -325,14 +315,14 @@ async function validateForClearance(req, res) {
         clearpass_eligible: false,
         validation_result: {
           eligible: false,
-          error: error.message
-        }
+          error: error.message,
+        },
       });
     }
 
     console.error('Clearance validation error:', error);
     res.status(500).json({
-      error: 'Failed to validate resident for clearance'
+      error: 'Failed to validate resident for clearance',
     });
   }
 }
@@ -355,9 +345,8 @@ async function getAllClearances(req, res) {
 
     res.json({
       success: true,
-      clearances: clearances
+      clearances: clearances,
     });
-
   } catch (error) {
     console.error('Get all clearances error:', error);
     res.status(500).json({ error: 'Failed to fetch clearances' });
@@ -372,7 +361,7 @@ async function registerResident(req, res) {
 
     if (!firstName || !lastName) {
       return res.status(400).json({
-        error: 'First name and last name are required'
+        error: 'First name and last name are required',
       });
     }
 
@@ -387,15 +376,14 @@ async function registerResident(req, res) {
       Date_Arrival: new Date().toISOString().split('T')[0],
       Residency_Status: 'Active',
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now()
+      updated_at: knex.fn.now(),
     });
 
     res.status(201).json({
       success: true,
       resident_id: residentId,
-      message: 'Resident registered successfully'
+      message: 'Resident registered successfully',
     });
-
   } catch (error) {
     console.error('Resident registration error:', error);
     res.status(500).json({ error: 'Failed to register resident' });
@@ -419,9 +407,8 @@ async function getDocumentIssuance(req, res) {
 
     res.json({
       success: true,
-      document_issuance: recentDocuments
+      document_issuance: recentDocuments,
     });
-
   } catch (error) {
     console.error('Document issuance error:', error);
     res.status(500).json({ error: 'Failed to fetch document issuance data' });
@@ -436,42 +423,36 @@ async function approveClearance(req, res) {
     const { approval_notes } = req.body;
     const secretaryId = req.user.id;
 
-    console.log(`✅ SECRETARY APPROVAL: Approving clearance request ${id} by secretary ${secretaryId}`);
+    console.log(
+      `✅ SECRETARY APPROVAL: Approving clearance request ${id} by secretary ${secretaryId}`
+    );
 
     // Check if clearance exists and is pending
-    const clearance = await knex('certificates_log')
-      .where('id', id)
-      .first();
+    const clearance = await knex('certificates_log').where('id', id).first();
 
     if (!clearance) {
       return res.status(404).json({
-        error: 'Clearance request not found'
+        error: 'Clearance request not found',
       });
     }
 
     if (clearance.status !== 'Pending') {
       return res.status(400).json({
-        error: 'Clearance is not in pending status'
+        error: 'Clearance is not in pending status',
       });
     }
 
     // Update clearance status to approved
-    await knex('certificates_log')
-      .where('id', id)
-      .update({
-        status: 'Approved',
-        approved_by: secretaryId,
-        approval_notes: approval_notes,
-        updated_at: knex.fn.now()
-      });
+    await knex('certificates_log').where('id', id).update({
+      status: 'Approved',
+      approved_by: secretaryId,
+      approval_notes: approval_notes,
+      updated_at: knex.fn.now(),
+    });
 
     // Get updated clearance with resident info
     const approvedClearance = await knex('certificates_log')
-      .select(
-        'certificates_log.*',
-        'residents.First_Name',
-        'residents.Last_Name'
-      )
+      .select('certificates_log.*', 'residents.First_Name', 'residents.Last_Name')
       .join('residents', 'certificates_log.resident_id', 'residents.Resident_ID')
       .where('certificates_log.id', id)
       .first();
@@ -479,13 +460,12 @@ async function approveClearance(req, res) {
     res.json({
       success: true,
       message: 'Clearance request approved successfully',
-      clearance: approvedClearance
+      clearance: approvedClearance,
     });
-
   } catch (error) {
     console.error('Clearance approval error:', error);
     res.status(500).json({
-      error: 'Failed to approve clearance request'
+      error: 'Failed to approve clearance request',
     });
   }
 }
@@ -499,5 +479,5 @@ module.exports = {
   getClearanceHistory,
   validateForClearance,
   getDocumentIssuance,
-  checkClearPassEligibility // Export for testing
+  checkClearPassEligibility, // Export for testing
 };

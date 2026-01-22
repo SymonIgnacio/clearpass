@@ -1,4 +1,4 @@
-exports.up = async function(knex) {
+exports.up = async function (knex) {
   // Add CHECK constraint for Case_Number format
   // MySQL 8.0.16+ supports CHECK constraints
   // Pattern: BLOT-YYYY-MM-NNNN
@@ -10,7 +10,7 @@ exports.up = async function(knex) {
   `);
 };
 
-exports.down = async function(knex) {
+exports.down = async function (knex) {
   await knex.raw(`
     ALTER TABLE blotter 
     DROP CONSTRAINT chk_blotter_case_number_format

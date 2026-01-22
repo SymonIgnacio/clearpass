@@ -19,7 +19,7 @@ const getDocumentsMasterKey = () => {
 
 const isEncryptionEnabled = () => process.env.DOCUMENTS_ENCRYPTION_ENABLED === 'true';
 
-const resolveAndValidateUploadedDocumentPath = (filePath) => {
+const resolveAndValidateUploadedDocumentPath = filePath => {
   const absolute = path.isAbsolute(filePath)
     ? filePath
     : path.join(__dirname, '..', String(filePath || '').replace(/^\//, ''));
@@ -30,7 +30,7 @@ const resolveAndValidateUploadedDocumentPath = (filePath) => {
   return absolute;
 };
 
-const encryptFileToEncryptedPath = async (inputPath) => {
+const encryptFileToEncryptedPath = async inputPath => {
   const masterKey = getDocumentsMasterKey();
   if (!masterKey) {
     throw new Error('DOCUMENTS_MASTER_KEY missing or invalid');
@@ -49,7 +49,7 @@ const encryptFileToEncryptedPath = async (inputPath) => {
     encryption_alg: 'aes-256-gcm',
     encryption_version: 1,
     encryption_iv: iv.toString('base64'),
-    encryption_tag: authTag.toString('base64')
+    encryption_tag: authTag.toString('base64'),
   };
 };
 
@@ -63,7 +63,9 @@ const sendStoredDocument = async (res, absolutePath, meta = {}) => {
   }
 
   if (!isEncryptionEnabled()) {
-    return res.status(500).json({ error: 'Document encryption is enabled for this file but server decryption is disabled' });
+    return res.status(500).json({
+      error: 'Document encryption is enabled for this file but server decryption is disabled',
+    });
   }
 
   const masterKey = getDocumentsMasterKey();
@@ -96,6 +98,5 @@ module.exports = {
   isEncryptionEnabled,
   resolveAndValidateUploadedDocumentPath,
   encryptFileToEncryptedPath,
-  sendStoredDocument
+  sendStoredDocument,
 };
-

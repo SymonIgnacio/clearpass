@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Dialog,
-  Box,
-  Typography,
-  Button,
-  Alert,
-  CircularProgress
-} from '@mui/material';
+import { Dialog, Box, Typography, Button, Alert, CircularProgress } from '@mui/material';
 import { CloudUpload, UploadFile } from '@mui/icons-material';
 import { uploadVerification } from '../utils/api';
 
@@ -16,10 +9,11 @@ const VerificationUploadModal = ({ open, onClose, onSuccess }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const handleFileChange = (event) => {
+  const handleFileChange = event => {
     const selectedFile = event.target.files[0];
     if (selectedFile) {
-      if (selectedFile.size > 5 * 1024 * 1024) { // 5MB limit
+      if (selectedFile.size > 5 * 1024 * 1024) {
+        // 5MB limit
         setError('File size too large (max 5MB)');
         setFile(null);
       } else {
@@ -47,7 +41,7 @@ const VerificationUploadModal = ({ open, onClose, onSuccess }) => {
 
     try {
       const response = await uploadVerification(formData);
-      
+
       // Check if response is OK (200-299)
       if (response.ok) {
         await response.json();
@@ -78,74 +72,69 @@ const VerificationUploadModal = ({ open, onClose, onSuccess }) => {
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={() => !uploading && onClose()}
-      maxWidth="sm"
-      fullWidth
-    >
+    <Dialog open={open} onClose={() => !uploading && onClose()} maxWidth='sm' fullWidth>
       <Box sx={{ p: 3, textAlign: 'center' }}>
         <CloudUpload sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
-        <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
+        <Typography variant='h5' sx={{ fontWeight: 600, mb: 1 }}>
           Proof of Residency Required
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          To activate your account, please upload a valid proof of residency (e.g., Billing Statement, Government ID with Address).
+        <Typography variant='body1' color='text.secondary' sx={{ mb: 3 }}>
+          To activate your account, please upload a valid proof of residency (e.g., Billing
+          Statement, Government ID with Address).
         </Typography>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity='error' sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
 
         {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
+          <Alert severity='success' sx={{ mb: 2 }}>
             {success}
           </Alert>
         )}
 
-        <Box sx={{ 
-          border: '2px dashed', 
-          borderColor: 'divider', 
-          borderRadius: 2, 
-          p: 4, 
-          mb: 3,
-          cursor: 'pointer',
-          bgcolor: 'action.hover',
-          '&:hover': { bgcolor: 'action.selected' }
-        }}>
+        <Box
+          sx={{
+            border: '2px dashed',
+            borderColor: 'divider',
+            borderRadius: 2,
+            p: 4,
+            mb: 3,
+            cursor: 'pointer',
+            bgcolor: 'action.hover',
+            '&:hover': { bgcolor: 'action.selected' },
+          }}
+        >
           <input
-            accept="image/*,.pdf"
+            accept='image/*,.pdf'
             style={{ display: 'none' }}
-            id="verification-file-upload"
-            type="file"
+            id='verification-file-upload'
+            type='file'
             onChange={handleFileChange}
           />
-          <label htmlFor="verification-file-upload">
-            <Button variant="outlined" component="span" startIcon={<UploadFile />}>
+          <label htmlFor='verification-file-upload'>
+            <Button variant='outlined' component='span' startIcon={<UploadFile />}>
               Select File
             </Button>
           </label>
           {file && (
-            <Typography variant="body2" color="text.primary" sx={{ mt: 2, fontWeight: 500 }}>
+            <Typography variant='body2' color='text.primary' sx={{ mt: 2, fontWeight: 500 }}>
               Selected: {file.name}
             </Typography>
           )}
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-          <Button 
-            onClick={onClose} 
-            disabled={uploading}
-          >
+          <Button onClick={onClose} disabled={uploading}>
             Skip for Now
           </Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant='contained'
             onClick={handleUpload}
             disabled={!file || uploading}
-            startIcon={uploading && <CircularProgress size={20} color="inherit" />}
+            startIcon={uploading && <CircularProgress size={20} color='inherit' />}
           >
             {uploading ? 'Uploading...' : 'Upload Verification'}
           </Button>

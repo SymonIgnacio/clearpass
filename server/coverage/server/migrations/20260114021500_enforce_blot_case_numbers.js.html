@@ -167,8 +167,7 @@
 <a name='L102'></a><a href='#L102'>102</a>
 <a name='L103'></a><a href='#L103'>103</a>
 <a name='L104'></a><a href='#L104'>104</a>
-<a name='L105'></a><a href='#L105'>105</a>
-<a name='L106'></a><a href='#L106'>106</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L105'></a><a href='#L105'>105</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -249,13 +248,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -268,8 +260,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -336,7 +334,7 @@ async function <span class="fstat-no" title="function not covered" >allocateSeq(
 <span class="cstat-no" title="statement not covered" >    table.primary(['year', 'month']);</span>
   });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  await knex.transaction(<span class="fstat-no" title="function not covered" >as</span>ync (trx) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  await knex.transaction(<span class="fstat-no" title="function not covered" >as</span>ync trx =&gt; {</span>
     const invalidRows = <span class="cstat-no" title="statement not covered" >await trx('blotter')</span>
       .select(['Case_Number', 'DateTime_Incident'])
       .whereRaw(
@@ -353,13 +351,14 @@ async function <span class="fstat-no" title="function not covered" >allocateSeq(
       const seq = <span class="cstat-no" title="statement not covered" >await allocateSeq(trx, { year, month, monthPadded });</span>
       const newCaseNumber = <span class="cstat-no" title="statement not covered" >formatCaseNumber(year, monthPadded, seq);</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      await trx('blotter').where('Case_Number', oldCaseNumber).update({ Case_Number: newCaseNumber });</span>
+<span class="cstat-no" title="statement not covered" >      await trx('blotter')</span>
+        .where('Case_Number', oldCaseNumber)
+        .update({ Case_Number: newCaseNumber });
 <span class="cstat-no" title="statement not covered" >      try {</span>
 <span class="cstat-no" title="statement not covered" >        await trx('blotter_participants')</span>
           .where('blotter_id', oldCaseNumber)
           .update({ blotter_id: newCaseNumber });
-      } catch (_) {
-      }
+      } catch (_) {}
     }
   });
 &nbsp;
@@ -367,15 +366,13 @@ async function <span class="fstat-no" title="function not covered" >allocateSeq(
 <span class="cstat-no" title="statement not covered" >    await knex.raw(</span>
       "ALTER TABLE blotter ADD CONSTRAINT chk_blot_case_number CHECK (Case_Number REGEXP '^BLOT-[0-9]{4}-[0-9]{2}-[0-9]{4}$')"
     );
-  } catch (_) {
-  }
+  } catch (_) {}
 };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >exports.down = async function <span class="fstat-no" title="function not covered" >down(</span>knex) {</span>
 <span class="cstat-no" title="statement not covered" >  try {</span>
 <span class="cstat-no" title="statement not covered" >    await knex.raw('ALTER TABLE blotter DROP CHECK chk_blot_case_number');</span>
-  } catch (_) {
-  }
+  } catch (_) {}
 <span class="cstat-no" title="statement not covered" >  await knex.schema.dropTableIfExists('blotter_case_sequences');</span>
 };
 &nbsp;</pre></td></tr></table></pre>
@@ -385,7 +382,7 @@ async function <span class="fstat-no" title="function not covered" >allocateSeq(
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-19T01:05:38.155Z
+                at 2026-01-22T21:30:07.384Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

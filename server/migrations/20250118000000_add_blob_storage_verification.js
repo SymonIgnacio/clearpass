@@ -34,9 +34,7 @@ exports.up = function (knex) {
 };
 
 exports.down = function (knex) {
-  return knex.schema
-    .dropTableIfExists('resident_verification_requests')
-    .then(() => {
-      console.log('✅ Dropped resident_verification_requests table');
-    });
+  return knex.schema.dropTableIfExists('resident_verification_requests').then(() => {
+    console.log('✅ Dropped resident_verification_requests table');
+  });
 };

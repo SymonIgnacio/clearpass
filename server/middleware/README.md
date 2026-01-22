@@ -5,6 +5,7 @@ This directory contains all Express middleware for request processing.
 ## Middleware Components
 
 ### authMiddleware.js
+
 - **Purpose**: JWT authentication and role-based authorization
 - **Functions**:
   - `verifyToken`: Validates JWT tokens from Authorization header
@@ -13,6 +14,7 @@ This directory contains all Express middleware for request processing.
 - **Error Codes**: 401 (Unauthorized), 403 (Forbidden)
 
 ### errorHandler.js
+
 - **Purpose**: Centralized error handling
 - **Functions**:
   - `errorHandler`: Main error handler middleware
@@ -33,6 +35,7 @@ This directory contains all Express middleware for request processing.
   ```
 
 ### validation.js
+
 - **Purpose**: Input validation and sanitization
 - **Features**:
   - Express-validator middleware chains
@@ -42,6 +45,7 @@ This directory contains all Express middleware for request processing.
 - **Usage**: Applied to POST/PUT endpoints
 
 ### logger.js
+
 - **Purpose**: Winston logging configuration
 - **Features**:
   - Structured logging
@@ -50,10 +54,12 @@ This directory contains all Express middleware for request processing.
   - Console output in development
 
 ### compression.js
+
 - **Purpose**: Response compression (gzip)
 - **Features**: Reduces response size for better performance
 
 ### performanceMetrics.js
+
 - **Purpose**: Request tracking and metrics
 - **Features**: Response time tracking, endpoint usage statistics
 
@@ -77,15 +83,13 @@ Request
 ## Usage Examples
 
 ### Authentication
+
 ```javascript
-router.get('/protected',
-  verifyToken,
-  checkRole(['admin', 'captain']),
-  controller.method
-);
+router.get('/protected', verifyToken, checkRole(['admin', 'captain']), controller.method);
 ```
 
 ### Error Handling
+
 ```javascript
 const { AppError, ERROR_CODES } = require('../middleware/errorHandler');
 
@@ -93,13 +97,17 @@ throw new AppError('Not found', 404, ERROR_CODES.NOT_FOUND);
 ```
 
 ### Async Wrapper
+
 ```javascript
 const { asyncHandler } = require('../middleware/errorHandler');
 
-router.get('/data', asyncHandler(async (req, res) => {
-  const data = await fetchData();
-  res.json(data);
-}));
+router.get(
+  '/data',
+  asyncHandler(async (req, res) => {
+    const data = await fetchData();
+    res.json(data);
+  })
+);
 ```
 
 ## Security Features
