@@ -112,7 +112,7 @@ const Dashboard = () => {
         setBlotterCases([])
         setLoading(false)
       }, 5000)
-      
+
       return () => clearTimeout(timeout)
     }
   }, [user, userRole])
@@ -120,30 +120,24 @@ const Dashboard = () => {
   const fetchRoleSpecificData = async () => {
     try {
       setLoading(true)
-      
+
       const response = await apiRequest('dashboard')
-      
+
       if (response.ok) {
         const dashboardData = await response.json()
-          hasOverall: !!dashboardData.overall,
-          overallKeys: dashboardData.overall ? Object.keys(dashboardData.overall) : 'none',
-          residents: dashboardData.residents,
-          active_blotter: dashboardData.active_blotter,
-          certificates: dashboardData.certificates,
-          allKeys: Object.keys(dashboardData)
-        })
+        // Debugging handled, setting stats directly
         setStats(dashboardData)
       } else {
         const errorText = await response.text()
         throw new Error(`Dashboard API failed: ${response.status}`)
       }
-      
+
       // Fetch certificates
       await fetchCertificates()
-      
+
       // Fetch blotter cases
       await fetchBlotterCases()
-      
+
     } catch (error) {
       setStats({ overall: { total_residents: 0, total_seniors: 0, total_pwd: 0, total_single_parents: 0 } })
       setCertificates([])
@@ -410,11 +404,11 @@ const Dashboard = () => {
           item.full_name || 'N/A',
           item.email || 'N/A',
           item.role === 1 ? 'IT Admin' :
-          item.role === 2 ? 'Clerk' :
-          item.role === 3 ? 'Blotter Officer' :
-          item.role === 4 ? 'Resident' :
-          item.role === 5 ? 'Captain' :
-          item.role === 6 ? 'Secretary' : `Role ${item.role}`,
+            item.role === 2 ? 'Clerk' :
+              item.role === 3 ? 'Blotter Officer' :
+                item.role === 4 ? 'Resident' :
+                  item.role === 5 ? 'Captain' :
+                    item.role === 6 ? 'Secretary' : `Role ${item.role}`,
           item.is_active ? 'Active' : 'Inactive',
           item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'
         ]
@@ -782,12 +776,12 @@ const Dashboard = () => {
                         })}
                       </TableRow>
                     )) || (
-                      <TableRow>
-                        <TableCell colSpan={detailedReport.columns?.length || 1} align="center">
-                          No data found
-                        </TableCell>
-                      </TableRow>
-                    )}
+                        <TableRow>
+                          <TableCell colSpan={detailedReport.columns?.length || 1} align="center">
+                            No data found
+                          </TableCell>
+                        </TableRow>
+                      )}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -811,20 +805,7 @@ const Dashboard = () => {
   }
 
   // Debug logging
-    user, 
-    isITAdmin, 
-    activeTab, 
-    loading, 
-    stats, 
-    certificates: certificates.length, 
-    blotterCases: blotterCases.length,
-    statCardValues: {
-      totalPopulation: stats?.overall?.total_residents || stats?.residents || 0,
-      activeCases: stats?.active_blotter || (Array.isArray(blotterCases) ? blotterCases.filter(case_ => (case_.status || case_.Status) === 'Pending').length : 0),
-      certificates: stats?.certificates || certificates.length,
-      vulnerableGroups: Number(stats?.overall?.total_seniors || 0) + Number(stats?.overall?.total_pwd || 0) + Number(stats?.overall?.total_single_parents || 0)
-    }
-  })
+
 
   // Check if all values are zero (likely empty database)
   const allValuesZero = (
@@ -1089,9 +1070,9 @@ const Dashboard = () => {
                       <Alert
                         severity={
                           patrolSuggestions.overall_risk_level === 'CRITICAL' ? 'error' :
-                          patrolSuggestions.overall_risk_level === 'HIGH' ? 'error' :
-                          patrolSuggestions.overall_risk_level === 'MEDIUM' ? 'warning' :
-                          'success'
+                            patrolSuggestions.overall_risk_level === 'HIGH' ? 'error' :
+                              patrolSuggestions.overall_risk_level === 'MEDIUM' ? 'warning' :
+                                'success'
                         }
                         sx={{
                           mb: 3,
@@ -1130,12 +1111,12 @@ const Dashboard = () => {
                             </Card>
                           </Grid>
                         )) || (
-                          <Grid xs={12}>
-                            <Typography variant="body2" color="text.secondary">
-                              No patrol suggestions available
-                            </Typography>
-                          </Grid>
-                        )}
+                            <Grid xs={12}>
+                              <Typography variant="body2" color="text.secondary">
+                                No patrol suggestions available
+                              </Typography>
+                            </Grid>
+                          )}
                       </Grid>
                     </Box>
                   )}

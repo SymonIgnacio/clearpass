@@ -29,7 +29,7 @@ class ProgramController {
 
       const query = `
         SELECT p.*, s.name as sitio_name,
-          COUNT(pp.participant_id) as participants_count
+          COUNT(pp.id) as participants_count
         FROM community_programs p
         LEFT JOIN sitios s ON p.sitio_id = s.id
         LEFT JOIN program_participants pp ON p.id = pp.program_id
@@ -70,7 +70,7 @@ class ProgramController {
       const [rows] = await this.db.execute(
         `
         SELECT p.*, s.name as sitio_name,
-          COUNT(pp.participant_id) as participants_count
+          COUNT(pp.id) as participants_count
         FROM community_programs p
         LEFT JOIN sitios s ON p.sitio_id = s.id
         LEFT JOIN program_participants pp ON p.id = pp.program_id

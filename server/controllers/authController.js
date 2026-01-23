@@ -303,6 +303,8 @@ const me = async (req, res) => {
         process.env.JWT_SECRET,
         {
           expiresIn: process.env.JWT_EXPIRES_IN || '24h',
+          issuer: process.env.JWT_ISSUER || 'barangay-management-system',
+          audience: process.env.JWT_AUDIENCE || 'barangay-users',
         }
       );
 
@@ -462,12 +464,12 @@ const verifyMfaOtpCode = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
 
-      res.cookie('authToken', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-        maxAge: 24 * 60 * 60 * 1000,
-      });
+    res.cookie('authToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
 
     const auditDetails = {
       user_id: user.id,

@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">1.16% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/257</span>
+                <span class='fraction'>3/257</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">3.84% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/26</span>
+                <span class='fraction'>1/26</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">1.19% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/251</span>
+                <span class='fraction'>3/251</span>
             </div>
         
             
@@ -933,11 +933,25 @@
 <a name='L868'></a><a href='#L868'>868</a>
 <a name='L869'></a><a href='#L869'>869</a>
 <a name='L870'></a><a href='#L870'>870</a>
-<a name='L871'></a><a href='#L871'>871</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L871'></a><a href='#L871'>871</a>
+<a name='L872'></a><a href='#L872'>872</a>
+<a name='L873'></a><a href='#L873'>873</a>
+<a name='L874'></a><a href='#L874'>874</a>
+<a name='L875'></a><a href='#L875'>875</a>
+<a name='L876'></a><a href='#L876'>876</a>
+<a name='L877'></a><a href='#L877'>877</a>
+<a name='L878'></a><a href='#L878'>878</a>
+<a name='L879'></a><a href='#L879'>879</a>
+<a name='L880'></a><a href='#L880'>880</a>
+<a name='L881'></a><a href='#L881'>881</a>
+<a name='L882'></a><a href='#L882'>882</a>
+<a name='L883'></a><a href='#L883'>883</a>
+<a name='L884'></a><a href='#L884'>884</a>
+<a name='L885'></a><a href='#L885'>885</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1802,12 +1816,26 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const { approveRequest } = <span class="cstat-no" title="statement not covered" >require('../services/blotterRequestService');</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const { approveRequest } = require('../services/blotterRequestService');
 &nbsp;
 class BlotterRequestController {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor(db) {
-<span class="cstat-no" title="statement not covered" >    this.db = db;</span>
+  constructor(db) {
+    this.db = db;
   }
 &nbsp;
 <span class="fstat-no" title="function not covered" >  as</span>ync submitRequest(req, res) {
@@ -1837,14 +1865,28 @@ class BlotterRequestController {
           .json({ success: false, message: 'Resident authentication required' });
       }
 &nbsp;
-      const incident_datetime =
-<span class="cstat-no" title="statement not covered" >        incident_date &amp;&amp; incident_time ? `${incident_date} ${incident_time}` : incident_date;</span>
+      // Validate that the resident exists in the database
+      co<span class="cstat-no" title="statement not covered" >nst [residentExists] = await this.db.execute(</span>
+        'SELECT Resident_ID FROM residents WHERE Resident_ID = ?',
+        [complainant_resid<span class="cstat-no" title="statement not covered" >ent_id]</span>
+      );<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ></span></span>
 &nbsp;
-      const attachments = <span class="cstat-no" title="statement not covered" >req.files?.length</span>
-        ? req.files.map(<span class="fstat-no" title="function not covered" >f </span>=&gt; (<span class="cstat-no" title="statement not covered" >{ filename: f.originalname, mimetype: f.mimetype, size: f.size })</span>)
+      if (residentExists.length === 0) {
+        return res.stat<span class="cstat-no" title="statement not covered" >us(400).json({</span>
+          success: false,
+          message:
+            'Your user account is not linked to a valid resident profile. Please contact the administrator.',
+        });
+      }
+&nbsp;
+      const incident_datetime =
+        incident_date &amp;&amp; incident_time ? `${incident_date} ${incident_time}` : incident_date;
+&nbsp;
+      const attachments = req.files?.length
+        ? req.files.map(f =&gt; ({ filename: f.originalname, mimetype: f.mimetype, size: f.size }))
         : [];
 &nbsp;
-      const [result] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+      const [result] = await this.db.execute(
         `
           INSERT INTO blotter_requests
             (complainant_resident_id, respondent_resident_id, respondent_name, respondent_alias, respondent_address, respondent_contact,
@@ -1860,141 +1902,141 @@ class BlotterRequestController {
           respondent_name || null,
           respondent_alias || null,
           respondent_address || null,
-          respondent_contact || null,
+          respondent_con<span class="cstat-no" title="statement not covered" >tact || null,</span>
           incident_type,
-          incident_datetime,
-          location_sitio,
+<span class="cstat-no" title="statement not covered" >          incident_datetime,</span>
+          location_sitio,<span class="cstat-no" title="statement not covered" ></span>
           location_details || null,
           description_text,
-          JSON.stringify(attachments),
-          complainant_contact_method || null,
+          JSON.stringify(at<span class="cstat-no" title="statement not covered" >tachments),<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ></span></span></span>
+<span class="cstat-no" title="statement not covered" >          complainant_contact_method || null,</span>
           complainant_address || null,
           complainant_id_type || null,
           complainant_id_number || null,
         ]
       );
 &nbsp;
-      const requestId = <span class="cstat-no" title="statement not covered" >result.insertId;</span>
+      const requestId = result.insertId;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      if (global.createBulkNotification) {</span>
-        const [officers] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+      if (global.createBulkNotification) {
+<span class="cstat-no" title="statement not covered" >        const [officers] = await this.db.execute(</span>
           'SELECT id FROM users WHERE role IN (1, 6) AND is_active = 1'
         );
-        const officerIds = <span class="cstat-no" title="statement not covered" >officers.map(<span class="fstat-no" title="function not covered" >o </span>=&gt; <span class="cstat-no" title="statement not covered" >o.id)</span>;</span>
-<span class="cstat-no" title="statement not covered" >        await global.createBulkNotification(</span>
+        const officerIds = officers.map(o =&gt; o.id);
+        await global.createBulkNotification(
           officerIds,
           'New Blotter Request',
           `Resident filed ${incident_type} request`,
           'info',
-          'normal',
+<span class="cstat-no" title="statement not covered" >          'normal',</span>
           { request_id: requestId, incident_type, location_sitio }
-        );
-      }
+<span class="cstat-no" title="statement not covered" >        );</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      await this.db.execute(</span>
+      await this.db.execute(
         `
-          INSERT INTO blotter_request_audits
-            (request_id, actor_user_id, actor_role, action, message_text, created_at)
-          VALUES (?, ?, 'resident', 'submitted', ?, NOW())
-        `,
-        [requestId, req.user.id, 'Submitted request']
-      );
+<span class="fstat-no" title="function not covered" ></span>          INSERT INTO blotter_request_audits
+<span class="cstat-no" title="statement not covered" >            (request_id, actor_user_id, actor_role, action, message_text, created_at)</span>
+          VALUES (?, ?, '<span class="cstat-no" title="statement not covered" >resident', 'submitted</span>', ?, NOW())
+        `,<span class="cstat-no" title="statement not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
+        [requestId, r<span class="cstat-no" title="statement not covered" >eq.user.id, 'Submit</span>ted request']
+      );<span class="cstat-no" title="statement not covered" ></span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      res.status(201).json({ success: true, data: { request_id: requestId } });</span>
+      res.status(201).json({ success: true, data: { request_id: requestId } });
     } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error('Error submitting blotter request:', error);</span>
-<span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message: 'Failed to submit request' });</span>
+      console.error('Error submitting blotter request:', error);
+      res.status(500).json({ success: false, message: 'Failed to submit request' });
     }
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync getMyRequests(req, res) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const residentId = <span class="cstat-no" title="statement not covered" >req.user.resident_id;</span>
-      const { page = <span class="branch-0 cbranch-no" title="branch not covered" >1,</span> limit = <span class="branch-0 cbranch-no" title="branch not covered" >10 </span>} = <span class="cstat-no" title="statement not covered" >req.query;</span>
-      const offset = <span class="cstat-no" title="statement not covered" >(page - 1) * limit;</span>
-      const [rows] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
-        `
+  async getMyRequests(req, res) {
+    try {
+      const residentId = r<span class="cstat-no" title="statement not covered" >eq.user.resident_id;</span>
+      const { page = 1, limit = 10 } = req.query;
+      const offset = (page - 1) * limit;
+      const [rows] = await this.db.execute(
+<span class="cstat-no" title="statement not covered" >        `</span>
           SELECT id, incident_type, status, incident_datetime, location_sitio,
                  description_text, created_at, approved_blotter_case_number
           FROM blotter_requests
           WHERE complainant_resident_id = ?
           ORDER BY created_at DESC
-          LIMIT ? OFFSET ?
+<span class="cstat-no" title="statement not covered" >          LIMIT ? OFFSET ?</span>
         `,
         [residentId, parseInt(limit), offset]
       );
-      const [countRows] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
-        'SELECT COUNT(*) as total FROM blotter_requests WHERE complainant_resident_id = ?',
-        [residentId]
-      );
-<span class="cstat-no" title="statement not covered" >      res.json({</span>
-        success: true,
-        data: rows,
-        pagination: { page: parseInt(page), limit: parseInt(limit), total: countRows[0].total },
-      });
+<span class="fstat-no" title="function not covered" ></span>      const [countRows] = await this.db.execute(
+<span class="cstat-no" title="statement not covered" >        'SELECT COUNT(*) as total FROM blotter_requests WHERE complainant_resident_id = ?',</span>
+        [residentId]<span class="cstat-no" title="statement not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
+      );<span class="cstat-no" title="statement not covered" ></span>
+      res.json({<span class="cstat-no" title="statement not covered" ></span>
+        success: true<span class="cstat-no" title="statement not covered" >,</span>
+<span class="cstat-no" title="statement not covered" >        data: rows,</span>
+<span class="cstat-no" title="statement not covered" >        pagination: { page: parseInt</span>(page), limit: parseInt(limit), total: countRows[0].total },
+      })<span class="cstat-no" title="statement not covered" >;</span>
     } catch (_) {
 <span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message: 'Failed to fetch requests' });</span>
-    }
-  }
+    }<span class="cstat-no" title="statement not covered" ></span>
+  }<span class="cstat-no" title="statement not covered" ></span>
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync listRequests(req, res) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { status, assigned_officer_id, page = <span class="branch-0 cbranch-no" title="branch not covered" >1,</span> limit = <span class="branch-0 cbranch-no" title="branch not covered" >10 </span>} = <span class="cstat-no" title="statement not covered" >req.query;</span>
-      const offset = <span class="cstat-no" title="statement not covered" >(page - 1) * limit;</span>
-      const filters = <span class="cstat-no" title="statement not covered" >[];</span>
-      const params = <span class="cstat-no" title="statement not covered" >[];</span>
-<span class="cstat-no" title="statement not covered" >      if (status) {</span>
-<span class="cstat-no" title="statement not covered" >        filters.push('status = ?');</span>
-<span class="cstat-no" title="statement not covered" >        params.push(status);</span>
+  async listRequests<span class="cstat-no" title="statement not covered" >(req, res) {</span>
+    try {<span class="cstat-no" title="statement not covered" ></span>
+      const { status, assigned_officer_id, page = 1, limit = 10 } = req.query;
+      const offset = (page - 1) * limit;
+      const filters = [];
+      const params = [];
+      if (status) {
+        filters.push('status = ?');
+        params.push(status);
       }
-<span class="cstat-no" title="statement not covered" >      if (assigned_officer_id) {</span>
-<span class="cstat-no" title="statement not covered" >        filters.push('validation_assigned_officer_id = ?');</span>
-<span class="cstat-no" title="statement not covered" >        params.push(parseInt(assigned_officer_id));</span>
+      if (assigned_officer_id) {
+        filters.push('validation_assigned_officer_id = ?');
+        params.push(parseInt(assigned_officer_id));
       }
-      const where = <span class="cstat-no" title="statement not covered" >filters.length ? `WHERE ${filters.join(' AND ')}` : '';</span>
-      const [rows] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
-        `
+<span class="cstat-no" title="statement not covered" >      const where = filters.length ? `WHERE ${f</span>ilters.join(' AND ')}` : '';
+      const [rows] = await this.db.execute(
+<span class="cstat-no" title="statement not covered" >        `</span>
           SELECT br.id, br.incident_type, br.status, br.incident_datetime, br.location_sitio,
                  br.description_text, br.created_at, br.validation_assigned_officer_id,
                  CONCAT(r.First_Name, ' ', r.Last_Name) AS complainant_name
-          FROM blotter_requests br
-          LEFT JOIN residents r ON r.Resident_ID = br.complainant_resident_id
-          ${where}
-          ORDER BY br.created_at DESC
-          LIMIT ? OFFSET ?
-        `,
+<span class="fstat-no" title="function not covered" ></span>          FROM blotter_requests br
+<span class="cstat-no" title="statement not covered" >          LEFT JOIN residents r ON r.Resident_ID = br.complainant_resident_id</span>
+          ${where}<span class="cstat-no" title="statement not covered" ></span>
+          ORDER BY br<span class="cstat-no" title="statement not covered" >.created_at DESC</span>
+<span class="cstat-no" title="statement not covered" >          LIMIT ? OFFSET ?</span>
+<span class="cstat-no" title="statement not covered" >        `,</span>
         [...params, parseInt(limit), offset]
-      );
-<span class="cstat-no" title="statement not covered" >      res.json({ success: true, data: rows });</span>
+      );<span class="cstat-no" title="statement not covered" ></span>
+      res.json({ success: true, data: rows });
     } catch (_) {
-<span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message: 'Failed to list requests' });</span>
-    }
+      res.status(500).json({ success: false, message: 'Failed to list requests' });
+    }<span class="cstat-no" title="statement not covered" ></span>
   }
-&nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync getRequestById(req, res) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { id } = <span class="cstat-no" title="statement not covered" >req.params;</span>
-      const [rows] = <span class="cstat-no" title="statement not covered" >await this.db.execute('SELECT * FROM blotter_requests WHERE id = ?', [id]);</span>
+<span class="cstat-no" title="statement not covered" ></span>
+  async getRequestById(req, res) {
+    try {
+      const { id } = req.params;
+<span class="fstat-no" title="function not covered" ></span>      const [rows] = await this.db.execute('SELECT * FROM blotter_requests WHERE id = ?', [id]);
 <span class="cstat-no" title="statement not covered" >      if (!rows.length) {</span>
-<span class="cstat-no" title="statement not covered" >        return res.status(404).json({ success: false, message: 'Request not found' });</span>
-      }
-      const [audits] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+        return res.st<span class="cstat-no" title="statement not covered" >atus(404).j</span>son({ success: false, message: 'Request not found' });
+      }<span class="cstat-no" title="statement not covered" ></span>
+      const [audits] = a<span class="cstat-no" title="statement not covered" >wait this.db.execute(</span>
         'SELECT * FROM blotter_request_audits WHERE request_id = ? ORDER BY created_at ASC',
-        [id]
+<span class="cstat-no" title="statement not covered" >        [id]</span>
       );
-<span class="cstat-no" title="statement not covered" >      res.json({ success: true, data: { request: rows[0], audits } });</span>
+      res.json({ success: true, data: { request: rows[0], audits } });
     } catch (_) {
-<span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message: 'Failed to fetch request' });</span>
+      res.status(500).json({ success: false, message: 'Failed to fetch request' });
     }
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync validateRequest(req, res) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { id } = <span class="cstat-no" title="statement not covered" >req.params;</span>
-      const { assign_officer_id, due_at, note } = <span class="cstat-no" title="statement not covered" >req.body;</span>
-      const officerId = <span class="cstat-no" title="statement not covered" >assign_officer_id || req.user.id;</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      await this.db.execute(</span>
+  async validateRequest(req, res) {
+    try {
+      const { id } = req.params;
+      const { assign_officer_id, due_at, note } = req.body;
+      const officerId = assign_officer_id || req.user.id;
+<span class="cstat-no" title="statement not covered" ></span>
+      await this.db.execute(
         `
           UPDATE blotter_requests
           SET status = 'for_validation',
@@ -2002,197 +2044,197 @@ class BlotterRequestController {
               validation_started_at = NOW(),
               validation_due_at = ?,
               updated_at = NOW()
-          WHERE id = ?
-        `,
+<span class="cstat-no" title="statement not covered" >          WHERE id = ?</span>
+<span class="cstat-no" title="statement not covered" >        `,</span>
         [officerId, due_at || null, id]
       );
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      await this.db.execute(</span>
+      await this.db.execute(
         `
           INSERT INTO blotter_request_audits
             (request_id, actor_user_id, actor_role, action, message_text, created_at)
-          VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'assigned_validation', ?, NOW())
+          VALUES (?, ?,<span class="cstat-no" title="statement not covered" > (SELECT role FROM users WHERE id = ?), 'assigned_validation', ?, NOW())</span>
         `,
         [id, req.user.id, req.user.id, note || 'Validation started']
       );
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      if (global.createNotification) {</span>
-<span class="cstat-no" title="statement not covered" >        await global.createNotification(</span>
+<span class="cstat-no" title="statement not covered" ></span>
+      if<span class="cstat-no" title="statement not covered" > (global.createNotification) {</span>
+        await global.createNotific<span class="cstat-no" title="statement not covered" >ation(</span>
           officerId,
           'Request Assigned for Validation',
           `You are assigned to validate request #${id}`,
-          'warning',
-          'normal',
-          { request_id: id }
+          'warning',<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >          'normal',</span>
+          { <span class="cstat-no" title="statement not covered" >request_id: id }</span>
         );
-        const [rows] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+        const [rows] = await this.db.execute(
           'SELECT complainant_resident_id FROM blotter_requests WHERE id = ?',
           [id]
         );
-        const residentId = <span class="cstat-no" title="statement not covered" >rows[0]?.complainant_resident_id;</span>
-<span class="cstat-no" title="statement not covered" >        if (residentId) {</span>
-          const [residentUsers] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+        const residentId = rows[0]?.complainant_resident_id;
+        if (residentId) {
+          const [residentUsers] = await this.db.execute(
             'SELECT id FROM users WHERE resident_id = ? AND is_active = 1 ORDER BY id ASC LIMIT 1',
             [residentId]
           );
-          const residentUserId = <span class="cstat-no" title="statement not covered" >residentUsers?.[0]?.id;</span>
-<span class="cstat-no" title="statement not covered" >          if (residentUserId) {</span>
+<span class="cstat-no" title="statement not covered" >          const residentUserId = residentUsers?.[0]?.id;</span>
+          if (residentUserId) {
 <span class="cstat-no" title="statement not covered" >            await global.createNotification(</span>
               residentUserId,
               'Request Under Validation',
               'Validating the request and under investigation',
-              'info',
-              'normal',
-              { request_id: id }
-            );
+<span class="fstat-no" title="function not covered" ></span>              'info',
+<span class="cstat-no" title="statement not covered" >              'normal',</span>
+              { reque<span class="cstat-no" title="statement not covered" >st_id: id }</span>
+            );<span class="cstat-no" title="statement not covered" ></span>
           }
-        }
-      }
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      res.json({ success: true, message: 'Validation started' });</span>
+        }<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+      res.json({ success: true<span class="cstat-no" title="statement not covered" >, message: 'Validation started' });</span>
     } catch (_) {
-<span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message: 'Failed to start validation' });</span>
+      res.status(500).json({ success: false, message: 'Failed to start validation' });
     }
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync updateInvestigation(req, res) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { id } = <span class="cstat-no" title="statement not covered" >req.params;</span>
-      const { investigation_checklist, investigation_findings } = <span class="cstat-no" title="statement not covered" >req.body;</span>
+  async updateInvestigation(req, res) {
+    try {
+      const { id } = req.par<span class="cstat-no" title="statement not covered" >ams;<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ></span></span></span>
+      co<span class="cstat-no" title="statement not covered" >nst { investigation_checklist, investigation_findings } = req.body;</span>
 &nbsp;
-      let isReady = <span class="cstat-no" title="statement not covered" >false;</span>
-<span class="cstat-no" title="statement not covered" >      if (investigation_checklist) {</span>
-        const checklist = <span class="cstat-no" title="statement not covered" >JSON.parse(investigation_checklist);</span>
-        const requiredSteps = <span class="cstat-no" title="statement not covered" >[</span>
-          'reviewed_complaint',
-          'contacted_complainant',
-          'reviewed_evidence',
+      let isReady = false;
+      if (investigation_che<span class="cstat-no" title="statement not covered" >cklist) {</span>
+        const checkli<span class="cstat-no" title="statement not covered" >st = </span>JSON.parse(investigation_checklist);
+        const requiredSteps = [
+<span class="cstat-no" title="statement not covered" >          'reviewed_complaint',</span>
+<span class="cstat-no" title="statement not covered" >          'contacted_complainant',</span>
+<span class="cstat-no" title="statement not covered" >          'reviewed_evidence',</span>
           'conducted_investigation',
           'documented_findings',
-          'confirmed_jurisdiction',
-        ];
-        const allRequired = <span class="cstat-no" title="statement not covered" >requiredSteps.every(<span class="fstat-no" title="function not covered" >st</span>ep =&gt; <span class="cstat-no" title="statement not covered" >checklist[step] === true)</span>;</span>
-<span class="cstat-no" title="statement not covered" >        isReady = allRequired &amp;&amp; investigation_findings &amp;&amp; investigation_findings.trim().length &gt; 0;</span>
+<span class="cstat-no" title="statement not covered" >          'confirmed_jurisdiction',</span>
+<span class="cstat-no" title="statement not covered" >        ];</span>
+<span class="cstat-no" title="statement not covered" >        const allRequired = requiredSteps.every(</span>step =&gt; checklist[step] === true);
+        isReady = allRequired &amp;&amp; investigation_findings &amp;&amp; investigation_findings.trim().length &gt; 0;
       }
+<span class="cstat-no" title="statement not covered" ></span>
+      co<span class="cstat-no" title="statement not covered" >nst updateFields = ['updated_at =</span> NOW()'];
+      co<span class="cstat-no" title="statement not covered" >nst params = [id];</span>
 &nbsp;
-      const updateFields = <span class="cstat-no" title="statement not covered" >['updated_at = NOW()'];</span>
-      const params = <span class="cstat-no" title="statement not covered" >[id];</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      if (investigation_checklist) {</span>
-<span class="cstat-no" title="statement not covered" >        updateFields.push('investigation_checklist = ?');</span>
-<span class="cstat-no" title="statement not covered" >        params.unshift(investigation_checklist);</span>
-      }
+      if (investigation_checklist) {
+        updateFiel<span class="cstat-no" title="statement not covered" >ds.push('investigation_checklist = ?');</span>
+        params.unshift(investigation_checklist);
+<span class="cstat-no" title="statement not covered" >      }</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      if (investigation_findings !== undefined) {</span>
 <span class="cstat-no" title="statement not covered" >        updateFields.push('investigation_findings = ?');</span>
-<span class="cstat-no" title="statement not covered" >        params.unshift(investigation_findings);</span>
+        params.unshift(investigation_findings);
       }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      if (isReady) {</span>
-<span class="cstat-no" title="statement not covered" >        updateFields.push('status = ?');</span>
-<span class="cstat-no" title="statement not covered" >        params.unshift('ready_for_decision');</span>
+      if (isReady) {
+        updateFields.push('status = ?');
+        params.unshift('ready_for_decision');
       }
 &nbsp;
-      const sql = <span class="cstat-no" title="statement not covered" >`UPDATE blotter_requests SET ${updateFields.join(', ')} WHERE id = ?`;</span>
+      co<span class="cstat-no" title="statement not covered" >nst sql = `UPDATE blotter_requests SET ${updateFields.join(', ')} WHERE id = ?`;</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      await this.db.execute(sql, params);</span>
+      await this.db.execute(sql, params);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      if (isReady) {</span>
-<span class="cstat-no" title="statement not covered" >        await this.db.execute(</span>
+      if (isReady) {
+        await this.db.execute(
           `
             INSERT INTO blotter_request_audits
               (request_id, actor_user_id, actor_role, action, message_text, created_at)
             VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'investigation_complete', ?, NOW())
-          `,
+<span class="cstat-no" title="statement not covered" >          `,</span>
           [id, req.user.id, req.user.id, 'Investigation completed, ready for decision']
-        );
-      } else {
-<span class="cstat-no" title="statement not covered" >        await this.db.execute(</span>
+<span class="cstat-no" title="statement not covered" >        );</span>
+<span class="cstat-no" title="statement not covered" >      } else {</span>
+        await this.db.execute(
           `
             INSERT INTO blotter_request_audits
-              (request_id, actor_user_id, actor_role, action, message_text, created_at)
-            VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'added_note', ?, NOW())
-          `,
-          [id, req.user.id, req.user.id, 'Investigation progress updated']
+<span class="fstat-no" title="function not covered" ></span>              (request_id, actor_user_id, actor_role, action, message_text, created_at)
+<span class="cstat-no" title="statement not covered" >            VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'added_note', ?, NOW())</span>
+          `,<span class="cstat-no" title="statement not covered" ></span>
+          [id, req.user.id, req.user.id, <span class="cstat-no" title="statement not covered" >'Investig</span>ation progress updated']
         );
-      }
+<span class="cstat-no" title="statement not covered" >      }</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      res.json({ success: true, message: 'Investigation updated', is_ready: isReady });</span>
+      res.json({ success: true, message: 'Investigation updated', is_ready: isReady });
     } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error('Error updating investigation:', error);</span>
-<span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message: 'Failed to update investigation' });</span>
+      console.error('Error updating investigation:', error);
+      res.status(500).json({ success: false, message: 'Failed to update investigation' });
     }
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync logContactComplainant(req, res) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { id } = <span class="cstat-no" title="statement not covered" >req.params;</span>
-      const { method, notes, outcome } = <span class="cstat-no" title="statement not covered" >req.body;</span>
+  async logContactComplainant(req, res) {
+    tr<span class="cstat-no" title="statement not covered" >y {</span>
+      const { id } = req.params;
+      const { method, notes, outcome } = req.body;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      await this.db.execute(</span>
+      await this.db.execute(
         `
           UPDATE blotter_requests
           SET investigation_checklist = JSON_SET(COALESCE(investigation_checklist, '{}'), '$.contacted_complainant', true),
               updated_at = NOW()
-          WHERE id = ?
-        `,
+<span class="cstat-no" title="statement not covered" >          WHERE id = ?</span>
+        `,<span class="cstat-no" title="statement not covered" ></span>
         [id]
       );
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      await this.db.execute(</span>
-        `
-          INSERT INTO blotter_request_audits
+      await this.db.execute<span class="cstat-no" title="statement not covered" >(</span>
+<span class="cstat-no" title="statement not covered" >        `</span>
+          INSERT INTO blotter_requ<span class="cstat-no" title="statement not covered" >est_audits</span>
             (request_id, actor_user_id, actor_role, action, message_text, contact_method, contact_notes, created_at)
           VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'contacted_complainant', ?, ?, ?, NOW())
         `,
-        [id, req.user.id, req.user.id, outcome || '', method, notes]
-      );
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      if (global.createNotification) {</span>
-        const [rows] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+        [id, req.user.id, req.use<span class="cstat-no" title="statement not covered" >r.id, outcome || '', me</span>thod, notes]
+      );<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" ></span>
+      if (global.createNotification) {
+        const [rows] = await this.db.execute(
           'SELECT complainant_resident_id FROM blotter_requests WHERE id = ?',
           [id]
         );
-        const residentId = <span class="cstat-no" title="statement not covered" >rows[0]?.complainant_resident_id;</span>
-<span class="cstat-no" title="statement not covered" >        if (residentId) {</span>
-          const [residentUsers] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+        const residentId = rows[0]?.complainant_resident_id;
+        if (residentId) {
+          const [residentUsers] = await this.db.execute(
             'SELECT id FROM users WHERE resident_id = ? AND is_active = 1 ORDER BY id ASC LIMIT 1',
             [residentId]
           );
-          const residentUserId = <span class="cstat-no" title="statement not covered" >residentUsers?.[0]?.id;</span>
-<span class="cstat-no" title="statement not covered" >          if (residentUserId) {</span>
+<span class="cstat-no" title="statement not covered" >          const residentUserId = residentUsers?.[0]?.id;</span>
+          if (residentUserId) {
 <span class="cstat-no" title="statement not covered" >            await global.createNotification(</span>
-              residentUserId,
+<span class="cstat-no" title="statement not covered" >              residentUserId,</span>
               'Officer Contacted You',
               `Officer contacted you regarding request #${id}`,
               'info',
-              'normal',
-              { request_id: id, contact_method: method }
-            );
-          }
-        }
-      }
+<span class="fstat-no" title="function not covered" ></span>              'normal',
+<span class="cstat-no" title="statement not covered" >              { request_id: id, contact_method: method }</span>
+            );<span class="cstat-no" title="statement not covered" ></span>
+          }<span class="cstat-no" title="statement not covered" ></span>
+        }<span class="cstat-no" title="statement not covered" ></span>
+      }<span class="cstat-no" title="statement not covered" ><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ></span></span></span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      res.json({ success: true, message: 'Contact logged' });</span>
+      res.json({ success: true, message: 'Contact logged' });
     } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error('Error logging contact:', error);</span>
-<span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message: 'Failed to log contact' });</span>
-    }
+      console.error('Error logging contact:', error);
+      res.status(500).json({ success: false, message: 'Failed to log contact' });
+    }<span class="cstat-no" title="statement not covered" ></span>
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync addValidationNote(req, res) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { id } = <span class="cstat-no" title="statement not covered" >req.params;</span>
-      const { note } = <span class="cstat-no" title="statement not covered" >req.body;</span>
-      const files = <span class="cstat-no" title="statement not covered" >req.files || [];</span>
-      const images = <span class="cstat-no" title="statement not covered" >files.map(<span class="fstat-no" title="function not covered" >f </span>=&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
+  async addValidationNote(req, res) {
+    try {
+      const { id } = req.params;
+      const { note } = req.body;
+      const files = req.files || [];
+      const images = files.map(f =&gt; ({
         filename: f.originalname,
         mimetype: f.mimetype,
         size: f.size,
       }));
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      await this.db.execute(</span>
-        `
+      await this.db.execute(
+<span class="cstat-no" title="statement not covered" >        `</span>
           UPDATE blotter_requests
           SET validation_notes_json = JSON_ARRAY_APPEND(COALESCE(validation_notes_json, JSON_ARRAY()), '$', CAST(? AS JSON)),
               validation_evidence_json = JSON_ARRAY_APPEND(COALESCE(validation_evidence_json, JSON_ARRAY()), '$', CAST(? AS JSON)),
@@ -2201,141 +2243,141 @@ class BlotterRequestController {
         `,
         [
           JSON.stringify({ note, by: req.user.id, at: new Date().toISOString() }),
-          JSON.stringify(images),
+<span class="cstat-no" title="statement not covered" >          JSON.stringify(images),</span>
           id,
-        ]
+<span class="cstat-no" title="statement not covered" >        ]</span>
       );
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      await this.db.execute(</span>
-        `
-          INSERT INTO blotter_request_audits
-            (request_id, actor_user_id, actor_role, action, message_text, attachments_json, created_at)
-          VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'added_note', ?, ?, NOW())
+      await this.db.execute(
+<span class="fstat-no" title="function not covered" ></span>        `
+<span class="cstat-no" title="statement not covered" >          INSERT INTO blotter_request_audits</span>
+            (request_<span class="cstat-no" title="statement not covered" >id, actor_u</span>ser_id, actor_role, action, message_text, attachments_json, created_at)
+          VALUES (?, ?, (SELECT role FROM u<span class="cstat-no" title="statement not covered" >sers WHER</span>E id = ?), 'added_note', ?, ?, NOW())
         `,
-        [id, req.user.id, req.user.id, note || '', JSON.stringify(images)]
+<span class="cstat-no" title="statement not covered" >        [id, req.user.id, req.user.id, note || '', JSON.stringify(images)]</span>
       );
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      res.json({ success: true, message: 'Note added' });</span>
+      res.json({ success: true, message: 'Note added' });
     } catch (_) {
-<span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message: 'Failed to add note' });</span>
+      res.status(500).json({ success: false, message: 'Failed to add note' });
     }
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync requestInfo(req, res) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { id } = <span class="cstat-no" title="statement not covered" >req.params;</span>
-      const { message, required_fields } = <span class="cstat-no" title="statement not covered" >req.body;</span>
-&nbsp;
+  async requestInfo(r<span class="cstat-no" title="statement not covered" >eq, res) {</span>
+    try {
+      const { id } = req.params;
+      const { message, required_fields } = req.body;
+<span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >      await this.db.execute(</span>
-        `
+        `<span class="cstat-no" title="statement not covered" ></span>
           INSERT INTO blotter_request_audits
             (request_id, actor_user_id, actor_role, action, message_text, created_at)
           VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'requested_info', ?, NOW())
-        `,
-        [id, req.user.id, req.user.id, message || 'Additional information requested']
-      );
+        `,<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >        [id, req.user.id, req.user.id, message || 'Additional information requested']</span>
+      );<span class="cstat-no" title="statement not covered" ></span>
 &nbsp;
-      const [rows] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+      const [rows] = await this.db.execute(
         'SELECT complainant_resident_id FROM blotter_requests WHERE id = ?',
         [id]
       );
-      const residentId = <span class="cstat-no" title="statement not covered" >rows[0]?.complainant_resident_id;</span>
-<span class="cstat-no" title="statement not covered" >      if (residentId &amp;&amp; global.createNotification) {</span>
-        const [residentUsers] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+      const residentId = rows[0]?.complainant_resident_id;
+      if (residentId &amp;&amp; global.createNotification) {
+        const [residentUsers] = await this.db.execute(
           'SELECT id FROM users WHERE resident_id = ? AND is_active = 1 ORDER BY id ASC LIMIT 1',
-          [residentId]
+<span class="cstat-no" title="statement not covered" >          [residentId]</span>
         );
-        const residentUserId = <span class="cstat-no" title="statement not covered" >residentUsers?.[0]?.id;</span>
-<span class="cstat-no" title="statement not covered" >        if (residentUserId) {</span>
-<span class="cstat-no" title="statement not covered" >          await global.createNotification(</span>
+<span class="cstat-no" title="statement not covered" >        const residentUserId = residentUsers?.[0]?.id;</span>
+        if (residentUserId) {
+          await global.createNotification(
             residentUserId,
-            'Additional Information Requested',
-            message || 'Please provide additional information for your request',
-            'info',
-            'normal',
-            { request_id: id, required_fields: required_fields || [] }
-          );
+<span class="fstat-no" title="function not covered" ></span>            'Additional Information Requested',
+<span class="cstat-no" title="statement not covered" >            message || 'Please provide additional information for your request',</span>
+            'info',<span class="cstat-no" title="statement not covered" ></span>
+            'normal',<span class="cstat-no" title="statement not covered" ></span>
+            { reques<span class="cstat-no" title="statement not covered" >t_id: id, requir</span>ed_fields: required_fields || [] }
+          );<span class="cstat-no" title="statement not covered" ><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ></span></span></span>
         }
       }
-<span class="cstat-no" title="statement not covered" >      res.json({ success: true, message: 'Info requested' });</span>
+      res.json({ success: true, message: 'Info requested' });
     } catch (_) {
-<span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message: 'Failed to request info' });</span>
-    }
+      res.status(500).json({ success: false, message: 'Failed to request info' });
+    }<span class="cstat-no" title="statement not covered" ></span>
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync respondInfo(req, res) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { id } = <span class="cstat-no" title="statement not covered" >req.params;</span>
-      const { message } = <span class="cstat-no" title="statement not covered" >req.body;</span>
-      const files = <span class="cstat-no" title="statement not covered" >req.files || [];</span>
-      const images = <span class="cstat-no" title="statement not covered" >files.map(<span class="fstat-no" title="function not covered" >f </span>=&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
-        filename: f.originalname,
+  async respondInfo(req, res) {
+    try {
+      const { id } = req.params;
+      const { message } = req.body;
+      const files = req.files || [];
+      const images = files.map(f =&gt; ({
+<span class="cstat-no" title="statement not covered" >        filename: f.originalname,</span>
         mimetype: f.mimetype,
-        size: f.size,
+<span class="cstat-no" title="statement not covered" >        size: f.size,</span>
       }));
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      await this.db.execute(</span>
-        `
-          INSERT INTO blotter_request_audits
-            (request_id, actor_user_id, actor_role, action, message_text, attachments_json, created_at)
-          VALUES (?, ?, 'resident', 'resident_response', ?, ?, NOW())
-        `,
+      await this.db.execute(
+<span class="fstat-no" title="function not covered" ></span>        `
+<span class="cstat-no" title="statement not covered" >          INSERT INTO blotter_request_audits</span>
+            (request_<span class="cstat-no" title="statement not covered" >id, actor_u</span>ser_id, actor_role, action, message_text, attachments_json, created_at)
+          VALUES (?, ?, 'resident<span class="cstat-no" title="statement not covered" >', 'resid</span>ent_response', ?, ?, NOW())
+        `,<span class="cstat-no" title="statement not covered" ></span>
         [id, req.user.id, message || '', JSON.stringify(images)]
-      );
+      );<span class="cstat-no" title="statement not covered" ></span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      res.json({ success: true, message: 'Response submitted' });</span>
+      res.json({ success: true, message: 'Response submitted' });
     } catch (_) {
 <span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message: 'Failed to submit response' });</span>
-    }
+    }<span class="cstat-no" title="statement not covered" ></span>
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync submitAppeal(req, res) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { id } = <span class="cstat-no" title="statement not covered" >req.params;</span>
-      const { message, files } = <span class="cstat-no" title="statement not covered" >req.body;</span>
-      const userId = <span class="cstat-no" title="statement not covered" >req.user.id;</span>
+  async submitAppeal(r<span class="cstat-no" title="statement not covered" >eq, res) {</span>
+    try {
+<span class="cstat-no" title="statement not covered" >      const { id } = req.params;</span>
+      co<span class="cstat-no" title="statement not covered" >nst { message, files } = req.body;</span>
+      const userId = req.user.id;
 &nbsp;
-      const [requestRow] = <span class="cstat-no" title="statement not covered" >await this.db.execute('SELECT * FROM blotter_requests WHERE id = ?', [</span>
+      const [requestRow] = await this.db.execute('SELECT * FROM blotter_requests WHERE id = ?', [
         id,
       ]);
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      if (!requestRow.length) {</span>
-<span class="cstat-no" title="statement not covered" >        return res.status(404).json({ success: false, message: 'Request not found' });</span>
+<span class="cstat-no" title="statement not covered" ></span>
+      if (!requestRow.length) {
+        return res.statu<span class="fstat-no" title="function not covered" >s(</span>404)<span class="cstat-no" title="statement not covered" >.json({ success: false, message: 'Request not found' });</span>
       }
 &nbsp;
-      const request = <span class="cstat-no" title="statement not covered" >requestRow[0];</span>
+      const request = requestRow[0];
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      if (request.status !== 'rejected') {</span>
-<span class="cstat-no" title="statement not covered" >        return res</span>
+      if (request.status !== 'rejected') {
+        return res
           .status(400)
-          .json({ success: false, message: 'Only rejected requests can be appealed' });
+<span class="cstat-no" title="statement not covered" >          .json({ success: false, message: 'Only rejected requests can be appealed' });</span>
       }
 &nbsp;
       const fileData =
-<span class="cstat-no" title="statement not covered" >        files &amp;&amp; files.length &gt; 0</span>
+        files &amp;&amp; files.length &gt; 0
           ? JSON.stringify(
-              files.map(<span class="fstat-no" title="function not covered" >f </span>=&gt; (<span class="cstat-no" title="statement not covered" >{</span>
+              files.map(f =&gt; ({
                 filename: f.name || 'unknown',
                 size: f.size || 0,
                 mimetype: f.type || 'application/octet-stream',
               }))
             )
-          : null;
+<span class="cstat-no" title="statement not covered" >          : null;</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      await this.db.execute(</span>
+      await this.db.execute(
         `
           UPDATE blotter_requests
           SET status = 'under_appeal',
               appeal_requested_at = NOW(),
               appeal_response = NULL,
               updated_at = NOW()
-          WHERE id = ?
-        `,
+<span class="cstat-no" title="statement not covered" >          WHERE id = ?</span>
+        `,<span class="cstat-no" title="statement not covered" ></span>
         [id]
       );
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      await this.db.execute(</span>
-        `
+<span class="cstat-no" title="statement not covered" ><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ></span></span></span>
+      aw<span class="cstat-no" title="statement not covered" >ait this.db.execute(</span>
+        `<span class="cstat-no" title="statement not covered" ></span>
           INSERT INTO blotter_request_audits
             (request_id, actor_user_id, actor_role, action, message_text, attachments_json, created_at)
           VALUES (?, ?, 'resident', 'appealed', ?, ?, NOW())
@@ -2343,48 +2385,48 @@ class BlotterRequestController {
         [id, userId, message || '', fileData]
       );
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      if (global.createNotification) {</span>
-        const [officers] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+      if (global.createNotification) {
+        const [officers] = await this.db.execute(
           'SELECT id FROM users WHERE role IN (1, 6) AND is_active = 1'
-        );
-        const officerIds = <span class="cstat-no" title="statement not covered" >officers.map(<span class="fstat-no" title="function not covered" >o </span>=&gt; <span class="cstat-no" title="statement not covered" >o.id)</span>;</span>
+<span class="cstat-no" title="statement not covered" >        );</span>
+        const officerIds = officers.map(o =&gt; o.id);
 <span class="cstat-no" title="statement not covered" >        if (officerIds.length) {</span>
 <span class="cstat-no" title="statement not covered" >          await global.createBulkNotification(</span>
             officerIds,
             'Appeal Submitted',
             `Resident appealed rejected request #${id}`,
-            'warning',
-            'high',
-            { request_id: id, appeal_message: message }
+<span class="fstat-no" title="function not covered" ></span>            'warning',
+<span class="cstat-no" title="statement not covered" >            'high',</span>
+            { request_id: id, appeal_messa<span class="cstat-no" title="statement not covered" >ge: messa</span>ge }
           );
-        }
-      }
+<span class="cstat-no" title="statement not covered" >        }</span>
+      }<span class="cstat-no" title="statement not covered" ></span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      res.json({ success: true, message: 'Appeal submitted successfully' });</span>
-    } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error('Error submitting appeal:', error);</span>
-<span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message: 'Failed to submit appeal' });</span>
+      res.json({ success: true, message: 'Appeal submitted successfully' });
+    } <span class="cstat-no" title="statement not covered" >catch (error) {</span>
+      co<span class="cstat-no" title="statement not covered" >nsole.error('Error submitting appeal:', error);</span>
+      res.status(500).json({ success: false, message: 'Failed to submit appeal' });
     }
-  }
+  }<span class="cstat-no" title="statement not covered" ></span>
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync bulkAssign(req, res) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { request_ids, officer_id } = <span class="cstat-no" title="statement not covered" >req.body;</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      if (!request_ids || !Array.isArray(request_ids) || request_ids.length === 0) {</span>
-<span class="cstat-no" title="statement not covered" >        return res.status(400).json({ success: false, message: 'No request IDs provided' });</span>
+  async bulkAssign(req, res) {
+    try {
+      const { request_ids, officer_id } = req.body;
+<span class="cstat-no" title="statement not covered" ></span>
+      if (!request_ids || !Array.isArray(request_ids) || request_ids.length === 0) {
+        return res.status(400).json({ success: false, message: 'No request IDs provided' });
       }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      if (!officer_id) {</span>
-<span class="cstat-no" title="statement not covered" >        return res.status(400).json({ success: false, message: 'Officer ID required' });</span>
+      if (!officer_id) {
+        return res.status(400).json({ success: false, message: 'Officer ID required' });
       }
-&nbsp;
-      const dueDate = <span class="cstat-no" title="statement not covered" >new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)</span>
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ></span></span>
+      const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         .toISOString()
         .slice(0, 19)
         .replace('T', ' ');
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      await this.db.execute(</span>
+<span class="cstat-no" title="statement not covered" ></span>
+      aw<span class="cstat-no" title="statement not covered" >ait this.db.execute(</span>
         `
           UPDATE blotter_requests
           SET status = 'for_validation',
@@ -2392,62 +2434,62 @@ class BlotterRequestController {
               validation_started_at = NOW(),
               validation_due_at = ?,
               updated_at = NOW()
-          WHERE id IN (${request_ids.map(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >'?')</span>.join(',')})
+          WHERE id IN (${request_ids.map(() =&gt; '?').join(',')})
         `,
-        [officer_id, dueDate, ...request_ids]
-      );
+<span class="cstat-no" title="statement not covered" >        [officer_id, dueDate, ...request_ids]</span>
+      );<span class="cstat-no" title="statement not covered" ></span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      for (const requestId of request_ids) {</span>
-<span class="cstat-no" title="statement not covered" >        await this.db.execute(</span>
+      for (const requestId of request_ids) {
+        await this.db.execute(
           `
             INSERT INTO blotter_request_audits
               (request_id, actor_user_id, actor_role, action, message_text, created_at)
             VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'assigned_validation', ?, NOW())
           `,
           [requestId, req.user.id, req.user.id, `Bulk assigned to officer ${officer_id}`]
-        );
+<span class="cstat-no" title="statement not covered" >        );</span>
       }
-&nbsp;
+<span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >      if (global.createNotification) {</span>
-<span class="cstat-no" title="statement not covered" >        await global.createNotification(</span>
+        await global.createNotification(
           officer_id,
           'Multiple Requests Assigned',
-          `You have been assigned ${request_ids.length} blotter request(s) for validation`,
-          'warning',
-          'high',
+<span class="fstat-no" title="function not covered" ></span>          `You have been assigned ${request_ids.length} blotter request(s) for validation`,
+<span class="cstat-no" title="statement not covered" >          'warning',</span>
+          'high',<span class="cstat-no" title="statement not covered" ></span>
           { request_ids }
-        );
-      }
+<span class="cstat-no" title="statement not covered" >        );</span>
+      }<span class="cstat-no" title="statement not covered" ></span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      res.json({ success: true, message: `${request_ids.length} request(s) assigned to officer` });</span>
-    } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error('Error bulk assigning:', error);</span>
-<span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message: 'Failed to assign requests' });</span>
+      res.json({ success: true, message: `${request_ids.length} request(s) assigned to officer` });
+    } catch (error) {<span class="cstat-no" title="statement not covered" ></span>
+      console.error('Error bulk assigning:', error);
+      res.status(500).json({ success: false, message: 'Failed to assign requests' });
     }
   }
-&nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync bulkRequestInfo(req, res) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { request_ids, message, required_fields } = <span class="cstat-no" title="statement not covered" >req.body;</span>
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ></span></span>
+  async bulkRequestInfo(req, res) {
+    try {
+      const { request_ids, message, required_fields } = req.body;
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      if (!request_ids || !Array.isArray(request_ids) || request_ids.length === 0) {</span>
-<span class="cstat-no" title="statement not covered" >        return res.status(400).json({ success: false, message: 'No request IDs provided' });</span>
-      }
-&nbsp;
-      const [residentUsers] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+        return res.statu<span class="cstat-no" title="statement not covered" >s(400).json({ succ<span class="fstat-no" title="function not covered" >es</span>s: <span class="cstat-no" title="statement not covered" >false</span>,</span> message: 'No request IDs provided' });
+      }<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" ></span>
+      const [residentUsers] = await this.db.execute(
         `
           SELECT DISTINCT u.id, br.complainant_resident_id
           FROM blotter_requests br
           JOIN users u ON u.resident_id = br.complainant_resident_id
-          WHERE br.id IN (${request_ids.map(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >'?')</span>.join(',')}) AND u.is_active = 1
+          WHERE br.id IN (${request_ids.map(() =&gt; '?').join(',')}) AND u.is_active = 1
         `,
         [...request_ids]
       );
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      if (global.createBulkNotification) {</span>
-        const userIds = <span class="cstat-no" title="statement not covered" >residentUsers.map(<span class="fstat-no" title="function not covered" >u </span>=&gt; <span class="cstat-no" title="statement not covered" >u.id)</span>;</span>
-<span class="cstat-no" title="statement not covered" >        if (userIds.length &gt; 0) {</span>
-<span class="cstat-no" title="statement not covered" >          await global.createBulkNotification(</span>
+<span class="cstat-no" title="statement not covered" >        const userIds = residentUsers.map(u =&gt; u.id);</span>
+        if (userIds.length &gt; 0) {
+          await global.createBulkNotification(
             userIds,
             'Additional Information Requested',
             message || 'Please provide additional information for your blotter request(s)',
@@ -2455,37 +2497,37 @@ class BlotterRequestController {
             'normal',
             { request_ids, required_fields: required_fields || [] }
           );
-        }
+<span class="cstat-no" title="statement not covered" >        }</span>
       }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      for (const requestId of request_ids) {</span>
-<span class="cstat-no" title="statement not covered" >        await this.db.execute(</span>
-          `
-            INSERT INTO blotter_request_audits
+      for (const requestId of request_ids) {
+        await this.db.execute(
+<span class="cstat-no" title="statement not covered" >          `</span>
+<span class="cstat-no" title="statement not covered" >            INSERT INTO blotter_request_audits</span>
               (request_id, actor_user_id, actor_role, action, message_text, created_at)
             VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'requested_info', ?, NOW())
           `,
-          [requestId, req.user.id, req.user.id, message || 'Bulk info request']
-        );
-      }
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      res.json({</span>
-        success: true,
-        message: `Information requested from ${residentUsers.length} resident(s)`,
+<span class="fstat-no" title="function not covered" ></span>          [requestId, req.user.id, req.user.id, message || 'Bulk info request']
+<span class="cstat-no" title="statement not covered" >        );</span>
+      }<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" ></span>
+      res.json({
+<span class="cstat-no" title="statement not covered" >        success: true,</span>
+<span class="cstat-no" title="statement not covered" >        message: `Information requested from ${residentUsers.length} resident(s)`,</span>
       });
     } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error('Error bulk requesting info:', error);</span>
-<span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message: 'Failed to request information' });</span>
+      console.error('Error bulk requesting info:', error);
+      res.status(500).json({ success: false, message: 'Failed to request information' });
     }
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync handleAppeal(req, res) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { id } = <span class="cstat-no" title="statement not covered" >req.params;</span>
-      const { action, message } = <span class="cstat-no" title="statement not covered" >req.body;</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      if (action === 'approve_appeal') {</span>
-<span class="cstat-no" title="statement not covered" >        await this.db.execute(</span>
+  async handleAppeal(req, res) {
+    try {
+      const { id } = req.params;
+      const { action, message } = req.body;
+<span class="cstat-no" title="statement not covered" ></span>
+      if (action === 'approve_appeal') {
+        await this.db.execute(
           `
             UPDATE blotter_requests
             SET status = 'for_validation',
@@ -2497,34 +2539,34 @@ class BlotterRequestController {
           [req.user.id, id]
         );
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        await this.db.execute(</span>
+        await this.db.execute(<span class="cstat-no" title="statement not covered" ></span>
           `
             INSERT INTO blotter_request_audits
               (request_id, actor_user_id, actor_role, action, message_text, created_at)
-            VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'appeal_approved', ?, NOW())
+            VALUES (?, ?, (<span class="cstat-no" title="statement not covered" >SELECT role FROM users WHERE id = ?), 'ap</span>peal_approved', ?, NOW())
           `,
-          [
-            id,
+<span class="cstat-no" title="statement not covered" >          [</span>
+            id,<span class="cstat-no" title="statement not covered" ></span>
             req.user.id,
             req.user.id,
             message || 'Appeal approved, request reopened for validation',
-          ]
-        );
-&nbsp;
-        const [residentRows] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+          ]<span class="cstat-no" title="statement not covered" ></span>
+        );<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" ></span>
+        const [residentRows] = await this.db.execute(
           'SELECT complainant_resident_id FROM blotter_requests WHERE id = ?',
           [id]
         );
-        const residentId = <span class="cstat-no" title="statement not covered" >residentRows[0]?.complainant_resident_id;</span>
+        const residentId = residentRows[0]?.complainant_resident_id;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        if (residentId &amp;&amp; global.createNotification) {</span>
-          const [residentUsers] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+        if (residentId &amp;&amp; global.createNotification) {
+          const [residentUsers] = await this.db.execute(
             'SELECT id FROM users WHERE resident_id = ? AND is_active = 1 ORDER BY id ASC LIMIT 1',
-            [residentId]
-          );
-          const residentUserId = <span class="cstat-no" title="statement not covered" >residentUsers?.[0]?.id;</span>
-<span class="cstat-no" title="statement not covered" >          if (residentUserId) {</span>
-<span class="cstat-no" title="statement not covered" >            await global.createNotification(</span>
+            [<span class="cstat-no" title="statement not covered" >residentId]</span>
+<span class="cstat-no" title="statement not covered" >          );</span>
+          const residentUserId = residentUsers?.[0]?.id;
+          if (residentUserId) {
+            await global.createNotification(
               residentUserId,
               'Appeal Approved',
               `Your appeal for request #${id} was approved. The request is now under validation.`,
@@ -2532,82 +2574,82 @@ class BlotterRequestController {
               'normal',
               { request_id: id }
             );
-          }
+<span class="cstat-no" title="statement not covered" >          }</span>
         }
-      } else <span class="cstat-no" title="statement not covered" >if (action === 'deny_appeal') {</span>
-<span class="cstat-no" title="statement not covered" >        await this.db.execute(</span>
+      } else if (action === 'deny_appeal') {
+        await this.db.execute(
           `
             UPDATE blotter_requests
             SET status = 'rejected',
                 appeal_response = ?,
                 updated_at = NOW()
-            WHERE id = ?
+            WHERE id = ?<span class="cstat-no" title="statement not covered" ></span>
           `,
           [message || null, id]
         );
-&nbsp;
-<span class="cstat-no" title="statement not covered" >        await this.db.execute(</span>
-          `
-            INSERT INTO blotter_request_audits
+<span class="cstat-no" title="statement not covered" ></span>
+        await this.db.execute(
+<span class="cstat-no" title="statement not covered" >          `</span>
+            INSERT INTO blotter_re<span class="cstat-no" title="statement not covered" >quest_audits</span>
               (request_id, actor_user_id, actor_role, action, message_text, created_at)
             VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'appeal_denied', ?, NOW())
           `,
-          [id, req.user.id, req.user.id, message || 'Appeal denied']
-        );
-&nbsp;
-        const [residentRows] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+          [id, req.user.id, req.u<span class="cstat-no" title="statement not covered" >ser.id, message || 'App</span>eal denied']
+        );<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" ></span>
+        const [residentRows] = await this.db.execute(
           'SELECT complainant_resident_id FROM blotter_requests WHERE id = ?',
           [id]
         );
-        const residentId = <span class="cstat-no" title="statement not covered" >residentRows[0]?.complainant_resident_id;</span>
+        const residentId = residentRows[0]?.complainant_resident_id;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        if (residentId &amp;&amp; global.createNotification) {</span>
-          const [residentUsers] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+        if (residentId &amp;&amp; global.createNotification) {
+          const [residentUsers] = await this.db.execute(
             'SELECT id FROM users WHERE resident_id = ? AND is_active = 1 ORDER BY id ASC LIMIT 1',
             [residentId]
-          );
-          const residentUserId = <span class="cstat-no" title="statement not covered" >residentUsers?.[0]?.id;</span>
-<span class="cstat-no" title="statement not covered" >          if (residentUserId) {</span>
+<span class="cstat-no" title="statement not covered" >          );</span>
+          const residentUserId = residentUsers?.[0]?.id;
+          if (residentUserId) {
 <span class="cstat-no" title="statement not covered" >            await global.createNotification(</span>
               residentUserId,
-              'Appeal Denied',
-              `Your appeal for request #${id} was denied. ${message}`,
+<span class="cstat-no" title="statement not covered" >              'Appeal Denied',</span>
+<span class="cstat-no" title="statement not covered" >              `Your appeal for request #${id} was denied. ${message}`,</span>
               'error',
               'normal',
               { request_id: id, denial_reason: message }
-            );
-          }
-        }
-      } else {
+<span class="fstat-no" title="function not covered" ></span>            );
+<span class="cstat-no" title="statement not covered" >          }</span>
+        }<span class="cstat-no" title="statement not covered" ></span>
+      } else {<span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >        return res.status(400).json({ success: false, message: 'Invalid action' });</span>
-      }
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      res.json({ success: true, message: 'Appeal processed successfully' });</span>
+      }<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" ></span>
+      res.json({ success: true, message: 'Appeal processed successfully' });
     } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error('Error handling appeal:', error);</span>
-<span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message: 'Failed to process appeal' });</span>
-    }
-  }
+      console.error('Error handling appeal:', error);
+      res.status(500).json(<span class="cstat-no" title="statement not covered" >{ success: false, message: 'Faile</span>d to process appeal' });
+    }<span class="cstat-no" title="statement not covered" ></span>
+  }<span class="cstat-no" title="statement not covered" ></span>
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync setStatus(req, res) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { id } = <span class="cstat-no" title="statement not covered" >req.params;</span>
-      const { action, reason, notes } = <span class="cstat-no" title="statement not covered" >req.body;</span>
-<span class="cstat-no" title="statement not covered" >      if (action === 'approve') {</span>
-        const { caseNumber } = <span class="cstat-no" title="statement not covered" >await approveRequest(this.db, id, req.user.id);</span>
-        const [rows] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+  async setStatus(req, res) {
+    try {
+      const { id } = req.params;<span class="cstat-no" title="statement not covered" ></span>
+      cons<span class="cstat-no" title="statement not covered" >t { action, reason, notes } = req.body;</span>
+      if (ac<span class="cstat-no" title="statement not covered" >tion === 'approve') {</span>
+        const { caseNumber } = await approveRequest(this.db, id, req.user.id);
+        const [rows] = await this.db.execute(
           'SELECT complainant_resident_id FROM blotter_requests WHERE id = ?',
           [id]
         );
-        const residentId = <span class="cstat-no" title="statement not covered" >rows[0]?.complainant_resident_id;</span>
-<span class="cstat-no" title="statement not covered" >        if (residentId &amp;&amp; global.createNotification) {</span>
-          const [residentUsers] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+        const residentId = rows[0]?.complainant_resident_id;
+        if (residentId &amp;&amp; global.createNotification) {
+          const [residentUsers] = await this.db.execute(
             'SELECT id FROM users WHERE resident_id = ? AND is_active = 1 ORDER BY id ASC LIMIT 1',
-            [residentId]
-          );
-          const residentUserId = <span class="cstat-no" title="statement not covered" >residentUsers?.[0]?.id;</span>
-<span class="cstat-no" title="statement not covered" >          if (residentUserId) {</span>
-<span class="cstat-no" title="statement not covered" >            await global.createNotification(</span>
+<span class="cstat-no" title="statement not covered" >            [residentId]</span>
+          );<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >          const residentUserId = residentUsers?.[0]?.id;</span>
+          if (residentUserId) {
+            await global.createNotification(
               residentUserId,
               'Request Approved',
               `Your blotter request was approved. Case Number: ${caseNumber}`,
@@ -2616,63 +2658,63 @@ class BlotterRequestController {
               { request_id: id, case_number: caseNumber }
             );
           }
-        }
-<span class="cstat-no" title="statement not covered" >        res.json({ success: true, data: { case_number: caseNumber } });</span>
-      } else <span class="cstat-no" title="statement not covered" >if (action === 'reject') {</span>
-<span class="cstat-no" title="statement not covered" >        await this.db.execute(</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+        res.json({ success: true, data: { case_number: caseNumber } });
+      } else if (action === 'reject') {
+        await this.db.execute(
           `
             UPDATE blotter_requests
             SET status = 'rejected',
                 rejection_reason_category = ?,
-                officer_notes = ?,
+                officer<span class="cstat-no" title="statement not covered" >_notes = ?,</span>
                 updated_at = NOW()
             WHERE id = ?
           `,
-          [reason || null, notes || null, id]
-        );
-<span class="cstat-no" title="statement not covered" >        await this.db.execute(</span>
+          [reason || null, <span class="cstat-no" title="statement not covered" >notes || null, id]</span>
+<span class="cstat-no" title="statement not covered" >        );</span>
+        await this.db.execute(<span class="cstat-no" title="statement not covered" ></span>
           `
             INSERT INTO blotter_request_audits
               (request_id, actor_user_id, actor_role, action, message_text, created_at)
-            VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'rejected', ?, NOW())
-          `,
-          [id, req.user.id, req.user.id, notes || reason || 'Rejected']
+            VALUES (?, ?, (SELECT<span class="cstat-no" title="statement not covered" > role FROM users WHERE </span>id = ?), 'rejected', ?, NOW())
+<span class="cstat-no" title="statement not covered" >          `,</span>
+          [i<span class="cstat-no" title="statement not covered" >d, req.user.id, req.user.id, notes || reason || 'Rejected']</span>
         );
-        const [rows] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+        const [rows] = await this.db.execute(
           'SELECT complainant_resident_id FROM blotter_requests WHERE id = ?',
           [id]
         );
-        const residentId = <span class="cstat-no" title="statement not covered" >rows[0]?.complainant_resident_id;</span>
-<span class="cstat-no" title="statement not covered" >        if (residentId &amp;&amp; global.createNotification) {</span>
-          const [residentUsers] = <span class="cstat-no" title="statement not covered" >await this.db.execute(</span>
+        const residentId = rows[0]?.complainant_resident_id;
+        if (residentId &amp;&amp; global.createNotification) {
+          const [residentUsers] = await this.db.execute(
             'SELECT id FROM users WHERE resident_id = ? AND is_active = 1 ORDER BY id ASC LIMIT 1',
-            [residentId]
+<span class="cstat-no" title="statement not covered" >            [residentId]</span>
           );
-          const residentUserId = <span class="cstat-no" title="statement not covered" >residentUsers?.[0]?.id;</span>
-<span class="cstat-no" title="statement not covered" >          if (residentUserId) {</span>
-<span class="cstat-no" title="statement not covered" >            await global.createNotification(</span>
-              residentUserId,
-              'Request Rejected',
-              `Your blotter request was rejected. Reason: ${reason}. You may add context or appeal.`,
+<span class="cstat-no" title="statement not covered" >          const residentUserId = residentUsers?.[0]?.id;</span>
+          if (residentUserId) {
+            await global.createNotification(
+<span class="cstat-no" title="statement not covered" >              residentUserId,</span>
+              'Request<span class="cstat-no" title="statement not covered" > Rejected',</span>
+<span class="cstat-no" title="statement not covered" >              `Your blotter request was rejected. Reason:</span> ${reason}. You may add context or appeal.`,
               'error',
               'normal',
               { request_id: id, reason, allow_appeal: true }
             );
           }
         }
-<span class="cstat-no" title="statement not covered" >        res.json({ success: true, message: 'Request rejected' });</span>
+        res.json({ success: true, message: 'Request rejected' });
       } else {
-<span class="cstat-no" title="statement not covered" >        res.status(400).json({ success: false, message: 'Invalid action' });</span>
+        res.status(400).json({ success: false, message: 'Invalid action' });
       }
     } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error('Error setting status:', error);</span>
-      const message = <span class="cstat-no" title="statement not covered" >error.message || 'Failed to set status';</span>
-<span class="cstat-no" title="statement not covered" >      res.status(500).json({ success: false, message });</span>
+      console.error('Error setting status:', error);
+      const message = error.message || 'Failed to set status';
+      res.status(500).json({ success: false, message });
     }
   }
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >module.exports = BlotterRequestController;</span>
+module.exports = BlotterRequestController;
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -2680,7 +2722,7 @@ class BlotterRequestController {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-22T21:30:07.139Z
+                at 2026-01-23T00:44:41.815Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -32,6 +32,20 @@ class BlotterRequestController {
           .json({ success: false, message: 'Resident authentication required' });
       }
 
+      // Validate that the resident exists in the database
+      const [residentExists] = await this.db.execute(
+        'SELECT Resident_ID FROM residents WHERE Resident_ID = ?',
+        [complainant_resident_id]
+      );
+
+      if (residentExists.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'Your user account is not linked to a valid resident profile. Please contact the administrator.',
+        });
+      }
+
       const incident_datetime =
         incident_date && incident_time ? `${incident_date} ${incident_time}` : incident_date;
 

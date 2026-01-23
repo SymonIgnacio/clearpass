@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/15</span>
+                <span class='fraction'>15/15</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/1</span>
+                <span class='fraction'>1/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/15</span>
+                <span class='fraction'>15/15</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -113,32 +113,24 @@
 <a name='L48'></a><a href='#L48'>48</a>
 <a name='L49'></a><a href='#L49'>49</a>
 <a name='L50'></a><a href='#L50'>50</a>
-<a name='L51'></a><a href='#L51'>51</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<a name='L51'></a><a href='#L51'>51</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -146,7 +138,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -154,33 +146,41 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const express = <span class="cstat-no" title="statement not covered" >require('express');</span>
-const router = <span class="cstat-no" title="statement not covered" >express.Router();</span>
-const ProgramController = <span class="cstat-no" title="statement not covered" >require('../controllers/programController');</span>
-const { verifyToken, verifyRole } = <span class="cstat-no" title="statement not covered" >require('../middleware/authMiddleware');</span>
-const { asyncHandler } = <span class="cstat-no" title="statement not covered" >require('../middleware/errorHandler');</span>
-const { ROLES } = <span class="cstat-no" title="statement not covered" >require('../config/roles');</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const express = require('express');
+const router = express.Router();
+const ProgramController = require('../controllers/programController');
+const { verifyToken, verifyRole } = require('../middleware/authMiddleware');
+const { asyncHandler } = require('../middleware/errorHandler');
+const { ROLES } = require('../config/roles');
 &nbsp;
-<span class="cstat-no" title="statement not covered" >module.exports = <span class="fstat-no" title="function not covered" >db</span> =&gt; {</span>
-  const controller = <span class="cstat-no" title="statement not covered" >new ProgramController(db);</span>
+module.exports = db =&gt; {
+  const controller = new ProgramController(db);
 &nbsp;
   // GET all programs - All authenticated users can view
-<span class="cstat-no" title="statement not covered" >  router.get('/', verifyToken, asyncHandler(controller.getAll));</span>
+  router.get('/', verifyToken, asyncHandler(controller.getAll));
 &nbsp;
   // GET program by ID
-<span class="cstat-no" title="statement not covered" >  router.get('/:id', verifyToken, asyncHandler(controller.getById));</span>
+  router.get('/:id', verifyToken, asyncHandler(controller.getById));
 &nbsp;
   // POST create program (Admin, Captain, Secretary)
-<span class="cstat-no" title="statement not covered" >  router.post(</span>
+  router.post(
     '/',
     verifyToken,
     verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY]),
@@ -188,7 +188,7 @@ const { ROLES } = <span class="cstat-no" title="statement not covered" >require(
   );
 &nbsp;
   // PUT update program (Admin, Captain, Secretary)
-<span class="cstat-no" title="statement not covered" >  router.put(</span>
+  router.put(
     '/:id',
     verifyToken,
     verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY]),
@@ -196,7 +196,7 @@ const { ROLES } = <span class="cstat-no" title="statement not covered" >require(
   );
 &nbsp;
   // POST add participant (Admin, Captain, Secretary)
-<span class="cstat-no" title="statement not covered" >  router.post(</span>
+  router.post(
     '/:id/add-participant',
     verifyToken,
     verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY]),
@@ -204,14 +204,14 @@ const { ROLES } = <span class="cstat-no" title="statement not covered" >require(
   );
 &nbsp;
   // POST notify participants (Admin, Captain, Secretary)
-<span class="cstat-no" title="statement not covered" >  router.post(</span>
+  router.post(
     '/:id/notify-participants',
     verifyToken,
     verifyRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY]),
     asyncHandler(controller.notifyParticipants)
   );
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  return router;</span>
+  return router;
 };
 &nbsp;</pre></td></tr></table></pre>
 
@@ -220,7 +220,7 @@ const { ROLES } = <span class="cstat-no" title="statement not covered" >require(
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-22T21:30:07.139Z
+                at 2026-01-23T00:44:41.815Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

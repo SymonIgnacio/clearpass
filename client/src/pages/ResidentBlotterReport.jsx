@@ -97,17 +97,13 @@ const ResidentBlotterReport = () => {
   }, []);
 
   const CONTACT_METHODS = [
-    { value: 'call', label: 'Phone Call' },
-    { value: 'text', label: 'SMS/Text' },
-    { value: 'email', label: 'Email' },
-    { value: 'in_person', label: 'In Person' }
+    { value: 'email', label: 'Email' }
   ];
 
   const ID_TYPES = [
     { value: 'voters_id', label: "Voter's ID" },
     { value: 'pwd_id', label: 'PWD ID' },
     { value: 'senior_id', label: 'Senior Citizen ID' },
-    { value: 'postal_id', label: 'Postal ID' },
     { value: 'postal_id', label: 'Postal ID' },
     { value: 'drivers_license', label: "Driver's License" },
     { value: 'passport', label: 'Passport' },
@@ -125,9 +121,10 @@ const ResidentBlotterReport = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [sitiosRes, residentsRes] = await Promise.all([
+        const [sitiosRes, residentsRes, profileRes] = await Promise.all([
           apiRequest('/sitios'),
-          apiRequest('/residents/public-list')
+          apiRequest('/residents/public-list'),
+          apiRequest('/resident-profile/profile')
         ]);
 
         if (sitiosRes.ok) {
@@ -139,12 +136,26 @@ const ResidentBlotterReport = () => {
           const residentsData = await residentsRes.json();
           setResidentResidents(residentsData || []);
         }
+
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          if (profileData.success && profileData.data) {
+            const { Street_Address, email } = profileData.data;
+            // Auto-fill address and contact info
+            setFormData(prev => ({
+              ...prev,
+              complainant_address: `${Street_Address || ''}`.trim(),
+              complainant_contact_method: 'email', // Default to email
+              email: email || prev.email // Ensure email is captured if needed for backend, though usually fetched from user
+            }));
+          }
+        }
       } catch (error) {
         // Failed to fetch data - use empty array
       }
     };
     fetchData();
-  }, [saveDraft, loadDraft]);
+  }, []); // Remove unstable dependencies to prevent infinite loop
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -190,9 +201,9 @@ const ResidentBlotterReport = () => {
       setFormData(prev => ({
         ...prev,
         [field]: resident.Resident_ID,
-        [field === 'respondent_resident_id' ? 'respondent_name' : '']: `${resident.First_Name} ${resident.Last_Name}`,
-        [field === 'respondent_resident_id' ? 'respondent_address' : '']: resident.Household_ID,
-        [field === 'respondent_resident_id' ? 'respondent_contact' : '']: resident.Mobile_Number || ''
+        [field === 'respondent_resident_id' ? 'respondent_name' : '']: resident.full_name,
+        [field === 'respondent_resident_id' ? 'respondent_address' : '']: '', // Address not available in public list
+        [field === 'respondent_resident_id' ? 'respondent_contact' : '']: '' // Contact not available in public list
       }));
     } else {
       setFormData(prev => ({
@@ -268,8 +279,8 @@ const ResidentBlotterReport = () => {
           date_time: '',
           description: '',
           files: [],
-          complainant_contact_method: '',
-          complainant_address: '',
+          complainant_contact_method: 'email', // Reset to email default
+          complainant_address: formData.complainant_address, // Keep address
           complainant_id_type: '',
           complainant_id_number: '',
           respondent_name: '',
@@ -293,7 +304,7 @@ const ResidentBlotterReport = () => {
   const getResidentOptions = () => {
     return residentResidents.map(r => ({
       id: r.Resident_ID,
-      label: `${r.First_Name} ${r.Last_Name} - ${r.Household_ID}`,
+      label: r.full_name, // Use full_name provided by backend
       resident: r
     }));
   };
@@ -442,7 +453,7 @@ const ResidentBlotterReport = () => {
               name="respondent_name"
               value={formData.respondent_name}
               onChange={handleChange}
-              disabled={isGuest || formData.respondent_resident_id}
+              disabled={isGuest || !!formData.respondent_resident_id}
               sx={{ mb: 2 }}
             />
 

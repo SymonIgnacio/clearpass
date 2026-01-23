@@ -2,7 +2,7 @@ exports.up = async function (knex) {
   const hasCommunityPrograms = await knex.schema.hasTable('community_programs');
   if (!hasCommunityPrograms) {
     await knex.schema.createTable('community_programs', function (table) {
-      table.string('id', 50).primary();
+      table.increments('id').primary();
       table.string('program_name', 255).notNullable();
       table.text('description');
       table.date('program_date').notNullable();

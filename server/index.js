@@ -30,13 +30,13 @@ const csrfProtection =
   process.env.NODE_ENV === 'test'
     ? (req, res, next) => next()
     : csrf({
-        cookie: {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-          path: '/',
-        },
-      });
+      cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        path: '/',
+      },
+    });
 
 // Import controllers
 const authController = require('./controllers/authController');
@@ -150,11 +150,11 @@ const corsOrigins =
   process.env.NODE_ENV === 'production'
     ? [process.env.FRONTEND_URL || 'https://glistening-lamington-a9e2b7.netlify.app']
     : [
-        'http://localhost:3002',
-        'http://localhost:5173',
-        'http://localhost:5174',
-        'http://localhost:5175',
-      ];
+      'http://localhost:3002',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+    ];
 
 app.use(
   cors({
@@ -229,10 +229,10 @@ app.use(
     hsts:
       process.env.NODE_ENV === 'production'
         ? {
-            maxAge: 31536000, // 1 year
-            includeSubDomains: true,
-            preload: true,
-          }
+          maxAge: 31536000, // 1 year
+          includeSubDomains: true,
+          preload: true,
+        }
         : false,
     noSniff: true,
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
@@ -467,87 +467,110 @@ app.use(errorHandler);
 
 // Start server
 async function startServer() {
-  await initializeDatabase();
-
-  startDocumentRetentionScheduler(app.locals.db);
-  startVulnerabilityScoreScheduler(app.locals.db);
-  const {
-    startBlotterRequestValidationReminderScheduler,
-  } = require('./jobs/blotterRequestValidationReminders');
-  startBlotterRequestValidationReminderScheduler(app.locals.db);
-
-  // Initialize WebSocket service
-  const wsService = new WebSocketService(server);
-  global.wsService = wsService;
-
-  // Helper function to create notifications
-  const createNotification = async (
-    userId,
-    title,
-    message,
-    type = 'info',
-    priority = 'normal',
-    data = null
-  ) => {
-    try {
-      const NotificationController = require('./controllers/notificationController');
-      const notificationController = new NotificationController(app.locals.db);
-      const notification = await notificationController.createNotification(
-        userId,
-        title,
-        message,
-        type,
-        priority,
-        data
-      );
-
-      // Send via WebSocket
-      wsService.sendToUser(userId, {
-        type: 'notification',
-        data: notification,
-      });
-
-      return notification;
-    } catch (error) {
-      console.error('Error creating notification:', error);
-    }
-  };
-
-  // Helper function to create bulk notifications
-  const createBulkNotification = async (
-    userIds,
-    title,
-    message,
-    type = 'info',
-    priority = 'normal',
-    data = null
-  ) => {
-    try {
-      const NotificationController = require('./controllers/notificationController');
-      const notificationController = new NotificationController(app.locals.db);
-      return await notificationController.createBulkNotification(
-        userIds,
-        title,
-        message,
-        type,
-        priority,
-        data
-      );
-    } catch (error) {
-      console.error('Error creating bulk notification:', error);
-    }
-  };
-
-  // Make notification helpers globally available
-  global.createNotification = createNotification;
-  global.createBulkNotification = createBulkNotification;
-
-  server.listen(port, () => {
-    console.log(`🚀 ClearPass Server started on port ${port}`);
-    console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
-    console.log(`🔌 WebSocket: ws://localhost:${port}/ws`);
-    console.log(`❤️ Health check: http://localhost:${port}/health`);
+  process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION:', err);
+    process.exit(1);
   });
+
+  process.on('unhandledRejection', (reason, p) => {
+    console.error('UNHANDLED REJECTION:', reason);
+  });
+
+  try {
+    await initializeDatabase();
+
+    try {
+      startDocumentRetentionScheduler(app.locals.db);
+    } catch (e) { console.error('Error starting Document Retention Scheduler:', e); }
+
+    try {
+      startVulnerabilityScoreScheduler(app.locals.db);
+    } catch (e) { console.error('Error starting Vulnerability Score Scheduler:', e); }
+
+    const {
+      startBlotterRequestValidationReminderScheduler,
+    } = require('./jobs/blotterRequestValidationReminders');
+
+    try {
+      startBlotterRequestValidationReminderScheduler(app.locals.db);
+    } catch (e) { console.error('Error starting Blotter Validation Scheduler:', e); }
+
+    // Initialize WebSocket service
+    const wsService = new WebSocketService(server);
+    global.wsService = wsService;
+
+    // Helper function to create notifications
+    const createNotification = async (
+      userId,
+      title,
+      message,
+      type = 'info',
+      priority = 'normal',
+      data = null
+    ) => {
+      try {
+        const NotificationController = require('./controllers/notificationController');
+        const notificationController = new NotificationController(app.locals.db);
+        const notification = await notificationController.createNotification(
+          userId,
+          title,
+          message,
+          type,
+          priority,
+          data
+        );
+
+        // Send via WebSocket
+        wsService.sendToUser(userId, {
+          type: 'notification',
+          data: notification,
+        });
+
+        return notification;
+      } catch (error) {
+        console.error('Error creating notification:', error);
+      }
+    };
+
+    // Helper function to create bulk notifications
+    const createBulkNotification = async (
+      userIds,
+      title,
+      message,
+      type = 'info',
+      priority = 'normal',
+      data = null
+    ) => {
+      try {
+        const NotificationController = require('./controllers/notificationController');
+        const notificationController = new NotificationController(app.locals.db);
+        return await notificationController.createBulkNotification(
+          userIds,
+          title,
+          message,
+          type,
+          priority,
+          data
+        );
+      } catch (error) {
+        console.error('Error creating bulk notification:', error);
+      }
+    };
+
+    // Make notification helpers globally available
+    global.createNotification = createNotification;
+    global.createBulkNotification = createBulkNotification;
+
+    server.listen(port, () => {
+      console.log(`🚀 ClearPass Server started on port ${port}`);
+      console.log(`📊 Database: ${process.env.DB_NAME || 'barangay_management'}`);
+      console.log(`🔌 WebSocket: ws://localhost:${port}/ws`);
+      console.log(`❤️ Health check: http://localhost:${port}/health`);
+    });
+  } catch (error) {
+    console.error('FATAL ERROR DURING STARTUP:', error);
+    process.exit(1);
+  }
 }
 
 module.exports = app;

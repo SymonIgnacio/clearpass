@@ -24,18 +24,7 @@ module.exports = db => {
     })
   );
 
-  // Programs - Captain and Secretary access
-  router.get(
-    '/programs',
-    verifyToken,
-    checkRole(['captain', 'secretary']),
-    asyncHandler(async (req, res) => {
-      const [programs] = await db.execute(
-        'SELECT * FROM community_programs ORDER BY program_date DESC'
-      );
-      res.json(programs);
-    })
-  );
+
 
   // Templates - Clerk, Captain, and Secretary access
   router.get(
