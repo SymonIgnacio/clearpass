@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">72.22% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>13/18</span>
+                <span class='fraction'>0/18</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">16.66% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/6</span>
+                <span class='fraction'>0/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">72.22% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>13/18</span>
+                <span class='fraction'>0/18</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -97,73 +97,73 @@
 <a name='L32'></a><a href='#L32'>32</a>
 <a name='L33'></a><a href='#L33'>33</a>
 <a name='L34'></a><a href='#L34'>34</a>
-<a name='L35'></a><a href='#L35'>35</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
+<a name='L35'></a><a href='#L35'>35</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const express = require('express');
-const CaseManagementController = require('../controllers/caseManagementController');
-const { verifyToken, checkRole } = require('../middleware/authMiddleware');
-const { ROLES } = require('../config/roles');
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const express = <span class="cstat-no" title="statement not covered" >require('express');</span>
+const CaseManagementController = <span class="cstat-no" title="statement not covered" >require('../controllers/caseManagementController');</span>
+const { verifyToken, checkRole } = <span class="cstat-no" title="statement not covered" >require('../middleware/authMiddleware');</span>
+const { ROLES } = <span class="cstat-no" title="statement not covered" >require('../config/roles');</span>
 &nbsp;
-module.exports = db =&gt; {
-  const router = express.Router();
-  const controller = new CaseManagementController(db);
+<span class="cstat-no" title="statement not covered" >module.exports = <span class="fstat-no" title="function not covered" >db</span> =&gt; {</span>
+  const router = <span class="cstat-no" title="statement not covered" >express.Router();</span>
+  const controller = <span class="cstat-no" title="statement not covered" >new CaseManagementController(db);</span>
 &nbsp;
-  router.get('/cases', verifyToken, checkRole([ROLES.BLOTTER_OFFICER]), <span class="fstat-no" title="function not covered" >(r</span>eq, res) =&gt;
+<span class="cstat-no" title="statement not covered" >  router.get('/cases', verifyToken, checkRole([ROLES.BLOTTER_OFFICER]), <span class="fstat-no" title="function not covered" >(r</span>eq, res) =&gt;</span>
 <span class="cstat-no" title="statement not covered" >    controller.getCasesByOfficer(req, res)</span>
   );
-  router.get('/cases/:case_id', verifyToken, checkRole([ROLES.BLOTTER_OFFICER]), <span class="fstat-no" title="function not covered" >(r</span>eq, res) =&gt;
+<span class="cstat-no" title="statement not covered" >  router.get('/cases/:case_id', verifyToken, checkRole([ROLES.BLOTTER_OFFICER]), <span class="fstat-no" title="function not covered" >(r</span>eq, res) =&gt;</span>
 <span class="cstat-no" title="statement not covered" >    controller.getCaseDetails(req, res)</span>
   );
-  router.put(
+<span class="cstat-no" title="statement not covered" >  router.put(</span>
     '/cases/:case_id/status',
     verifyToken,
     checkRole([ROLES.BLOTTER_OFFICER]),
 <span class="fstat-no" title="function not covered" >    (r</span>eq, res) =&gt; <span class="cstat-no" title="statement not covered" >controller.updateCaseStatus(req, res)</span>
   );
-  router.post(
+<span class="cstat-no" title="statement not covered" >  router.post(</span>
     '/cases/:case_id/notes',
     verifyToken,
     checkRole([ROLES.BLOTTER_OFFICER]),
 <span class="fstat-no" title="function not covered" >    (r</span>eq, res) =&gt; <span class="cstat-no" title="statement not covered" >controller.addCaseNote(req, res)</span>
   );
 &nbsp;
-  router.get('/hearings', verifyToken, checkRole([ROLES.BLOTTER_OFFICER]), <span class="fstat-no" title="function not covered" >(r</span>eq, res) =&gt;
+<span class="cstat-no" title="statement not covered" >  router.get('/hearings', verifyToken, checkRole([ROLES.BLOTTER_OFFICER]), <span class="fstat-no" title="function not covered" >(r</span>eq, res) =&gt;</span>
 <span class="cstat-no" title="statement not covered" >    controller.getHearings(req, res)</span>
   );
 &nbsp;
-  return router;
+<span class="cstat-no" title="statement not covered" >  return router;</span>
 };
 &nbsp;</pre></td></tr></table></pre>
 
@@ -172,7 +172,7 @@ module.exports = db =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-23T00:44:41.815Z
+                at 2026-01-23T01:58:42.116Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

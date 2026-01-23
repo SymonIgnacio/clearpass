@@ -90,13 +90,13 @@ export function NotificationProvider({ children }) {
 
           if (data.type === 'notification') {
             // Add new notification to state
-            setNotifications(prev => [data.payload, ...prev]);
+            setNotifications(prev => [data.data, ...prev]);
             setUnreadCount(prev => prev + 1);
 
             // Show browser notification if permission granted
             if (Notification.permission === 'granted') {
-              new Notification(data.payload.title, {
-                body: data.payload.message,
+              new Notification(data.data.title, {
+                body: data.data.message,
                 icon: '/logo192.png',
               });
             }

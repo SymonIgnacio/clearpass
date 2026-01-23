@@ -30,6 +30,8 @@ import {
   Checkbox,
   Toolbar,
   Paper,
+  Snackbar,
+  CircularProgress,
 } from '@mui/material';
 import { apiRequest } from '../utils/api';
 import ProtectedRoute from '../components/ProtectedRoute';
@@ -99,11 +101,32 @@ const Requests = () => {
   const [activeAppealRequest, setActiveAppealRequest] = useState(null);
   const [appealAction, setAppealAction] = useState('');
   const [appealMessage, setAppealMessage] = useState('');
+  const [approvingId, setApprovingId] = useState(null);
+  const [rejectingId, setRejectingId] = useState(null);
+  const [validatingId, setValidatingId] = useState(null);
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
 
-  const officers = [
-    { id: 1, name: 'Admin' },
-    { id: 6, name: 'Blotter Officer' },
-  ];
+  const [officers, setOfficers] = useState([]);
+
+  useEffect(() => {
+    const loadOfficers = async () => {
+      try {
+        const res = await apiRequest('/users?role=admin,blotter_officer', { method: 'GET' });
+        const data = await res.json();
+        if (data.success && data.data) {
+          setOfficers(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to load officers:', error);
+        // Fallback to hardcoded list if API fails
+        setOfficers([
+          { id: 1, name: 'Admin' },
+          { id: 6, name: 'Blotter Officer' },
+        ]);
+      }
+    };
+    loadOfficers();
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -200,7 +223,7 @@ const Requests = () => {
   const handleBulkAssign = async () => {
     if (selectedRequests.size === 0) return;
     if (!bulkAssignOfficer) {
-      alert('Please select an officer');
+      showNotification('Please select an officer', 'warning');
       return;
     }
     try {
@@ -215,10 +238,10 @@ const Requests = () => {
       setBulkAssignOfficer('');
       setSelectedRequests(new Set());
       load();
-      alert(`Assigned ${selectedRequests.size} request(s) to officer`);
+      showNotification(`Assigned ${selectedRequests.size} request(s) to officer`, 'success');
     } catch (error) {
       console.error('Failed to bulk assign:', error);
-      alert('Failed to assign requests');
+      showNotification('Failed to assign requests', 'error');
     }
   };
 
@@ -235,10 +258,10 @@ const Requests = () => {
       setBulkInfoDialogOpen(false);
       setBulkInfoMessage('');
       setSelectedRequests(new Set());
-      alert('Information requested from affected residents');
+      showNotification('Information requested from affected residents', 'success');
     } catch (error) {
       console.error('Failed to bulk request info:', error);
-      alert('Failed to request information');
+      showNotification('Failed to request information', 'error');
     }
   };
 
@@ -257,40 +280,50 @@ const Requests = () => {
       setAppealMessage('');
       setActiveAppealRequest(null);
       load();
-      alert(`Appeal ${action === 'approve_appeal' ? 'approved' : 'denied'}`);
+      showNotification(`Appeal ${action === 'approve_appeal' ? 'approved' : 'denied'}`, 'success');
     } catch (error) {
       console.error('Failed to handle appeal:', error);
-      alert('Failed to process appeal');
+      showNotification('Failed to process appeal', 'error');
     }
   };
 
   const startValidation = async id => {
+    setValidatingId(id);
     try {
       await apiRequest(`/blotter-requests/${id}/validate`, {
         method: 'PATCH',
         body: { note: 'Assigned for validation' },
       });
+      showNotification('Validation started successfully', 'success');
       load();
     } catch (error) {
       console.error('Failed to start validation:', error);
+      showNotification('Failed to start validation', 'error');
+    } finally {
+      setValidatingId(null);
     }
   };
 
   const approve = async id => {
+    setApprovingId(id);
     try {
       const res = await apiRequest(`/blotter-requests/${id}/status`, {
         method: 'PATCH',
         body: { action: 'approve' },
       });
       if (res.ok) {
-        navigate('/blotter');
+        showNotification('Request approved successfully', 'success');
+        load();
+        setTimeout(() => navigate('/blotter'), 1500);
       } else {
         const err = await res.json();
-        alert(err.message || 'Failed to approve');
+        showNotification(err.message || 'Failed to approve', 'error');
       }
     } catch (error) {
       console.error('Failed to approve:', error);
-      alert('Failed to approve');
+      showNotification('Failed to approve request', 'error');
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -302,6 +335,7 @@ const Requests = () => {
 
   const confirmReject = async () => {
     if (!activeId) return;
+    setRejectingId(activeId);
     try {
       const res = await apiRequest(`/blotter-requests/${activeId}/status`, {
         method: 'PATCH',
@@ -311,14 +345,17 @@ const Requests = () => {
       setRejectReason('');
       setActiveId(null);
       if (res.ok) {
+        showNotification('Request rejected successfully', 'success');
         load();
       } else {
         const err = await res.json();
-        alert(err.message || 'Failed to reject');
+        showNotification(err.message || 'Failed to reject', 'error');
       }
     } catch (error) {
       console.error('Failed to reject:', error);
-      alert('Failed to reject');
+      showNotification('Failed to reject request', 'error');
+    } finally {
+      setRejectingId(null);
     }
   };
 
@@ -336,11 +373,49 @@ const Requests = () => {
     );
   };
 
+  const canApproveRequest = request => {
+    // Only allow approval if investigation is complete
+    if (request.status !== 'ready_for_decision') return false;
+    
+    if (!request.investigation_checklist) return false;
+    
+    const checklist = typeof request.investigation_checklist === 'string' 
+      ? JSON.parse(request.investigation_checklist) 
+      : request.investigation_checklist;
+    
+    // Required investigation steps
+    const requiredSteps = [
+      'reviewed_complaint',
+      'contacted_complainant', 
+      'reviewed_evidence',
+      'conducted_investigation',
+      'documented_findings',
+      'confirmed_jurisdiction'
+    ];
+    
+    // Check all required steps are completed
+    const allRequiredCompleted = requiredSteps.every(step => checklist[step] === true);
+    
+    // Check findings are documented
+    const hasFindings = request.investigation_findings && 
+                       request.investigation_findings.trim().length > 0;
+    
+    return allRequiredCompleted && hasFindings;
+  };
+
   const clearFilters = () => {
     setSearchTerm('');
     setStatusFilter('');
     setOfficerFilter('');
     setOverdueOnly(false);
+  };
+
+  const showNotification = (message, severity = 'success') => {
+    setNotification({ open: true, message, severity });
+  };
+
+  const hideNotification = () => {
+    setNotification(prev => ({ ...prev, open: false }));
   };
 
   return (
@@ -569,29 +644,49 @@ const Requests = () => {
                                 size='small'
                                 color='primary'
                                 onClick={() => startValidation(r.id)}
+                                disabled={validatingId === r.id}
                               >
-                                <Schedule fontSize='small' />
+                                {validatingId === r.id ? (
+                                  <CircularProgress size={16} />
+                                ) : (
+                                  <Schedule fontSize='small' />
+                                )}
+                              </IconButton>
+                            </Tooltip>
+                          )}
+
+                          {canApproveRequest(r) && (
+                            <Tooltip title='Approve Request'>
+                              <IconButton
+                                size='small'
+                                color='success'
+                                onClick={() => approve(r.id)}
+                                disabled={approvingId === r.id}
+                              >
+                                {approvingId === r.id ? (
+                                  <CircularProgress size={16} />
+                                ) : (
+                                  <CheckCircle fontSize='small' />
+                                )}
                               </IconButton>
                             </Tooltip>
                           )}
 
                           {r.status !== 'rejected' && r.status !== 'approved' && (
-                            <>
-                              <Tooltip title='Approve'>
-                                <IconButton
-                                  size='small'
-                                  color='success'
-                                  onClick={() => approve(r.id)}
-                                >
-                                  <CheckCircle fontSize='small' />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title='Reject'>
-                                <IconButton size='small' color='error' onClick={() => reject(r.id)}>
+                            <Tooltip title='Reject Request'>
+                              <IconButton
+                                size='small'
+                                color='error'
+                                onClick={() => reject(r.id)}
+                                disabled={rejectingId === r.id}
+                              >
+                                {rejectingId === r.id ? (
+                                  <CircularProgress size={16} />
+                                ) : (
                                   <Cancel fontSize='small' />
-                                </IconButton>
-                              </Tooltip>
-                            </>
+                                )}
+                              </IconButton>
+                            </Tooltip>
                           )}
                         </Stack>
                       </TableCell>
@@ -755,6 +850,21 @@ const Requests = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={hideNotification}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={hideNotification}
+          severity={notification.severity}
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

@@ -414,18 +414,85 @@ class CertificateRequestController {
       const db = (req.app && req.app.locals && req.app.locals.db) || this.db;
       const { request_id } = req.params;
       const { status, remarks } = req.body; // status: 'approved', 'rejected'
+      const approved_by = req.user ? req.user.id : null;
 
       if (!['approved', 'rejected'].includes(status)) {
         return res.status(400).json({ success: false, message: 'Invalid status' });
       }
 
-      const [result] = await db.execute(
-        'UPDATE document_requests SET status = ?, remarks = ? WHERE request_id = ?',
-        [status, remarks || '', request_id]
+      // Fetch request details first
+      const [requestRows] = await db.execute(
+        'SELECT * FROM document_requests WHERE request_id = ?',
+        [request_id]
       );
 
-      if (result.affectedRows === 0) {
+      if (requestRows.length === 0) {
         return res.status(404).json({ success: false, message: 'Request not found' });
+      }
+
+      const request = requestRows[0];
+      let control_number = null;
+      let qr_validation_string = null;
+
+      if (status === 'approved') {
+        // Generate Control Number
+        control_number = `CERT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        qr_validation_string = `QR-${control_number}`;
+
+        // Parse resident data for historical log
+        let residentData = {};
+        try {
+          residentData = typeof request.resident_data === 'string' 
+            ? JSON.parse(request.resident_data) 
+            : request.resident_data;
+        } catch (e) {
+          console.error('Error parsing resident data:', e);
+        }
+
+        const residentName = `${residentData.First_Name || ''} ${residentData.Last_Name || ''}`.trim();
+        const address = `${residentData.Household_ID || ''} ${residentData.Purok || ''}`.trim(); // Fallback if full address not available
+        
+        // Parse purpose from request_data
+        let purpose = 'N/A';
+        try {
+            const reqData = typeof request.request_data === 'string'
+                ? JSON.parse(request.request_data)
+                : request.request_data;
+            purpose = reqData.purpose || 'N/A';
+        } catch (e) {}
+
+        // Insert into certificates_log
+        await db.execute(
+          `INSERT INTO certificates_log (
+            control_no, resident_id, certificate_type, purpose, 
+            date_issued, qr_validation_string, status, created_at,
+            resident_name, address, is_manual
+          ) VALUES (?, ?, ?, ?, NOW(), ?, 'Released', NOW(), ?, ?, 0)`,
+          [
+            control_number,
+            request.resident_id,
+            request.document_type,
+            purpose,
+            qr_validation_string,
+            residentName,
+            address
+          ]
+        );
+
+        // Update document_requests with approval details
+        await db.execute(
+          `UPDATE document_requests 
+           SET status = ?, remarks = ?, control_number = ?, 
+               approved_at = NOW(), approved_by = ?, qr_code = ?
+           WHERE request_id = ?`,
+          [status, remarks || '', control_number, approved_by, qr_validation_string, request_id]
+        );
+      } else {
+        // Just update status for rejection
+        await db.execute(
+          'UPDATE document_requests SET status = ?, remarks = ? WHERE request_id = ?',
+          [status, remarks || '', request_id]
+        );
       }
 
       // Notify resident

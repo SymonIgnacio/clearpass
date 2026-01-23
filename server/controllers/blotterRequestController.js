@@ -1,4 +1,6 @@
 const { approveRequest } = require('../services/blotterRequestService');
+const fs = require('fs');
+const path = require('path');
 
 class BlotterRequestController {
   constructor(db) {
@@ -183,7 +185,15 @@ class BlotterRequestController {
   async getRequestById(req, res) {
     try {
       const { id } = req.params;
-      const [rows] = await this.db.execute('SELECT * FROM blotter_requests WHERE id = ?', [id]);
+      const [rows] = await this.db.execute(
+        `
+          SELECT br.*, CONCAT(r.First_Name, ' ', r.Last_Name) AS complainant_name 
+          FROM blotter_requests br
+          LEFT JOIN residents r ON r.Resident_ID = br.complainant_resident_id
+          WHERE br.id = ?
+        `,
+        [id]
+      );
       if (!rows.length) {
         return res.status(404).json({ success: false, message: 'Request not found' });
       }
@@ -192,7 +202,8 @@ class BlotterRequestController {
         [id]
       );
       res.json({ success: true, data: { request: rows[0], audits } });
-    } catch (_) {
+    } catch (error) {
+      console.error('Error in getRequestById:', error);
       res.status(500).json({ success: false, message: 'Failed to fetch request' });
     }
   }
@@ -202,6 +213,20 @@ class BlotterRequestController {
       const { id } = req.params;
       const { assign_officer_id, due_at, note } = req.body;
       const officerId = assign_officer_id || req.user.id;
+
+      // Map numeric role to ENUM string
+      const roleMap = {
+        1: 'admin',
+        2: 'captain',
+        3: 'secretary',
+        4: 'clerk',
+        5: 'captain', // Legacy
+        6: 'secretary', // Blotter Officer mapped to secretary (closest fit for ENUM)
+        12: 'resident',
+        13: 'resident',
+      };
+
+      const actorRole = roleMap[req.user.role] || 'resident';
 
       await this.db.execute(
         `
@@ -220,9 +245,9 @@ class BlotterRequestController {
         `
           INSERT INTO blotter_request_audits
             (request_id, actor_user_id, actor_role, action, message_text, created_at)
-          VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'assigned_validation', ?, NOW())
+          VALUES (?, ?, ?, 'assigned_validation', ?, NOW())
         `,
-        [id, req.user.id, req.user.id, note || 'Validation started']
+        [id, req.user.id, actorRole, note || 'Validation started']
       );
 
       if (global.createNotification) {
@@ -269,64 +294,35 @@ class BlotterRequestController {
       const { id } = req.params;
       const { investigation_checklist, investigation_findings } = req.body;
 
-      let isReady = false;
-      if (investigation_checklist) {
-        const checklist = JSON.parse(investigation_checklist);
-        const requiredSteps = [
-          'reviewed_complaint',
-          'contacted_complainant',
-          'reviewed_evidence',
-          'conducted_investigation',
-          'documented_findings',
-          'confirmed_jurisdiction',
-        ];
-        const allRequired = requiredSteps.every(step => checklist[step] === true);
-        isReady = allRequired && investigation_findings && investigation_findings.trim().length > 0;
-      }
-
       const updateFields = ['updated_at = NOW()'];
-      const params = [id];
+      const params = [];
 
       if (investigation_checklist) {
         updateFields.push('investigation_checklist = ?');
-        params.unshift(investigation_checklist);
+        params.push(investigation_checklist);
       }
 
       if (investigation_findings !== undefined) {
         updateFields.push('investigation_findings = ?');
-        params.unshift(investigation_findings);
+        params.push(investigation_findings);
       }
 
-      if (isReady) {
-        updateFields.push('status = ?');
-        params.unshift('ready_for_decision');
-      }
+      params.push(id);
 
       const sql = `UPDATE blotter_requests SET ${updateFields.join(', ')} WHERE id = ?`;
 
       await this.db.execute(sql, params);
 
-      if (isReady) {
-        await this.db.execute(
-          `
-            INSERT INTO blotter_request_audits
-              (request_id, actor_user_id, actor_role, action, message_text, created_at)
-            VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'investigation_complete', ?, NOW())
-          `,
-          [id, req.user.id, req.user.id, 'Investigation completed, ready for decision']
-        );
-      } else {
-        await this.db.execute(
-          `
-            INSERT INTO blotter_request_audits
-              (request_id, actor_user_id, actor_role, action, message_text, created_at)
-            VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'added_note', ?, NOW())
-          `,
-          [id, req.user.id, req.user.id, 'Investigation progress updated']
-        );
-      }
+      await this.db.execute(
+        `
+          INSERT INTO blotter_request_audits
+            (request_id, actor_user_id, actor_role, action, message_text, created_at)
+          VALUES (?, ?, (SELECT role FROM users WHERE id = ?), 'added_note', ?, NOW())
+        `,
+        [id, req.user.id, req.user.id, 'Investigation progress updated']
+      );
 
-      res.json({ success: true, message: 'Investigation updated', is_ready: isReady });
+      res.json({ success: true, message: 'Investigation updated' });
     } catch (error) {
       console.error('Error updating investigation:', error);
       res.status(500).json({ success: false, message: 'Failed to update investigation' });
@@ -477,11 +473,32 @@ class BlotterRequestController {
       const { id } = req.params;
       const { message } = req.body;
       const files = req.files || [];
-      const images = files.map(f => ({
-        filename: f.originalname,
-        mimetype: f.mimetype,
-        size: f.size,
-      }));
+      const images = [];
+
+      // Ensure uploads directory exists
+      const uploadsDir = path.join(__dirname, '../uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      for (const f of files) {
+        const filePath = path.join(uploadsDir, f.originalname);
+        fs.writeFileSync(filePath, f.buffer);
+        images.push({
+          filename: f.originalname,
+          mimetype: f.mimetype,
+          size: f.size,
+        });
+      }
+
+      await this.db.execute(
+        `
+          UPDATE blotter_requests
+          SET status = 'for_validation', updated_at = NOW()
+          WHERE id = ?
+        `,
+        [id]
+      );
 
       await this.db.execute(
         `
@@ -493,7 +510,8 @@ class BlotterRequestController {
       );
 
       res.json({ success: true, message: 'Response submitted' });
-    } catch (_) {
+    } catch (error) {
+      console.error('Error responding to info request:', error);
       res.status(500).json({ success: false, message: 'Failed to submit response' });
     }
   }

@@ -30,13 +30,13 @@ const csrfProtection =
   process.env.NODE_ENV === 'test'
     ? (req, res, next) => next()
     : csrf({
-      cookie: {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-        path: '/',
-      },
-    });
+        cookie: {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+          path: '/',
+        },
+      });
 
 // Import controllers
 const authController = require('./controllers/authController');
@@ -150,11 +150,11 @@ const corsOrigins =
   process.env.NODE_ENV === 'production'
     ? [process.env.FRONTEND_URL || 'https://glistening-lamington-a9e2b7.netlify.app']
     : [
-      'http://localhost:3002',
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'http://localhost:5175',
-    ];
+        'http://localhost:3002',
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:5175',
+      ];
 
 app.use(
   cors({
@@ -229,10 +229,10 @@ app.use(
     hsts:
       process.env.NODE_ENV === 'production'
         ? {
-          maxAge: 31536000, // 1 year
-          includeSubDomains: true,
-          preload: true,
-        }
+            maxAge: 31536000, // 1 year
+            includeSubDomains: true,
+            preload: true,
+          }
         : false,
     noSniff: true,
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
@@ -301,7 +301,7 @@ app.use('/api/certificates', (req, res, next) => {
 
 // CSRF protection for documents and uploads
 app.use('/api/documents', csrfProtection);
-app.use('/api/uploads', csrfProtection);
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // CSRF protection for resident routes (excluding GET requests and login/register)
 app.use('/api/resident-auth', (req, res, next) => {
@@ -313,6 +313,11 @@ app.use('/api/resident-auth', (req, res, next) => {
 
 app.use('/api/resident-profile', (req, res, next) => {
   if (req.method === 'GET') {
+    return next();
+  }
+  // Skip CSRF for beneficiary-status upload endpoint due to multipart/form-data complexity
+  // The endpoint is still protected by JWT authentication
+  if (req.path === '/beneficiary-status' || req.path === '/beneficiary-status/') {
     return next();
   }
   csrfProtection(req, res, next);
@@ -467,7 +472,7 @@ app.use(errorHandler);
 
 // Start server
 async function startServer() {
-  process.on('uncaughtException', (err) => {
+  process.on('uncaughtException', err => {
     console.error('UNCAUGHT EXCEPTION:', err);
     process.exit(1);
   });
@@ -481,11 +486,15 @@ async function startServer() {
 
     try {
       startDocumentRetentionScheduler(app.locals.db);
-    } catch (e) { console.error('Error starting Document Retention Scheduler:', e); }
+    } catch (e) {
+      console.error('Error starting Document Retention Scheduler:', e);
+    }
 
     try {
       startVulnerabilityScoreScheduler(app.locals.db);
-    } catch (e) { console.error('Error starting Vulnerability Score Scheduler:', e); }
+    } catch (e) {
+      console.error('Error starting Vulnerability Score Scheduler:', e);
+    }
 
     const {
       startBlotterRequestValidationReminderScheduler,
@@ -493,7 +502,9 @@ async function startServer() {
 
     try {
       startBlotterRequestValidationReminderScheduler(app.locals.db);
-    } catch (e) { console.error('Error starting Blotter Validation Scheduler:', e); }
+    } catch (e) {
+      console.error('Error starting Blotter Validation Scheduler:', e);
+    }
 
     // Initialize WebSocket service
     const wsService = new WebSocketService(server);

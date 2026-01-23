@@ -57,6 +57,13 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json(createErrorResponse('Invalid file type. Only images allowed', 400));
   }
 
+  // CSRF Error
+  if (err.code === 'EBADCSRFTOKEN') {
+    return res
+      .status(403)
+      .json(createErrorResponse('Invalid CSRF token', 403, { code: 'EBADCSRFTOKEN' }));
+  }
+
   // Default error response
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal server error';

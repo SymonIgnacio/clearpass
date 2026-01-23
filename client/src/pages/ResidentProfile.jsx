@@ -206,23 +206,26 @@ const ResidentProfile = () => {
       });
 
       // Validate required proofs per selection
-      if (beneficiaryData.Is_4Ps && !beneficiaryFiles.Is_4Ps_File) {
+      // Only validate if the field is NOT locked (meaning it's a new or editable claim)
+      if (beneficiaryData.Is_4Ps && !isLocked('Is_4Ps') && !beneficiaryFiles.Is_4Ps_File) {
         setMessage({ type: 'error', text: '4Ps ID proof is required' });
         return;
       }
       if (
         beneficiaryData.Is_PWD &&
+        !isLocked('Is_PWD') &&
         (!beneficiaryFiles.Is_PWD_File_Front || !beneficiaryFiles.Is_PWD_File_Back)
       ) {
         setMessage({ type: 'error', text: 'PWD ID front and back are required' });
         return;
       }
-      if (beneficiaryData.Is_PWD && !beneficiaryData.Disability_Type) {
+      if (beneficiaryData.Is_PWD && !isLocked('Is_PWD') && !beneficiaryData.Disability_Type) {
         setMessage({ type: 'error', text: 'Please specify Disability Type' });
         return;
       }
       if (
         beneficiaryData.Is_Senior &&
+        !isLocked('Is_Senior') &&
         (!beneficiaryFiles.Is_Senior_File_Front || !beneficiaryFiles.Is_Senior_File_Back)
       ) {
         setMessage({ type: 'error', text: 'Senior ID front and back are required' });
@@ -230,12 +233,17 @@ const ResidentProfile = () => {
       }
       if (
         beneficiaryData.Is_Solo_Parent &&
+        !isLocked('Is_Solo_Parent') &&
         (!beneficiaryFiles.Is_Solo_Parent_File_Front || !beneficiaryFiles.Is_Solo_Parent_File_Back)
       ) {
         setMessage({ type: 'error', text: 'Solo Parent ID front and back are required' });
         return;
       }
-      if (beneficiaryData.Is_Out_of_School_Youth && !beneficiaryFiles.Is_Out_of_School_Youth_File) {
+      if (
+        beneficiaryData.Is_Out_of_School_Youth &&
+        !isLocked('Is_Out_of_School_Youth') &&
+        !beneficiaryFiles.Is_Out_of_School_Youth_File
+      ) {
         setMessage({ type: 'error', text: 'Out of School Youth certification is required' });
         return;
       }

@@ -67,8 +67,13 @@ async function approveRequest(db, requestId, actorUserId) {
         address: respondent?.Household_ID || '',
         contact: respondent?.Mobile_Number || '',
       });
-    } else if (req.respondent_name) {
-      respondentDetails = buildRespondentDetails({ name: req.respondent_name });
+    } else {
+      respondentDetails = buildRespondentDetails({
+        name: req.respondent_name || 'Unknown',
+        address: req.respondent_address || 'Not specified',
+        alias: req.respondent_alias || '',
+        contact: req.respondent_contact || '',
+      });
     }
 
     const caseNumber = await allocateBlotterCaseNumber(db, {

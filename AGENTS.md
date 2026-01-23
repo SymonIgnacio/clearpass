@@ -729,6 +729,7 @@ await apiRequest('/upload', { method: 'POST', body: formData });
 | `PATCH /api/blotter-requests/:id/investigation` | Update investigation checklist/notes | verifyToken, checkRole | investigation_checklist, investigation_findings |
 | `POST /api/blotter-requests/:id/contact-complainant` | Log contact with complainant | verifyToken, checkRole | method, date, notes, outcome |
 | `POST /api/blotter-requests/:id/request-info` | Request info from resident | verifyToken, checkRole | message, required_fields |
+| `POST /api/blotter-requests/:id/add-note` | Add validation note with evidence | verifyToken, checkRole | note, images[] |
 | `PATCH /api/blotter-requests/:id/status` | Approve/reject | verifyToken, checkRole | action (approve/reject), reason, notes |
 | `POST /api/blotter-requests/bulk-assign` | Bulk assign to officer | verifyToken, checkRole | request_ids[], officer_id |
 | `POST /api/blotter-requests/bulk-request-info` | Bulk request info from residents | verifyToken, checkRole | request_ids[], message |

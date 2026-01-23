@@ -11,6 +11,7 @@ const {
   resolveAndValidateUploadedDocumentPath,
   sendStoredDocument,
 } = require('../utils/documentStorage');
+const { BENEFICIARY_DOC_TYPES } = require('../config/documentTypes');
 
 module.exports = db => {
   const requireVerificationMfa = requireMfaForRoles([ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK]);
@@ -329,6 +330,9 @@ module.exports = db => {
       }
 
       if (finalStatus === 'rejected') {
+        // Construct placeholders for document types
+        const placeholders = BENEFICIARY_DOC_TYPES.map(() => '?').join(', ');
+
         await db.execute(
           `
         UPDATE vulnerabilities
@@ -353,8 +357,8 @@ module.exports = db => {
         await db.execute(
           `UPDATE resident_documents 
            SET verification_status = 'rejected', verification_notes = ?, verified_by = ?, verified_at = NOW() 
-           WHERE resident_id = ? AND document_type IN ('4Ps Proof', 'PWD ID', 'Senior ID', 'Solo Parent ID', 'OSY Certification') AND verification_status = 'pending'`,
-          [finalNotes || null, req.user.id, id]
+           WHERE resident_id = ? AND document_type IN (${placeholders}) AND verification_status = 'pending'`,
+          [finalNotes || null, req.user.id, id, ...BENEFICIARY_DOC_TYPES]
         );
 
         // Notify user of rejection
@@ -413,11 +417,14 @@ module.exports = db => {
         await db.execute(query, updateValues);
 
         // Sync resident_documents status
+        // Construct placeholders for document types
+        const placeholders = BENEFICIARY_DOC_TYPES.map(() => '?').join(', ');
+
         await db.execute(
           `UPDATE resident_documents 
            SET verification_status = 'verified', verification_notes = ?, verified_by = ?, verified_at = NOW() 
-           WHERE resident_id = ? AND document_type IN ('4Ps Proof', 'PWD ID', 'Senior ID', 'Solo Parent ID', 'OSY Certification') AND verification_status = 'pending'`,
-          [finalNotes || null, req.user.id, id]
+           WHERE resident_id = ? AND document_type IN (${placeholders}) AND verification_status = 'pending'`,
+          [finalNotes || null, req.user.id, id, ...BENEFICIARY_DOC_TYPES]
         );
 
         // Notify user of approval

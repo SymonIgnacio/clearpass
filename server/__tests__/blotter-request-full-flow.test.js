@@ -263,7 +263,7 @@ describe('Blotter Request Flow - Resident to Admin', () => {
 
     test('officer should request additional information', async () => {
       const response = await request(server)
-        .post(`/api/blotter-requests/${requestId}/request-info`)
+        .post(`/api/blotter-requests/${requestId}/validation/request-info`)
         .set('Cookie', `authToken=officer-token`)
         .send({
           message: 'Please provide a more detailed description of the stolen items',
@@ -281,13 +281,6 @@ describe('Blotter Request Flow - Resident to Admin', () => {
     });
 
     test('resident should respond with additional information', async () => {
-      await request(server)
-        .post(`/api/blotter-requests/${requestId}/request-info`)
-        .set('Cookie', `authToken=officer-token`)
-        .send({
-          message: 'Please provide more details',
-        });
-
       const response = await request(server)
         .post(`/api/blotter-requests/${requestId}/respond-info`)
         .set('Cookie', `authToken=${authToken}`)

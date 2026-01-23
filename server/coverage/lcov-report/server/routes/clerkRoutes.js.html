@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">52.38% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>11/21</span>
+                <span class='fraction'>0/21</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">20% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/5</span>
+                <span class='fraction'>0/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">52.38% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>11/21</span>
+                <span class='fraction'>0/21</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -147,15 +147,15 @@
 <a name='L82'></a><a href='#L82'>82</a>
 <a name='L83'></a><a href='#L83'>83</a>
 <a name='L84'></a><a href='#L84'>84</a>
-<a name='L85'></a><a href='#L85'>85</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
+<a name='L85'></a><a href='#L85'>85</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -179,7 +179,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -196,7 +196,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -212,7 +212,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -229,17 +229,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const express = require('express');
-const router = express.Router();
-const { verifyToken, checkRole } = require('../middleware/authMiddleware');
-const { asyncHandler } = require('../middleware/errorHandler');
-const clerkController = require('../controllers/clerkController');
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const express = <span class="cstat-no" title="statement not covered" >require('express');</span>
+const router = <span class="cstat-no" title="statement not covered" >express.Router();</span>
+const { verifyToken, checkRole } = <span class="cstat-no" title="statement not covered" >require('../middleware/authMiddleware');</span>
+const { asyncHandler } = <span class="cstat-no" title="statement not covered" >require('../middleware/errorHandler');</span>
+const clerkController = <span class="cstat-no" title="statement not covered" >require('../controllers/clerkController');</span>
 &nbsp;
-module.exports = db =&gt; {
+<span class="cstat-no" title="statement not covered" >module.exports = <span class="fstat-no" title="function not covered" >db</span> =&gt; {</span>
   // Clerk dashboard
-  router.get(
+<span class="cstat-no" title="statement not covered" >  router.get(</span>
     '/dashboard',
     verifyToken,
     checkRole(['clerk']),
@@ -263,7 +263,7 @@ module.exports = db =&gt; {
   );
 &nbsp;
   // Clearance management
-  router.get(
+<span class="cstat-no" title="statement not covered" >  router.get(</span>
     '/clearances',
     verifyToken,
     checkRole(['clerk']),
@@ -280,7 +280,7 @@ module.exports = db =&gt; {
   );
 &nbsp;
   // Document processing
-  router.get(
+<span class="cstat-no" title="statement not covered" >  router.get(</span>
     '/documents',
     verifyToken,
     checkRole(['clerk']),
@@ -296,7 +296,7 @@ module.exports = db =&gt; {
   );
 &nbsp;
   // Resident verification
-  router.get(
+<span class="cstat-no" title="statement not covered" >  router.get(</span>
     '/residents',
     verifyToken,
     checkRole(['clerk']),
@@ -313,7 +313,7 @@ module.exports = db =&gt; {
     })
   );
 &nbsp;
-  return router;
+<span class="cstat-no" title="statement not covered" >  return router;</span>
 };
 &nbsp;</pre></td></tr></table></pre>
 
@@ -322,7 +322,7 @@ module.exports = db =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-23T00:44:41.815Z
+                at 2026-01-23T01:58:42.116Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

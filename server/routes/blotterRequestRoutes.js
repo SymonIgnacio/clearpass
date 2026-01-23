@@ -43,7 +43,7 @@ module.exports = db => {
   router.patch(
     '/:id/validate',
     verifyToken,
-    checkRole(['blotter_officer', 'admin']),
+    checkRole(['blotter_officer', 'admin', 'secretary']),
     asyncHandler((req, res) => controller.validateRequest(req, res))
   );
 
@@ -65,7 +65,7 @@ module.exports = db => {
 
   // Add validation note with image evidence
   router.post(
-    '/:id/validation/add-note',
+    '/:id/add-note',
     verifyToken,
     checkRole(['blotter_officer', 'admin']),
     uploadEvidence.array('images', 5),
@@ -74,7 +74,7 @@ module.exports = db => {
 
   // Request info from resident
   router.post(
-    '/:id/validation/request-info',
+    '/:id/request-info',
     verifyToken,
     checkRole(['blotter_officer', 'admin']),
     asyncHandler((req, res) => controller.requestInfo(req, res))

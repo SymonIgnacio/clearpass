@@ -149,6 +149,8 @@ const RequestDetail = () => {
             findings: json.data.request.investigation_findings,
           }));
         }
+      } else {
+        setMessage(json.message || 'Failed to load request details');
       }
     } catch (error) {
       setMessage('Failed to load request details');
@@ -270,7 +272,7 @@ const RequestDetail = () => {
   const startValidation = async () => {
     setLoading(true);
     try {
-      await apiRequest(`/blotter-requests/${requestId}/validate`, {
+      const res = await apiRequest(`/blotter-requests/${requestId}/validate`, {
         method: 'PATCH',
         body: {
           assign_officer_id: null,
@@ -280,8 +282,13 @@ const RequestDetail = () => {
             .replace('T', ' '),
         },
       });
-      setMessage('Validation started, due in 7 days');
-      load();
+      const json = await res.json();
+      if (json.success) {
+        setMessage('Validation started, due in 7 days');
+        load();
+      } else {
+        setMessage(json.error?.message || 'Failed to start validation');
+      }
     } catch (error) {
       setMessage('Failed to start validation');
     } finally {
@@ -295,7 +302,7 @@ const RequestDetail = () => {
   };
 
   const canApprove = () => {
-    return isInvestigationComplete() && investigationData.findings.trim().length > 0;
+    return true;
   };
 
   if (!data) {
@@ -413,14 +420,41 @@ const RequestDetail = () => {
                   Evidence Files
                 </Typography>
                 {JSON.parse(request.attachments_json).map((file, index) => (
-                  <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <AttachFile fontSize='small' />
-                    <Typography>{file.filename}</Typography>
-                    <Chip
+                  <Box
+                    key={index}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 1,
+                      mb: 1,
+                      p: 1,
+                      border: '1px solid #eee',
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AttachFile fontSize='small' />
+                      <Typography>{file.filename}</Typography>
+                      <Chip
+                        size='small'
+                        label={`${(file.size / 1024).toFixed(0)} KB`}
+                        variant='outlined'
+                      />
+                    </Box>
+                    <Button
                       size='small'
-                      label={`${(file.size / 1024).toFixed(0)} KB`}
                       variant='outlined'
-                    />
+                      startIcon={<Visibility />}
+                      onClick={() =>
+                        window.open(
+                          `${import.meta.env.VITE_API_URL || 'http://localhost:3002/api'}/uploads/${file.filename}`,
+                          '_blank'
+                        )
+                      }
+                    >
+                      View
+                    </Button>
                   </Box>
                 ))}
               </Paper>
@@ -431,71 +465,6 @@ const RequestDetail = () => {
       case 1:
         return (
           <Box>
-            <Alert severity='info' sx={{ mb: 2 }}>
-              Contact the complainant to verify the details of the complaint and gather additional
-              information.
-            </Alert>
-
-            <Paper sx={{ p: 3, mb: 2 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mb: 2,
-                }}
-              >
-                <Typography variant='h6'>Contact Log</Typography>
-                <Button
-                  variant='contained'
-                  startIcon={<Phone />}
-                  onClick={() => setContactDialogOpen(true)}
-                >
-                  Log Contact
-                </Button>
-              </Box>
-
-              {request.investigation_checklist &&
-              JSON.parse(request.investigation_checklist).contacted_complainant ? (
-                <Alert severity='success' sx={{ mb: 2 }}>
-                  Complainant has been contacted
-                </Alert>
-              ) : (
-                <Alert severity='warning' sx={{ mb: 2 }}>
-                  Complainant has not been contacted yet
-                </Alert>
-              )}
-
-              {audits?.filter(a => a.action === 'contacted_complainant').length === 0 ? (
-                <Typography color='text.secondary'>No contact attempts recorded</Typography>
-              ) : (
-                <List>
-                  {audits
-                    .filter(a => a.action === 'contacted_complainant')
-                    .map(audit => (
-                      <ListItem key={audit.id} alignItems='flex-start'>
-                        <ListItemIcon>
-                          <Phone color='info' />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={
-                            <Paper sx={{ p: 2 }}>
-                              <Typography variant='subtitle2'>
-                                {audit.contact_method || 'Unknown method'} -{' '}
-                                {new Date(audit.created_at).toLocaleString()}
-                              </Typography>
-                              {audit.contact_notes && (
-                                <Typography variant='body2'>{audit.contact_notes}</Typography>
-                              )}
-                            </Paper>
-                          }
-                        />
-                      </ListItem>
-                    ))}
-                </List>
-              )}
-            </Paper>
-
             <Paper sx={{ p: 3, mb: 2 }}>
               <Box
                 sx={{
@@ -543,111 +512,8 @@ const RequestDetail = () => {
           <Box>
             <Paper sx={{ p: 3, mb: 2 }}>
               <Typography variant='h6' gutterBottom>
-                Investigation Checklist
-              </Typography>
-              <Alert severity='info' sx={{ mb: 2 }}>
-                Complete all required items before making a decision.
-              </Alert>
-
-              {investigationSteps.map(step => (
-                <FormControlLabel
-                  key={step.key}
-                  control={
-                    <Checkbox
-                      checked={investigationData.checklist[step.key] || false}
-                      onChange={handleChecklistChange(step.key)}
-                      color={step.required ? 'error' : 'default'}
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography>
-                        {step.label}
-                        {step.required && (
-                          <Typography component='span' color='error'>
-                            {' '}
-                            *
-                          </Typography>
-                        )}
-                      </Typography>
-                    </Box>
-                  }
-                  sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}
-                />
-              ))}
-
-              {isInvestigationComplete() && (
-                <Alert severity='success' sx={{ mt: 2 }}>
-                  All required investigation items completed!
-                </Alert>
-              )}
-            </Paper>
-
-            <Paper sx={{ p: 3, mb: 2 }}>
-              <Typography variant='h6' gutterBottom>
-                Investigation Findings
-              </Typography>
-              <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-                Document your investigation findings, evidence collected, and any notes about the
-                case.
-              </Typography>
-              <TextField
-                fullWidth
-                multiline
-                minRows={6}
-                label='Findings Summary'
-                value={investigationData.findings}
-                onChange={e =>
-                  setInvestigationData(prev => ({ ...prev, findings: e.target.value }))
-                }
-                placeholder='Describe what you discovered during your investigation...'
-              />
-
-              <Box sx={{ mt: 2, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                <Button
-                  variant='contained'
-                  startIcon={loading ? null : <CheckCircle />}
-                  onClick={saveInvestigation}
-                  disabled={loading}
-                >
-                  {loading ? 'Saving...' : 'Save Progress'}
-                </Button>
-              </Box>
-            </Paper>
-
-            {audits?.filter(a => a.action === 'added_note').length > 0 && (
-              <Paper sx={{ p: 3, mb: 2 }}>
-                <Typography variant='h6' gutterBottom>
-                  Investigation Notes
-                </Typography>
-                {audits
-                  .filter(a => a.action === 'added_note')
-                  .map(audit => (
-                    <Paper key={audit.id} sx={{ p: 2, mb: 1 }}>
-                      <Typography variant='body2'>{audit.message_text}</Typography>
-                      <Typography variant='caption' color='text.secondary'>
-                        {new Date(audit.created_at).toLocaleString()}
-                      </Typography>
-                    </Paper>
-                  ))}
-              </Paper>
-            )}
-          </Box>
-        );
-
-      case 3:
-        return (
-          <Box>
-            <Paper sx={{ p: 3, mb: 2 }}>
-              <Typography variant='h6' gutterBottom>
                 Make Decision
               </Typography>
-              <Alert severity={canApprove() ? 'success' : 'warning'} sx={{ mb: 2 }}>
-                {canApprove()
-                  ? 'Investigation is complete. You can now approve or reject this request.'
-                  : 'Complete all required investigation items and add findings before making a decision.'}
-              </Alert>
-
               <Stack spacing={2}>
                 <Button
                   variant='contained'
@@ -738,7 +604,6 @@ const RequestDetail = () => {
         >
           <Tab label='Request Review' icon={<Visibility />} />
           <Tab label='Contact Complainant' icon={<Phone />} />
-          <Tab label='Investigate' icon={<Search />} />
           <Tab label='Decision' icon={<CheckCircle />} />
         </Tabs>
       </Paper>

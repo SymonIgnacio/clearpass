@@ -105,6 +105,13 @@ class ResidentProfileController {
         email,
       } = req.body;
 
+      // Sanitize inputs to avoid database errors with empty strings
+      const safeIncome = Income_Estimate === '' ? null : Income_Estimate;
+      const safeCivilStatus = Civil_Status === '' ? null : Civil_Status;
+      const safeOccupation = Occupation === '' ? null : Occupation;
+      const safeMobile = Mobile_Number === '' ? null : Mobile_Number;
+      const safeEmail = email === '' ? null : email;
+
       if (!resident_id) {
         // Handle Guest/Applicant update (update resident_applications)
         // Note: Applicants typically cannot change their name/email easily as it's part of the application identity,
@@ -122,10 +129,10 @@ class ResidentProfileController {
             Last_Name,
             Middle_Name,
             Suffix,
-            Mobile_Number,
-            Occupation,
-            Income_Estimate,
-            Civil_Status,
+            safeMobile,
+            safeOccupation,
+            safeIncome,
+            safeCivilStatus,
             req.user.email,
           ]
         );
@@ -140,7 +147,7 @@ class ResidentProfileController {
             UPDATE residents SET 
               First_Name = ?, Last_Name = ?, Middle_Name = ?, Suffix = ?,
               Mobile_Number = ?, Occupation = ?, Income_Estimate = ?,
-              Civil_Status = ?, updated_at = NOW()
+              Civil_Status = ?, Email = ?, updated_at = NOW()
             WHERE Resident_ID = ?
           `,
           [
@@ -148,18 +155,19 @@ class ResidentProfileController {
             Last_Name,
             Middle_Name,
             Suffix,
-            Mobile_Number,
-            Occupation,
-            Income_Estimate,
-            Civil_Status,
+            safeMobile,
+            safeOccupation,
+            safeIncome,
+            safeCivilStatus,
+            safeEmail,
             resident_id,
           ]
         );
 
         // Update user email if provided
-        if (email) {
+        if (safeEmail) {
           await this.db.execute('UPDATE users SET email = ? WHERE resident_id = ?', [
-            email,
+            safeEmail,
             resident_id,
           ]);
         }
@@ -193,27 +201,55 @@ class ResidentProfileController {
       const files = req.files || {};
       const toBool = val => val === 'true' || val === true || val === '1';
 
+      // Check if vulnerability record exists to get current state
+      const [existingVulnerabilities] = await this.db.execute(
+        'SELECT * FROM vulnerabilities WHERE Resident_ID = ?',
+        [resident_id]
+      );
+      const currentStatus = existingVulnerabilities.length > 0 ? existingVulnerabilities[0] : {};
+
+      // Helper to check if a status is already approved/active in DB
+      const isAlreadyActive = field => currentStatus[field] === 1 || currentStatus[field] === true;
+
       // Server-side validation for required documents
-      if (toBool(Is_4Ps) && !(files.Is_4Ps_File && files.Is_4Ps_File.length > 0)) {
+      // Only require files if the status is being set to true AND it wasn't already true (new claim)
+      if (
+        toBool(Is_4Ps) &&
+        !isAlreadyActive('Is_4Ps') &&
+        !(files.Is_4Ps_File && files.Is_4Ps_File.length > 0)
+      ) {
         return res.status(400).json({ success: false, message: '4Ps ID proof is required' });
       }
-      if (toBool(Is_PWD) && (!Disability_Type || Disability_Type.length === 0)) {
+      if (
+        toBool(Is_PWD) &&
+        !isAlreadyActive('Is_PWD') &&
+        (!Disability_Type || Disability_Type.length === 0)
+      ) {
         return res
           .status(400)
           .json({ success: false, message: 'Disability Type is required for PWD' });
       }
-      if (toBool(Is_PWD) && (!files.Is_PWD_File_Front || !files.Is_PWD_File_Back)) {
+      if (
+        toBool(Is_PWD) &&
+        !isAlreadyActive('Is_PWD') &&
+        (!files.Is_PWD_File_Front || !files.Is_PWD_File_Back)
+      ) {
         return res
           .status(400)
           .json({ success: false, message: 'PWD ID front and back are required' });
       }
-      if (toBool(Is_Senior) && (!files.Is_Senior_File_Front || !files.Is_Senior_File_Back)) {
+      if (
+        toBool(Is_Senior) &&
+        !isAlreadyActive('Is_Senior') &&
+        (!files.Is_Senior_File_Front || !files.Is_Senior_File_Back)
+      ) {
         return res
           .status(400)
           .json({ success: false, message: 'Senior ID front and back are required' });
       }
       if (
         toBool(Is_Solo_Parent) &&
+        !isAlreadyActive('Is_Solo_Parent') &&
         (!files.Is_Solo_Parent_File_Front || !files.Is_Solo_Parent_File_Back)
       ) {
         return res
@@ -222,6 +258,7 @@ class ResidentProfileController {
       }
       if (
         toBool(Is_Out_of_School_Youth) &&
+        !isAlreadyActive('Is_Out_of_School_Youth') &&
         !(files.Is_Out_of_School_Youth_File && files.Is_Out_of_School_Youth_File.length > 0)
       ) {
         return res
@@ -271,19 +308,27 @@ class ResidentProfileController {
         await uploadDocument(files.Is_Out_of_School_Youth_File[0], 'OSY Certification');
 
       // Check if vulnerability record exists
-      const [existing] = await this.db.execute(
-        'SELECT Resident_ID FROM vulnerabilities WHERE Resident_ID = ?',
-        [resident_id]
-      );
+      // Re-query not needed as we already fetched existingVulnerabilities above
+      const existing = existingVulnerabilities;
 
       // Helper to convert 'true'/'false' strings to booleans (FormData sends strings)
-      const vulnerability_score = this.calculateVulnerabilityScore({
-        Is_4Ps: toBool(Is_4Ps),
-        Is_PWD: toBool(Is_PWD),
-        Is_Senior: toBool(Is_Senior),
-        Is_Solo_Parent: toBool(Is_Solo_Parent),
-        Is_Out_of_School_Youth: toBool(Is_Out_of_School_Youth),
-      });
+      // Merge logic: If a flag is already true in DB, keep it true regardless of input (unless explicitly untoggled, but frontend locks prevents untoggling approved ones)
+      // Actually, we should respect the input if it's explicitly false (user removing a claim),
+      // BUT for approved claims, we usually don't let users self-remove easily or it requires re-verification.
+      // Given the issue, we want to ensure we don't accidentally set an approved claim to false if the frontend didn't send it or sent it as false due to locking bugs.
+      // However, the frontend sends the locked values as 'true'.
+      // The issue is likely that we were overwriting everything.
+
+      const newStatus = {
+        Is_4Ps: toBool(Is_4Ps) || isAlreadyActive('Is_4Ps'),
+        Is_PWD: toBool(Is_PWD) || isAlreadyActive('Is_PWD'),
+        Is_Senior: toBool(Is_Senior) || isAlreadyActive('Is_Senior'),
+        Is_Solo_Parent: toBool(Is_Solo_Parent) || isAlreadyActive('Is_Solo_Parent'),
+        Is_Out_of_School_Youth:
+          toBool(Is_Out_of_School_Youth) || isAlreadyActive('Is_Out_of_School_Youth'),
+      };
+
+      const vulnerability_score = this.calculateVulnerabilityScore(newStatus);
 
       if (existing.length > 0) {
         // Update existing record and set status to pending
@@ -296,12 +341,12 @@ class ResidentProfileController {
           WHERE Resident_ID = ?
         `,
           [
-            toBool(Is_4Ps),
-            toBool(Is_PWD),
-            toBool(Is_Senior),
-            toBool(Is_Solo_Parent),
-            toBool(Is_Out_of_School_Youth),
-            Disability_Type || null,
+            newStatus.Is_4Ps,
+            newStatus.Is_PWD,
+            newStatus.Is_Senior,
+            newStatus.Is_Solo_Parent,
+            newStatus.Is_Out_of_School_Youth,
+            Disability_Type || currentStatus.Disability_Type || null, // Preserve existing disability type if not provided
             vulnerability_score,
             resident_id,
           ]

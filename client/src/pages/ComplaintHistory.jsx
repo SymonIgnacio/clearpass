@@ -31,6 +31,7 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Divider,
 } from '@mui/material';
 import { apiRequest } from '../utils/api';
 import {

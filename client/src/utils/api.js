@@ -70,10 +70,13 @@ export const apiRequest = async (endpoint, options = {}) => {
       // Clone response to read body without consuming original stream for the caller
       const clonedRes = response.clone();
       const errorData = await clonedRes.json();
+      
+      const errorCode = errorData.code || errorData.error?.code;
+      const errorMessage = errorData.message || errorData.error?.message;
 
       if (
-        errorData.code === 'EBADCSRFTOKEN' ||
-        (errorData.message && errorData.message.toLowerCase().includes('csrf'))
+        errorCode === 'EBADCSRFTOKEN' ||
+        (errorMessage && errorMessage.toLowerCase().includes('csrf'))
       ) {
         // Clear cached token
         clearCsrfToken();
@@ -83,8 +86,8 @@ export const apiRequest = async (endpoint, options = {}) => {
         headers = await addCsrfToken({ ...options.headers });
         config.headers = headers;
 
-        // Increased delay to ensure cookie persistence (100ms was too short causing race conditions)
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Increased delay to ensure cookie persistence (1000ms was too short causing race conditions)
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Retry request once
         response = await fetch(url, config);
