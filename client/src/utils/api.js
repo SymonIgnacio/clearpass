@@ -38,7 +38,7 @@ export const apiRequest = async (endpoint, options = {}) => {
   // Skip CSRF token for login/register endpoints to avoid circular dependency
   // But allow it for logout and other authenticated auth endpoints
   if (
-    ['POST', 'PUT', 'DELETE'].includes(options.method) &&
+    ['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method) &&
     !endpoint.includes('/auth/login') &&
     !endpoint.includes('/auth/register')
   ) {
@@ -83,7 +83,8 @@ export const apiRequest = async (endpoint, options = {}) => {
 
         // Refresh headers with new token
         // addCsrfToken calls getCsrfToken which will fetch a new one since cache is cleared
-        headers = await addCsrfToken({ ...options.headers });
+        // Use local headers variable to preserve Content-Type set earlier
+        headers = await addCsrfToken({ ...headers });
         config.headers = headers;
 
         // Increased delay to ensure cookie persistence (1000ms was too short causing race conditions)

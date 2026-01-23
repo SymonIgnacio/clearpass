@@ -30,7 +30,6 @@ import {
   People,
   Gavel,
   Description,
-  SmartToy,
   Security,
   Warning,
   TrendingUp,
@@ -61,9 +60,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null)
   const [certificates, setCertificates] = useState([])
   const [blotterCases, setBlotterCases] = useState([])
-  const [patrolSuggestions, setPatrolSuggestions] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [patrolLoading, setPatrolLoading] = useState(false)
 
   // IT Admin Reports State - ALWAYS DECLARED
   const [reports, setReports] = useState({
@@ -998,133 +995,9 @@ const Dashboard = () => {
             ))}
           </Grid>
 
-          {/* AI Command Center */}
+          {/* Quick Actions Only */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} lg={8}>
-              <Card sx={{
-                height: '100%',
-                background: isDarkMode ? theme.palette.background.paper : 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
-                border: '1px solid',
-                borderColor: 'divider'
-              }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    mb: 3
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar sx={{
-                        bgcolor: '#1a73e8',
-                        mr: 2,
-                        width: 48,
-                        height: 48
-                      }}>
-                        <SmartToy sx={{ fontSize: 24 }} />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h5" sx={{ fontWeight: 500, mb: 0.5 }}>
-                          AI Patrol Intelligence
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Machine learning-powered security recommendations
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Chip
-                      label="AI Powered"
-                      color="primary"
-                      size="small"
-                      sx={{
-                        borderRadius: 2,
-                        fontWeight: 500
-                      }}
-                    />
-                  </Box>
-
-                  <Typography variant="body1" sx={{ mb: 3, color: 'text.secondary' }}>
-                    Advanced analytics of incident patterns, temporal trends, and risk factors to optimize patrol deployment and community safety.
-                  </Typography>
-
-                  <Button
-                    variant="contained"
-                    startIcon={patrolLoading ? <CircularProgress size={20} /> : <Analytics />}
-                    onClick={fetchPatrolSuggestions}
-                    disabled={patrolLoading}
-                    sx={{
-                      mb: 3,
-                      px: 3,
-                      py: 1.5,
-                      borderRadius: 2,
-                      fontSize: '0.9rem',
-                      fontWeight: 500
-                    }}
-                  >
-                    {patrolLoading ? 'Analyzing Patterns...' : 'Generate Intelligence Report'}
-                  </Button>
-
-                  {patrolSuggestions && (
-                    <Box>
-                      <Alert
-                        severity={
-                          patrolSuggestions.overall_risk_level === 'CRITICAL' ? 'error' :
-                            patrolSuggestions.overall_risk_level === 'HIGH' ? 'error' :
-                              patrolSuggestions.overall_risk_level === 'MEDIUM' ? 'warning' :
-                                'success'
-                        }
-                        sx={{
-                          mb: 3,
-                          borderRadius: 2,
-                          '& .MuiAlert-icon': { fontSize: '1.5rem' }
-                        }}
-                      >
-                        <Typography variant="h6" sx={{ fontWeight: 500, mb: 1 }}>
-                          {patrolSuggestions.overall_risk_level} Risk Level
-                        </Typography>
-                        <Typography variant="body2">
-                          Total Incidents: {patrolSuggestions.risk_assessment?.total_incidents || 0} •
-                          Peak Hours: {patrolSuggestions.risk_assessment?.peak_hours || 'N/A'}
-                        </Typography>
-                      </Alert>
-
-                      <Typography variant="h6" sx={{ fontWeight: 500, mb: 2 }}>
-                        Strategic Recommendations
-                      </Typography>
-
-                      <Grid container spacing={2}>
-                        {patrolSuggestions.patrol_suggestions?.slice(0, 3).map((rec, index) => (
-                          <Grid xs={12} sm={4} key={index}>
-                            <Card variant="outlined" sx={{
-                              borderRadius: 2,
-                              borderColor: 'divider'
-                            }}>
-                              <CardContent sx={{ p: 2 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-                                  Priority {index + 1}
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                                  {rec}
-                                </Typography>
-                              </CardContent>
-                            </Card>
-                          </Grid>
-                        )) || (
-                            <Grid xs={12}>
-                              <Typography variant="body2" color="text.secondary">
-                                No patrol suggestions available
-                              </Typography>
-                            </Grid>
-                          )}
-                      </Grid>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} lg={4}>
+            <Grid item xs={12} lg={12}>
               <Card sx={{
                 height: '100%',
                 background: isDarkMode ? theme.palette.background.paper : 'linear-gradient(135deg, #fff3e0 0%, #ffffff 100%)',
@@ -1136,12 +1009,11 @@ const Dashboard = () => {
                     Quick Actions
                   </Typography>
 
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1.5 }}>
                     {[
                       { icon: <People />, label: 'Register Resident', color: '#1a73e8' },
                       { icon: <Gavel />, label: 'Report Incident', color: '#ea4335' },
                       { icon: <Description />, label: 'Issue Certificate', color: '#34a853' },
-                      { icon: <SmartToy />, label: 'AI Analysis', color: '#fbbc04' },
                       { icon: <Group />, label: 'Community Events', color: '#9c27b0' }
                     ].map((action, index) => (
                       <Button
@@ -1161,28 +1033,14 @@ const Dashboard = () => {
                             backgroundColor: alpha(action.color, isDarkMode ? 0.16 : 0.08),
                             transform: 'translateX(4px)'
                           },
-                          transition: 'all 0.2s ease'
+                          transition: 'all 0.2s ease',
+                          flexGrow: 1,
+                          maxWidth: '300px'
                         }}
                       >
                         {action.label}
                       </Button>
                     ))}
-                  </Box>
-
-                  <Box sx={{
-                    mt: 3,
-                    p: 2,
-                    borderRadius: 2,
-                    backgroundColor: alpha(theme.palette.primary.main, isDarkMode ? 0.14 : 0.06),
-                    border: '1px solid',
-                    borderColor: alpha(theme.palette.primary.main, isDarkMode ? 0.28 : 0.16)
-                  }}>
-                    <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-                      💡 Pro Tip
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Use AI Patrol Intelligence for data-driven security decisions and optimal resource allocation.
-                    </Typography>
                   </Box>
                 </CardContent>
               </Card>

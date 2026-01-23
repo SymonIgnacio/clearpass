@@ -42,9 +42,7 @@ const BlotterDashboard = () => {
     resolved_cases: 0,
   });
   const [blotterCases, setBlotterCases] = useState([]);
-  const [patrolSuggestions, setPatrolSuggestions] = useState(null);
-  const [patrolLoading, setPatrolLoading] = useState(false);
-
+  
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -68,19 +66,6 @@ const BlotterDashboard = () => {
       console.error('Error fetching blotter dashboard data:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchPatrolSuggestions = async () => {
-    setPatrolLoading(true);
-    try {
-      const response = await apiRequest('ai/patrol-suggestions');
-      const data = await response.json();
-      setPatrolSuggestions(data);
-    } catch (error) {
-      console.error('Error fetching patrol suggestions:', error);
-    } finally {
-      setPatrolLoading(false);
     }
   };
 
@@ -114,14 +99,16 @@ const BlotterDashboard = () => {
       statusLabel: 'Status',
     },
     {
-      title: 'Crime Analytics',
-      value: 'AI Ready',
-      subtitle: 'Predictive Models Active',
-      icon: <SmartToy sx={{ fontSize: 32 }} />,
-      color: '#fbbc04',
-      bgColor: 'linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%)',
-      status: 'Online',
-      statusLabel: 'System',
+      title: 'Resolved Cases',
+      value:
+        stats.resolved_cases ||
+        blotterCases.filter(c => c.Status === 'Resolved' || c.Status === 'Closed').length,
+      subtitle: 'Successfully Closed',
+      icon: <CheckCircle sx={{ fontSize: 32 }} />,
+      color: '#34a853',
+      bgColor: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)',
+      status: 'Completed',
+      statusLabel: 'Status',
     },
   ];
 
@@ -257,92 +244,7 @@ const BlotterDashboard = () => {
                 >
                   View All Cases
                 </Button>
-                <Button
-                  variant='outlined'
-                  startIcon={<Analytics />}
-                  onClick={() => handleQuickAction('AI Analysis')}
-                  fullWidth
-                  sx={{ justifyContent: 'flex-start', py: 1.5 }}
-                >
-                  AI Crime Analysis
-                </Button>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* AI Patrol Intelligence (Reused from main Dashboard) */}
-        <Grid item xs={12} md={8}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Avatar sx={{ bgcolor: '#1a73e8', mr: 2 }}>
-                  <SmartToy />
-                </Avatar>
-                <Box>
-                  <Typography variant='h6'>AI Patrol Intelligence</Typography>
-                  <Typography variant='body2' color='text.secondary'>
-                    Real-time crime risk assessment
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Button
-                variant='outlined'
-                startIcon={patrolLoading ? <CircularProgress size={20} /> : <Analytics />}
-                onClick={fetchPatrolSuggestions}
-                disabled={patrolLoading}
-                sx={{ mb: 3 }}
-              >
-                {patrolLoading ? 'Analyzing...' : 'Generate Patrol Plan'}
-              </Button>
-
-              {patrolSuggestions && (
-                <Box>
-                  <Alert
-                    severity={
-                      patrolSuggestions.overall_risk_level === 'CRITICAL'
-                        ? 'error'
-                        : patrolSuggestions.overall_risk_level === 'HIGH'
-                          ? 'error'
-                          : patrolSuggestions.overall_risk_level === 'MEDIUM'
-                            ? 'warning'
-                            : 'success'
-                    }
-                    sx={{ mb: 3 }}
-                  >
-                    <Typography variant='subtitle1' fontWeight='bold'>
-                      {patrolSuggestions.overall_risk_level} RISK LEVEL
-                    </Typography>
-                    <Typography variant='body2'>
-                      Focus Area: {patrolSuggestions.risk_assessment?.peak_hours || 'N/A'}
-                    </Typography>
-                  </Alert>
-
-                  <Grid container spacing={2}>
-                    {patrolSuggestions.patrol_suggestions?.slice(0, 2).map((rec, i) => (
-                      <Grid item xs={12} key={i}>
-                        <Paper variant='outlined' sx={{ p: 2 }}>
-                          <Typography variant='body2' fontWeight='bold'>
-                            Suggestion {i + 1}
-                          </Typography>
-                          <Typography variant='body2' color='text.secondary'>
-                            {rec}
-                          </Typography>
-                        </Paper>
-                      </Grid>
-                    ))}
-                  </Grid>
-                </Box>
-              )}
-
-              {!patrolSuggestions && !patrolLoading && (
-                <Box sx={{ textAlign: 'center', py: 2 }}>
-                  <Typography variant='body2' color='text.secondary'>
-                    Click "Generate Patrol Plan" to view AI recommendations
-                  </Typography>
-                </Box>
-              )}
             </CardContent>
           </Card>
         </Grid>

@@ -1,4 +1,4 @@
-const { sendRequestStatusEmail } = require('../utils/emailService');
+const { sendCertificateStatusEmail } = require('../utils/emailService');
 const { logAuditToDatabase, AUDIT_EVENTS } = require('../middleware/auditLogger');
 
 class CertificateRequestController {
@@ -549,12 +549,16 @@ class CertificateRequestController {
         }
 
         if (Email) {
-          await sendRequestStatusEmail({
+          const pickupDate = new Date();
+          pickupDate.setDate(pickupDate.getDate() + 1); // Pickup tomorrow
+
+          await sendCertificateStatusEmail({
             to: Email,
             residentName: `${First_Name} ${Last_Name}`,
-            requestType: document_type,
+            documentType: document_type,
             status,
             remarks,
+            pickupDate,
           });
         }
       }

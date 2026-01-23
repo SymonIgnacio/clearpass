@@ -1,10 +1,32 @@
 const { approveRequest } = require('../services/blotterRequestService');
+const { sendBlotterStatusEmail } = require('../utils/emailService');
 const fs = require('fs');
 const path = require('path');
 
 class BlotterRequestController {
   constructor(db) {
     this.db = db;
+  }
+
+  _saveEvidenceFiles(files) {
+    if (!files || files.length === 0) return [];
+
+    const uploadsDir = path.join(__dirname, '../uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const savedFiles = [];
+    for (const f of files) {
+      const filePath = path.join(uploadsDir, f.originalname);
+      fs.writeFileSync(filePath, f.buffer);
+      savedFiles.push({
+        filename: f.originalname,
+        mimetype: f.mimetype,
+        size: f.size,
+      });
+    }
+    return savedFiles;
   }
 
   async submitRequest(req, res) {
@@ -51,9 +73,7 @@ class BlotterRequestController {
       const incident_datetime =
         incident_date && incident_time ? `${incident_date} ${incident_time}` : incident_date;
 
-      const attachments = req.files?.length
-        ? req.files.map(f => ({ filename: f.originalname, mimetype: f.mimetype, size: f.size }))
-        : [];
+      const attachments = this._saveEvidenceFiles(req.files);
 
       const [result] = await this.db.execute(
         `
@@ -389,12 +409,7 @@ class BlotterRequestController {
     try {
       const { id } = req.params;
       const { note } = req.body;
-      const files = req.files || [];
-      const images = files.map(f => ({
-        filename: f.originalname,
-        mimetype: f.mimetype,
-        size: f.size,
-      }));
+      const images = this._saveEvidenceFiles(req.files);
 
       await this.db.execute(
         `
@@ -472,24 +487,7 @@ class BlotterRequestController {
     try {
       const { id } = req.params;
       const { message } = req.body;
-      const files = req.files || [];
-      const images = [];
-
-      // Ensure uploads directory exists
-      const uploadsDir = path.join(__dirname, '../uploads');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-
-      for (const f of files) {
-        const filePath = path.join(uploadsDir, f.originalname);
-        fs.writeFileSync(filePath, f.buffer);
-        images.push({
-          filename: f.originalname,
-          mimetype: f.mimetype,
-          size: f.size,
-        });
-      }
+      const images = this._saveEvidenceFiles(req.files);
 
       await this.db.execute(
         `
@@ -519,7 +517,7 @@ class BlotterRequestController {
   async submitAppeal(req, res) {
     try {
       const { id } = req.params;
-      const { message, files } = req.body;
+      const { message } = req.body;
       const userId = req.user.id;
 
       const [requestRow] = await this.db.execute('SELECT * FROM blotter_requests WHERE id = ?', [
@@ -538,16 +536,8 @@ class BlotterRequestController {
           .json({ success: false, message: 'Only rejected requests can be appealed' });
       }
 
-      const fileData =
-        files && files.length > 0
-          ? JSON.stringify(
-              files.map(f => ({
-                filename: f.name || 'unknown',
-                size: f.size || 0,
-                mimetype: f.type || 'application/octet-stream',
-              }))
-            )
-          : null;
+      const files = this._saveEvidenceFiles(req.files);
+      const fileData = files.length > 0 ? JSON.stringify(files) : null;
 
       await this.db.execute(
         `
@@ -820,13 +810,24 @@ class BlotterRequestController {
     try {
       const { id } = req.params;
       const { action, reason, notes } = req.body;
+
+      console.log(
+        `[BlotterRequest] setStatus - ID: ${id}, Action: ${action}, User: ${req.user.id}, Role: ${req.user.role}`
+      );
+
       if (action === 'approve') {
         const { caseNumber } = await approveRequest(this.db, id, req.user.id);
         const [rows] = await this.db.execute(
-          'SELECT complainant_resident_id FROM blotter_requests WHERE id = ?',
+          `SELECT br.complainant_resident_id, r.Email, r.First_Name, r.Last_Name 
+           FROM blotter_requests br
+           JOIN residents r ON br.complainant_resident_id = r.Resident_ID
+           WHERE br.id = ?`,
           [id]
         );
         const residentId = rows[0]?.complainant_resident_id;
+        const residentEmail = rows[0]?.Email;
+        const residentName = `${rows[0]?.First_Name} ${rows[0]?.Last_Name}`.trim();
+
         if (residentId && global.createNotification) {
           const [residentUsers] = await this.db.execute(
             'SELECT id FROM users WHERE resident_id = ? AND is_active = 1 ORDER BY id ASC LIMIT 1',
@@ -844,15 +845,28 @@ class BlotterRequestController {
             );
           }
         }
+
+        if (residentEmail) {
+          const hearingDate = new Date();
+          hearingDate.setDate(hearingDate.getDate() + 7);
+          await sendBlotterStatusEmail({
+            to: residentEmail,
+            residentName,
+            status: 'approved',
+            caseNumber,
+            hearingDate,
+          });
+        }
+
         res.json({ success: true, data: { case_number: caseNumber } });
       } else if (action === 'reject') {
         await this.db.execute(
           `
             UPDATE blotter_requests
             SET status = 'rejected',
-                rejection_reason_category = ?,
-                officer_notes = ?,
-                updated_at = NOW()
+            rejection_reason_category = ?,
+            officer_notes = ?,
+            updated_at = NOW()
             WHERE id = ?
           `,
           [reason || null, notes || null, id]
@@ -866,10 +880,16 @@ class BlotterRequestController {
           [id, req.user.id, req.user.id, notes || reason || 'Rejected']
         );
         const [rows] = await this.db.execute(
-          'SELECT complainant_resident_id FROM blotter_requests WHERE id = ?',
+          `SELECT br.complainant_resident_id, r.Email, r.First_Name, r.Last_Name 
+           FROM blotter_requests br
+           JOIN residents r ON br.complainant_resident_id = r.Resident_ID
+           WHERE br.id = ?`,
           [id]
         );
         const residentId = rows[0]?.complainant_resident_id;
+        const residentEmail = rows[0]?.Email;
+        const residentName = `${rows[0]?.First_Name} ${rows[0]?.Last_Name}`.trim();
+
         if (residentId && global.createNotification) {
           const [residentUsers] = await this.db.execute(
             'SELECT id FROM users WHERE resident_id = ? AND is_active = 1 ORDER BY id ASC LIMIT 1',
@@ -887,6 +907,17 @@ class BlotterRequestController {
             );
           }
         }
+
+        if (residentEmail) {
+          await sendBlotterStatusEmail({
+            to: residentEmail,
+            residentName,
+            status: 'rejected',
+            reason,
+            notes,
+          });
+        }
+
         res.json({ success: true, message: 'Request rejected' });
       } else {
         res.status(400).json({ success: false, message: 'Invalid action' });

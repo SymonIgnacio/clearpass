@@ -79,18 +79,6 @@ export const dashboardAPI = {
     const data = await response.json();
     return data;
   },
-
-  // Get AI analytics (role-specific)
-  getAIAnalytics: async userRole => {
-    const endpoints = {
-      5: '/admin/ai-analytics',
-      6: '/officer/ai-analytics',
-    };
-    const endpoint = endpoints[userRole] || '/ai/analytics';
-    const response = await api.get(endpoint);
-    const data = await response.json();
-    return data;
-  },
 };
 
 export default dashboardAPI;

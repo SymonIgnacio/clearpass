@@ -27,6 +27,14 @@ import {
 import { api } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 
+const DEFAULT_ACTIONS = [
+  'Request Certificate',
+  'File Complaint',
+  'Office Hours',
+  'Contact',
+  'Where is the Barangay Hall?',
+];
+
 const Chatbot = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -37,9 +45,9 @@ const Chatbot = () => {
       type: 'bot',
       text: 'Hello! 👋 Ako si BANTAY, ang iyong barangay assistant. Tutulong ako sa step‑by‑step guides para sa certificates, blotter, at FAQs. Ano ang maitutulong ko?',
       timestamp: new Date().toISOString(),
-      actions: ['Request Certificate', 'File Complaint', 'Office Hours', 'Contact'],
     },
   ]);
+  const [suggestedActions, setSuggestedActions] = useState(DEFAULT_ACTIONS);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
@@ -62,9 +70,10 @@ const Chatbot = () => {
       timestamp: new Date().toISOString(),
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setMessage('');
     setIsTyping(true);
+    setSuggestedActions([]); // Clear actions while typing
 
     try {
       const response = await api.post('/ai/chatbot', { message: finalMessage });
@@ -74,7 +83,6 @@ const Chatbot = () => {
       const botMsg = {
         type: 'bot',
         text: data.response || 'Pasensya na, hindi ko naintindihan. Maaari mo bang ulitin?',
-        actions: (data.actions || []).filter(a => !/schedule|book/i.test(a)),
         steps: Array.isArray(data.steps) ? data.steps : [],
         guideType: data.type || 'text',
         disclaimers: Array.isArray(data.disclaimers) ? data.disclaimers : [],
@@ -84,10 +92,14 @@ const Chatbot = () => {
         timestamp: new Date().toISOString(),
       };
 
-      setMessages(prev => [...prev, botMsg]);
+      setMessages((prev) => [...prev, botMsg]);
+
+      // Update suggested actions
+      const responseActions = (data.actions || []).filter((a) => !/schedule|book/i.test(a));
+      setSuggestedActions(responseActions.length > 0 ? responseActions : DEFAULT_ACTIONS);
     } catch (error) {
       console.error('Chatbot error:', error);
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           type: 'bot',
@@ -95,12 +107,13 @@ const Chatbot = () => {
           timestamp: new Date().toISOString(),
         },
       ]);
+      setSuggestedActions(DEFAULT_ACTIONS);
     } finally {
       setIsTyping(false);
     }
   };
 
-  const handleKeyPress = e => {
+  const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -112,18 +125,18 @@ const Chatbot = () => {
       type: 'bot',
       text: 'Here are some frequently asked questions:',
       timestamp: new Date().toISOString(),
-      actions: [
-        'How to get Barangay Clearance?',
-        'How to file a complaint?',
-        'What are the office hours?',
-        'Where is the Barangay Hall?',
-        'Emergency Contact Numbers',
-      ],
     };
-    setMessages(prev => [...prev, faqMsg]);
+    setMessages((prev) => [...prev, faqMsg]);
+    setSuggestedActions([
+      'How to get Barangay Clearance?',
+      'How to file a complaint?',
+      'What are the office hours?',
+      'Where is the Barangay Hall?',
+      'Emergency Contact Numbers',
+    ]);
   };
 
-  const formatTime = isoString => {
+  const formatTime = (isoString) => {
     return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
@@ -315,23 +328,6 @@ const Chatbot = () => {
                       >
                         {formatTime(msg.timestamp)}
                       </Typography>
-
-                      {/* Suggested Actions */}
-                      {msg.actions && msg.actions.length > 0 && (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
-                          {msg.actions.map((action, i) => (
-                            <Chip
-                              key={i}
-                              label={action}
-                              size='small'
-                              color='primary'
-                              variant='outlined'
-                              onClick={() => handleSendMessage(action)}
-                              sx={{ bgcolor: 'background.paper', cursor: 'pointer' }}
-                            />
-                          ))}
-                        </Box>
-                      )}
                     </Box>
                   </Box>
                 </ListItem>
@@ -350,6 +346,44 @@ const Chatbot = () => {
             </List>
           </Box>
 
+          {/* Persistent Quick Actions */}
+          {suggestedActions.length > 0 && (
+            <Box
+              sx={{
+                p: 1.5,
+                bgcolor: 'background.paper',
+                borderTop: `1px solid ${theme.palette.divider}`,
+                display: 'flex',
+                gap: 1,
+                overflowX: 'auto',
+                '&::-webkit-scrollbar': {
+                  height: 4,
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: theme.palette.grey[300],
+                  borderRadius: 2,
+                },
+              }}
+            >
+              {suggestedActions.map((action, i) => (
+                <Chip
+                  key={i}
+                  label={action}
+                  size='small'
+                  color='primary'
+                  variant='outlined'
+                  onClick={() => handleSendMessage(action)}
+                  sx={{
+                    bgcolor: 'background.paper',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                />
+              ))}
+            </Box>
+          )}
+
           {/* Input Area */}
           <Box
             sx={{
@@ -364,7 +398,7 @@ const Chatbot = () => {
                 size='small'
                 placeholder='Type a message...'
                 value={message}
-                onChange={e => setMessage(e.target.value)}
+                onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 multiline
                 maxRows={3}

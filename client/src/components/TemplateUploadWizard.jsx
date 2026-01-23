@@ -26,6 +26,7 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  Alert,
 } from '@mui/material';
 import { CloudUpload, Warning, CheckCircle, Info } from '@mui/icons-material';
 import { apiRequest } from '../utils/api';
@@ -215,16 +216,28 @@ const TemplateUploadWizard = ({ open, onClose, onSuccess }) => {
             />
 
             <Box
-              sx={{
-                border: '2px dashed #ccc',
+              sx={theme => ({
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: `2px dashed ${theme.palette.divider}`,
                 borderRadius: 2,
                 p: 4,
                 mt: 2,
                 textAlign: 'center',
                 cursor: 'pointer',
-                bgcolor: file ? '#f0f9ff' : 'transparent',
-                '&:hover': { bgcolor: '#f5f5f5' },
-              }}
+                bgcolor: file
+                  ? theme.palette.mode === 'dark'
+                    ? 'rgba(25, 118, 210, 0.08)'
+                    : '#f0f9ff'
+                  : 'transparent',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5',
+                  borderColor: theme.palette.primary.main,
+                },
+              })}
               component='label'
             >
               <input type='file' hidden accept='.docx' onChange={handleFileChange} />
@@ -370,20 +383,9 @@ const TemplateUploadWizard = ({ open, onClose, onSuccess }) => {
         </Stepper>
 
         {error && (
-          <Box
-            sx={{
-              mb: 2,
-              p: 2,
-              bgcolor: '#fff0f0',
-              color: '#d32f2f',
-              borderRadius: 1,
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            <Warning sx={{ mr: 1 }} />
+          <Alert severity="error" sx={{ mb: 2 }}>
             {error}
-          </Box>
+          </Alert>
         )}
 
         {loading ? (

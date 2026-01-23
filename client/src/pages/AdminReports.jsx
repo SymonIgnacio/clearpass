@@ -39,7 +39,6 @@ import {
   Person,
   Business,
   Warning,
-  SmartToy,
 } from '@mui/icons-material';
 import { api, apiRequest } from '../utils/api';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -73,7 +72,6 @@ const AdminReports = () => {
   const [error, setError] = useState(null);
 
   // Filter tabs based on role
-  // Captain (Role 2) only sees AI Insights
   const allTabs = [
     { label: 'User Reports', icon: <People />, key: 'users' },
     { label: 'Blotter Reports', icon: <Gavel />, key: 'blotter' },
@@ -81,13 +79,9 @@ const AdminReports = () => {
     { label: 'Resident Reports', icon: <Person />, key: 'residents' },
     { label: 'System Health', icon: <Assessment />, key: 'system' },
     { label: 'Security Audit', icon: <Security />, key: 'security' },
-    { label: 'AI Insights', icon: <SmartToy />, key: 'ai' },
   ];
 
   const tabs = React.useMemo(() => {
-    if (user && Number(user.role) === 2) {
-      return allTabs.filter(tab => tab.key === 'ai');
-    }
     return allTabs;
   }, [user]);
 
@@ -96,19 +90,11 @@ const AdminReports = () => {
       setLoading(true);
       setError(null);
       let url = `/admin/reports/${reportKey}`;
-      if (reportKey === 'ai') {
-        url = '/ai/analytics';
-      }
 
       const response = await api.get(url);
 
       let data = response;
-      if (reportKey === 'ai' && response.ok) {
-        // Special handling for AI endpoint which returns standard fetch response
-        const jsonData = await response.json();
-        data = jsonData.analytics || jsonData; // Adapt to structure
-      } else if (response.ok && typeof response.json === 'function') {
-        // Try to parse JSON if it's a fetch response for other reports too, just in case
+      if (response.ok && typeof response.json === 'function') {
         try {
           data = await response.json();
         } catch (e) {
@@ -196,11 +182,10 @@ const AdminReports = () => {
     try {
       const reportPromises = tabs.map(async tab => {
         let url = `/admin/reports/${tab.key}`;
-        if (tab.key === 'ai') url = '/ai/analytics';
         const res = await api.get(url);
         if (res && res.ok && typeof res.json === 'function') {
           const json = await res.json();
-          return tab.key === 'ai' ? json.analytics || json : json;
+          return json;
         }
         return res;
       });
@@ -213,7 +198,6 @@ const AdminReports = () => {
         const tabKey = tabs[index].key;
         if (result.status === 'fulfilled') {
           // Successfully loaded report
-          if (tabKey === 'ai') console.log('🤖 AI Data Loaded:', result.value);
           newReports[tabKey] = result.value;
         } else {
           // Report failed to load - set to null and log error
@@ -1586,63 +1570,8 @@ const AdminReports = () => {
     );
   };
 
-  const renderAIReports = () => {
-    console.log('Rendering AI Reports. Loading:', loading, 'Data:', reports.ai);
-    const data = reports.ai;
-    // Only show loading if we are actually loading AND don't have data yet
-    if (loading && !data) return <CircularProgress />;
-
-    // If not loading and no data, show error/empty state
-    if (!data) {
-      return (
-        <Alert severity='warning'>
-          AI Analytics data is currently unavailable. Please try refreshing the page.
-        </Alert>
-      );
-    }
-
-    return (
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6} lg={3}>
-          <Card>
-            <CardContent>
-              <Typography color='textSecondary' gutterBottom>
-                Model Accuracy
-              </Typography>
-              <Typography variant='h4'>{data.model_accuracy || '98.5%'}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6} lg={3}>
-          <Card>
-            <CardContent>
-              <Typography color='textSecondary' gutterBottom>
-                Predictions Made
-              </Typography>
-              <Typography variant='h4'>{data.predictions_count || '1,245'}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6} lg={3}>
-          <Card>
-            <CardContent>
-              <Typography color='textSecondary' gutterBottom>
-                AI Service Status
-              </Typography>
-              <Typography variant='h4' style={{ color: 'green' }}>
-                Online
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    );
-  };
-
   // Show full loading screen during initial load
-  // Modified condition to check for AI data if only AI tab is present
-  const isCaptain = user && Number(user.role) === 2;
-  const requiredData = isCaptain ? reports.ai : reports.users;
+  const requiredData = reports.users;
 
   if (loading && !requiredData) {
     return (
@@ -1760,7 +1689,6 @@ const AdminReports = () => {
           {tabs[activeTab]?.key === 'residents' && renderResidentReports()}
           {tabs[activeTab]?.key === 'system' && renderSystemReports()}
           {tabs[activeTab]?.key === 'security' && renderSecurityReports()}
-          {tabs[activeTab]?.key === 'ai' && renderAIReports()}
         </Box>
 
         {/* Report Footer */}

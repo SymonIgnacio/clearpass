@@ -126,7 +126,7 @@ module.exports = db => {
   router.patch(
     '/:id/status',
     verifyToken,
-    checkRole(['blotter_officer', 'admin']),
+    checkRole([1, 6]), // Admin (1) and Blotter Officer (6)
     asyncHandler((req, res) => controller.setStatus(req, res))
   );
 

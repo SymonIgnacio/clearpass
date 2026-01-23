@@ -36,6 +36,7 @@ import {
 } from '@mui/material';
 import { apiRequest } from '../utils/api';
 import ProtectedRoute from '../components/ProtectedRoute';
+import { useAuth } from '../contexts/AuthContext';
 import { useParams } from 'react-router-dom';
 import {
   Person,
@@ -103,6 +104,7 @@ const rejectionReasons = [
 
 const RequestDetail = () => {
   const { id: requestId } = useParams();
+  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
   const [message, setMessage] = useState('');
@@ -302,7 +304,9 @@ const RequestDetail = () => {
   };
 
   const canApprove = () => {
-    return true;
+    // Only Admin (1) and Blotter Officer (6) can approve/reject
+    if (!user) return false;
+    return [1, 6].includes(user.role);
   };
 
   if (!data) {
@@ -536,7 +540,7 @@ const RequestDetail = () => {
                   size='large'
                   startIcon={<Cancel />}
                   onClick={() => setRejectDialogOpen(true)}
-                  disabled={loading || ['approved', 'rejected'].includes(request.status)}
+                  disabled={!canApprove() || loading || ['approved', 'rejected'].includes(request.status)}
                 >
                   Reject Request
                 </Button>

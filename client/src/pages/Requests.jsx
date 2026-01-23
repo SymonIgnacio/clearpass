@@ -423,9 +423,7 @@ const Requests = () => {
       <Box sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant='h4'>
-            <Badge badgeContent={filteredItems.length} color='primary' sx={{ mr: 2 }}>
-              Blotter Requests
-            </Badge>
+            Blotter Requests
           </Typography>
           <Stack direction='row' spacing={1}>
             <Button startIcon={<Refresh />} onClick={load} disabled={loading}>
@@ -472,12 +470,10 @@ const Requests = () => {
                     label='Status'
                   >
                     <MenuItem value=''>All</MenuItem>
-                    <MenuItem value='pending_review'>Pending Review</MenuItem>
-                    <MenuItem value='for_validation'>Under Validation</MenuItem>
-                    <MenuItem value='awaiting_response'>Awaiting Response</MenuItem>
-                    <MenuItem value='ready_for_decision'>Ready for Decision</MenuItem>
                     <MenuItem value='approved'>Approved</MenuItem>
                     <MenuItem value='rejected'>Rejected</MenuItem>
+                    <MenuItem value='for_validation'>Under Validation</MenuItem>
+                    <MenuItem value='pending_review'>Pending Review</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
