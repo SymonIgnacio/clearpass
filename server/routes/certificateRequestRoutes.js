@@ -3,6 +3,8 @@ const multer = require('multer');
 const CertificateRequestController = require('../controllers/certificateRequestController');
 const { verifyToken, checkRole } = require('../middleware/authMiddleware');
 const { ROLES } = require('../config/roles');
+const { validateUploadedFiles } = require('../utils/fileTypeValidation');
+const { requireMfaForRoles } = require('../middleware/mfaMiddleware');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -12,6 +14,7 @@ const upload = multer({
 module.exports = (db) => {
   const router = express.Router();
   const controller = new CertificateRequestController(db);
+  const requireStaffMfa = requireMfaForRoles([ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK]);
 
   // Get available certificate types
   router.get('/types', verifyToken, checkRole([ROLES.RESIDENT]), (req, res) => controller.getCertificateTypes(req, res));
@@ -22,6 +25,7 @@ module.exports = (db) => {
     verifyToken, 
     checkRole([ROLES.RESIDENT, ROLES.ADMIN]), 
     upload.fields([{ name: 'front_id', maxCount: 1 }, { name: 'back_id', maxCount: 1 }]),
+    validateUploadedFiles(['jpeg', 'png'], { maxSizeBytes: 5 * 1024 * 1024 }),
     (req, res) => controller.submitRequest(req, res)
   );
 
@@ -40,7 +44,7 @@ module.exports = (db) => {
   router.get('/:request_id/attachment/:type', verifyToken, checkRole([ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK]), (req, res) => controller.getRequestAttachment(req, res));
 
   // Update request status (Staff)
-  router.put('/:request_id/status', verifyToken, checkRole([ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK]), (req, res) => controller.updateRequestStatus(req, res));
+  router.put('/:request_id/status', verifyToken, requireStaffMfa, checkRole([ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK]), (req, res) => controller.updateRequestStatus(req, res));
 
   return router;
 };

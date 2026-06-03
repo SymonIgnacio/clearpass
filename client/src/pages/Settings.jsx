@@ -132,7 +132,7 @@ const Settings = ({ user }) => {
       newErrors.email = 'Please enter a valid email address';
     }
 
-    if (profile.contact_number && !/^[\d\s\-\+\(\)]+$/.test(profile.contact_number)) {
+    if (profile.contact_number && !/^[\d\s()+-]+$/.test(profile.contact_number)) {
       newErrors.contact_number = 'Please enter a valid contact number';
     }
 
@@ -153,7 +153,6 @@ const Settings = ({ user }) => {
       });
 
       if (response.ok) {
-        const data = await response.json();
         const updatedUser = { ...user, ...profile };
         localStorage.setItem('user', JSON.stringify(updatedUser));
 
@@ -627,8 +626,9 @@ const Settings = ({ user }) => {
                       method: 'POST'
                     });
 
+                    const data = await response.json().catch(() => ({}));
+
                     if (response.ok) {
-                      const data = await response.json();
                       setVerificationStatus(data);
 
                             if (data.action === 'promoted') {

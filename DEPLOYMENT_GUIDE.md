@@ -1,5 +1,7 @@
 # Multi-Cloud Deployment Guide (Netlify + Vercel + Railway)
 
+Status: Secondary deployment path. The primary production topology is Railway full-stack deployment; see `docs/DEPLOYMENT_TOPOLOGY.md`.
+
 This guide details how to deploy your stack across three specialized platforms for maximum performance and free-tier optimization.
 
 ## Architecture

@@ -5,7 +5,7 @@
 
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 // Mock setup
 const mockDb = {

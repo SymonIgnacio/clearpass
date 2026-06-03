@@ -5,6 +5,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { ROLES } = require('../config/roles');
+const { validateUploadedFiles } = require('../utils/fileTypeValidation');
+const { requireMfaForRoles } = require('../middleware/mfaMiddleware');
 
 const ensureDir = (dirPath) => {
   if (!fs.existsSync(dirPath)) {
@@ -41,18 +43,19 @@ const upload = multer({
 module.exports = (db) => {
   const router = express.Router();
   const controller = new SystemAdminController(db);
+  const requireSettingsMfa = requireMfaForRoles([ROLES.ADMIN, ROLES.SECRETARY]);
 
-  router.post('/backup', verifyToken, checkRole([ROLES.ADMIN]), (req, res) => controller.createBackup(req, res));
+  router.post('/backup', verifyToken, requireMfaForRoles([ROLES.ADMIN]), checkRole([ROLES.ADMIN]), (req, res) => controller.createBackup(req, res));
 
   router.get('/settings', verifyToken, checkRole([ROLES.ADMIN, ROLES.SECRETARY]), (req, res) => controller.getSettings(req, res));
-  router.put('/settings', verifyToken, checkRole([ROLES.ADMIN, ROLES.SECRETARY]), (req, res) => controller.updateSettings(req, res));
-  router.post('/upload-seal', verifyToken, checkRole([ROLES.ADMIN, ROLES.SECRETARY]), upload.single('file'), (req, res) => controller.uploadSeal(req, res));
+  router.put('/settings', verifyToken, requireSettingsMfa, checkRole([ROLES.ADMIN, ROLES.SECRETARY]), (req, res) => controller.updateSettings(req, res));
+  router.post('/upload-seal', verifyToken, requireSettingsMfa, checkRole([ROLES.ADMIN, ROLES.SECRETARY]), upload.single('file'), validateUploadedFiles(['jpeg', 'png', 'gif'], { maxSizeBytes: 2 * 1024 * 1024 }), (req, res) => controller.uploadSeal(req, res));
   router.get('/assets/:type/latest', verifyToken, checkRole([ROLES.ADMIN, ROLES.SECRETARY]), (req, res) => controller.getLatestAsset(req, res));
   router.get('/export-settings', verifyToken, checkRole([ROLES.ADMIN, ROLES.SECRETARY]), (req, res) => controller.exportSettings(req, res));
-  router.post('/reset-settings', verifyToken, checkRole([ROLES.ADMIN, ROLES.SECRETARY]), (req, res) => controller.resetSettings(req, res));
+  router.post('/reset-settings', verifyToken, requireSettingsMfa, checkRole([ROLES.ADMIN, ROLES.SECRETARY]), (req, res) => controller.resetSettings(req, res));
 
   router.get('/system-settings', verifyToken, checkRole([ROLES.ADMIN, ROLES.SECRETARY]), (req, res) => controller.getSystemSettings(req, res));
-  router.put('/system-settings', verifyToken, checkRole([ROLES.ADMIN, ROLES.SECRETARY]), (req, res) => controller.updateSystemSettings(req, res));
+  router.put('/system-settings', verifyToken, requireSettingsMfa, checkRole([ROLES.ADMIN, ROLES.SECRETARY]), (req, res) => controller.updateSystemSettings(req, res));
 
   router.post('/announcements', verifyToken, checkRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY]), (req, res) => controller.createAnnouncement(req, res));
   router.get('/announcements', verifyToken, checkRole([ROLES.ADMIN, ROLES.CAPTAIN, ROLES.SECRETARY]), (req, res) => controller.getAnnouncements(req, res));

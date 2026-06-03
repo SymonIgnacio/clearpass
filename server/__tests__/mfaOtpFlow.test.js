@@ -85,7 +85,10 @@ describe('OTP MFA flow', () => {
     expect(loginRes.body.mfa_required).toBe(true);
     expect(loginRes.body.user.mfa_verified).toBe(false);
 
-    const verifyRes = await agent.post('/api/auth/mfa/verify').send({ otp: '123456' });
+    const verifyRes = await agent
+      .post('/api/auth/mfa/verify')
+      .set('Authorization', `Bearer ${loginRes.body.token}`)
+      .send({ otp: '123456' });
     expect(verifyRes.status).toBe(200);
     expect(verifyRes.body.user.mfa_verified).toBe(true);
 

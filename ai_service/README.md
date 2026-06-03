@@ -83,7 +83,7 @@ pip install -r requirements.txt
 python suggestion_engine.py
 ```
 
-The service will start on `http://localhost:5000` by default.
+The service will start on `http://localhost:5001` by default.
 
 ### Environment Variables
 
@@ -91,9 +91,9 @@ Create a `.env` file in the ai_service directory:
 
 ```env
 FLASK_ENV=development
-PORT=5000
+PORT=5001
 DEBUG=True
-CORS_ORIGINS=http://localhost:3001,http://localhost:5174
+CORS_ORIGINS=http://localhost:3002,http://localhost:5173
 ```
 
 ## Testing
@@ -101,7 +101,7 @@ CORS_ORIGINS=http://localhost:3001,http://localhost:5174
 Test the priority calculation:
 
 ```bash
-curl -X POST http://localhost:5000/api/calculate-priority \
+curl -X POST http://localhost:5001/api/calculate-priority \
   -H "Content-Type: application/json" \
   -d '{"monthly_income": 8500, "is_senior": false, "is_pwd": true, "occupation": "Unemployed"}'
 ```
@@ -125,3 +125,4 @@ This service is designed to be called by the Node.js backend via HTTP requests. 
 - Environment-based configuration
 - Error handling for invalid requests
 - Health check endpoint for monitoring
+- Chatbot responses are built from `chatbot_data.py`; generated pickle model files are local artifacts and should not be committed.

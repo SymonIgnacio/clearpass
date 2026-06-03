@@ -9,7 +9,18 @@ lerna-debug.log*
 
 node_modules
 dist
+**/dist/
 dist-ssr
+coverage/
+**/coverage/
+__pycache__/
+**/__pycache__/
+*.pyc
+uploads/
+**/uploads/
+database/backups/
+**/database/backups/
+ai_service/*.pkl
 *.local
 
 # Editor directories and files

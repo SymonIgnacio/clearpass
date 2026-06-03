@@ -5,6 +5,27 @@ const path = require('path');
 const { PDFDocument: PDFLibDocument } = require('pdf-lib');
 const PizZip = require('pizzip');
 const Docxtemplater = require('docxtemplater');
+const { ROLES } = require('../config/roles');
+
+const DOCUMENT_DOWNLOAD_STAFF_ROLES = new Set([ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK]);
+
+const canDownloadDocumentRequest = (user, requestData) => {
+  if (!user || !requestData) {
+    return false;
+  }
+
+  if (DOCUMENT_DOWNLOAD_STAFF_ROLES.has(user.role)) {
+    return true;
+  }
+
+  if (user.role !== ROLES.RESIDENT) {
+    return false;
+  }
+
+  const requesterResidentId = String(user.resident_id || user.id || '');
+  const requestResidentId = String(requestData.resident_id || '');
+  return requestResidentId !== '' && requesterResidentId === requestResidentId;
+};
 
 /**
  * Document Controller
@@ -393,6 +414,13 @@ class DocumentController {
         return res.status(404).json({
           success: false,
           message: 'Approved document request not found',
+        });
+      }
+
+      if (!canDownloadDocumentRequest(req.user, requestData)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Insufficient permissions.',
         });
       }
 
@@ -1264,4 +1292,6 @@ class DocumentController {
   }
 }
 
-module.exports = new DocumentController();
+module.exports = Object.assign(new DocumentController(), {
+  canDownloadDocumentRequest,
+});

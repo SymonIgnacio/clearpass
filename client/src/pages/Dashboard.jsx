@@ -400,7 +400,7 @@ const Dashboard = () => {
 
   const transformItemForReportType = (reportType, item) => {
     switch (reportType) {
-      case 'blotter':
+      case 'blotter': {
         const complainant = JSON.parse(item.Complainant_Details || '{}')
         const respondent = JSON.parse(item.Respondent_Details || '{}')
         return [
@@ -412,6 +412,7 @@ const Dashboard = () => {
           item.Status || 'N/A',
           item.DateTime_Incident ? new Date(item.DateTime_Incident).toLocaleDateString() : 'N/A'
         ]
+      }
       case 'certificates':
         return [
           item.control_no || 'N/A',
@@ -437,7 +438,7 @@ const Dashboard = () => {
           item.is_active ? 'Active' : 'Inactive',
           item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'
         ]
-      case 'residents':
+      case 'residents': {
         const birthDate = item.Birthdate ? new Date(item.Birthdate) : null
         const age = birthDate ? new Date().getFullYear() - birthDate.getFullYear() : 'N/A'
         return [
@@ -450,6 +451,7 @@ const Dashboard = () => {
           item.Household_ID || 'N/A',
           'N/A' // Sitio not available in simplified query
         ]
+      }
       default:
         return []
     }
@@ -492,13 +494,14 @@ const Dashboard = () => {
         case 'users':
           endpoint = '/users'
           break
-        case 'residents':
+        case 'residents': {
           endpoint = '/residents'
           // Add query parameters for residents
           const residentParams = new URLSearchParams()
           if (filters.search) residentParams.append('search', filters.search)
           params = `?${residentParams}`
           break
+        }
         default:
           throw new Error(`Unknown report type: ${type}`)
       }

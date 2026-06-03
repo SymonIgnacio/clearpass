@@ -8,6 +8,7 @@ const { requireMfaForRoles } = require('../middleware/mfaMiddleware');
 
 module.exports = (db) => {
   const requireVerificationMfa = requireMfaForRoles([ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK]);
+  const requireAdminMfa = requireMfaForRoles([ROLES.ADMIN]);
   // User Management
   router.get('/roles', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {
     const [roles] = await db.execute('SELECT * FROM roles ORDER BY hierarchy_level');
@@ -36,14 +37,14 @@ module.exports = (db) => {
 
   // Staff Management
   router.get('/staff', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.getAllStaff));
-  router.post('/staff', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.createStaff));
-  router.put('/staff/:id', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.updateStaff));
-  router.delete('/staff/:id', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.deleteStaff));
+  router.post('/staff', verifyToken, requireAdminMfa, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.createStaff));
+  router.put('/staff/:id', verifyToken, requireAdminMfa, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.updateStaff));
+  router.delete('/staff/:id', verifyToken, requireAdminMfa, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.deleteStaff));
 
   // Role Management (CRUD)
-  router.post('/roles', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.createRole));
-  router.put('/roles/:id', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.updateRole));
-  router.delete('/roles/:id', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.deleteRole));
+  router.post('/roles', verifyToken, requireAdminMfa, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.createRole));
+  router.put('/roles/:id', verifyToken, requireAdminMfa, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.updateRole));
+  router.delete('/roles/:id', verifyToken, requireAdminMfa, verifyRole([ROLES.ADMIN]), asyncHandler(adminController.deleteRole));
 
   // Residents Verification Queue
   router.get('/residents-verification', verifyToken, verifyRole([ROLES.ADMIN]), asyncHandler(async (req, res) => {

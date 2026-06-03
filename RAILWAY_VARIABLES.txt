@@ -11,7 +11,7 @@ NODE_ENV=production
 PORT=3002
 
 # AI Service Connection
-AI_SERVICE_URL=https://clearpass-copy-production.up.railway.app
+AI_SERVICE_URL=http://ai-service.railway.internal:5001
 AI_SERVICE_ENABLED=true
 
 # Database Connection (Uses Railway Reference Variables)
@@ -24,3 +24,11 @@ DB_PORT=${{MySQL.MYSQLPORT}}
 
 # Security (IMPORTANT: Replace with a random string)
 JWT_SECRET=replace_this_with_a_secure_random_string_xyz123
+JWT_EXPIRES_IN=8h
+MFA_PENDING_JWT_EXPIRES_IN=15m
+MFA_ENFORCE_VERIFICATION=true
+
+# Browser and CORS
+FRONTEND_URL=https://your-clearpass-app.up.railway.app
+FRONTEND_URLS=https://your-clearpass-app.up.railway.app
+ALLOW_NO_ORIGIN_REQUESTS=false

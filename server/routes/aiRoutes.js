@@ -122,7 +122,7 @@ module.exports = (db) => {
   }));
 
   // POST Intelligent Patrol Suggestions
-  router.post('/patrol', verifyToken, checkRole(['admin', 'captain', 'officer']), asyncHandler(async (req, res) => {
+  router.post('/patrol', verifyToken, checkRole(['admin', 'captain', 'blotter_officer']), asyncHandler(async (req, res) => {
     if (!AI_SERVICE_ENABLED) {
       return res.status(503).json({ 
         success: false, 

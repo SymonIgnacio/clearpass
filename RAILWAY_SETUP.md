@@ -39,7 +39,7 @@ The AI Service must be deployed first so we can get its URL for the Main App.
     - **Settings** → **Watch Paths**: Set to `/ai_service/**`.
     - **Variables**: None required usually, unless you have specific AI keys.
     - **Networking**: Click **Generate Domain** (or note the internal service name, e.g., `ai-service.railway.internal`). You will need the **Private Networking URL** (recommended) or the Public Domain.
-      - _Note: Using the Private URL (e.g., `http://ai-service.railway.internal:5000`) is faster and more secure._
+      - _Note: Using the Private URL (e.g., `http://ai-service.railway.internal:5001`) is faster and more secure._
 
 ---
 

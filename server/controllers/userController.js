@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 exports.getAll = async (req, res) => {
   const db = req.app.locals.db;

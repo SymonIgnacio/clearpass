@@ -5,6 +5,9 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const { validateResident, validateId, validateSearch, sanitizeInput } = require('../middleware/validation');
 const residentController = require('../controllers/residentController');
 const { cacheMiddleware } = require('../utils/cache');
+const { validateUploadedFiles } = require('../utils/fileTypeValidation');
+
+const validateResidentDocuments = validateUploadedFiles(['jpeg', 'png', 'gif', 'pdf'], { maxSizeBytes: 5 * 1024 * 1024 });
 
 module.exports = (db) => {
   // GET all residents
@@ -34,16 +37,16 @@ module.exports = (db) => {
   router.get('/:id', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk']), validateId, asyncHandler(residentController.getById));
   
   // POST create resident with documents
-  router.post('/', verifyToken, enforceReadOnly, residentController.uploadMiddleware, sanitizeInput, checkRole(['admin', 'secretary', 'clerk']), validateResident, asyncHandler(residentController.create));
+  router.post('/', verifyToken, enforceReadOnly, residentController.uploadMiddleware, validateResidentDocuments, sanitizeInput, checkRole(['admin', 'secretary', 'clerk']), validateResident, asyncHandler(residentController.create));
   
   // POST open registration (no auth required)
-  router.post('/open-register', residentController.uploadMiddleware, sanitizeInput, asyncHandler(residentController.openRegister));
+  router.post('/open-register', residentController.uploadMiddleware, validateResidentDocuments, sanitizeInput, asyncHandler(residentController.openRegister));
   
   // POST check duplicate
   router.post('/check-duplicate', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(residentController.checkDuplicate));
   
   // PUT update resident
-  router.put('/:id', verifyToken, enforceReadOnly, residentController.uploadMiddleware, checkRole(['admin', 'secretary', 'clerk']), validateId, asyncHandler(residentController.update));
+  router.put('/:id', verifyToken, enforceReadOnly, residentController.uploadMiddleware, validateResidentDocuments, checkRole(['admin', 'secretary', 'clerk']), validateId, asyncHandler(residentController.update));
   
   // DELETE (archive) resident
   router.delete('/:id', verifyToken, enforceReadOnly, checkRole(['admin', 'secretary']), validateId, asyncHandler(residentController.archive));
@@ -58,7 +61,7 @@ module.exports = (db) => {
   router.get('/household/:id/members', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk']), asyncHandler(residentController.getHouseholdMembers));
   
   // POST file upload for verification
-  router.post('/verification/upload', verifyToken, residentController.uploadMiddleware, asyncHandler(residentController.uploadVerificationDocs));
+  router.post('/verification/upload', verifyToken, residentController.uploadMiddleware, validateResidentDocuments, asyncHandler(residentController.uploadVerificationDocs));
 
   router.get('/:id/documents', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident']), validateId, asyncHandler(residentController.listDocuments));
   router.get('/:id/documents/:docId/download', verifyToken, checkRole(['admin', 'captain', 'secretary', 'clerk', 'resident']), validateId, asyncHandler(residentController.downloadDocument));

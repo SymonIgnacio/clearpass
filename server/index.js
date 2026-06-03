@@ -1,4 +1,5 @@
 const path = require('path');
+const crypto = require('crypto');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const express = require('express');
@@ -9,33 +10,58 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const xssClean = require('xss-clean');
 
-// Environment validation
-function validateEnvironmentVariables() {
-  const requiredVars = ['DB_HOST', 'DB_USER', 'DB_NAME', 'JWT_SECRET'];
-  const missingVars = requiredVars.filter(varName => !process.env[varName]);
-
-  if (missingVars.length > 0) {
-    console.error('Missing required environment variables:', missingVars);
-    process.exit(1);
-  }
+try {
+  validateServerEnv();
+} catch (error) {
+  console.error(error.message);
+  process.exit(1);
 }
 
-validateEnvironmentVariables();
-
 const cookieParser = require('cookie-parser');
-const csrf = require('csurf');
 
-// CSRF protection setup
-const csrfProtection =
-  process.env.NODE_ENV === 'test'
-    ? (req, res, next) => next()
-    : csrf({
-        cookie: {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-        },
-      });
+const csrfExemptPaths = new Set(['/api/auth/login', '/api/resident-auth/login', '/api/resident-auth/register']);
+const csrfStateChangingMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const CSRF_COOKIE_NAME = 'csrfToken';
+const csrfCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+});
+const createCsrfToken = () => crypto.randomBytes(32).toString('hex');
+const getRequestCsrfToken = req => req.get('X-CSRF-Token') || req.get('X-XSRF-TOKEN');
+const tokensMatch = (left, right) => {
+  if (typeof left !== 'string' || typeof right !== 'string') {
+    return false;
+  }
+
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
+};
+const issueCsrfToken = (req, res, next) => {
+  const token = createCsrfToken();
+  res.cookie(CSRF_COOKIE_NAME, token, csrfCookieOptions());
+  req.csrfToken = () => token;
+  next();
+};
+const csrfForCookieAuth = (req, res, next) => {
+  if (!csrfStateChangingMethods.has(req.method) || csrfExemptPaths.has(req.path) || !req.cookies?.authToken) {
+    return next();
+  }
+
+  if (process.env.NODE_ENV === 'test') {
+    return next();
+  }
+
+  const cookieToken = req.cookies?.[CSRF_COOKIE_NAME];
+  const requestToken = getRequestCsrfToken(req);
+
+  if (!tokensMatch(cookieToken, requestToken)) {
+    return res.status(403).json({ error: 'Invalid CSRF token' });
+  }
+
+  return next();
+};
 
 // Import controllers
 const authController = require('./controllers/authController');
@@ -53,6 +79,8 @@ const { errorHandler } = require('./middleware/errorHandler');
 const { validateLogin } = require('./middleware/validation');
 const { auditMiddleware } = require('./middleware/auditLogger');
 const compressionMiddleware = require('./middleware/compression');
+const { createCorsOptions } = require('./config/cors');
+const { validateServerEnv } = require('./config/env');
 
 const app = express();
 const port = process.env.PORT || process.env.SERVER_PORT || 3002;
@@ -93,45 +121,7 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../client/dist')));
 }
 
-// CORS configuration
-const corsOrigins =
-  process.env.NODE_ENV === 'production'
-    ? [process.env.FRONTEND_URL].filter(Boolean)
-    : [
-        'http://localhost:3002',
-        'http://localhost:5173',
-        'http://localhost:5174',
-        'http://localhost:5175',
-      ];
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-
-      // Allow any Netlify or Vercel preview/production URL
-      if (
-        origin.endsWith('.netlify.app') ||
-        origin.endsWith('.vercel.app') ||
-        (process.env.NODE_ENV !== 'production' &&
-          (origin.includes('localhost') || origin.includes('127.0.0.1')))
-      ) {
-        return callback(null, true);
-      }
-
-      if (corsOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      console.warn('CORS blocked origin:', origin);
-      return callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
-  })
-);
+app.use(cors(createCorsOptions()));
 
 // Security middleware
 app.use(helmet());
@@ -142,12 +132,7 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(apiLimiter);
 
-// CSRF protection for state-changing operations (excluding login for now)
-// app.use('/api/auth/login', csrfProtection);
-app.use('/api/auth/logout', csrfProtection);
-app.use('/api/residents', csrfProtection);
-app.use('/api/blotter', csrfProtection);
-// app.use('/api/certificates', csrfProtection); // Temporarily disabled to fix 403 error
+app.use(csrfForCookieAuth);
 
 // Audit logging middleware (before routes)
 app.use(auditMiddleware({ auditAll: false }));
@@ -175,19 +160,8 @@ app.post('/api/auth/login', authLimiter, validateLogin, authController.login);
 app.post('/api/auth/logout', authController.logout);
 
 // CSRF token endpoint
-app.get('/api/csrf-token', csrfProtection, (req, res) => {
+app.get('/api/csrf-token', issueCsrfToken, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
-});
-
-app.get('/api/debug/users', async (req, res) => {
-  try {
-    const [users] = await app.locals.db.execute(
-      'SELECT id, username, role, password_hash FROM users'
-    );
-    res.json(users);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
 });
 
 // Add auth/me endpoint for authentication check

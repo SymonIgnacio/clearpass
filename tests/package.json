@@ -5,15 +5,9 @@
   "main": "comprehensive-role-tests.js",
   "scripts": {
     "test": "node run-tests.js",
-    "test:admin": "node -e \"require('./comprehensive-role-tests').testAdminRole()\"",
-    "test:clerk": "node -e \"require('./comprehensive-role-tests').testClerkRole()\"",
-    "test:officer": "node -e \"require('./comprehensive-role-tests').testOfficerRole()\"",
-    "test:resident": "node -e \"require('./comprehensive-role-tests').testResidentRole()\"",
-    "test:captain": "node -e \"require('./comprehensive-role-tests').testCaptainRole()\"",
-    "test:secretary": "node -e \"require('./comprehensive-role-tests').testSecretaryRole()\"",
-    "test:security": "node -e \"require('./comprehensive-role-tests').testSecurity()\"",
-    "test:system": "node -e \"require('./comprehensive-role-tests').testSystemFunctionality()\"",
-    "test:integration": "node -e \"require('./comprehensive-role-tests').testIntegrationWorkflows()\""
+    "test:permissions": "node test_permissions.cjs",
+    "test:login": "node simple_login_test.cjs",
+    "test:debug-login": "node debug_login.cjs"
   },
   "dependencies": {
     "supertest": "^6.3.3",

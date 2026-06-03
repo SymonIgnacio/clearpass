@@ -27,6 +27,47 @@ const normalizeRole = role => {
   return role;
 };
 
+const MFA_REQUIRED_ROLES = [
+  ROLES.ADMIN,
+  ROLES.SECRETARY,
+  ROLES.CLERK,
+  ROLES.BLOTTER_OFFICER,
+  ROLES.RESIDENT,
+];
+
+const AUTH_TOKEN_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
+const DEFAULT_AUTH_COOKIE_MAX_AGE_MS = 8 * 60 * 60 * 1000;
+
+const parseDurationToMs = value => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value * 1000;
+  }
+
+  const match = String(value || '').trim().match(/^(\d+)(ms|s|m|h|d)?$/i);
+  if (!match) {
+    return DEFAULT_AUTH_COOKIE_MAX_AGE_MS;
+  }
+
+  const amount = Number.parseInt(match[1], 10);
+  const unit = (match[2] || 's').toLowerCase();
+  const multipliers = {
+    ms: 1,
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+  };
+
+  return amount * multipliers[unit];
+};
+
+const authCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  maxAge: parseDurationToMs(AUTH_TOKEN_EXPIRES_IN),
+});
+
 const login = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -94,7 +135,7 @@ const login = async (req, res) => {
     }
 
     const mfaEnforced = isMfaEnforced();
-    const mfaRequired = mfaEnforced && [ROLES.RESIDENT].includes(normalizedRole);
+    const mfaRequired = mfaEnforced && MFA_REQUIRED_ROLES.includes(normalizedRole);
 
     if (mfaRequired) {
       if (!user.email) {
@@ -130,7 +171,7 @@ const login = async (req, res) => {
     // CLEARPASS: JWT with role (Database Aligned)
     const signOptions = mfaRequired
       ? { expiresIn: process.env.MFA_PENDING_JWT_EXPIRES_IN || '15m' }
-      : {};
+      : { expiresIn: AUTH_TOKEN_EXPIRES_IN };
 
     const token = jwt.sign(
       {
@@ -147,12 +188,7 @@ const login = async (req, res) => {
 
     // Set httpOnly cookie
     if (!mfaRequired) {
-      res.cookie('authToken', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year (effectively indefinite)
-      });
+      res.cookie('authToken', token, authCookieOptions());
     }
 
     const auditDetails = {
@@ -299,7 +335,7 @@ const requestMfaOtp = async (req, res) => {
     if (!mfaEnforced) {
       return res.status(400).json(createErrorResponse('MFA enforcement is disabled', 400));
     }
-    if (![ROLES.RESIDENT].includes(req.user.role)) {
+    if (!MFA_REQUIRED_ROLES.includes(req.user.role)) {
       return res.status(403).json(createErrorResponse('MFA not required for this role', 403));
     }
     if (req.user.mfa_verified === true) {
@@ -406,25 +442,21 @@ const verifyMfaOtpCode = async (req, res) => {
     const user = users[0];
     const normalizedRole = normalizeRole(user.role);
 
-    // Generate full JWT token (No expiration)
+    // Generate full JWT token after MFA verification.
     const token = jwt.sign(
       {
         id: user.id,
         username: user.username,
         role: normalizedRole,
         role_name: user.role_name,
+        resident_id: user.resident_id,
         mfa_verified: true,
       },
-      process.env.JWT_SECRET
-      // No expiresIn option means the token never expires
+      process.env.JWT_SECRET,
+      { expiresIn: AUTH_TOKEN_EXPIRES_IN }
     );
 
-    res.cookie('authToken', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax', // Needed for some cross-site scenarios, or 'strict' if same domain
-      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year (effectively indefinite)
-    });
+    res.cookie('authToken', token, authCookieOptions());
 
     const auditDetails = {
       user_id: user.id,

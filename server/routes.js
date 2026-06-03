@@ -5,6 +5,8 @@ const { verifyToken, verifyRole } = require('./middleware/authMiddleware');
 const { asyncHandler } = require('./middleware/errorHandler');
 const db = require('./database');
 const { allocateBlotterCaseNumber } = require('./utils/blotterCaseNumber');
+const { validateUploadedFiles } = require('./utils/fileTypeValidation');
+const { requireMfaForRoles } = require('./middleware/mfaMiddleware');
 
 // Configure multer for photo uploads
 const upload = multer({
@@ -32,6 +34,8 @@ const verificationUpload = multer({
     }
   },
 });
+const validateImageFiles = validateUploadedFiles(['jpeg', 'png', 'gif'], { maxSizeBytes: 5 * 1024 * 1024 });
+const validateVerificationFiles = validateUploadedFiles(['jpeg', 'png', 'gif', 'pdf'], { maxSizeBytes: 10 * 1024 * 1024 });
 
 // Controllers
 const authController = require('./controllers/authController');
@@ -54,6 +58,8 @@ const {
   validateChatbotMessage,
 } = require('./middleware/validate');
 const { ROLES } = require('./config/roles');
+const requireAdminMfa = requireMfaForRoles([ROLES.ADMIN]);
+const requireVerificationMfa = requireMfaForRoles([ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK]);
 
 /**
  * @swagger
@@ -202,31 +208,34 @@ router.get(
 
 // User Management Routes (IT Admin - All Users Management)
 router.get('/admin/users', verifyToken, verifyRole([ROLES.ADMIN]), adminController.getAllUsers);
-router.post('/admin/users', verifyToken, verifyRole([ROLES.ADMIN]), adminController.createUser);
-router.put('/admin/users/:id', verifyToken, verifyRole([ROLES.ADMIN]), adminController.updateUser);
+router.post('/admin/users', verifyToken, requireAdminMfa, verifyRole([ROLES.ADMIN]), adminController.createUser);
+router.put('/admin/users/:id', verifyToken, requireAdminMfa, verifyRole([ROLES.ADMIN]), adminController.updateUser);
 router.delete(
   '/admin/users/:id',
   verifyToken,
+  requireAdminMfa,
   verifyRole([ROLES.ADMIN]),
   adminController.deleteUser
 );
 router.get('/admin/roles', verifyToken, verifyRole([ROLES.ADMIN]), adminController.getAllRoles);
-router.post('/admin/roles', verifyToken, verifyRole([ROLES.ADMIN]), adminController.createRole);
-router.put('/admin/roles/:id', verifyToken, verifyRole([ROLES.ADMIN]), adminController.updateRole);
+router.post('/admin/roles', verifyToken, requireAdminMfa, verifyRole([ROLES.ADMIN]), adminController.createRole);
+router.put('/admin/roles/:id', verifyToken, requireAdminMfa, verifyRole([ROLES.ADMIN]), adminController.updateRole);
 router.delete(
   '/admin/roles/:id',
   verifyToken,
+  requireAdminMfa,
   verifyRole([ROLES.ADMIN]),
   adminController.deleteRole
 );
 
 // Staff Management Routes
 router.get('/admin/staff', verifyToken, verifyRole([ROLES.ADMIN]), adminController.getAllStaff);
-router.post('/admin/staff', verifyToken, verifyRole([ROLES.ADMIN]), adminController.createStaff);
-router.put('/admin/staff/:id', verifyToken, verifyRole([ROLES.ADMIN]), adminController.updateStaff);
+router.post('/admin/staff', verifyToken, requireAdminMfa, verifyRole([ROLES.ADMIN]), adminController.createStaff);
+router.put('/admin/staff/:id', verifyToken, requireAdminMfa, verifyRole([ROLES.ADMIN]), adminController.updateStaff);
 router.delete(
   '/admin/staff/:id',
   verifyToken,
+  requireAdminMfa,
   verifyRole([ROLES.ADMIN]),
   adminController.deleteStaff
 );
@@ -241,6 +250,7 @@ router.get(
 router.post(
   '/admin/verify-resident/:id',
   verifyToken,
+  requireVerificationMfa,
   verifyRole([ROLES.SECRETARY, ROLES.ADMIN]),
   adminController.verifyResident
 );
@@ -279,6 +289,7 @@ router.get(
 router.get(
   '/admin/reports/security',
   verifyToken,
+  requireAdminMfa,
   verifyRole([ROLES.ADMIN]),
   adminController.getSecurityReport
 );
@@ -303,10 +314,10 @@ router.get(
     res.json(users);
   })
 );
-router.post('/admin/users', verifyToken, verifyRole([ROLES.ADMIN]), (req, res) => {
+router.post('/admin/users', verifyToken, requireAdminMfa, verifyRole([ROLES.ADMIN]), (req, res) => {
   res.status(501).json({ message: 'User creation via API coming soon - use database directly' });
 });
-router.put('/admin/users/:id', verifyToken, verifyRole([ROLES.ADMIN]), (req, res) => {
+router.put('/admin/users/:id', verifyToken, requireAdminMfa, verifyRole([ROLES.ADMIN]), (req, res) => {
   res.status(501).json({ message: 'User update via API coming soon' });
 });
 router.get(
@@ -453,6 +464,7 @@ router.post(
   verifyToken,
   verifyRole([ROLES.RESIDENT]),
   upload.single('photo'),
+  validateImageFiles,
   (req, res) => {
     res.status(501).json({ message: 'Photo upload feature coming soon' });
   }
@@ -462,6 +474,7 @@ router.post(
   verifyToken,
   verifyRole([ROLES.RESIDENT]),
   verificationUpload.single('verification'),
+  validateVerificationFiles,
   (req, res) => {
     res.status(501).json({ message: 'Verification upload feature coming soon' });
   }

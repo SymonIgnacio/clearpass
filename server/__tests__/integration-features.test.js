@@ -152,11 +152,14 @@ describe('Integration & Cross-Feature Interactions Suite', () => {
       expect(Array.isArray(clerkAllowedResponse.body.data)).toBe(true);
     });
 
-    test('handles session management and logout', async () => {
-      // Debug users
+    test('does not expose debug user data or password hashes', async () => {
       const debugRes = await agent.get('/api/debug/users');
-      console.error('DEBUG USERS IN DB:', JSON.stringify(debugRes.body, null, 2));
 
+      expect(debugRes.status).toBe(404);
+      expect(JSON.stringify(debugRes.body)).not.toContain('password_hash');
+    });
+
+    test('handles session management and logout', async () => {
       // 1. Login as Admin
       const loginResponse = await agent.post('/api/auth/login').send({
         username: 'testadmin',

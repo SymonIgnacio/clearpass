@@ -41,6 +41,7 @@ export function ThemeModeProvider({ children }) {
       const next = { ...(parsed && typeof parsed === 'object' ? parsed : {}), darkMode: mode === 'dark' };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch {
+      // Ignore storage write errors and keep the in-memory theme mode.
     }
   }, [mode]);
 

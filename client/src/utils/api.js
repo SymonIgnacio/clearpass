@@ -36,13 +36,15 @@ export const apiRequest = async (endpoint, options = {}) => {
     headers['Content-Type'] = 'application/json';
   }
   
-  // Skip CSRF token for auth endpoints to avoid circular dependency
-  if (['POST', 'PUT', 'DELETE'].includes(options.method) && !endpoint.includes('/auth/')) {
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const skipsCsrf = normalizedEndpoint === '/auth/login';
+
+  if (['POST', 'PUT', 'DELETE'].includes(options.method) && !skipsCsrf) {
     try {
       headers = await addCsrfToken(headers);
     } catch (csrfError) {
       console.warn('CSRF token fetch failed:', csrfError);
-      // Continue without CSRF token for auth operations
+      // Continue so the server can make the final authorization decision.
     }
   }
   

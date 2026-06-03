@@ -52,6 +52,7 @@ const ROLE_MAP = {
   'captain': 2,
   'secretary': 3,
   'clerk': 4,
+  'officer': 6,
   'blotter_officer': 6,
   'resident': 12
 };

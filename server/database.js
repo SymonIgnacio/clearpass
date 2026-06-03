@@ -1,14 +1,10 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 const { allocateBlotterCaseNumber } = require('./utils/blotterCaseNumber');
+const { getDatabaseConfig } = require('./config/env');
 
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  // Force test database when running tests, regardless of .env DB_NAME
-  database: process.env.NODE_ENV === 'test' ? 'barangay_management_test' : (process.env.DB_NAME || 'barangay_management'),
-  port: process.env.DB_PORT || 3306,
+  ...getDatabaseConfig(),
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,

@@ -54,5 +54,15 @@ describe('document requests IDOR protections', () => {
     expect(mockDb.execute.mock.calls[0][0]).toMatch(/WHERE dr\.resident_id = \?/);
     expect(mockDb.execute.mock.calls[0][1]).toEqual(['RES-A']);
   });
+
+  test('download authorization allows only owner resident or approved staff roles', () => {
+    const { canDownloadDocumentRequest } = require('../controllers/documentController');
+    const requestData = { resident_id: 'RES-A' };
+
+    expect(canDownloadDocumentRequest({ id: 'RES-A', resident_id: 'RES-A', role: 12 }, requestData)).toBe(true);
+    expect(canDownloadDocumentRequest({ id: 'RES-B', resident_id: 'RES-B', role: 12 }, requestData)).toBe(false);
+    expect(canDownloadDocumentRequest({ id: 1, role: 1 }, requestData)).toBe(true);
+    expect(canDownloadDocumentRequest({ id: 2, role: 2 }, requestData)).toBe(false);
+  });
 });
 

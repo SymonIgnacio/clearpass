@@ -5,8 +5,10 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const { ROLES } = require('../config/roles');
 const DocumentController = require('../controllers/documentController');
 const { sendRequestStatusEmail } = require('../utils/emailService');
+const { requireMfaForRoles } = require('../middleware/mfaMiddleware');
 
 module.exports = (db) => {
+  const requireStaffMfa = requireMfaForRoles([ROLES.ADMIN, ROLES.SECRETARY, ROLES.CLERK]);
   // GET all document requests
   router.get('/requests', verifyToken, asyncHandler(async (req, res) => {
     const isResident = req.user.role === ROLES.RESIDENT;
@@ -81,7 +83,7 @@ module.exports = (db) => {
   router.get('/requests/:request_id/download', verifyToken, (req, res) => DocumentController.downloadDocument(req, res));
   
   // PUT update document request status
-  router.put('/requests/:id', verifyToken, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(async (req, res) => {
+  router.put('/requests/:id', verifyToken, requireStaffMfa, checkRole(['admin', 'secretary', 'clerk']), asyncHandler(async (req, res) => {
     const { status, notes } = req.body;
     
     if (!status) {

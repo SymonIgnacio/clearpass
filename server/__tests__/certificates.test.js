@@ -419,9 +419,6 @@ describe('Certificate Issuance Tests', () => {
         rollback: jest.fn(),
         release: jest.fn()
       };
-        commit: jest.fn(),
-        release: jest.fn()
-      };
 
       db.getConnection.mockResolvedValue(mockConnection);
       mockConnection.execute

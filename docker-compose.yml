@@ -8,7 +8,9 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_URL=http://localhost:3002/api
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3002/api}
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:3002/api}
+      - VITE_WS_URL=${VITE_WS_URL:-ws://localhost:3002}
     depends_on:
       - server
     volumes:
@@ -23,10 +25,21 @@ services:
       - "3002:3002"
     environment:
       - PORT=3002
-      - DB_HOST=host.docker.internal # Connects to host MySQL
-      - DB_USER=root
-      - DB_NAME=barangay_management
-      - AI_SERVICE_URL=http://ai-service:5001
+      - NODE_ENV=${NODE_ENV:-development}
+      - DB_HOST=${DB_HOST:-host.docker.internal}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_USER=${DB_USER:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-}
+      - DB_NAME=${DB_NAME:-barangay_management}
+      - JWT_SECRET=${JWT_SECRET:-dev-compose-jwt-secret-change-me-32-characters}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-8h}
+      - MFA_PENDING_JWT_EXPIRES_IN=${MFA_PENDING_JWT_EXPIRES_IN:-15m}
+      - MFA_ENFORCE_VERIFICATION=${MFA_ENFORCE_VERIFICATION:-false}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - FRONTEND_URLS=${FRONTEND_URLS:-http://localhost:5173}
+      - ALLOW_NO_ORIGIN_REQUESTS=${ALLOW_NO_ORIGIN_REQUESTS:-false}
+      - AI_SERVICE_URL=http://ai-service:${AI_SERVICE_PORT:-5001}
+      - AI_SERVICE_ENABLED=${AI_SERVICE_ENABLED:-true}
     depends_on:
       - ai-service
     volumes:
@@ -40,8 +53,11 @@ services:
       context: ./ai_service
       dockerfile: Dockerfile
     ports:
-      - "5001:5001"
+      - "${AI_SERVICE_PORT:-5001}:${AI_SERVICE_PORT:-5001}"
     environment:
-      - PORT=5001
+      - PORT=${AI_SERVICE_PORT:-5001}
+      - FLASK_ENV=${FLASK_ENV:-development}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - BACKEND_URL=${BACKEND_URL:-http://server:3002}
     volumes:
       - ./ai_service:/app
